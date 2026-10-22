@@ -1,0 +1,16 @@
+{
+  "status": "SOURCE_ONLY_CONDITIONAL_REVIEW_NO_APPLICATION",
+  "foundationManifestSHA256": "56e0e2bd29c2c9c7867ebf4658b112480413abd150829a2b0ce2b12b09caefa7",
+  "foundationInventorySHA256": "332a9b81d1dc5608f87cf3f0f9d270f9cfc2655ed874c761952b07506e4071bc",
+  "artifactPinsChecked": 47,
+  "evidenceReportPinsChecked": 12,
+  "currentUITextPinsChecked": 23,
+  "relativeHunksChecked": 91,
+  "selectedHunkBodyPinsChecked": 45,
+  "foreignHunks": 46,
+  "newPureThemeTextPinsChecked": 5,
+  "mismatches": [],
+  "compiler": "UNRUN",
+  "native": "UNRUN",
+  "resources": "NOT_READ"
+}

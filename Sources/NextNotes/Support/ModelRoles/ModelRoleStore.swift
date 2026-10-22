@@ -47,9 +47,11 @@ enum ModelRole: String, CaseIterable, Codable, Sendable, Identifiable {
     /// cosmetic, and both were being hidden:
     ///
     /// * The model runtime inside Next Notes loads exactly one of your own model files at a
-    ///   time — the one `InstalledModelLibrary.activeAgentModelID` names. Pointing a second
-    ///   job at a different file cannot work; that job would quietly get the assistant's
-    ///   model instead. So a file from the library belongs to the everyday assistant.
+    ///   time. A file from the library can therefore answer the everyday assistant and
+    ///   write meeting notes — the two jobs whose provider is chosen here — and nothing
+    ///   else. Owner decision 2026-10-04: both default to the same MiniCPM file the
+    ///   dictation cleanup already keeps resident, so the one loaded file serves every
+    ///   job and nothing swaps (see `defaultChoice(for:)`).
     /// * An agent app is a separate program handed a task in a project folder. It can take
     ///   coding work, which is what `AgentHarnessRouter` delegates. It never answers an
     ///   everyday question here.
@@ -64,7 +66,7 @@ enum ModelRole: String, CaseIterable, Codable, Sendable, Identifiable {
     func canUse(_ choice: ModelRoleChoice) -> Bool {
         switch choice {
         case .builtIn, .appleFoundation, .localServer, .cloud: true
-        case .installedModel: self == .agent
+        case .installedModel: self == .agent || self == .meetingNotes
         case .app(let harness):
             self == .coding || (self == .computerUse && harness == .codex)
         }
@@ -78,7 +80,8 @@ enum ModelRole: String, CaseIterable, Codable, Sendable, Identifiable {
         switch choice {
         case .installedModel:
             return "Next Notes can run one of your own model files at a time, and that one "
-                + "belongs to your everyday assistant — so it uses its built-in model here."
+                + "answers your questions and writes your notes — so it uses its built-in "
+                + "model here."
         case .app(let harness):
             switch self {
             case .computerUse:
@@ -308,23 +311,23 @@ final class ModelRoleStore {
         failures: ModelOpenFailureStore = .shared,
         notice: ModelLoadNotice = .shared
     ) {
-        self.defaults = defaults
+        self.defaults = SelfTest.requested == "--selftest-settings-sheet" ? SelfTestHarnessDefaults.suite : defaults
         self.catalog = catalog ?? LocalRuntimeCatalog.shared
         self.library = library
         self.runtime = runtime
         self.failures = failures
         self.notice = notice
         self.availability = availability ?? .nothingInstalled
-        self.shownRepairKeys = Set(defaults.stringArray(forKey: Self.repairNoticesKey) ?? [])
+        self.shownRepairKeys = Set(self.defaults.stringArray(forKey: Self.repairNoticesKey) ?? [])
         var stored: [ModelRole: ModelRoleChoice] = [:]
         for role in ModelRole.allCases {
-            if let token = defaults.string(forKey: Self.key(for: role)),
+            if let token = self.defaults.string(forKey: Self.key(for: role)),
                let choice = ModelRoleChoice(token: token) {
                 stored[role] = choice
             }
         }
         choices = stored
-        if availability == nil {
+        if availability == nil, SelfTest.requested != "--selftest-settings-sheet" {
             seedAvailabilityFromDisk()
             adoptExistingAgentModelChoice()
         }
@@ -363,10 +366,12 @@ final class ModelRoleStore {
 
     // MARK: - Defaults
 
-    /// Exactly what the product asks for: answers and the assistant run on the model that
-    /// came with the app; driving the Mac goes to Codex; code goes to Claude Code. Each of
-    /// the last two comes back to the built-in model when that app is not installed, which
-    /// is what `resolve` does rather than what is stored here.
+    /// The floor, for a Mac without the shared local brain: answers and notes run on the
+    /// model that came with the app; driving the Mac goes to Codex; code goes to Claude
+    /// Code. Each of the last two comes back to the built-in model when that app is not
+    /// installed, which is what `resolve` does rather than what is stored here. When the
+    /// MiniCPM file is installed the instance `defaultChoice(for:)` moves the first two
+    /// onto it (owner decision 2026-10-04).
     static func defaultChoice(for role: ModelRole) -> ModelRoleChoice {
         switch role {
         case .agent: .builtIn
@@ -376,10 +381,42 @@ final class ModelRoleStore {
         }
     }
 
+    /// The default for a role nobody has set, on this Mac.
+    ///
+    /// Owner decision 2026-10-04: MiniCPM5-2B is the one local brain. When its file is in
+    /// the library and can answer, an unset Agent or Meeting-notes role resolves to that
+    /// same file — the one dictation cleanup keeps resident — so a notes pass or a local
+    /// agent turn never unloads it for another file and the next dictation never pays a
+    /// reload. Only the unset default moves: a stored choice, `builtin` included, is the
+    /// person's and is read back as written. The other files on disk stay selectable for
+    /// benchmarking; they are never a default.
+    func defaultChoice(for role: ModelRole) -> ModelRoleChoice {
+        guard role == .agent || role == .meetingNotes, let id = sharedLocalModelID else {
+            return Self.defaultChoice(for: role)
+        }
+        return .installedModel(id: id)
+    }
+
+    /// The library row for the pinned MiniCPM artifact, when it is the exact file
+    /// (`MiniCPMModels.spec`: name and size, and the pinned digest whenever the row carries
+    /// a verified one) and it can answer here. In-memory reads only, so it is cheap enough
+    /// for every resolution.
+    var sharedLocalModelID: String? {
+        let pin = MiniCPMModels.spec
+        guard let row = library.usableModels.first(where: {
+            $0.fileURL.lastPathComponent == pin.fileName && $0.bytes == pin.expectedBytes
+        }) else { return nil }
+        if let verified = row.verifiedArtifact, let expected = pin.expectedSHA256,
+           verified.sha256.lowercased() != expected.lowercased() {
+            return nil
+        }
+        return isAnswerable(row.id) ? row.id : nil
+    }
+
     // MARK: - Reading and writing the choice
 
     func choice(for role: ModelRole) -> ModelRoleChoice {
-        choices[role] ?? Self.defaultChoice(for: role)
+        choices[role] ?? defaultChoice(for: role)
     }
 
     func setChoice(_ choice: ModelRoleChoice, for role: ModelRole) {
@@ -616,8 +653,9 @@ final class ModelRoleStore {
 
         case .installedModel(let id):
             // The llama runtime loads whichever file the library points at. Only the
-            // assistant role reaches this branch — `canUse` sent the others to the built-in
-            // model above, rather than letting them take over the file it loads.
+            // assistant and meeting-notes roles reach this branch — `canUse` sent the others
+            // to the built-in model above. Selecting the file already loaded is a no-op, so
+            // two roles on the same file never swap it.
             //
             // Resolution is read-only and deterministic. It classifies the file if nobody
             // has yet, refuses one the probe cannot open or a real load already failed on,
@@ -802,6 +840,7 @@ final class ModelRoleStore {
     /// Settings calls it when it opens and when the user asks to check again, and the app
     /// calls it once at launch.
     func refreshAvailability() async {
+        guard SelfTest.requested != "--selftest-settings-sheet" else { return }
         guard !isCheckingAvailability else { return }
         isCheckingAvailability = true
         defer { isCheckingAvailability = false }
@@ -902,11 +941,27 @@ final class ModelRoleStore {
     /// is on disk. A downloaded app whose ACP adapter is missing cannot run a turn, and
     /// saying it is ready would mean a failure at the moment the user asked for something.
     static func installedAgentApps() -> Set<AgentHarnessID> {
+        guard SelfTest.requested != "--selftest-settings-sheet" else { return [] }
         var found: Set<AgentHarnessID> = []
         for harness in AgentHarnessID.allCases where harness != .local {
             if ACPAgentBackend.isOnPATH(harness.acpCLI) { found.insert(harness) }
         }
         return found
+    }
+
+    func settingsSheetIsolationFailures() -> [String] {
+        guard SelfTest.requested == "--selftest-settings-sheet" else { return ["Wrong role fixture scope"] }
+        var failures: [String] = []
+        if defaults !== SelfTestHarnessDefaults.suite { failures.append("Role choices used owner preferences") }
+        if !choices.isEmpty || !shownRepairKeys.isEmpty { failures.append("Role fixture contains retained choices") }
+        if isCheckingAvailability || availability.builtInModelReady || availability.appleFoundationReady
+            || !availability.installedModelIDs.isEmpty || !availability.localServerModels.isEmpty
+            || !availability.localServerNames.isEmpty || !availability.installedApps.isEmpty || availability.cloudReady
+            || availability.codexComputerUse != .codexMissing {
+            failures.append("Role availability is not the unchecked placeholder")
+        }
+        failures += catalog.settingsSheetIsolationFailures()
+        return failures
     }
 
     /// Lets a self-test drive resolution without touching this Mac.

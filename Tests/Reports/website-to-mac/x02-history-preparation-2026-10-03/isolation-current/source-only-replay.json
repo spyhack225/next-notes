@@ -1,0 +1,11 @@
+{
+  "status": "COPY_ONLY_REPLAY_UNCOMPILED_UNRUN",
+  "base": "parent a6c03bb9 COMMON fixture",
+  "checks": [
+    {
+      "patch": "ADD-isolated-root.patch",
+      "exactPostimage": true,
+      "paths": 1
+    }
+  ]
+}

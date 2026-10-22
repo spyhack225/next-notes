@@ -1,0 +1,4 @@
+--- a/Sources/NextNotes/UI/Components/GlassSurface.swift
++++ b/Sources/NextNotes/UI/Components/GlassSurface.swift
+@@ -19 +18,0 @@ struct GlassSurfaceModifier<S: Shape>: ViewModifier {
+-    let material: SwiftUI.Material

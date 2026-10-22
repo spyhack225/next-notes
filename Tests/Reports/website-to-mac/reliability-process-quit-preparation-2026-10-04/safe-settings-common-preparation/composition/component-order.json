@@ -1,0 +1,13 @@
+{
+  "COMMON_stages": [
+    "settings-metadata/COMMON.patch.txt",
+    "app-integration/COMMON-app-integration.patch.txt",
+    "admission-notes/COMMON-native-termination.patch.txt",
+    "admission-notes/COMMON-notes-fixture.patch.txt",
+    "admission-notes/selector-revision/COMMON-selector-from-frozen.patch.txt",
+    "bootstrap-root-revision/COMMON-app-entry-from-frozen.patch.txt",
+    "bootstrap-root-revision/COMMON-meeting-root-from-selector.patch.txt"
+  ],
+  "FIXED_stage": "settings-metadata/FIXED-from-COMMON.patch.txt",
+  "excluded_alternative_manifest": "ea43753c4bbd6dfec3a5fbc9b2905dbbfa76ff37b37b0751b4edc1fd99db45e4"
+}

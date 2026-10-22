@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "id": "2026-10-08-agent-acceptance",
+  "title": "Agent quality, voice and model workload audit",
+  "date": "2026-10-08",
+  "category": "agent",
+  "status": "partial",
+  "scope": "Retained production-path reports, not a fresh run",
+  "summary": "Quick 9\u201310/10; full 25/30 and 23/30; owner 8/9. Full acceptance remains open.",
+  "environment": {
+    "hardware": "Not fully recorded; consult original evidence"
+  },
+  "provenance": {
+    "kind": "historical evidence import",
+    "build": "See original evidence; not re-run by hub"
+  },
+  "metrics": [
+    {
+      "name": "Full quality run A",
+      "value": 25,
+      "unit": "of 30",
+      "boundary": "Retained full suite",
+      "samples": 30,
+      "aggregation": "suite result"
+    },
+    {
+      "name": "Full quality run B",
+      "value": 23,
+      "unit": "of 30",
+      "boundary": "Retained full suite",
+      "samples": 30,
+      "aggregation": "suite result"
+    },
+    {
+      "name": "Required owner cases",
+      "value": 8,
+      "unit": "of 9",
+      "boundary": "Retained required owner cases",
+      "samples": 9,
+      "aggregation": "suite result"
+    }
+  ],
+  "limitations": [
+    "Quick success does not pass full or required owner cases.",
+    "Source audit combines evidence from distinct pins; consult linked primary reports before comparison."
+  ],
+  "sources": [
+    "Tests/Reports/agent-overhaul-progress/2026-10-08-status-audit.md"
+  ],
+  "publication": {
+    "approved": true,
+    "reviewed_by": "benchmark-hub-20261022",
+    "reviewed_on": "2026-10-22"
+  }
+}

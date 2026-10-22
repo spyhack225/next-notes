@@ -17,6 +17,8 @@ enum GoogleTokenStore {
     static var hasRefreshToken: Bool { refreshToken != nil }
 
     static var refreshToken: String? {
+        // A shareable Settings fixture must never inspect the login Keychain.
+        guard SelfTest.requested != "--selftest-settings-sheet" else { return nil }
         var query = baseQuery
         query[kSecReturnData as String] = true
         query[kSecMatchLimit as String] = kSecMatchLimitOne

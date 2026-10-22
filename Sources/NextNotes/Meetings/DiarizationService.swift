@@ -1,3 +1,4 @@
+import FluidAudio
 import Foundation
 import Observation
 
@@ -16,6 +17,12 @@ final class DiarizationService {
     private(set) var progress: [UUID: Double] = [:]
     /// The last failure per meeting, for the banner in the detail view.
     private(set) var problems: [UUID: String] = [:]
+    /// A decision to *not* identify speakers, and why. Separate from
+    /// `problems` on purpose: the failure slot is what holds a recording for a
+    /// retry and what keeps the retention sweep away from a file, and a
+    /// meeting that was refused needs neither. A refusal is shown, and it
+    /// offers no retry, because retrying it would refuse again.
+    private(set) var refusals: [UUID: String] = [:]
     /// Bumped whenever a transcript's speaker labels change, so a view showing them knows to
     /// re-read. `MeetingStore` caches transcripts, and nothing else observes that cache.
     private(set) var revision = 0
@@ -98,7 +105,11 @@ final class DiarizationService {
 
     func isRunning(_ id: UUID) -> Bool { tasks[id] != nil }
     func fraction(for id: UUID) -> Double? { progress[id] }
+    /// A failure that is worth another try. Never a refusal.
     func problem(for id: UUID) -> String? { problems[id] }
+    /// A decision to not identify speakers, and the reason. Shown to the
+    /// person; never holds the recording and never offers a retry.
+    func refusal(for id: UUID) -> String? { refusals[id] }
 
     /// Advances the watchdog's clock for one pass.
     private func noteProgress(_ id: UUID) { lastProgressAt[id] = Date() }
@@ -107,7 +118,21 @@ final class DiarizationService {
     /// `MeetingStore.releaseAudio` was holding the recording for.
     func clearProblem(for id: UUID) {
         problems[id] = nil
+        refusals[id] = nil
         store.releaseAudio(for: id)
+    }
+
+    /// Withdraws a refusal, which is what dismissing its banner does.
+    func clearRefusal(for id: UUID) {
+        refusals[id] = nil
+    }
+
+    /// The automatic pipeline path's refusal, recorded so the detail view's banner
+    /// says why the speakers won't be told apart instead of leaving "Others"
+    /// unexplained. Same admission as a run: a live pass owns the problem slot.
+    func noteRefusal(_ id: UUID, decision: DiarizationEligibility.Decision) {
+        guard !terminationRequested, tasks[id] == nil, let message = decision.problem else { return }
+        refusals[id] = message
     }
 
     /// Identifies speakers and then hands the meeting to whatever comes next.
@@ -251,15 +276,30 @@ final class DiarizationService {
         }
 
         guard acceptsOwner(id, binding), let meeting = store.meeting(id: id) else { return false }
-        guard let audio = store.audioURL(for: meeting) else {
-            problems[id] = DiarizationError.noAudio.localizedDescription
+        // The same eligibility the automatic pipeline path runs, before the diarizer
+        // loads: known lost remote audio is refused in plain words instead of
+        // reaching the clusterer and coming back "No speech detected in audio".
+        var audio: URL?
+        let eligibility = DiarizationEligibility.admit(
+            captureIntegrity: meeting.captureIntegrity,
+            hasAudio: store.audioURL(for: meeting) != nil,
+            recordingSeconds: meeting.captureIntegrity?.recordedSeconds
+        ) { audio = store.audioURL(for: meeting) }
+        guard eligibility == .run, let audio else {
+            let message = eligibility.problem ?? DiarizationError.noAudio.localizedDescription
+            // A refusal replaces whatever was there: a failed attempt followed by
+            // a refused one must not leave two banners, and the recording must
+            // not be held for a failure that is no longer current.
+            problems[id] = nil
+            refusals[id] = message
             errorClass = .other
-            errorMessage = DiarizationError.noAudio.localizedDescription
+            errorMessage = message
             return false
         }
 
         progress[id] = 0
         problems[id] = nil
+        refusals[id] = nil
         noteProgress(id)
         // M-16a: the diarization pass is a stage span. The note carries runs,
         // speakers and audio seconds, or the error's type name — never the
@@ -275,12 +315,23 @@ final class DiarizationService {
             // The system channel alone. Mixing the microphone back in would hand the
             // clusterer the user's own voice as a speaker in a track whose entire purpose is
             // to contain everyone else.
-            let samples = try AudioConversion.samples(
-                fromFileAt: audio,
-                sampleRate: ChunkedTranscriber.sampleRate,
-                channel: MeetingAudioWriter.systemChannel
-            )
-            audioSeconds = Double(samples.count) / ChunkedTranscriber.sampleRate
+            let samples: [Float]
+            let boundedSamples: (any AudioSampleSource)?
+            if AudioConversion.usesBoundedMeetingAudioExperiment {
+                let range = try AudioConversion.meetingSampleSource(
+                    fromFileAt: audio, channel: MeetingAudioWriter.systemChannel)
+                boundedSamples = range
+                samples = []
+                audioSeconds = Double(range.sampleCount) / ChunkedTranscriber.sampleRate
+            } else {
+                boundedSamples = nil
+                samples = try AudioConversion.samples(
+                    fromFileAt: audio,
+                    sampleRate: ChunkedTranscriber.sampleRate,
+                    channel: MeetingAudioWriter.systemChannel
+                )
+                audioSeconds = Double(samples.count) / ChunkedTranscriber.sampleRate
+            }
 
             // P0-20b: awaiting the load here is what makes `warm`/`loadMs` measurable; for a
             // track `speakerRuns` will cluster, that call does exactly this load anyway.
@@ -303,7 +354,7 @@ final class DiarizationService {
             hint = forcedSpeakers.map { SpeakerCountHint(numSpeakers: $0) }
                 ?? SpeakerCountHint.for(meeting)
             guard acceptsOwner(id, binding) else { throw CancellationError() }
-            let runs = try await MeetingDiarizer.shared.speakerRuns(in: samples, hint: hint) { fraction in
+            let reportProgress: @Sendable (Double) -> Void = { fraction in
                 Task { @MainActor [weak self] in
                     guard let self else { return }
                     let operation: @MainActor () -> Void = { [weak self] in
@@ -314,10 +365,18 @@ final class DiarizationService {
                     operation()
                 }
             }
+            let runs: [MeetingDiarizer.SpeakerRun]
+            if let boundedSamples {
+                runs = try await MeetingDiarizer.shared.speakerRuns(in: boundedSamples, hint: hint, progress: reportProgress)
+            } else {
+                runs = try await MeetingDiarizer.shared.speakerRuns(in: samples, hint: hint, progress: reportProgress)
+            }
             runsCount = runs.count
             guard acceptsOwner(id, binding) else { throw CancellationError() }
             try Task.checkCancellation()
             guard !runs.isEmpty else {
+                refusals[id] = DiarizationEligibility.noRunsMessage(
+                    captureIntegrity: meeting.captureIntegrity)
                 Log.meeting.info("diarization found no speech on the system track")
                 LatencyTrace.record(
                     .meetingDiarize,
@@ -371,7 +430,10 @@ final class DiarizationService {
                 seconds: ChunkedTranscriber.seconds(began.duration(to: .now)),
                 note: "error=\(type(of: error))"
             )
-            problems[id] = error.localizedDescription
+            // The engine's own words — a model name, a batch size, a file path
+            // — are for the log, not for a person reading a banner.
+            problems[id] = DiarizationEligibility.problemMessage(for: error)
+                ?? DiarizationEligibility.engineUnavailableMessage
             Log.meeting.error("diarization failed: \(error.localizedDescription, privacy: .public)")
             return false
         }
@@ -386,10 +448,12 @@ final class DiarizationService {
         }
         revision += 1
         let surviving = Set(MeetingDiarizer.labels(in: labelled))
-        if var updated = store.meeting(id: id),
-           updated.speakerNames.contains(where: { !surviving.contains($0.key) }) {
-            updated.speakerNames = updated.speakerNames.filter { surviving.contains($0.key) }
-            store.save(updated)
+        if var updated = store.meeting(id: id) {
+            let merged = Self.mergedSpeakerNames(updated.speakerNames, labels: surviving)
+            if merged != updated.speakerNames {
+                updated.speakerNames = merged
+                store.save(updated)
+            }
         }
         // An injected isolated store must never initialize the owner's singleton.
         if let providedContextStore {
@@ -465,4 +529,159 @@ final class DiarizationService {
             scheduleID: nil
         ))
     }
+
+    /// What of the person's saved name map survives a labelling pass: every label
+    /// the pass still uses keeps its name, a label the pass retired is pruned, and
+    /// a label nobody has named yet gains no entry. Pure so the self-test can pin
+    /// the over-split merge without a store or a model.
+    nonisolated static func mergedSpeakerNames(
+        _ prior: [String: String], labels: Set<String>
+    ) -> [String: String] {
+        prior.filter { labels.contains($0.key) }
+    }
+}
+
+/// One eligibility decision, shared by the automatic pipeline path and both
+/// manual ones (MR-06). Three states, kept apart on purpose:
+///
+/// - `.run` — the other speakers' saved audio is intact enough to cluster.
+/// - `.refuseIncompleteRemoteAudio` — known capture loss on the system track.
+///   Without this the clusterer would return nothing and the person would be
+///   told "No speech detected in audio", which is a lie about a recording
+///   problem.
+/// - `.refuseNoAudio` — no saved audio at all: a live-only meeting.
+///
+/// After this gate a genuine "no speech" from the clusterer can only mean the
+/// saved other-speakers track was present, intact and silent — a different
+/// sentence for a different fact.
+enum DiarizationEligibility {
+    enum Decision: Equatable, Sendable {
+        case run
+        case refuseIncompleteRemoteAudio
+        case refuseNoAudio
+
+        var problem: String? {
+            switch self {
+            case .run: nil
+            case .refuseIncompleteRemoteAudio: DiarizationEligibility.refuseIncompleteRemoteAudioMessage
+            case .refuseNoAudio: DiarizationError.noAudio.localizedDescription
+            }
+        }
+    }
+
+    /// The other speakers' audio from this meeting was not fully saved, so
+    /// speakers can't be told apart reliably.
+    ///
+    /// Nothing is said about the person's own audio: the microphone can be
+    /// short too, and a sentence claiming otherwise is a sentence that can be
+    /// false.
+    static let refuseIncompleteRemoteAudioMessage =
+        "The other speakers' audio from this meeting was not fully saved, so speakers can't be told apart reliably."
+    /// No speech was found in the other speakers' audio, so they couldn't be
+    /// told apart. The engine's own "No speech detected in audio" reaches the
+    /// banner only when this sentence is wrong about it.
+    static let noChannelSpeechMessage =
+        "No speech was found in the other speakers' audio, so they couldn't be told apart."
+
+    /// The share of a recording that has to be missing before the whole meeting
+    /// loses its speaker attribution.
+    ///
+    /// Below it the pass still runs: the intact part of the track is worth
+    /// identifying, and the damaged part is already disclosed by the coverage
+    /// facts. Above it, the survivors would be a sample of the call presented
+    /// as the call, and the person would read a partial answer as a whole one.
+    static let materialLossFraction = 0.2
+
+    static func decision(
+        for source: AudioSource = .system,
+        captureIntegrity: MeetingCaptureIntegrity?,
+        hasAudio: Bool,
+        recordingSeconds: TimeInterval? = nil
+    ) -> Decision {
+        guard hasAudio else { return .refuseNoAudio }
+        guard captureIntegrity?.hasKnownSavedAudioLoss(on: source) == true else { return .run }
+        // A loss whose extent is measured, and small, does not take the whole
+        // meeting's attribution with it. The loss is the tail after the
+        // boundary — the part that is not in the recording — and the fraction
+        // is of the recording's own length.
+        if let boundary = boundarySeconds(captureIntegrity, source: source),
+           let recordingSeconds, recordingSeconds > 0 {
+            let lost = max(0, recordingSeconds - boundary)
+            if lost / recordingSeconds < materialLossFraction { return .run }
+        }
+        return .refuseIncompleteRemoteAudio
+    }
+
+    /// The position on the recording's own clock at which a track stopped
+    /// carrying real audio, when the producer measured one.
+    ///
+    /// This is where the track goes quiet, not how much was lost: the loss is
+    /// everything after it.
+    static func boundarySeconds(
+        _ integrity: MeetingCaptureIntegrity?,
+        source: AudioSource
+    ) -> TimeInterval? {
+        guard let integrity else { return nil }
+        let rate = ChunkedTranscriber.sampleRate
+        guard rate > 0 else { return nil }
+        // The EARLIEST boundary on the track: a loss that starts earlier is the
+        // one that bounds what the track covers, and the coverage evaluator,
+        // the diarizer and the notes all read this number.
+        var samples: [Int64] = []
+        if source == .system, let silent = integrity.systemSilentAfterSample {
+            samples.append(silent)
+        }
+        for warning in integrity.coverageWarnings ?? []
+        where warning.track == source && warning.kind.isSavedLoss {
+            samples.append(warning.atSample)
+        }
+        guard let earliest = samples.min() else { return nil }
+        return TimeInterval(earliest) / rate
+    }
+
+    /// The one admission hop: `load` runs only when the meeting may be
+    /// diarized, so a refused meeting never reaches the diarizer's first read.
+    /// The self-test's spy closure proves it; production's load resolves the
+    /// audio URL.
+    static func admit(
+        for source: AudioSource = .system,
+        captureIntegrity: MeetingCaptureIntegrity?,
+        hasAudio: Bool,
+        recordingSeconds: TimeInterval? = nil,
+        load: () -> Void
+    ) -> Decision {
+        let outcome = decision(
+            for: source, captureIntegrity: captureIntegrity,
+            hasAudio: hasAudio, recordingSeconds: recordingSeconds)
+        if outcome == .run { load() }
+        return outcome
+    }
+
+    /// The message a clustering pass that found nothing leaves behind: known
+    /// lost remote audio stays the incomplete sentence, never "no speech".
+    static func noRunsMessage(captureIntegrity: MeetingCaptureIntegrity?) -> String {
+        if captureIntegrity?.hasKnownSavedAudioLoss(on: .system) == true {
+            return refuseIncompleteRemoteAudioMessage
+        }
+        return noChannelSpeechMessage
+    }
+
+    /// FluidAudio's "no speech" is honest after the eligibility gate: the saved
+    /// track was present and intact and the clusterer still found nothing.
+    static func problemMessage(for error: Error) -> String? {
+        guard let engine = error as? OfflineDiarizationError else { return nil }
+        switch engine {
+        case .noSpeechDetected:
+            return noChannelSpeechMessage
+        case .modelNotLoaded:
+            return DiarizationError.notPrepared.localizedDescription
+        case .invalidConfiguration, .invalidBatchSize, .processingFailed, .exportFailed:
+            return engineUnavailableMessage
+        }
+    }
+
+    /// The speaker models could not be used. The engine's own wording stays in
+    /// the log; a person reading a banner does not need "Invalid batch size".
+    static let engineUnavailableMessage =
+        "The speaker models could not be used on this recording, so the speakers couldn't be told apart."
 }

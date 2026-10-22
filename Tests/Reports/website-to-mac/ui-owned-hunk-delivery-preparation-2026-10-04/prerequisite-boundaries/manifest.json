@@ -1,0 +1,8 @@
+{
+  "status": "HISTORICAL_PREREQUISITE_AND_FOREIGN_BOUNDARY_MAP_ONLY",
+  "artifacts": {
+    "README.md": "d990157f0390bf0a71dfc7cf40d6a1478b69fb8bab3a5010d603d2e55bafae12",
+    "groups.json": "8629c6756db71e27ad693400c2058dbcaacfcf096a22cd15959b3711a3df3880",
+    "input-pins.json": "0a4502ad15d024ca4250227f86f391a579fb4589687c09f36c5c84945401bcb2"
+  }
+}

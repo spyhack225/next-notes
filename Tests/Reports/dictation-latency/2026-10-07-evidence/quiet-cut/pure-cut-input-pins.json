@@ -1,0 +1,19 @@
+{
+  "preparedOnly": true,
+  "sourceWrites": false,
+  "publicInputSHA256": "409ee48c5033c947f45413d71ca2a162097b9f220995bb8e613579a23b315000",
+  "goldNativeReference": "exact7word direct recognition confirmed in signedfifth",
+  "paths": {
+    "DictationSegmenter.candidate.swift": "b87b448013837a4c8e6a8286b7fcb97f084af1cccc9b6619c1fabfa5c7c125ad",
+    "BoundaryTypes.swift": "37168e4b85ba3d387e0deb23ff717c2c73497a1abce1c672476b5cffbc267ddb",
+    "quiet-cut-review-only.patch": "96d48fa347aea4b2edc9b1732937737a6e985d08f357433a296954dd6a552ea7",
+    "ParakeetEngine.candidate.swift": "d5f222513554ccd2f5c5c2ef43b427870fbc6465d86bb59bdeaf995f7cc0909e",
+    "OriginalDictationSegmenter.swift": "3f2f26b7b9bb47dde96eb8b3e2b1dfec7020f6e1c2dac9203b9196a1bf37c4e3",
+    "live-coverage-review-only.patch": "bca846efefafbca434d38d076bb9ff7067668082434f77a1292ae11f3f0167a9",
+    "AudioConversion.swift": "444fc94b8fdd4e908071e165bfe8a86e0ae4d93dcadbecf1574a7d21b81b9fc1",
+    "TranscriptionEngine.swift": "78291e26cf280bf400eb5e54f0f18e4c617e7391db8a60d9cfc6172c6305949d",
+    "DictationSegmenter.original.swift": "215ef83b73014c1bffbcda9f8446798613e12c1f929593078f2c09fb9f4a5e3b",
+    "CutCheck.swift": "21f5bf8177fbba890b0ad4f374f2e6102200f1296278018f74423dc6e4564647",
+    "ParakeetEngine.original.swift": "78ae4827c275b8d5e37cba2aac098a7d68dd6186a21ebcece68c9361176f1c73"
+  }
+}

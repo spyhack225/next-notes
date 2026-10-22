@@ -51,6 +51,10 @@ enum GoogleCalendarErrorSelfTest {
                   "\(name): one actual token request and no event/retry request")
             check(service.lastError != nil && !service.isRefreshing && service.lastRefresh != nil,
                   "\(name): actual refresh completes with visible failure")
+            check(service.lastFetchFailure?.providerID == .google,
+                  "\(name): staged fetch failure names the failing provider")
+            check(service.lastFetchFailure?.stage == .auth,
+                  "\(name): token failure stages as auth")
         }
 
         for (name, statuses, expectedEvents, failed) in [
@@ -80,9 +84,30 @@ enum GoogleCalendarErrorSelfTest {
                       "\(name): actual provider state is failed rather than connected")
                 check(service.lastError == "Google Calendar: " + message,
                       "\(name): first actual error reaches refresh lastError")
+                check(service.lastFetchFailure?.providerID == .google
+                        && service.lastFetchFailure?.stage == .api,
+                      "\(name): calendar refusal stages as api and names the provider")
+                let reflected = service.lastFetchFailure.map { String(reflecting: $0) } ?? ""
+                check(!reflected.contains("fixture calendar failure"),
+                      "\(name): staged fact carries no refusal text")
             } else {
-                check(service.providerStates[.google] == .authorized && service.lastError == nil,
+                check(service.providerStates[.google] == .authorized,
                       "\(name): successful/empty calendars remain usable")
+                if name != "partial-success" {
+                    check(service.lastError == nil,
+                          "\(name): a clean pass records no error")
+                }
+                check(service.lastFetchFailure == nil,
+                      "\(name): a pass with no failure records no staged fact")
+                // A partial read is a different fact from a total failure: the
+                // answer arrived in part, and the person is told which
+                // provider was short.
+                if name == "partial-success" {
+                    check(service.lastPartialFetchFailures.count == 1,
+                          "\(name): a partial read records its own fact")
+                    check(service.lastError?.contains("could not be read") == true,
+                          "\(name): a partial read is told to the person")
+                }
             }
             let counts = await http.counts()
             check(counts.token == 1 && counts.events == 2 && counts.lists == 1 && counts.other == 0,

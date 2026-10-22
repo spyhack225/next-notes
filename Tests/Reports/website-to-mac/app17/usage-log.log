@@ -1,0 +1,2 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-usage-log --selftest-timeout 300 --selftest-out /tmp/nextnotes-agent-closure-checks-17/usage-log.out
+USAGE_LOG_OK: 26 cases

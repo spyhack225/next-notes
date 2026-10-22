@@ -1,0 +1,9 @@
+--- a/Sources/NextNotes/UI/HUDView.swift
++++ b/Sources/NextNotes/UI/HUDView.swift
+@@ -18,0 +19,6 @@ struct HUDView: View {
++        capsule.tint(DS.Color.accent)
++            .font(DS.Font.body)
++    }
++
++    @ViewBuilder
++    private var capsule: some View {

@@ -1,0 +1,10 @@
+{
+  "status": "CONDITIONAL_SOURCE_COMPOSITION_ACCEPTANCE_NO_RUNTIME_VERDICT",
+  "compositionManifestSHA256": "48dcc262ba774852268152bfc4618f17b4ce639fdb4611458b95ee1aa0e31ec8",
+  "artifacts": {
+    "README.md": "b3e018f91f722ae7413f13e2ae793c60397ff283786af2d2d7efe235c4a9c7b2",
+    "pins.json": "7f79e8b01f1e6a56cbec795110c3578e6ece402630ddb28f102432a49dbb4d62"
+  },
+  "canonicalEdits": 0,
+  "executed": "copied-source git apply and byte equality only"
+}

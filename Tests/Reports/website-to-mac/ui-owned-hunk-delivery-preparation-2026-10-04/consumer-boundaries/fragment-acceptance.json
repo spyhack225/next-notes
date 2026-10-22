@@ -1,0 +1,204 @@
+{
+  "status": "SOURCE_ONLY_REVIEW_NO_APPLICATION_OR_OWNERSHIP_GRANT",
+  "themeFoundationManifestSHA256": "56e0e2bd29c2c9c7867ebf4658b112480413abd150829a2b0ce2b12b09caefa7",
+  "fragments": [
+    {
+      "id": "SectionHeading-01",
+      "source": "Sources/NextNotes/UI/Components/SectionHeading.swift",
+      "relativeHeader": "@@ -17,0 +18,8 @@ struct SectionHeading: View {",
+      "hunkSHA256": "00c0d49750b8bf508c0f43007b409e7d32415959fbde893287a0bbc06108e4e3",
+      "themeFoundationArtifact": "hunks/SectionHeading-01.hunk.txt",
+      "decision": "ACCEPTED_SOURCE_ONLY_ROOT_FOUNDATION",
+      "boundary": "optional explicit accent and pane level API"
+    },
+    {
+      "id": "SectionHeading-02",
+      "source": "Sources/NextNotes/UI/Components/SectionHeading.swift",
+      "relativeHeader": "@@ -45,5 +53,10 @@ struct SectionHeading: View {",
+      "hunkSHA256": "bbe017968cb180682a302ee1d89998189a224cc0338f738460388c2b2d2ba3e0",
+      "themeFoundationArtifact": "hunks/SectionHeading-02.hunk.txt",
+      "decision": "ACCEPTED_SOURCE_ONLY_ROOT_FOUNDATION",
+      "boundary": "accessible explicit static heading branch; plain dynamic fallback preserved"
+    },
+    {
+      "id": "AgentPaneLayout-01",
+      "source": "Sources/NextNotes/UI/Agent/AgentPaneLayout.swift",
+      "relativeHeader": "@@ -49,0 +50,2 @@ struct AgentPaneHeader<Accessory: View>: View {",
+      "hunkSHA256": "db0675b417e52a42b07db6e039311a21f9bfd9674371dbbeb30f0458e18b5ddc",
+      "themeFoundationArtifact": "hunks/AgentPaneLayout-01.hunk.txt",
+      "decision": "ACCEPTED_SOURCE_ONLY",
+      "boundary": "optional caller-supplied accent, nil default"
+    },
+    {
+      "id": "AgentPaneLayout-02",
+      "source": "Sources/NextNotes/UI/Agent/AgentPaneLayout.swift",
+      "relativeHeader": "@@ -55,2 +57,7 @@ struct AgentPaneHeader<Accessory: View>: View {",
+      "hunkSHA256": "c0523da415bec3d2c1c1dcc4d9534dd0913d67cff8642ff4c9e4643670d85221",
+      "themeFoundationArtifact": "hunks/AgentPaneLayout-02.hunk.txt",
+      "decision": "ACCEPTED_SOURCE_ONLY",
+      "boundary": "ThemeHeadline pane only for explicit accent; plain fallback"
+    },
+    {
+      "id": "AgentPaneLayout-03",
+      "source": "Sources/NextNotes/UI/Agent/AgentPaneLayout.swift",
+      "relativeHeader": "@@ -73,2 +80,2 @@ extension AgentPaneHeader where Accessory == EmptyView {",
+      "hunkSHA256": "93281b1b127270faece2a691e4dce715739e4f36412b7dbaf4eaeabc73c7320f",
+      "themeFoundationArtifact": "hunks/AgentPaneLayout-03.hunk.txt",
+      "decision": "ACCEPTED_SOURCE_ONLY",
+      "boundary": "empty accessory initializer forwards accent"
+    },
+    {
+      "id": "AgentView-08",
+      "source": "Sources/NextNotes/UI/Agent/AgentView.swift",
+      "relativeHeader": "@@ -250,2 +242,2 @@ struct AgentView: View {",
+      "hunkSHA256": "5f7fdef5fe67a40ebbcfa698a15229b406f9f73871bac22c6fb8b86d4df781b9",
+      "themeFoundationArtifact": "hunks/AgentView-08.hunk.txt",
+      "decision": "HELD_ROOT_TYPED389",
+      "boundary": "empty prompt headline candidate; current AgentView drift and root typed owner"
+    },
+    {
+      "id": "AgentView-26",
+      "source": "Sources/NextNotes/UI/Agent/AgentView.swift",
+      "relativeHeader": "@@ -819,0 +834,7 @@ struct AgentView: View {",
+      "hunkSHA256": "42975de01a47d634f4ec91f47eebb30e7c9c514d15079f2bac7da2cf2cf2e591",
+      "themeFoundationArtifact": "hunks/AgentView-26.hunk.txt",
+      "decision": "HELD_ROOT_TYPED389_FOREIGN_PREDICATE",
+      "boundary": "parked composer edge references root typed isWorking and approval predicates"
+    },
+    {
+      "id": "ActivityView-02",
+      "source": "Sources/NextNotes/UI/Agent/ActivityView.swift",
+      "relativeHeader": "@@ -52 +55 @@ struct ActivityView: View {",
+      "hunkSHA256": "226c2ef5cbc9873b1e6b67f4e5371087e9a6a122721ab9d55e08f91b69d926f5",
+      "themeFoundationArtifact": "hunks/ActivityView-02.hunk.txt",
+      "decision": "ACCEPTED_SOURCE_ONLY_MIXED_FILE",
+      "boundary": "static title phrase only"
+    },
+    {
+      "id": "ActivityView-03",
+      "source": "Sources/NextNotes/UI/Agent/ActivityView.swift",
+      "relativeHeader": "@@ -54 +57,2 @@ struct ActivityView: View {",
+      "hunkSHA256": "21df4a07ea4279b4ad1d0d28f3e458297669c2e935f65333ff58457929d15150",
+      "themeFoundationArtifact": "hunks/ActivityView-03.hunk.txt",
+      "decision": "ACCEPTED_SOURCE_ONLY_MIXED_FILE",
+      "boundary": "static subtitle/accent only; saved jobs excluded"
+    },
+    {
+      "id": "AgentWorkingCard-03",
+      "source": "Sources/NextNotes/UI/Agent/AgentWorkingCard.swift",
+      "relativeHeader": "@@ -111,0 +124,7 @@ struct AgentWorkingCard: View {",
+      "hunkSHA256": "9c712e6f6423a36d1c933faa57a7bbb8c48b532c41285703a3b708644f8024a9",
+      "themeFoundationArtifact": "hunks/AgentWorkingCard-03.hunk.txt",
+      "decision": "ACCEPTED_SOURCE_ONLY_MIXED_FILE",
+      "boundary": "parked rim on real running task outside approval/yield; typed cancel excluded"
+    },
+    {
+      "id": "SettingsChrome-01",
+      "source": "Sources/NextNotes/UI/Settings/SettingsChrome.swift",
+      "relativeHeader": "@@ -68 +68,6 @@ struct SettingsPane<Content: View>: View {",
+      "hunkSHA256": "8c69b9727149d4a00d61a21d2920e89a14b724be6922ff2c0d33baeb05b24ed4",
+      "themeFoundationArtifact": "hunks/SettingsChrome-01.hunk.txt",
+      "decision": "ACCEPTED_SOURCE_ONLY_MIXED_FILE",
+      "boundary": "explicit static SectionHeading spans; throwaway-window fixes excluded"
+    },
+    {
+      "id": "SettingsWindow-01",
+      "source": "Sources/NextNotes/UI/Settings/SettingsWindow.swift",
+      "relativeHeader": "@@ -41,0 +42,2 @@ struct SettingsWindow: View {",
+      "hunkSHA256": "ef5dcec39284ba79e7a10a6357fca9f817fb29e29de8b871153af19cca3153e5",
+      "themeFoundationArtifact": "hunks/SettingsWindow-01.hunk.txt",
+      "decision": "ACCEPTED_SOURCE_ONLY_ROOT_HOST",
+      "boundary": "inherited tint/body font"
+    },
+    {
+      "id": "SettingsWindow-02",
+      "source": "Sources/NextNotes/UI/Settings/SettingsWindow.swift",
+      "relativeHeader": "@@ -128 +130,5 @@ enum SettingsTab: String, CaseIterable, Identifiable, Hashable {",
+      "hunkSHA256": "cd758cd012127c4ba38ed6fdb01e56bf6ac87155087dceae1f774e0053a6edbd",
+      "themeFoundationArtifact": "hunks/SettingsWindow-02.hunk.txt",
+      "decision": "ACCEPTED_SOURCE_ONLY",
+      "boundary": "existing heading recomposed from explicit spans"
+    },
+    {
+      "id": "SettingsWindow-03",
+      "source": "Sources/NextNotes/UI/Settings/SettingsWindow.swift",
+      "relativeHeader": "@@ -130,12 +136,12 @@ enum SettingsTab: String, CaseIterable, Identifiable, Hashable {",
+      "hunkSHA256": "93f959daaa89f6cd594d4197402a7b0db583cc4d823bf9e51897f57400ddf25f",
+      "themeFoundationArtifact": "hunks/SettingsWindow-03.hunk.txt",
+      "decision": "ACCEPTED_SOURCE_ONLY",
+      "boundary": "12 literal heading pairs; no form control change"
+    },
+    {
+      "id": "MainWindow-01",
+      "source": "Sources/NextNotes/UI/MainWindow.swift",
+      "relativeHeader": "@@ -23,0 +24,2 @@ struct MainWindow: View {",
+      "hunkSHA256": "0bc97963ddfddc3d74c3760b87ea910d9a92c71f3d9760a00cce36ba5539ac25",
+      "themeFoundationArtifact": "hunks/MainWindow-01.hunk.txt",
+      "decision": "ACCEPTED_SOURCE_ONLY_ROOT_HOST",
+      "boundary": "inherited tint/body font"
+    },
+    {
+      "id": "HUDView-01",
+      "source": "Sources/NextNotes/UI/HUDView.swift",
+      "relativeHeader": "@@ -18,0 +19,6 @@ struct HUDView: View {",
+      "hunkSHA256": "f4c3434470f559d274e35d52cb00d00c9580a909af86076df53c77489ddd5c87",
+      "themeFoundationArtifact": "hunks/HUDView-01.hunk.txt",
+      "decision": "ACCEPTED_SOURCE_ONLY_ROOT_HOST",
+      "boundary": "inherited tint/body font"
+    },
+    {
+      "id": "IslandView-01",
+      "source": "Sources/NextNotes/UI/Island/IslandView.swift",
+      "relativeHeader": "@@ -37,0 +38,2 @@ struct IslandView: View {",
+      "hunkSHA256": "df2c24d99865f72326752ff9b37f1dafd392403d09f5012d488fd801592090bb",
+      "themeFoundationArtifact": "hunks/IslandView-01.hunk.txt",
+      "decision": "ACCEPTED_SOURCE_ONLY_ROOT_HOST",
+      "boundary": "inherited tint/body font; speaking excluded"
+    },
+    {
+      "id": "IslandView-02",
+      "source": "Sources/NextNotes/UI/Island/IslandView.swift",
+      "relativeHeader": "@@ -80 +82 @@ struct IslandView: View {",
+      "hunkSHA256": "46e51dab9b8a250a997ddeb4f4001cd00022ccaade80839268b0d3a1c588d3f0",
+      "themeFoundationArtifact": "hunks/IslandView-02.hunk.txt",
+      "decision": "ACCEPTED_SOURCE_ONLY_ROOT_HOST",
+      "boundary": "fixed-light comment/contract; no motion"
+    },
+    {
+      "id": "IslandView-03",
+      "source": "Sources/NextNotes/UI/Island/IslandView.swift",
+      "relativeHeader": "@@ -159 +161 @@ struct IslandView: View {",
+      "hunkSHA256": "36c0674c833372a9a99c443fc297db970653fdb4134a858f39cafd12485ba51a",
+      "themeFoundationArtifact": "hunks/IslandView-03.hunk.txt",
+      "decision": "ACCEPTED_SOURCE_ONLY_ROOT_HOST",
+      "boundary": "shared tracking token; no state transition"
+    },
+    {
+      "id": "IslandView-07",
+      "source": "Sources/NextNotes/UI/Island/IslandView.swift",
+      "relativeHeader": "@@ -454 +459 @@ struct IslandView: View {",
+      "hunkSHA256": "75936899f4cd2a1af28b1596db21575eff2f741ccca543c96bec0cb9cde4aa88",
+      "themeFoundationArtifact": "hunks/IslandView-07.hunk.txt",
+      "decision": "ACCEPTED_SOURCE_ONLY_ROOT_HOST",
+      "boundary": "shared tracking token; no state transition"
+    },
+    {
+      "id": "IslandView-08",
+      "source": "Sources/NextNotes/UI/Island/IslandView.swift",
+      "relativeHeader": "@@ -591,2 +596,2 @@ struct IslandView: View {",
+      "hunkSHA256": "787fb2b4eb8db9dbef0b93891c11a7e8196db3d320a511d0afde03b7d13c2c8f",
+      "themeFoundationArtifact": "hunks/IslandView-08.hunk.txt",
+      "decision": "ACCEPTED_SOURCE_ONLY_ROOT_HOST",
+      "boundary": "fixed-light ink comment; P3-09 held"
+    },
+    {
+      "id": "MeetingConsoleSheet-01",
+      "source": "Sources/NextNotes/UI/Meetings/MeetingConsoleSheet.swift",
+      "relativeHeader": "@@ -146,0 +147,2 @@ struct MeetingConsoleSheet: View {",
+      "hunkSHA256": "c81cac4ed2764f5e7821905e8c20339962460a5b4cad68aa692cffc336cc2df0",
+      "themeFoundationArtifact": "hunks/MeetingConsoleSheet-01.hunk.txt",
+      "decision": "ACCEPTED_SOURCE_ONLY_ROOT_HOST",
+      "boundary": "inherited tint/body font"
+    }
+  ]
+}

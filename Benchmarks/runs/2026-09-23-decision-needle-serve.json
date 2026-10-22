@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "id": "2026-09-23-decision-needle-serve",
+  "title": "Needle resident server",
+  "date": "2026-09-23",
+  "category": "models",
+  "status": "measured",
+  "scope": "Historical offline decision-classification harness",
+  "summary": "73.2% exact-tool accuracy; 277.0 ms median decision latency on 112 fixtures.",
+  "environment": {
+    "hardware": "Apple M3, 8 cores, 16 GB RAM",
+    "workload": "112 authored classification fixtures, 8-tool catalog"
+  },
+  "provenance": {
+    "kind": "historical evidence import",
+    "build": "See original evidence; not re-run by hub"
+  },
+  "metrics": [
+    {
+      "name": "Exact-tool accuracy",
+      "value": 73.2,
+      "unit": "percent",
+      "boundary": "Request classification/tool choice; excludes arguments and execution",
+      "samples": 112,
+      "aggregation": "suite fraction rounded in original report"
+    },
+    {
+      "name": "Decision latency median",
+      "value": 277,
+      "unit": "ms",
+      "boundary": "Resident child decision; excludes startup and first-turn prefill",
+      "samples": 112,
+      "aggregation": "median"
+    }
+  ],
+  "limitations": [
+    "Classification/tool choice only; argument extraction and execution are outside this comparison.",
+    "Per-proposal child and resident server timing include different preparation work.",
+    "Laya RSS is a shared Python runtime high-water mark and cannot be assigned to each checkpoint independently.",
+    "Historical result; no current provider or default qualification."
+  ],
+  "sources": [
+    "bench/decision-gate/report.md",
+    "bench/decision-gate/results.json"
+  ],
+  "publication": {
+    "approved": true,
+    "reviewed_by": "benchmark-hub-20261022",
+    "reviewed_on": "2026-10-22"
+  }
+}

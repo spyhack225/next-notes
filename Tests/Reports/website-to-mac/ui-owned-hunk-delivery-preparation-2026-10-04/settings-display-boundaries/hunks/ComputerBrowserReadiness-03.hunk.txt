@@ -1,0 +1,12 @@
+--- a/Sources/NextNotes/UI/Settings/ComputerBrowserReadiness.swift
++++ b/Sources/NextNotes/UI/Settings/ComputerBrowserReadiness.swift
+@@ -268,6 +267,3 @@ private struct ReadinessRow: View {
+-                Text(status)
+-                    .font(DS.Font.callout)
+-                    .foregroundStyle(statusColor)
+-                if let actionTitle, let action {
+-                    Button(actionTitle, action: action)
+-                        .font(DS.Font.caption)
++                VStack(alignment: .leading, spacing: DS.Space.xs) {
++                    titleLabel.fixedSize(horizontal: false, vertical: true)
++                    statusAndAction

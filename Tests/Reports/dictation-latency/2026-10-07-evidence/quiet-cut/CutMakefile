@@ -1,0 +1,3 @@
+SWIFTC := xcrun swiftc
+cut-check: DictationSegmenter.candidate.swift OriginalDictationSegmenter.swift AudioConversion.swift TranscriptionEngine.swift BoundaryTypes.swift CutCheck.swift
+	$(SWIFTC) -swift-version 6 -O $^ -o $@

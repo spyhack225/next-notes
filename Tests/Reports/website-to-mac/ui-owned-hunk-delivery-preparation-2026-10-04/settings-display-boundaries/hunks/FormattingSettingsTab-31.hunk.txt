@@ -1,0 +1,37 @@
+--- a/Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift
++++ b/Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift
+@@ -316,13 +367,21 @@ private struct OutputProfileRow: View {
+-            Spacer()
+-            ForEach(OutputCapability.allCases, id: \.self) { capability in
+-                Toggle(
+-                    capability.displayName,
+-                    isOn: Binding(
+-                        get: { profile.capabilities.contains(capability) },
+-                        set: { onToggle(capability, $0) }
+-                    )
+-                )
+-                .labelsHidden()
+-                .toggleStyle(.checkbox)
+-                .frame(width: DS.Size.formatCapabilityColumn)
+-                .help("\(profile.displayName): \(capability.help)")
++            VStack(alignment: .leading, spacing: DS.Space.s) {
++                appLabel.fixedSize(horizontal: false, vertical: true)
++                LazyVGrid(
++                    columns: [GridItem(.flexible()), GridItem(.flexible())],
++                    alignment: .leading,
++                    spacing: DS.Space.s
++                ) {
++                    ForEach(OutputCapability.allCases, id: \.self) { capability in
++                        capabilityToggle(capability)
++                            .font(DS.Font.caption)
++                            .fixedSize(horizontal: false, vertical: true)
++                            .frame(maxWidth: .infinity, alignment: .leading)
++                    }
++                    VStack(alignment: .leading, spacing: DS.Space.xxs) {
++                        Text("File references")
++                            .font(DS.Font.caption)
++                            .foregroundStyle(DS.Color.textSecondary)
++                        pathReferenceMenu(compact: true)
++                    }
++                    .frame(maxWidth: .infinity, alignment: .leading)
++                }

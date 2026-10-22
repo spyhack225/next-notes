@@ -148,7 +148,7 @@ enum KnowledgeAskEvent: Sendable {
 
 /// The model that writes the answer. Production wraps an `LLMProvider`; the self-test scripts it.
 protocol KnowledgeAnswerModel: Sendable {
-    /// The window advertised by this exact answering model.
+    /// The window for this exact answering model; legacy wrappers use the advertised ceiling.
     var contextTokens: Int { get }
     func stream(system: String, user: String, maxTokens: Int) async -> AsyncThrowingStream<String, Error>
 }
@@ -229,7 +229,14 @@ struct KnowledgeAsker {
     var reranker: (any KnowledgeReranking)?
     var filter = KnowledgeFilter()
     /// Assembled once per ask; the self-test passes its own.
-    var system: String = KnowledgeAsker.systemPrompt
+    var system: String
+
+    init(context: KnowledgeToolContext, model: any KnowledgeAnswerModel, contextTokens: Int? = nil) {
+        self.context = context
+        self.model = model
+        system = AgentPromptContext.assemble(.knowledgeAsk, rules: Self.rules,
+                    contextTokens: contextTokens ?? model.contextTokens).system
+    }
 
     static let rules = """
         You answer questions about the user's own meetings, notes and Agent conversations,
@@ -256,7 +263,7 @@ struct KnowledgeAsker {
     func run(_ question: String, emit: (KnowledgeAskEvent) -> Void = { _ in }) async throws -> KnowledgeAnswer {
         let question = question.trimmingCharacters(in: .whitespacesAndNewlines)
         let window = model.contextTokens
-        // Fit before retrieval/generation, through the same model contract and advertised provider window.
+        // Fit before retrieval/generation, through the same answering-model window contract.
         // Capacity may be below3 when that reader cannot afford3; never force an overflowing floor.
         guard window > Self.maxTokens + Self.contextHeadroomTokens else { throw KnowledgeAskError.contextTooSmall }
         let budget = window - Self.maxTokens - Self.contextHeadroomTokens - system.count / 4 - question.count / 4

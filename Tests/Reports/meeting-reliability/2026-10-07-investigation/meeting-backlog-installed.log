@@ -1,0 +1,5 @@
+2026-10-07 11:51:22.883 NextNotes[7743:61139] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+MEETING_BACKLOG_COVERED=1.0000 lost=0.000s of 132.0s non-silent in 25.3s wall
+MEETING_BACKLOG_CALLS=16 CUTS=61 DROPPED_S=0.0 DROP_SPANS=0
+MEETING_BACKLOG_OVERBOUND_DROPPED_S=60.0
+MEETING_BACKLOG_OK: 0 s lost behind a slow transcriber over 180s of input

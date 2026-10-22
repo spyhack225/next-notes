@@ -7,7 +7,9 @@ let package = Package(
     dependencies: [
         // Parakeet TDT as local CoreML through FluidAudio. Optional at runtime — Apple's
         // SpeechTranscriber remains the default and needs no dependency at all.
-        .package(url: "https://github.com/FluidInference/FluidAudio.git", from: "0.15.6")
+        .package(url: "https://github.com/FluidInference/FluidAudio.git", from: "0.15.6"),
+        .package(url: "https://github.com/gradium-ai/xn-ptts.git", exact: "0.4.0"),
+        .package(url: "https://github.com/Blaizzy/mlx-audio-swift.git", exact: "0.1.6")
     ],
     targets: [
         // Official llama.cpp XCFramework. S1-mini runs in-process on the CPU; the app does
@@ -51,6 +53,8 @@ let package = Package(
                 "SherpaOnnxKWS",
                 "SpeexEcho",
                 .product(name: "FluidAudio", package: "FluidAudio"),
+                .product(name: "ptts", package: "xn-ptts"),
+                .product(name: "MLXAudioTTS", package: "mlx-audio-swift"),
                 "LlamaFramework",
             ],
             path: "Sources/NextNotes",

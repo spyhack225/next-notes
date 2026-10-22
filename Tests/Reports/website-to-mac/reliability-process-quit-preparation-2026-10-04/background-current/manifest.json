@@ -1,0 +1,33 @@
+{
+  "status": "HELD_SOURCE_ONLY_UNCOMPILED_NATIVE_UNRUN",
+  "currentPreimagesSHA256": {
+    "Sources/NextNotes/Agent/Tasks/AgentTaskManager.swift": "8ebcd688cfa4b19d62a592ca5c12081f7e1df34225b1a6f45db167522eb6221a",
+    "Sources/NextNotes/NextNotesApp.swift": "bc01a27f48478a297d07a1d35669c313615cc7c182c0c6d113b4899e792a1b61"
+  },
+  "contextReadOnlySHA256": {
+    "Sources/NextNotes/Agent/Schedules/ScheduledRunner.swift": "98f96a175ad86ebe305efc6b24767e73e5e3e4b3216a20b9170e5bcbeb28ff76"
+  },
+  "patchSHA256": {
+    "AgentTaskManager.swift.patch.txt": "72ca5ec238820bcf9384518337229936fef20473e801eba0aa036ef4fffb7eef",
+    "NextNotesApp.swift.patch.txt": "34f58951059af0d4d5ea878ae467e228453df2b63c20222f8676c7a429811b49"
+  },
+  "proposedPostimagesSHA256": {
+    "Sources/NextNotes/Agent/Tasks/AgentTaskManager.swift": "5c46a379ae126d877b8aa592ab0d44d7d1b34b430540d7b0592fb698478df98b",
+    "Sources/NextNotes/NextNotesApp.swift": "42b1f228526fceb0a67c08de0d1b08ae164f503f2c52f16331a0e4ad201183e8"
+  },
+  "documentationSHA256": {
+    "README.md": "00b84b73dd36597fb59ed0e52b1fedbb0e88876dca8cd3f4fb5cc44da433dda7",
+    "source-only-replay.json": "55d825bc86401ff7e68261d7a508be0dd212961c6122b5a759a34cd4c56129ef"
+  },
+  "candidateScope": [
+    "same Manager running map and existing Task handles",
+    "loaded-only App process quit capture",
+    "normal Done/Coordinator unchanged"
+  ],
+  "held": [
+    "compiled original red and fixed pass absent",
+    "private actual Cocoa/temporary-tool overlap fixture unimplemented",
+    "scheduled preadmission provider/model work outside Manager map",
+    "no physical capture/native/voice/effect/SIGTERM proof"
+  ]
+}

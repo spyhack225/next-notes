@@ -3,9 +3,31 @@ import Foundation
 /// Relabels existing evidence after the final transcript is committed. This is a
 /// projection of diarization, never participant discovery or an authority decision.
 enum MeetingSpeakerProjection {
+    /// One pure pass over the committed final segments: a label the person has
+    /// confirmed resolves through the same map `apply` reads, so every utterance
+    /// — the last one included — carries the name it is known by. Unmapped labels
+    /// and the microphone track are left exactly as committed. Idempotent: a
+    /// label that is also a confirmed name is not resolved, so a second pass
+    /// cannot rename one speaker into another.
+    static func project(segments: [TranscriptSegment], names: [String: String]) -> [TranscriptSegment] {
+        // A label that is itself a confirmed name is not resolved: resolving it
+        // would let one pass rename "Speaker 2" to "Speaker 1" and the next pass
+        // resolve it again, and the projection would not be idempotent.
+        let resolvable = names.filter { label, _ in !names.values.contains(label) }
+        return segments.map { segment in
+            guard segment.source == .system, let label = segment.speaker,
+                  let confirmed = resolvable[label],
+                  !confirmed.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            else { return segment }
+            var projected = segment
+            projected.speaker = confirmed
+            return projected
+        }
+    }
+
     static func apply(_ context: MeetingContext, segments: [TranscriptSegment],
                       liveSegments: [TranscriptSegment] = [], speakerNames: [String: String]) -> MeetingContext {
-        let speech = segments.filter { $0.includeInMeetingNotes }.map {
+        let speech = project(segments: segments, names: speakerNames).filter { $0.includeInMeetingNotes }.map {
             (segment: $0, text: normalized($0.text))
         }
         func speaker(for quote: String, source: AudioSource, at start: TimeInterval, endingAt end: TimeInterval? = nil) -> String? {
@@ -40,7 +62,7 @@ enum MeetingSpeakerProjection {
         let live = liveSegments.filter { $0.includeInMeetingNotes }.map {
             (segment: $0, text: normalized($0.text))
         }
-        func project(_ items: [MeetingContextItem]) -> [MeetingContextItem] {
+        func projectItems(_ items: [MeetingContextItem]) -> [MeetingContextItem] {
             items.map { item in
                 var updated = item
                 let quote = normalized(item.text)
@@ -55,14 +77,14 @@ enum MeetingSpeakerProjection {
             }
         }
         var next = context
-        next.topics = project(context.topics)
-        next.decisions = project(context.decisions)
-        next.questions = project(context.questions)
-        next.commitments = project(context.commitments)
-        next.deadlines = project(context.deadlines)
-        next.documentsMentioned = project(context.documentsMentioned)
-        next.actionItems = project(context.actionItems)
-        next.unresolvedItems = project(context.unresolvedItems)
+        next.topics = projectItems(context.topics)
+        next.decisions = projectItems(context.decisions)
+        next.questions = projectItems(context.questions)
+        next.commitments = projectItems(context.commitments)
+        next.deadlines = projectItems(context.deadlines)
+        next.documentsMentioned = projectItems(context.documentsMentioned)
+        next.actionItems = projectItems(context.actionItems)
+        next.unresolvedItems = projectItems(context.unresolvedItems)
         next.candidateActions = context.candidateActions.map { candidate in
             var updated = candidate
             // Candidate evidence has a source and an exact clock anchor. Legacy rows

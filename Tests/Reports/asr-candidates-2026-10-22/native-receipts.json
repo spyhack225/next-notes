@@ -1,0 +1,30 @@
+{
+  "whistle": {
+    "temporary_assets_deleted": true,
+    "exit": 0
+  },
+  "redux": {
+    "temporary_assets_deleted": true,
+    "exit": 0
+  },
+  "ultra": {
+    "temporary_assets_deleted": true,
+    "exit": 0
+  },
+  "phonon": {
+    "temporary_assets_deleted": true,
+    "exit": 0
+  },
+  "qwen-06b": {
+    "temporary_assets_deleted": true,
+    "exit": 0
+  },
+  "qwen-17b": {
+    "temporary_assets_deleted": true,
+    "exit": 0
+  },
+  "voz": {
+    "temporary_assets_deleted": true,
+    "exit": 0
+  }
+}

@@ -1,0 +1,33 @@
+--- a/Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift
++++ b/Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift
+@@ -223,17 +262,13 @@ struct FormattingSettingsTab: View {
+-            // No `.frame(height:)` and no scrolling of its own — see the type comment on
+-            // `FormattingSettingsTab` for why. The `List` lays out every row at once and
+-            // leaves scrolling to the enclosing `Form`.
+-            List(selection: $selection) {
+-                ForEach(store.profiles) { profile in
+-                    OutputProfileRow(
+-                        profile: profile,
+-                        onToggle: { capability, isOn in
+-                            store.setCapability(capability, on: isOn, for: profile.bundleID)
+-                        },
+-                        onPathReference: { style in
+-                            store.setPathReference(style, for: profile.bundleID)
+-                        }
+-                    )
+-                    .tag(profile.bundleID)
+-                    .id(profile.bundleID)
+-                }
++            ForEach(store.profiles) { profile in
++                OutputProfileRow(
++                    profile: profile,
++                    onToggle: { capability, isOn in
++                        store.setCapability(capability, on: isOn, for: profile.bundleID)
++                    },
++                    onPathReference: { style in
++                        store.setPathReference(style, for: profile.bundleID)
++                    }
++                )
++                .tag(profile.bundleID)
++                .id(profile.bundleID)
++                .listRowBackground(DS.Color.groupedFill)

@@ -1,0 +1,18 @@
+{
+  "kind": "text-only disposable git apply; no compiler/native",
+  "match": true,
+  "stages": {
+    "Sources/NextNotes/Meetings/NotesService.swift": {
+      "preimage": "c1577429843cd4f2a50bca738a8afe95ed574e7faea29153de38fe8264c79652",
+      "postimage": "83696269d87c4b7444a1ab105179fb0209e1baa006f4009842800cc51c8426f8"
+    },
+    "Sources/NextNotes/Support/NativeTerminationSelfTest.swift": {
+      "preimage": "fc49cf3402c9fc9b5a61436217903d96d416d0e4704d5615d4216bcea55d621b",
+      "postimage": "2d51147a0a0e9ddb43bfc6979337853452d62563485d7a428672be36fdbde887"
+    },
+    "Sources/NextNotes/Support/NativeNotesSettingsSelfTest.swift": {
+      "preimage": "281d7e56dd7d2ef1ef74ca48cca03dceae9a4112abd64c25d9e63e87ce17caa9",
+      "postimage": "a280d13f12b4250fbfedbf61f183f5b0a12f7165e64e43126f2add162d1e2d57"
+    }
+  }
+}

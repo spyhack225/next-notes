@@ -1,0 +1,32 @@
+{
+  "scope": "27 exact settings isolation Sources APPLIED and immediately REFROZEN; no compiler/native/staging; App root-owned; responsive/motion excluded",
+  "files": {
+    "Sources/NextNotes/Agent/Backend/AgentHarnessRouter.swift": "4e4a17ca04b3719efe3518c4882803da4e20c2e5ae3dcf03afc001320b0da1a0",
+    "Sources/NextNotes/Agent/GoogleWorkspaceCLI.swift": "67a3453c46f7743cddb7706756e27bbfa4e8bddad21d60a9a28cc0e8c9b28f6c",
+    "Sources/NextNotes/Calendar/CalendarService.swift": "d0e2a10ec3e9a556f4525454bfcc029d8f7cdbc852a21f938252167532ff9025",
+    "Sources/NextNotes/Calendar/Google/GoogleClientConfig.swift": "8681035543e6ff0356b8503780a8ba4f75342c91a25fa627d3b1a60be6f1fc48",
+    "Sources/NextNotes/Calendar/Google/GoogleTokenStore.swift": "c062250896e961cf606fce23d8e3d3ad22485f1b17c12dbf2087174106f6acb5",
+    "Sources/NextNotes/Formatting/Targets/OutputProfileStore.swift": "414d9bf84985e27c8e99fad5ad06d54138a7455b6b6103b0374672dc520c6e73",
+    "Sources/NextNotes/Integrations/Composio/ComposioCredentialStore.swift": "d64cc22fcff73841d148ef620a9e7379f72e4d303db769c92e0ca515a6cfad4d",
+    "Sources/NextNotes/Integrations/Composio/ComposioProvider.swift": "af2ea6d7654093c6479ea38b17b36deb41fa1f4a50047e5334f3ff460f0b4d4e",
+    "Sources/NextNotes/Integrations/MCP/MCPClient.swift": "a3a7bad7575d6e8ba3e1f74b7a152196d1a188d739cc171eca9aec8689d528de",
+    "Sources/NextNotes/Knowledge/Files/IndexedFoldersStore.swift": "9a2bbf1b05c7867a3b971c75a18a863f6ffc6b3893c798b165c636a3062cb09e",
+    "Sources/NextNotes/Meetings/MeetingStore.swift": "057c61928b57c8b52d36923d63af46b0bffc29a77aeab8fbe5603bd8c4fdd8a2",
+    "Sources/NextNotes/Support/AppIdentity.swift": "80423623fae48a3ff215aba50139019eea903d5ad5ae7f8eff9775094e546682",
+    "Sources/NextNotes/Support/LocalModelStore.swift": "c734aa7678acc650e891d49b3ac601e884716b12d066df4e184e457b717b66eb",
+    "Sources/NextNotes/Support/ModelLibrary/InstalledModelLibrary.swift": "3106fc33e400112227d580148084d32079df615383de70b96732e928376036a2",
+    "Sources/NextNotes/Support/ModelLibrary/ModelLibraryStore.swift": "4778490e1b4ef210c1d8d08d6cf6acb5187a524bd96f22c4980e8ca9b6022662",
+    "Sources/NextNotes/Support/ModelRoles/LocalRuntimeDiscovery.swift": "fdecd4da97017aa6b7180e87c5c568925ff6a443637f33c80c70b395a393e230",
+    "Sources/NextNotes/Support/ModelRoles/ModelRoleStore.swift": "dd236beac67bd354fbde206fcb7d688bb8c8d3273ac75e3fc0ee282ed2c59004",
+    "Sources/NextNotes/Support/Permissions.swift": "8155e5aa15905e0367d4adc73e3696cd8fa581fab94ca57cbb2b5fc2a5cf0c5b",
+    "Sources/NextNotes/Support/RunLog.swift": "245fc710be68dab5a7c255a20bbdad80bba81d7c08e1349081e69d1f3e1986fb",
+    "Sources/NextNotes/Support/Usage/UsageLog.swift": "8ae6b23d969428b7848ee8489a9ed2c6b059da79d6167b1b69c44650883f4914",
+    "Sources/NextNotes/UI/Onboarding/PermissionsChecklist.swift": "73fe9ed331d211fbb152a19089e1633540ca4c0be036ec9f32cd1ffd8272d768",
+    "Sources/NextNotes/UI/Settings/ComputerBrowserReadiness.swift": "2fa02ba0dc88ea8d426888dd968bcfa6c489c52f30f1d0e0fd6fb102963f19bf",
+    "Sources/NextNotes/UI/Settings/IMessageSettingsSection.swift": "598240cf88112bdb802e984f918193de8c8ee309b7fc3864c671cb245057b1de",
+    "Sources/NextNotes/UI/Settings/KnowledgeSection.swift": "b217abe08133ce2686e42916dc5f9533b2ca7dc8c0f9dddb504148a87ac9575b",
+    "Sources/NextNotes/UI/Settings/MessagesAccessSection.swift": "bd2a20bb4deef4c278a3498cc697c7901e829e5885cd85cb7500f1c6a4b566d2",
+    "Sources/NextNotes/UI/Settings/ModelsSettingsTab.swift": "c7149061e368bd11960561d20c0040bda3fd14a6e62582debdab42fe739bb359",
+    "Sources/NextNotes/UI/Settings/SettingsSheet.swift": "051716947c1f12eb3df243d9bdc58cb9f5268541bf2ca1b36f7dba5c09dedb7a"
+  }
+}

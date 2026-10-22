@@ -181,6 +181,9 @@ enum HumanInputWatch {
             return true
         }
         state = .paused(at: lastUntagged ?? Date())
+        // The pause is also where pre-pause element ids die: the map was walked before
+        // the person took the Mac, so the next element action re-inspects first.
+        AccessibilitySnapshot.dropElementsOnHumanPause()
         AgentActivityStore.shared.noteHumanYield()
         return false
     }

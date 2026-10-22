@@ -1,0 +1,21 @@
+# Paired Manager continuation-close preparation
+
+**Source-only; compiler and native UNRUN. Full producer release HELD.** Root asked for a concrete repair and SAME-COMMON actual Cocoa/temp-store fixture. This packet references immutable prepared code and records a bounded static review; it performs no canonical/source/compiler/native/model/asset/index/install or owner-quit action.
+
+## Exact prepared pair
+
+- [Manager revision](../background-revision/README.md), manifest `6390a8f0…`: current Manager `a1578f79…` → COMMON rebased b1d quit candidate → FIXED early continuation admission. CURRENT/COMMON/FIXED preserve the runtime owner’s ACP-by-voice/scheduled cancel-before-save branch exactly. The original is an **introduced candidate contract**, not a reproduced canonical crash.
+- [Cocoa fixture COMMON](../fixture-preparation/README.md), manifest `04d0396f…`: private root/store/receipt/empty runtime setup, read-only map/token probe, actual App loaded-only/injected close/join caller and existing standalone routing. Apply this identical COMMON before BOTH Manager variants, then the author’s FIXED only to the fixed copy. App/standalone/fixture bytes remain identical.
+- [Independent fixture review](../fixture-independent-review.md) accepts only the proposed bounded diagnostic contract. Its relative text replay matches all4+4 recorded postimages, and25 source/artifact pins match. Parent separately checked those25 pins, revision artifact/current pins and exact retained ACP/scheduled branch.
+
+The proposed actual `.terminateLater` observer invokes all three real continuation producers after process admission closes. It compares fresh primary rows/authority generation, memory, tokens and map; explicit denial on a separate imported row remains permitted. The first final vote only vetoes; the same existing App quit Task consumes the one-shot safetyDrain before the second proposal. No callback promotes false `drained`. Imported waiting rows qualify retained-state consumers, not initial question or live approval production. Both variants start with no live worker and refuse dispatch after close: this tests continuation acceptance, not operation cessation.
+
+## Isolation and execution holds
+
+Exact mode/argv/nonce and an absent canonical direct UUID temp child are validated before NSApplication/AppDelegate. Private seeding and strict-reader qualification occur in that pre-owner validator; malformed/root failure exits INVALID before App owners. A later mount rejection occurs after App construction and exits INVALID before the generic native-arm catch can select shared default quit owners. This early exit is limited to this zero-live-worker/model diagnostic; it must not be reused for native work.
+
+Private NotesRuntime is unloaded and never resolves or loads its model. **ModelSpec.fileURL remains owner-derived despite the supplied private URL.** Its safe boundary here is zero model use, not a genuinely confined model loader. The empty embedding is explicitly injected. Require the root’s approved owner guards and exact no-load case at native qualification; do not expand this fixture into a model/backing case through that spec.
+
+[Healthy-continuation readiness](../background-revision-readiness.md) remains open: source ordering suggests ordinary missing-field/compatibility catches return before UI answers, but exact one-click live question, restored approval/denial, distinct suspended PermissionGate and held-predecessor controls are not proved. The FIXED also checks `running[id] == nil`; this retained/no-running fixture cannot qualify that predicate or a healthy cleanup window. No second-click delay, live UI readiness or same-ID backing cessation is established.
+
+Native bootstrap/typecheck, actual original failure and identical fixed outcome, temporary backing/worker return, scheduled preflight, Capture’s unpublished/retired work, speech preparation/physical silence, original SIGSEGV, ordinary build and all-owner safe/fast quit remain open. No automatic repeat follows a missing receipt or refused persistence. No normal Done/Stop/foreground wait, second map/ledger/audio channel or model pass is added. Frozen b1d/cc47/capture/e59 packets remain unchanged. Root retains the sole serial review/qualification slot; these hashes grant no mounting or installation lease.

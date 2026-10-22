@@ -1,0 +1,9 @@
+{
+  "kind": "text-only git apply to disposable copied source",
+  "compiler": "UNRUN",
+  "native": "UNRUN",
+  "preimage": "a1c1d30f8198e63758dde34abd8812b236c281a191cd9168383eff95a47aa4f5",
+  "postNativeTermination": "fc49cf3402c9fc9b5a61436217903d96d416d0e4704d5615d4216bcea55d621b",
+  "postNativeNotesSettings": "3fec2febf8bd28ae338dbf7866a976dc4beafbc44d579a572775e790c0498878",
+  "match": true
+}

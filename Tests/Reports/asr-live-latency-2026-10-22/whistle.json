@@ -1,0 +1,2660 @@
+{
+  "schema": "asr-runtime-probe.v1",
+  "machine": "macOS-27.2-arm64-arm-64bit-Mach-O",
+  "chip": "Apple M3",
+  "engine_revision": "d6c7d6a2e9655505e0f8e23339356dd1705900eb",
+  "runtime_sha256": "0137354250a85fa52d100de948ccff9d9f7d8dd73ced0eea19c38f6e351aef55",
+  "temporary_model_bytes": 16919407,
+  "free_disk_before_bytes": 389296128,
+  "small_cpu_pressure_diagnostic": true,
+  "disk_reserve_bytes": 268435456,
+  "child_exit": 0,
+  "stderr": "",
+  "stdout": "LIVE en/0 first=410.5939169530757 final=67.7ms\nLIVE en/1 first=429.25133398966864 final=64.0ms\nLIVE en/2 first=420.9605830255896 final=70.1ms\nLIVE fr/0 first=414.1917500528507 final=171.9ms\nLIVE fr/1 first=421.14487499929965 final=86.2ms\nLIVE fr/2 first=419.7414169902913 final=82.6ms\n",
+  "benchmark": {
+    "schema": "asr-paced-runtime.v1",
+    "trials": [
+      {
+        "language": "en",
+        "trial": 0,
+        "audio_seconds": 7.25,
+        "first_text_ms": 410.5939169530757,
+        "first_text": "Okay.",
+        "first_correct_reference_word_ms": 410.5939169530757,
+        "first_final_consistent_word_ms": 410.5939169530757,
+        "first_committed_ms": 2455.0409579533152,
+        "release_to_final_ms": 67.65229196753353,
+        "release_to_final_dispatch_ms": 10.049499978777021,
+        "text": "Okay so the plan is to ship the installer on Friday. Right, and then we write the release notes together.",
+        "edits": 1,
+        "reference_words": 20,
+        "wer": 0.05,
+        "events": [
+          {
+            "dispatch_ms": 400.1256669871509,
+            "received_ms": 410.5939169530757,
+            "available_samples": 6402,
+            "text": "Okay.",
+            "committed": "",
+            "native": {
+              "text": "",
+              "words": [],
+              "pending": "Okay.",
+              "language": "en",
+              "received": 0.4,
+              "pass_ms": 9.5
+            }
+          },
+          {
+            "dispatch_ms": 1410.0304580060765,
+            "received_ms": 1432.6802919968031,
+            "available_samples": 22560,
+            "text": "Okay so the plan is to share.",
+            "committed": "",
+            "native": {
+              "text": "",
+              "words": [],
+              "pending": "Okay so the plan is to share.",
+              "language": "en",
+              "received": 1.41,
+              "pass_ms": 20.7
+            }
+          },
+          {
+            "dispatch_ms": 2409.5122079597786,
+            "received_ms": 2455.0409579533152,
+            "available_samples": 38552,
+            "text": "Okay so the plan is to ship the installer on",
+            "committed": "Okay so the plan is to",
+            "native": {
+              "text": "Okay so the plan is to",
+              "words": [
+                {
+                  "word": "Okay",
+                  "start": 0.08,
+                  "end": 0.48,
+                  "probability": 0.691
+                },
+                {
+                  "word": "so",
+                  "start": 0.48,
+                  "end": 0.64,
+                  "probability": 0.901
+                },
+                {
+                  "word": "the",
+                  "start": 0.64,
+                  "end": 0.8,
+                  "probability": 0.999
+                },
+                {
+                  "word": "plan",
+                  "start": 0.8,
+                  "end": 1.12,
+                  "probability": 0.999
+                },
+                {
+                  "word": "is",
+                  "start": 1.12,
+                  "end": 1.2,
+                  "probability": 0.98
+                },
+                {
+                  "word": "to",
+                  "start": 1.2,
+                  "end": 1.36,
+                  "probability": 1.0
+                }
+              ],
+              "pending": "ship the installer on",
+              "language": "en",
+              "received": 2.41,
+              "pass_ms": 43.9
+            }
+          },
+          {
+            "dispatch_ms": 3409.5311669516377,
+            "received_ms": 3442.093291960191,
+            "available_samples": 54552,
+            "text": "Okay so the plan is to ship the installer on Friday.",
+            "committed": "Okay so the plan is to ship the installer on",
+            "native": {
+              "text": "ship the installer on",
+              "words": [
+                {
+                  "word": "ship",
+                  "start": 1.36,
+                  "end": 1.6,
+                  "probability": 0.981
+                },
+                {
+                  "word": "the",
+                  "start": 1.6,
+                  "end": 1.76,
+                  "probability": 0.999
+                },
+                {
+                  "word": "installer",
+                  "start": 1.76,
+                  "end": 2.4,
+                  "probability": 0.948
+                },
+                {
+                  "word": "on",
+                  "start": 2.4,
+                  "end": 2.56,
+                  "probability": 0.997
+                }
+              ],
+              "pending": "Friday.",
+              "language": "en",
+              "received": 3.41,
+              "pass_ms": 30.3
+            }
+          },
+          {
+            "dispatch_ms": 4410.042957984842,
+            "received_ms": 4452.507582958788,
+            "available_samples": 70560,
+            "text": "Okay so the plan is to ship the installer on Friday. Right.",
+            "committed": "Okay so the plan is to ship the installer on Friday.",
+            "native": {
+              "text": "Friday.",
+              "words": [
+                {
+                  "word": "Friday.",
+                  "start": 2.56,
+                  "end": 2.96,
+                  "probability": 0.973
+                }
+              ],
+              "pending": "Right.",
+              "language": "en",
+              "received": 4.41,
+              "pass_ms": 40.0
+            }
+          },
+          {
+            "dispatch_ms": 5410.044666961767,
+            "received_ms": 5458.55787495384,
+            "available_samples": 86560,
+            "text": "Okay so the plan is to ship the installer on Friday. Right, and then we write",
+            "committed": "Okay so the plan is to ship the installer on Friday.",
+            "native": {
+              "text": "",
+              "words": [],
+              "pending": "Right, and then we write",
+              "language": "en",
+              "received": 5.41,
+              "pass_ms": 45.8
+            }
+          },
+          {
+            "dispatch_ms": 6410.042707982939,
+            "received_ms": 6465.803999977652,
+            "available_samples": 102560,
+            "text": "Okay so the plan is to ship the installer on Friday. Right, and then we write the release notes again.",
+            "committed": "Okay so the plan is to ship the installer on Friday. Right, and then we write",
+            "native": {
+              "text": "Right, and then we write",
+              "words": [
+                {
+                  "word": "Right,",
+                  "start": 4.16,
+                  "end": 4.4,
+                  "probability": 0.977
+                },
+                {
+                  "word": "and",
+                  "start": 4.64,
+                  "end": 4.88,
+                  "probability": 0.993
+                },
+                {
+                  "word": "then",
+                  "start": 4.88,
+                  "end": 5.12,
+                  "probability": 1.0
+                },
+                {
+                  "word": "we",
+                  "start": 5.12,
+                  "end": 5.28,
+                  "probability": 0.99
+                },
+                {
+                  "word": "write",
+                  "start": 5.28,
+                  "end": 5.52,
+                  "probability": 0.904
+                }
+              ],
+              "pending": "the release notes again.",
+              "language": "en",
+              "received": 6.41,
+              "pass_ms": 53.0
+            }
+          },
+          {
+            "dispatch_ms": 7260.049499978777,
+            "received_ms": 7317.6522919675335,
+            "available_samples": 116000,
+            "final": true,
+            "text": "Okay so the plan is to ship the installer on Friday. Right, and then we write the release notes together.",
+            "committed": "Okay so the plan is to ship the installer on Friday. Right, and then we write the release notes together.",
+            "native": {
+              "text": "together.",
+              "words": [
+                {
+                  "word": "together.",
+                  "start": 6.24,
+                  "end": 6.72,
+                  "probability": 0.988
+                }
+              ],
+              "pending": "",
+              "language": "en",
+              "received": 7.25,
+              "pass_ms": 0.0
+            }
+          }
+        ]
+      },
+      {
+        "language": "en",
+        "trial": 1,
+        "audio_seconds": 7.25,
+        "first_text_ms": 429.25133398966864,
+        "first_text": "OK.",
+        "first_correct_reference_word_ms": 1434.6684999763966,
+        "first_final_consistent_word_ms": 1434.6684999763966,
+        "first_committed_ms": 2443.270458956249,
+        "release_to_final_ms": 63.969958981033415,
+        "release_to_final_dispatch_ms": 8.309666998684406,
+        "text": "Okay so the plan is to ship the installer on Friday. Right, and then we write the release notes together.",
+        "edits": 1,
+        "reference_words": 20,
+        "wer": 0.05,
+        "events": [
+          {
+            "dispatch_ms": 410.02983396174386,
+            "received_ms": 429.25133398966864,
+            "available_samples": 6560,
+            "text": "OK.",
+            "committed": "",
+            "native": {
+              "text": "",
+              "words": [],
+              "pending": "OK.",
+              "language": "en",
+              "received": 0.41,
+              "pass_ms": 17.9
+            }
+          },
+          {
+            "dispatch_ms": 1404.227999970317,
+            "received_ms": 1434.6684999763966,
+            "available_samples": 22467,
+            "text": "Okay so the plan is to share.",
+            "committed": "",
+            "native": {
+              "text": "",
+              "words": [],
+              "pending": "Okay so the plan is to share.",
+              "language": "en",
+              "received": 1.4,
+              "pass_ms": 29.1
+            }
+          },
+          {
+            "dispatch_ms": 2408.303916978184,
+            "received_ms": 2443.270458956249,
+            "available_samples": 38532,
+            "text": "Okay so the plan is to ship the installer on",
+            "committed": "Okay so the plan is to",
+            "native": {
+              "text": "Okay so the plan is to",
+              "words": [
+                {
+                  "word": "Okay",
+                  "start": 0.08,
+                  "end": 0.48,
+                  "probability": 0.691
+                },
+                {
+                  "word": "so",
+                  "start": 0.48,
+                  "end": 0.64,
+                  "probability": 0.901
+                },
+                {
+                  "word": "the",
+                  "start": 0.64,
+                  "end": 0.8,
+                  "probability": 0.999
+                },
+                {
+                  "word": "plan",
+                  "start": 0.8,
+                  "end": 1.12,
+                  "probability": 0.999
+                },
+                {
+                  "word": "is",
+                  "start": 1.12,
+                  "end": 1.2,
+                  "probability": 0.98
+                },
+                {
+                  "word": "to",
+                  "start": 1.2,
+                  "end": 1.36,
+                  "probability": 1.0
+                }
+              ],
+              "pending": "ship the installer on",
+              "language": "en",
+              "received": 2.41,
+              "pass_ms": 32.9
+            }
+          },
+          {
+            "dispatch_ms": 3410.0431249826215,
+            "received_ms": 3442.9804169922136,
+            "available_samples": 54560,
+            "text": "Okay so the plan is to ship the installer on Friday.",
+            "committed": "Okay so the plan is to ship the installer on",
+            "native": {
+              "text": "ship the installer on",
+              "words": [
+                {
+                  "word": "ship",
+                  "start": 1.36,
+                  "end": 1.6,
+                  "probability": 0.983
+                },
+                {
+                  "word": "the",
+                  "start": 1.6,
+                  "end": 1.76,
+                  "probability": 0.999
+                },
+                {
+                  "word": "installer",
+                  "start": 1.76,
+                  "end": 2.4,
+                  "probability": 0.949
+                },
+                {
+                  "word": "on",
+                  "start": 2.4,
+                  "end": 2.56,
+                  "probability": 0.997
+                }
+              ],
+              "pending": "Friday.",
+              "language": "en",
+              "received": 3.41,
+              "pass_ms": 30.7
+            }
+          },
+          {
+            "dispatch_ms": 4410.044999967795,
+            "received_ms": 4451.031749951653,
+            "available_samples": 70560,
+            "text": "Okay so the plan is to ship the installer on Friday. Right.",
+            "committed": "Okay so the plan is to ship the installer on Friday.",
+            "native": {
+              "text": "Friday.",
+              "words": [
+                {
+                  "word": "Friday.",
+                  "start": 2.56,
+                  "end": 2.96,
+                  "probability": 0.973
+                }
+              ],
+              "pending": "Right.",
+              "language": "en",
+              "received": 4.41,
+              "pass_ms": 38.8
+            }
+          },
+          {
+            "dispatch_ms": 5405.818874947727,
+            "received_ms": 5453.763833967969,
+            "available_samples": 86493,
+            "text": "Okay so the plan is to ship the installer on Friday. Right, and then we write",
+            "committed": "Okay so the plan is to ship the installer on Friday.",
+            "native": {
+              "text": "",
+              "words": [],
+              "pending": "Right, and then we write",
+              "language": "en",
+              "received": 5.41,
+              "pass_ms": 45.7
+            }
+          },
+          {
+            "dispatch_ms": 6410.049749945756,
+            "received_ms": 6498.50983399665,
+            "available_samples": 102560,
+            "text": "Okay so the plan is to ship the installer on Friday. Right, and then we write the release notes again.",
+            "committed": "Okay so the plan is to ship the installer on Friday. Right, and then we write",
+            "native": {
+              "text": "Right, and then we write",
+              "words": [
+                {
+                  "word": "Right,",
+                  "start": 4.16,
+                  "end": 4.4,
+                  "probability": 0.977
+                },
+                {
+                  "word": "and",
+                  "start": 4.64,
+                  "end": 4.88,
+                  "probability": 0.993
+                },
+                {
+                  "word": "then",
+                  "start": 4.88,
+                  "end": 5.12,
+                  "probability": 1.0
+                },
+                {
+                  "word": "we",
+                  "start": 5.12,
+                  "end": 5.28,
+                  "probability": 0.99
+                },
+                {
+                  "word": "write",
+                  "start": 5.28,
+                  "end": 5.52,
+                  "probability": 0.904
+                }
+              ],
+              "pending": "the release notes again.",
+              "language": "en",
+              "received": 6.41,
+              "pass_ms": 85.6
+            }
+          },
+          {
+            "dispatch_ms": 7258.309666998684,
+            "received_ms": 7313.969958981033,
+            "available_samples": 116000,
+            "final": true,
+            "text": "Okay so the plan is to ship the installer on Friday. Right, and then we write the release notes together.",
+            "committed": "Okay so the plan is to ship the installer on Friday. Right, and then we write the release notes together.",
+            "native": {
+              "text": "together.",
+              "words": [
+                {
+                  "word": "together.",
+                  "start": 6.24,
+                  "end": 6.72,
+                  "probability": 0.988
+                }
+              ],
+              "pending": "",
+              "language": "en",
+              "received": 7.25,
+              "pass_ms": 0.0
+            }
+          }
+        ]
+      },
+      {
+        "language": "en",
+        "trial": 2,
+        "audio_seconds": 7.25,
+        "first_text_ms": 420.9605830255896,
+        "first_text": "OK.",
+        "first_correct_reference_word_ms": 1435.859207995236,
+        "first_final_consistent_word_ms": 1435.859207995236,
+        "first_committed_ms": 2437.8038750146516,
+        "release_to_final_ms": 70.11445797979832,
+        "release_to_final_dispatch_ms": 10.038790991529822,
+        "text": "Okay so the plan is to ship the installer on Friday. Right, and then we write the release notes together.",
+        "edits": 1,
+        "reference_words": 20,
+        "wer": 0.05,
+        "events": [
+          {
+            "dispatch_ms": 410.036624991335,
+            "received_ms": 420.9605830255896,
+            "available_samples": 6560,
+            "text": "OK.",
+            "committed": "",
+            "native": {
+              "text": "",
+              "words": [],
+              "pending": "OK.",
+              "language": "en",
+              "received": 0.41,
+              "pass_ms": 10.0
+            }
+          },
+          {
+            "dispatch_ms": 1410.0383329787292,
+            "received_ms": 1435.859207995236,
+            "available_samples": 22560,
+            "text": "Okay so the plan is to share.",
+            "committed": "",
+            "native": {
+              "text": "",
+              "words": [],
+              "pending": "Okay so the plan is to share.",
+              "language": "en",
+              "received": 1.41,
+              "pass_ms": 23.8
+            }
+          },
+          {
+            "dispatch_ms": 2410.037124995142,
+            "received_ms": 2437.8038750146516,
+            "available_samples": 38560,
+            "text": "Okay so the plan is to ship the installer on",
+            "committed": "Okay so the plan is to",
+            "native": {
+              "text": "Okay so the plan is to",
+              "words": [
+                {
+                  "word": "Okay",
+                  "start": 0.08,
+                  "end": 0.48,
+                  "probability": 0.724
+                },
+                {
+                  "word": "so",
+                  "start": 0.48,
+                  "end": 0.64,
+                  "probability": 0.924
+                },
+                {
+                  "word": "the",
+                  "start": 0.64,
+                  "end": 0.8,
+                  "probability": 0.998
+                },
+                {
+                  "word": "plan",
+                  "start": 0.8,
+                  "end": 1.12,
+                  "probability": 0.998
+                },
+                {
+                  "word": "is",
+                  "start": 1.12,
+                  "end": 1.2,
+                  "probability": 0.975
+                },
+                {
+                  "word": "to",
+                  "start": 1.2,
+                  "end": 1.36,
+                  "probability": 1.0
+                }
+              ],
+              "pending": "ship the installer on",
+              "language": "en",
+              "received": 2.41,
+              "pass_ms": 25.8
+            }
+          },
+          {
+            "dispatch_ms": 3410.0405829958618,
+            "received_ms": 3444.9769579805434,
+            "available_samples": 54560,
+            "text": "Okay so the plan is to ship the installer on Friday.",
+            "committed": "Okay so the plan is to ship the installer on",
+            "native": {
+              "text": "ship the installer on",
+              "words": [
+                {
+                  "word": "ship",
+                  "start": 1.36,
+                  "end": 1.6,
+                  "probability": 0.983
+                },
+                {
+                  "word": "the",
+                  "start": 1.6,
+                  "end": 1.76,
+                  "probability": 0.999
+                },
+                {
+                  "word": "installer",
+                  "start": 1.76,
+                  "end": 2.4,
+                  "probability": 0.949
+                },
+                {
+                  "word": "on",
+                  "start": 2.4,
+                  "end": 2.56,
+                  "probability": 0.997
+                }
+              ],
+              "pending": "Friday.",
+              "language": "en",
+              "received": 3.41,
+              "pass_ms": 32.8
+            }
+          },
+          {
+            "dispatch_ms": 4410.037250025198,
+            "received_ms": 4468.245707976166,
+            "available_samples": 70560,
+            "text": "Okay so the plan is to ship the installer on Friday. Right.",
+            "committed": "Okay so the plan is to ship the installer on Friday.",
+            "native": {
+              "text": "Friday.",
+              "words": [
+                {
+                  "word": "Friday.",
+                  "start": 2.56,
+                  "end": 2.96,
+                  "probability": 0.973
+                }
+              ],
+              "pending": "Right.",
+              "language": "en",
+              "received": 4.41,
+              "pass_ms": 55.8
+            }
+          },
+          {
+            "dispatch_ms": 5410.039582988247,
+            "received_ms": 5457.752124988474,
+            "available_samples": 86560,
+            "text": "Okay so the plan is to ship the installer on Friday. Right, and then we write",
+            "committed": "Okay so the plan is to ship the installer on Friday.",
+            "native": {
+              "text": "",
+              "words": [],
+              "pending": "Right, and then we write",
+              "language": "en",
+              "received": 5.41,
+              "pass_ms": 45.4
+            }
+          },
+          {
+            "dispatch_ms": 6408.621083013713,
+            "received_ms": 6465.703041001689,
+            "available_samples": 102537,
+            "text": "Okay so the plan is to ship the installer on Friday. Right, and then we write the release notes again.",
+            "committed": "Okay so the plan is to ship the installer on Friday. Right, and then we write",
+            "native": {
+              "text": "Right, and then we write",
+              "words": [
+                {
+                  "word": "Right,",
+                  "start": 4.16,
+                  "end": 4.4,
+                  "probability": 0.975
+                },
+                {
+                  "word": "and",
+                  "start": 4.64,
+                  "end": 4.88,
+                  "probability": 0.993
+                },
+                {
+                  "word": "then",
+                  "start": 4.88,
+                  "end": 5.12,
+                  "probability": 1.0
+                },
+                {
+                  "word": "we",
+                  "start": 5.12,
+                  "end": 5.28,
+                  "probability": 0.992
+                },
+                {
+                  "word": "write",
+                  "start": 5.28,
+                  "end": 5.44,
+                  "probability": 0.893
+                }
+              ],
+              "pending": "the release notes again.",
+              "language": "en",
+              "received": 6.41,
+              "pass_ms": 54.7
+            }
+          },
+          {
+            "dispatch_ms": 7260.03879099153,
+            "received_ms": 7320.114457979798,
+            "available_samples": 116000,
+            "final": true,
+            "text": "Okay so the plan is to ship the installer on Friday. Right, and then we write the release notes together.",
+            "committed": "Okay so the plan is to ship the installer on Friday. Right, and then we write the release notes together.",
+            "native": {
+              "text": "together.",
+              "words": [
+                {
+                  "word": "together.",
+                  "start": 6.24,
+                  "end": 6.72,
+                  "probability": 0.988
+                }
+              ],
+              "pending": "",
+              "language": "en",
+              "received": 7.25,
+              "pass_ms": 0.0
+            }
+          }
+        ]
+      },
+      {
+        "language": "fr",
+        "trial": 0,
+        "audio_seconds": 6.65,
+        "first_text_ms": 414.1917500528507,
+        "first_text": "Donc on...",
+        "first_correct_reference_word_ms": 414.1917500528507,
+        "first_final_consistent_word_ms": 414.1917500528507,
+        "first_committed_ms": 1445.7428750465624,
+        "release_to_final_ms": 171.8806250137277,
+        "release_to_final_dispatch_ms": 10.028749995399266,
+        "text": "Donc on garde le budget à 40 000 pour le moment. Oui, c'est ça, je t'envoie le gris d'hommes à matin.",
+        "edits": 6,
+        "reference_words": 22,
+        "wer": 0.2727272727272727,
+        "events": [
+          {
+            "dispatch_ms": 405.1529170246795,
+            "received_ms": 414.1917500528507,
+            "available_samples": 6482,
+            "text": "Donc on...",
+            "committed": "",
+            "native": {
+              "text": "",
+              "words": [],
+              "pending": "Donc on...",
+              "language": "fr",
+              "received": 0.41,
+              "pass_ms": 8.2
+            }
+          },
+          {
+            "dispatch_ms": 1401.2336250161752,
+            "received_ms": 1445.7428750465624,
+            "available_samples": 22419,
+            "text": "Donc on garde le budget avec.",
+            "committed": "Donc",
+            "native": {
+              "text": "Donc",
+              "words": [
+                {
+                  "word": "Donc",
+                  "start": 0.08,
+                  "end": 0.4,
+                  "probability": 0.987
+                }
+              ],
+              "pending": "on garde le budget avec.",
+              "language": "fr",
+              "received": 1.4,
+              "pass_ms": 43.0
+            }
+          },
+          {
+            "dispatch_ms": 2410.0410420214757,
+            "received_ms": 2441.9648330076598,
+            "available_samples": 38560,
+            "text": "Donc on garde le budget à 40 000 pour le...",
+            "committed": "Donc on garde le budget",
+            "native": {
+              "text": "on garde le budget",
+              "words": [
+                {
+                  "word": "on",
+                  "start": 0.4,
+                  "end": 0.48,
+                  "probability": 0.939
+                },
+                {
+                  "word": "garde",
+                  "start": 0.48,
+                  "end": 0.88,
+                  "probability": 0.957
+                },
+                {
+                  "word": "le",
+                  "start": 0.88,
+                  "end": 0.96,
+                  "probability": 1.0
+                },
+                {
+                  "word": "budget",
+                  "start": 0.96,
+                  "end": 1.28,
+                  "probability": 0.993
+                }
+              ],
+              "pending": "à 40 000 pour le...",
+              "language": "fr",
+              "received": 2.41,
+              "pass_ms": 30.0
+            }
+          },
+          {
+            "dispatch_ms": 3402.8184170019813,
+            "received_ms": 3439.0282499953173,
+            "available_samples": 54445,
+            "text": "Donc on garde le budget à 40 000 pour le moment.",
+            "committed": "Donc on garde le budget à 40 000 pour",
+            "native": {
+              "text": "à 40 000 pour",
+              "words": [
+                {
+                  "word": "à",
+                  "start": 1.28,
+                  "end": 1.44,
+                  "probability": 1.0
+                },
+                {
+                  "word": "40",
+                  "start": 1.44,
+                  "end": 1.92,
+                  "probability": 0.988
+                },
+                {
+                  "word": "000",
+                  "start": 1.92,
+                  "end": 2.08,
+                  "probability": 0.99
+                },
+                {
+                  "word": "pour",
+                  "start": 2.08,
+                  "end": 2.32,
+                  "probability": 0.999
+                }
+              ],
+              "pending": "le moment.",
+              "language": "fr",
+              "received": 3.4,
+              "pass_ms": 34.2
+            }
+          },
+          {
+            "dispatch_ms": 4410.036833025515,
+            "received_ms": 4462.174167041667,
+            "available_samples": 70560,
+            "text": "Donc on garde le budget à 40 000 pour le moment. Oui, c'est ça ?",
+            "committed": "Donc on garde le budget à 40 000 pour le moment.",
+            "native": {
+              "text": "le moment.",
+              "words": [
+                {
+                  "word": "le",
+                  "start": 2.32,
+                  "end": 2.48,
+                  "probability": 1.0
+                },
+                {
+                  "word": "moment.",
+                  "start": 2.48,
+                  "end": 2.72,
+                  "probability": 0.999
+                }
+              ],
+              "pending": "Oui, c'est ça ?",
+              "language": "fr",
+              "received": 4.41,
+              "pass_ms": 49.8
+            }
+          },
+          {
+            "dispatch_ms": 5410.0384170305915,
+            "received_ms": 5478.343750000931,
+            "available_samples": 86560,
+            "text": "Donc on garde le budget à 40 000 pour le moment. Oui, c'est ça. Je t'envoie le doigt.",
+            "committed": "Donc on garde le budget à 40 000 pour le moment. Oui, c'est",
+            "native": {
+              "text": "Oui, c'est",
+              "words": [
+                {
+                  "word": "Oui,",
+                  "start": 3.76,
+                  "end": 4.0,
+                  "probability": 0.972
+                },
+                {
+                  "word": "c'est",
+                  "start": 4.0,
+                  "end": 4.16,
+                  "probability": 0.993
+                }
+              ],
+              "pending": "ça. Je t'envoie le doigt.",
+              "language": "fr",
+              "received": 5.41,
+              "pass_ms": 66.0
+            }
+          },
+          {
+            "dispatch_ms": 6405.703083029948,
+            "received_ms": 6564.643167017493,
+            "available_samples": 102491,
+            "text": "Donc on garde le budget à 40 000 pour le moment. Oui, c'est ça, je t'envoie le gris d'homme à un matin.",
+            "committed": "Donc on garde le budget à 40 000 pour le moment. Oui, c'est",
+            "native": {
+              "text": "",
+              "words": [],
+              "pending": "ça, je t'envoie le gris d'homme à un matin.",
+              "language": "fr",
+              "received": 6.41,
+              "pass_ms": 156.8
+            }
+          },
+          {
+            "dispatch_ms": 6660.028750018682,
+            "received_ms": 6821.880625037011,
+            "available_samples": 106400,
+            "final": true,
+            "text": "Donc on garde le budget à 40 000 pour le moment. Oui, c'est ça, je t'envoie le gris d'hommes à matin.",
+            "committed": "Donc on garde le budget à 40 000 pour le moment. Oui, c'est ça, je t'envoie le gris d'hommes à matin.",
+            "native": {
+              "text": "d'hommes à matin.",
+              "words": [
+                {
+                  "word": "d'hommes",
+                  "start": 5.44,
+                  "end": 5.68,
+                  "probability": 0.665
+                },
+                {
+                  "word": "à",
+                  "start": 5.68,
+                  "end": 5.76,
+                  "probability": 0.811
+                },
+                {
+                  "word": "matin.",
+                  "start": 5.76,
+                  "end": 6.16,
+                  "probability": 0.734
+                }
+              ],
+              "pending": "",
+              "language": "fr",
+              "received": 6.65,
+              "pass_ms": 0.0
+            }
+          }
+        ]
+      },
+      {
+        "language": "fr",
+        "trial": 1,
+        "audio_seconds": 6.65,
+        "first_text_ms": 421.14487499929965,
+        "first_text": "Donc on...",
+        "first_correct_reference_word_ms": 421.14487499929965,
+        "first_final_consistent_word_ms": 421.14487499929965,
+        "first_committed_ms": 1435.0189580000006,
+        "release_to_final_ms": 86.20616694679484,
+        "release_to_final_dispatch_ms": 10.043416928965598,
+        "text": "Donc on garde le budget à 40 000 pour le moment. Oui, c'est ça, je t'envoie le gris d'hommes à matin.",
+        "edits": 6,
+        "reference_words": 22,
+        "wer": 0.2727272727272727,
+        "events": [
+          {
+            "dispatch_ms": 410.02783295698464,
+            "received_ms": 421.14487499929965,
+            "available_samples": 6560,
+            "text": "Donc on...",
+            "committed": "",
+            "native": {
+              "text": "",
+              "words": [],
+              "pending": "Donc on...",
+              "language": "fr",
+              "received": 0.41,
+              "pass_ms": 10.2
+            }
+          },
+          {
+            "dispatch_ms": 1408.1382919684984,
+            "received_ms": 1435.0189580000006,
+            "available_samples": 22530,
+            "text": "Donc on garde le budget avec.",
+            "committed": "Donc",
+            "native": {
+              "text": "Donc",
+              "words": [
+                {
+                  "word": "Donc",
+                  "start": 0.08,
+                  "end": 0.4,
+                  "probability": 0.986
+                }
+              ],
+              "pending": "on garde le budget avec.",
+              "language": "fr",
+              "received": 1.41,
+              "pass_ms": 25.0
+            }
+          },
+          {
+            "dispatch_ms": 2410.045166965574,
+            "received_ms": 2442.940582986921,
+            "available_samples": 38560,
+            "text": "Donc on garde le budget à 40 000 pour le...",
+            "committed": "Donc on garde le budget",
+            "native": {
+              "text": "on garde le budget",
+              "words": [
+                {
+                  "word": "on",
+                  "start": 0.4,
+                  "end": 0.48,
+                  "probability": 0.939
+                },
+                {
+                  "word": "garde",
+                  "start": 0.48,
+                  "end": 0.88,
+                  "probability": 0.957
+                },
+                {
+                  "word": "le",
+                  "start": 0.88,
+                  "end": 0.96,
+                  "probability": 1.0
+                },
+                {
+                  "word": "budget",
+                  "start": 0.96,
+                  "end": 1.28,
+                  "probability": 0.993
+                }
+              ],
+              "pending": "à 40 000 pour le...",
+              "language": "fr",
+              "received": 2.41,
+              "pass_ms": 30.7
+            }
+          },
+          {
+            "dispatch_ms": 3408.138541970402,
+            "received_ms": 3444.3412499967963,
+            "available_samples": 54530,
+            "text": "Donc on garde le budget à 40 000 pour le moment.",
+            "committed": "Donc on garde le budget à 40 000 pour",
+            "native": {
+              "text": "à 40 000 pour",
+              "words": [
+                {
+                  "word": "à",
+                  "start": 1.28,
+                  "end": 1.44,
+                  "probability": 1.0
+                },
+                {
+                  "word": "40",
+                  "start": 1.44,
+                  "end": 1.92,
+                  "probability": 0.988
+                },
+                {
+                  "word": "000",
+                  "start": 1.92,
+                  "end": 2.08,
+                  "probability": 0.99
+                },
+                {
+                  "word": "pour",
+                  "start": 2.08,
+                  "end": 2.32,
+                  "probability": 0.999
+                }
+              ],
+              "pending": "le moment.",
+              "language": "fr",
+              "received": 3.41,
+              "pass_ms": 34.2
+            }
+          },
+          {
+            "dispatch_ms": 4408.134541998152,
+            "received_ms": 4488.527417008299,
+            "available_samples": 70530,
+            "text": "Donc on garde le budget à 40 000 pour le moment. Oui, c'est ça ?",
+            "committed": "Donc on garde le budget à 40 000 pour le moment.",
+            "native": {
+              "text": "le moment.",
+              "words": [
+                {
+                  "word": "le",
+                  "start": 2.32,
+                  "end": 2.48,
+                  "probability": 1.0
+                },
+                {
+                  "word": "moment.",
+                  "start": 2.48,
+                  "end": 2.72,
+                  "probability": 0.999
+                }
+              ],
+              "pending": "Oui, c'est ça ?",
+              "language": "fr",
+              "received": 4.41,
+              "pass_ms": 77.5
+            }
+          },
+          {
+            "dispatch_ms": 5404.596707958262,
+            "received_ms": 5470.5252919811755,
+            "available_samples": 86473,
+            "text": "Donc on garde le budget à 40 000 pour le moment. Oui, c'est ça. Je t'envoie le doigt.",
+            "committed": "Donc on garde le budget à 40 000 pour le moment. Oui, c'est",
+            "native": {
+              "text": "Oui, c'est",
+              "words": [
+                {
+                  "word": "Oui,",
+                  "start": 3.76,
+                  "end": 4.0,
+                  "probability": 0.968
+                },
+                {
+                  "word": "c'est",
+                  "start": 4.0,
+                  "end": 4.16,
+                  "probability": 0.992
+                }
+              ],
+              "pending": "ça. Je t'envoie le doigt.",
+              "language": "fr",
+              "received": 5.4,
+              "pass_ms": 63.8
+            }
+          },
+          {
+            "dispatch_ms": 6408.139374980237,
+            "received_ms": 6489.291500009131,
+            "available_samples": 102530,
+            "text": "Donc on garde le budget à 40 000 pour le moment. Oui, c'est ça, je t'envoie le gris d'homme à un matin.",
+            "committed": "Donc on garde le budget à 40 000 pour le moment. Oui, c'est",
+            "native": {
+              "text": "",
+              "words": [],
+              "pending": "ça, je t'envoie le gris d'homme à un matin.",
+              "language": "fr",
+              "received": 6.41,
+              "pass_ms": 78.6
+            }
+          },
+          {
+            "dispatch_ms": 6660.043416952249,
+            "received_ms": 6736.206166970078,
+            "available_samples": 106400,
+            "final": true,
+            "text": "Donc on garde le budget à 40 000 pour le moment. Oui, c'est ça, je t'envoie le gris d'hommes à matin.",
+            "committed": "Donc on garde le budget à 40 000 pour le moment. Oui, c'est ça, je t'envoie le gris d'hommes à matin.",
+            "native": {
+              "text": "d'hommes à matin.",
+              "words": [
+                {
+                  "word": "d'hommes",
+                  "start": 5.44,
+                  "end": 5.68,
+                  "probability": 0.665
+                },
+                {
+                  "word": "à",
+                  "start": 5.68,
+                  "end": 5.76,
+                  "probability": 0.811
+                },
+                {
+                  "word": "matin.",
+                  "start": 5.76,
+                  "end": 6.16,
+                  "probability": 0.734
+                }
+              ],
+              "pending": "",
+              "language": "fr",
+              "received": 6.65,
+              "pass_ms": 0.0
+            }
+          }
+        ]
+      },
+      {
+        "language": "fr",
+        "trial": 2,
+        "audio_seconds": 6.65,
+        "first_text_ms": 419.7414169902913,
+        "first_text": "Donc on...",
+        "first_correct_reference_word_ms": 419.7414169902913,
+        "first_final_consistent_word_ms": 419.7414169902913,
+        "first_committed_ms": 1439.1238749958575,
+        "release_to_final_ms": 82.60383398737758,
+        "release_to_final_dispatch_ms": 9.182124980725348,
+        "text": "Donc on garde le budget à 40 000 pour le moment. Oui, c'est ça, je t'envoie le gris d'hommes à matin.",
+        "edits": 6,
+        "reference_words": 22,
+        "wer": 0.2727272727272727,
+        "events": [
+          {
+            "dispatch_ms": 409.4664590083994,
+            "received_ms": 419.7414169902913,
+            "available_samples": 6551,
+            "text": "Donc on...",
+            "committed": "",
+            "native": {
+              "text": "",
+              "words": [],
+              "pending": "Donc on...",
+              "language": "fr",
+              "received": 0.41,
+              "pass_ms": 9.3
+            }
+          },
+          {
+            "dispatch_ms": 1407.1587499929592,
+            "received_ms": 1439.1238749958575,
+            "available_samples": 22514,
+            "text": "Donc on garde le budget avec.",
+            "committed": "Donc",
+            "native": {
+              "text": "Donc",
+              "words": [
+                {
+                  "word": "Donc",
+                  "start": 0.08,
+                  "end": 0.4,
+                  "probability": 0.986
+                }
+              ],
+              "pending": "on garde le budget avec.",
+              "language": "fr",
+              "received": 1.41,
+              "pass_ms": 30.1
+            }
+          },
+          {
+            "dispatch_ms": 2407.873749965802,
+            "received_ms": 2442.5831249682233,
+            "available_samples": 38525,
+            "text": "Donc on garde le budget à 40 000 pour le...",
+            "committed": "Donc on garde le budget",
+            "native": {
+              "text": "on garde le budget",
+              "words": [
+                {
+                  "word": "on",
+                  "start": 0.4,
+                  "end": 0.48,
+                  "probability": 0.94
+                },
+                {
+                  "word": "garde",
+                  "start": 0.48,
+                  "end": 0.88,
+                  "probability": 0.959
+                },
+                {
+                  "word": "le",
+                  "start": 0.88,
+                  "end": 0.96,
+                  "probability": 1.0
+                },
+                {
+                  "word": "budget",
+                  "start": 0.96,
+                  "end": 1.28,
+                  "probability": 0.992
+                }
+              ],
+              "pending": "à 40 000 pour le...",
+              "language": "fr",
+              "received": 2.41,
+              "pass_ms": 32.2
+            }
+          },
+          {
+            "dispatch_ms": 3409.5814999891445,
+            "received_ms": 3447.8562499862164,
+            "available_samples": 54553,
+            "text": "Donc on garde le budget à 40 000 pour le moment.",
+            "committed": "Donc on garde le budget à 40 000 pour",
+            "native": {
+              "text": "à 40 000 pour",
+              "words": [
+                {
+                  "word": "à",
+                  "start": 1.28,
+                  "end": 1.44,
+                  "probability": 1.0
+                },
+                {
+                  "word": "40",
+                  "start": 1.44,
+                  "end": 1.92,
+                  "probability": 0.988
+                },
+                {
+                  "word": "000",
+                  "start": 1.92,
+                  "end": 2.08,
+                  "probability": 0.99
+                },
+                {
+                  "word": "pour",
+                  "start": 2.08,
+                  "end": 2.32,
+                  "probability": 0.999
+                }
+              ],
+              "pending": "le moment.",
+              "language": "fr",
+              "received": 3.41,
+              "pass_ms": 36.0
+            }
+          },
+          {
+            "dispatch_ms": 4407.164959004149,
+            "received_ms": 4456.300374993589,
+            "available_samples": 70514,
+            "text": "Donc on garde le budget à 40 000 pour le moment. Oui, c'est ça ?",
+            "committed": "Donc on garde le budget à 40 000 pour le moment.",
+            "native": {
+              "text": "le moment.",
+              "words": [
+                {
+                  "word": "le",
+                  "start": 2.32,
+                  "end": 2.48,
+                  "probability": 1.0
+                },
+                {
+                  "word": "moment.",
+                  "start": 2.48,
+                  "end": 2.72,
+                  "probability": 0.999
+                }
+              ],
+              "pending": "Oui, c'est ça ?",
+              "language": "fr",
+              "received": 4.41,
+              "pass_ms": 47.1
+            }
+          },
+          {
+            "dispatch_ms": 5406.75637498498,
+            "received_ms": 5472.017083957326,
+            "available_samples": 86508,
+            "text": "Donc on garde le budget à 40 000 pour le moment. Oui, c'est ça. Je t'envoie le doigt.",
+            "committed": "Donc on garde le budget à 40 000 pour le moment. Oui, c'est",
+            "native": {
+              "text": "Oui, c'est",
+              "words": [
+                {
+                  "word": "Oui,",
+                  "start": 3.76,
+                  "end": 4.0,
+                  "probability": 0.968
+                },
+                {
+                  "word": "c'est",
+                  "start": 4.0,
+                  "end": 4.16,
+                  "probability": 0.992
+                }
+              ],
+              "pending": "ça. Je t'envoie le doigt.",
+              "language": "fr",
+              "received": 5.41,
+              "pass_ms": 62.8
+            }
+          },
+          {
+            "dispatch_ms": 6407.200958987232,
+            "received_ms": 6487.542791990563,
+            "available_samples": 102515,
+            "text": "Donc on garde le budget à 40 000 pour le moment. Oui, c'est ça, je t'envoie le gris d'homme à un matin.",
+            "committed": "Donc on garde le budget à 40 000 pour le moment. Oui, c'est",
+            "native": {
+              "text": "",
+              "words": [],
+              "pending": "ça, je t'envoie le gris d'homme à un matin.",
+              "language": "fr",
+              "received": 6.41,
+              "pass_ms": 77.9
+            }
+          },
+          {
+            "dispatch_ms": 6659.182125004008,
+            "received_ms": 6732.603834010661,
+            "available_samples": 106400,
+            "final": true,
+            "text": "Donc on garde le budget à 40 000 pour le moment. Oui, c'est ça, je t'envoie le gris d'hommes à matin.",
+            "committed": "Donc on garde le budget à 40 000 pour le moment. Oui, c'est ça, je t'envoie le gris d'hommes à matin.",
+            "native": {
+              "text": "d'hommes à matin.",
+              "words": [
+                {
+                  "word": "d'hommes",
+                  "start": 5.44,
+                  "end": 5.68,
+                  "probability": 0.665
+                },
+                {
+                  "word": "à",
+                  "start": 5.68,
+                  "end": 5.76,
+                  "probability": 0.811
+                },
+                {
+                  "word": "matin.",
+                  "start": 5.76,
+                  "end": 6.16,
+                  "probability": 0.734
+                }
+              ],
+              "pending": "",
+              "language": "fr",
+              "received": 6.65,
+              "pass_ms": 0.0
+            }
+          }
+        ]
+      }
+    ],
+    "fixtures": {
+      "en": {
+        "path": "Tests/Fixtures/meetings/en-dialogue.wav",
+        "source_sha256": "5e4c00f6c703bd20e49bd8e7470703776311169e3ba0aff8d8fd247bd875f203",
+        "samples": 116000,
+        "seconds": 7.25,
+        "reference": "Okay so the plan is to ship the installer on Friday. Right, and then we write the release note together."
+      },
+      "fr": {
+        "path": "Tests/Fixtures/meetings/fr-dialogue.wav",
+        "source_sha256": "b25cfc815260c4184ef564150417b48201013ecf1baec9802914899e05e3b8c5",
+        "samples": 106400,
+        "seconds": 6.65,
+        "reference": "Donc on garde le budget à quarante mille pour le moment. Oui c'est ça, je t'envoie le devis demain matin."
+      }
+    },
+    "warmups": [
+      {
+        "language": "en",
+        "seconds": 0.23164429096505046
+      },
+      {
+        "language": "fr",
+        "seconds": 0.2710471670143306
+      }
+    ],
+    "peak_rss_bytes": 105299968,
+    "policy": "0.4s first prefix, then 1s; monotonic audio availability; serialized/coalesced; full-prefix final",
+    "scope": "Paced fixture runtime delivery; no physical mic/UI/cleanup/insertion or duplex acceptance",
+    "ten_second_audit": [
+      {
+        "language": "en",
+        "trial": 0,
+        "audio_seconds": 10,
+        "wall_ms": 60.23633398581296,
+        "result": {
+          "text": "Okay so the plan is to ship the installer on Friday. Right, and then we write the release notes together. We need Sam to approve the budget before",
+          "language": "en",
+          "words": [
+            {
+              "word": "Okay",
+              "start": 0.08,
+              "end": 0.48,
+              "probability": 0.688
+            },
+            {
+              "word": "so",
+              "start": 0.48,
+              "end": 0.64,
+              "probability": 0.944
+            },
+            {
+              "word": "the",
+              "start": 0.64,
+              "end": 0.8,
+              "probability": 0.998
+            },
+            {
+              "word": "plan",
+              "start": 0.8,
+              "end": 1.04,
+              "probability": 0.999
+            },
+            {
+              "word": "is",
+              "start": 1.04,
+              "end": 1.2,
+              "probability": 0.996
+            },
+            {
+              "word": "to",
+              "start": 1.2,
+              "end": 1.36,
+              "probability": 1.0
+            },
+            {
+              "word": "ship",
+              "start": 1.36,
+              "end": 1.6,
+              "probability": 0.966
+            },
+            {
+              "word": "the",
+              "start": 1.6,
+              "end": 1.84,
+              "probability": 1.0
+            },
+            {
+              "word": "installer",
+              "start": 1.84,
+              "end": 2.4,
+              "probability": 0.975
+            },
+            {
+              "word": "on",
+              "start": 2.4,
+              "end": 2.56,
+              "probability": 0.998
+            },
+            {
+              "word": "Friday.",
+              "start": 2.56,
+              "end": 2.96,
+              "probability": 0.948
+            },
+            {
+              "word": "Right,",
+              "start": 4.16,
+              "end": 4.4,
+              "probability": 0.964
+            },
+            {
+              "word": "and",
+              "start": 4.64,
+              "end": 4.88,
+              "probability": 0.996
+            },
+            {
+              "word": "then",
+              "start": 4.88,
+              "end": 5.04,
+              "probability": 1.0
+            },
+            {
+              "word": "we",
+              "start": 5.04,
+              "end": 5.28,
+              "probability": 0.994
+            },
+            {
+              "word": "write",
+              "start": 5.28,
+              "end": 5.44,
+              "probability": 0.878
+            },
+            {
+              "word": "the",
+              "start": 5.44,
+              "end": 5.68,
+              "probability": 0.991
+            },
+            {
+              "word": "release",
+              "start": 5.68,
+              "end": 6.0,
+              "probability": 0.963
+            },
+            {
+              "word": "notes",
+              "start": 6.0,
+              "end": 6.24,
+              "probability": 0.738
+            },
+            {
+              "word": "together.",
+              "start": 6.24,
+              "end": 6.72,
+              "probability": 0.982
+            },
+            {
+              "word": "We",
+              "start": 8.0,
+              "end": 8.24,
+              "probability": 0.998
+            },
+            {
+              "word": "need",
+              "start": 8.24,
+              "end": 8.4,
+              "probability": 1.0
+            },
+            {
+              "word": "Sam",
+              "start": 8.4,
+              "end": 8.64,
+              "probability": 0.628
+            },
+            {
+              "word": "to",
+              "start": 8.64,
+              "end": 8.8,
+              "probability": 1.0
+            },
+            {
+              "word": "approve",
+              "start": 8.8,
+              "end": 9.2,
+              "probability": 0.996
+            },
+            {
+              "word": "the",
+              "start": 9.2,
+              "end": 9.36,
+              "probability": 0.999
+            },
+            {
+              "word": "budget",
+              "start": 9.36,
+              "end": 9.68,
+              "probability": 0.999
+            },
+            {
+              "word": "before",
+              "start": 9.68,
+              "end": 9.92,
+              "probability": 0.999
+            }
+          ],
+          "ttft_ms": 12.4,
+          "decode_tps": 1005.6
+        }
+      },
+      {
+        "language": "en",
+        "trial": 1,
+        "audio_seconds": 10,
+        "wall_ms": 62.42879101773724,
+        "result": {
+          "text": "Okay so the plan is to ship the installer on Friday. Right, and then we write the release notes together. We need Sam to approve the budget before",
+          "language": "en",
+          "words": [
+            {
+              "word": "Okay",
+              "start": 0.08,
+              "end": 0.48,
+              "probability": 0.688
+            },
+            {
+              "word": "so",
+              "start": 0.48,
+              "end": 0.64,
+              "probability": 0.944
+            },
+            {
+              "word": "the",
+              "start": 0.64,
+              "end": 0.8,
+              "probability": 0.998
+            },
+            {
+              "word": "plan",
+              "start": 0.8,
+              "end": 1.04,
+              "probability": 0.999
+            },
+            {
+              "word": "is",
+              "start": 1.04,
+              "end": 1.2,
+              "probability": 0.996
+            },
+            {
+              "word": "to",
+              "start": 1.2,
+              "end": 1.36,
+              "probability": 1.0
+            },
+            {
+              "word": "ship",
+              "start": 1.36,
+              "end": 1.6,
+              "probability": 0.966
+            },
+            {
+              "word": "the",
+              "start": 1.6,
+              "end": 1.84,
+              "probability": 1.0
+            },
+            {
+              "word": "installer",
+              "start": 1.84,
+              "end": 2.4,
+              "probability": 0.975
+            },
+            {
+              "word": "on",
+              "start": 2.4,
+              "end": 2.56,
+              "probability": 0.998
+            },
+            {
+              "word": "Friday.",
+              "start": 2.56,
+              "end": 2.96,
+              "probability": 0.948
+            },
+            {
+              "word": "Right,",
+              "start": 4.16,
+              "end": 4.4,
+              "probability": 0.964
+            },
+            {
+              "word": "and",
+              "start": 4.64,
+              "end": 4.88,
+              "probability": 0.996
+            },
+            {
+              "word": "then",
+              "start": 4.88,
+              "end": 5.04,
+              "probability": 1.0
+            },
+            {
+              "word": "we",
+              "start": 5.04,
+              "end": 5.28,
+              "probability": 0.994
+            },
+            {
+              "word": "write",
+              "start": 5.28,
+              "end": 5.44,
+              "probability": 0.878
+            },
+            {
+              "word": "the",
+              "start": 5.44,
+              "end": 5.68,
+              "probability": 0.991
+            },
+            {
+              "word": "release",
+              "start": 5.68,
+              "end": 6.0,
+              "probability": 0.963
+            },
+            {
+              "word": "notes",
+              "start": 6.0,
+              "end": 6.24,
+              "probability": 0.738
+            },
+            {
+              "word": "together.",
+              "start": 6.24,
+              "end": 6.72,
+              "probability": 0.982
+            },
+            {
+              "word": "We",
+              "start": 8.0,
+              "end": 8.24,
+              "probability": 0.998
+            },
+            {
+              "word": "need",
+              "start": 8.24,
+              "end": 8.4,
+              "probability": 1.0
+            },
+            {
+              "word": "Sam",
+              "start": 8.4,
+              "end": 8.64,
+              "probability": 0.628
+            },
+            {
+              "word": "to",
+              "start": 8.64,
+              "end": 8.8,
+              "probability": 1.0
+            },
+            {
+              "word": "approve",
+              "start": 8.8,
+              "end": 9.2,
+              "probability": 0.996
+            },
+            {
+              "word": "the",
+              "start": 9.2,
+              "end": 9.36,
+              "probability": 0.999
+            },
+            {
+              "word": "budget",
+              "start": 9.36,
+              "end": 9.68,
+              "probability": 0.999
+            },
+            {
+              "word": "before",
+              "start": 9.68,
+              "end": 9.92,
+              "probability": 0.999
+            }
+          ],
+          "ttft_ms": 14.7,
+          "decode_tps": 1044.2
+        }
+      },
+      {
+        "language": "en",
+        "trial": 2,
+        "audio_seconds": 10,
+        "wall_ms": 59.9050410091877,
+        "result": {
+          "text": "Okay so the plan is to ship the installer on Friday. Right, and then we write the release notes together. We need Sam to approve the budget before",
+          "language": "en",
+          "words": [
+            {
+              "word": "Okay",
+              "start": 0.08,
+              "end": 0.48,
+              "probability": 0.688
+            },
+            {
+              "word": "so",
+              "start": 0.48,
+              "end": 0.64,
+              "probability": 0.944
+            },
+            {
+              "word": "the",
+              "start": 0.64,
+              "end": 0.8,
+              "probability": 0.998
+            },
+            {
+              "word": "plan",
+              "start": 0.8,
+              "end": 1.04,
+              "probability": 0.999
+            },
+            {
+              "word": "is",
+              "start": 1.04,
+              "end": 1.2,
+              "probability": 0.996
+            },
+            {
+              "word": "to",
+              "start": 1.2,
+              "end": 1.36,
+              "probability": 1.0
+            },
+            {
+              "word": "ship",
+              "start": 1.36,
+              "end": 1.6,
+              "probability": 0.966
+            },
+            {
+              "word": "the",
+              "start": 1.6,
+              "end": 1.84,
+              "probability": 1.0
+            },
+            {
+              "word": "installer",
+              "start": 1.84,
+              "end": 2.4,
+              "probability": 0.975
+            },
+            {
+              "word": "on",
+              "start": 2.4,
+              "end": 2.56,
+              "probability": 0.998
+            },
+            {
+              "word": "Friday.",
+              "start": 2.56,
+              "end": 2.96,
+              "probability": 0.948
+            },
+            {
+              "word": "Right,",
+              "start": 4.16,
+              "end": 4.4,
+              "probability": 0.964
+            },
+            {
+              "word": "and",
+              "start": 4.64,
+              "end": 4.88,
+              "probability": 0.996
+            },
+            {
+              "word": "then",
+              "start": 4.88,
+              "end": 5.04,
+              "probability": 1.0
+            },
+            {
+              "word": "we",
+              "start": 5.04,
+              "end": 5.28,
+              "probability": 0.994
+            },
+            {
+              "word": "write",
+              "start": 5.28,
+              "end": 5.44,
+              "probability": 0.878
+            },
+            {
+              "word": "the",
+              "start": 5.44,
+              "end": 5.68,
+              "probability": 0.991
+            },
+            {
+              "word": "release",
+              "start": 5.68,
+              "end": 6.0,
+              "probability": 0.963
+            },
+            {
+              "word": "notes",
+              "start": 6.0,
+              "end": 6.24,
+              "probability": 0.738
+            },
+            {
+              "word": "together.",
+              "start": 6.24,
+              "end": 6.72,
+              "probability": 0.982
+            },
+            {
+              "word": "We",
+              "start": 8.0,
+              "end": 8.24,
+              "probability": 0.998
+            },
+            {
+              "word": "need",
+              "start": 8.24,
+              "end": 8.4,
+              "probability": 1.0
+            },
+            {
+              "word": "Sam",
+              "start": 8.4,
+              "end": 8.64,
+              "probability": 0.628
+            },
+            {
+              "word": "to",
+              "start": 8.64,
+              "end": 8.8,
+              "probability": 1.0
+            },
+            {
+              "word": "approve",
+              "start": 8.8,
+              "end": 9.2,
+              "probability": 0.996
+            },
+            {
+              "word": "the",
+              "start": 9.2,
+              "end": 9.36,
+              "probability": 0.999
+            },
+            {
+              "word": "budget",
+              "start": 9.36,
+              "end": 9.68,
+              "probability": 0.999
+            },
+            {
+              "word": "before",
+              "start": 9.68,
+              "end": 9.92,
+              "probability": 0.999
+            }
+          ],
+          "ttft_ms": 14.2,
+          "decode_tps": 1069.7
+        }
+      },
+      {
+        "language": "fr",
+        "trial": 0,
+        "audio_seconds": 10,
+        "wall_ms": 253.08549997862428,
+        "result": {
+          "text": "Donc on garde le budget à 40 000 pour le moment. Oui c'est ça, je t'envoie le gris d'hommes à matin. Il faut que Marc valide avec la banque avant vendredi.",
+          "language": "fr",
+          "words": [
+            {
+              "word": "Donc",
+              "start": 0.08,
+              "end": 0.4,
+              "probability": 0.99
+            },
+            {
+              "word": "on",
+              "start": 0.4,
+              "end": 0.48,
+              "probability": 0.938
+            },
+            {
+              "word": "garde",
+              "start": 0.48,
+              "end": 0.8,
+              "probability": 0.968
+            },
+            {
+              "word": "le",
+              "start": 0.8,
+              "end": 0.96,
+              "probability": 1.0
+            },
+            {
+              "word": "budget",
+              "start": 0.96,
+              "end": 1.28,
+              "probability": 0.956
+            },
+            {
+              "word": "à",
+              "start": 1.28,
+              "end": 1.44,
+              "probability": 1.0
+            },
+            {
+              "word": "40",
+              "start": 1.44,
+              "end": 1.76,
+              "probability": 0.987
+            },
+            {
+              "word": "000",
+              "start": 1.76,
+              "end": 2.08,
+              "probability": 0.989
+            },
+            {
+              "word": "pour",
+              "start": 2.08,
+              "end": 2.32,
+              "probability": 1.0
+            },
+            {
+              "word": "le",
+              "start": 2.32,
+              "end": 2.48,
+              "probability": 1.0
+            },
+            {
+              "word": "moment.",
+              "start": 2.48,
+              "end": 2.72,
+              "probability": 0.999
+            },
+            {
+              "word": "Oui",
+              "start": 3.76,
+              "end": 4.0,
+              "probability": 0.971
+            },
+            {
+              "word": "c'est",
+              "start": 4.0,
+              "end": 4.16,
+              "probability": 0.908
+            },
+            {
+              "word": "ça,",
+              "start": 4.16,
+              "end": 4.4,
+              "probability": 0.998
+            },
+            {
+              "word": "je",
+              "start": 4.56,
+              "end": 4.72,
+              "probability": 0.968
+            },
+            {
+              "word": "t'envoie",
+              "start": 4.72,
+              "end": 5.04,
+              "probability": 0.907
+            },
+            {
+              "word": "le",
+              "start": 5.04,
+              "end": 5.2,
+              "probability": 0.99
+            },
+            {
+              "word": "gris",
+              "start": 5.2,
+              "end": 5.44,
+              "probability": 0.304
+            },
+            {
+              "word": "d'hommes",
+              "start": 5.44,
+              "end": 5.68,
+              "probability": 0.633
+            },
+            {
+              "word": "à",
+              "start": 5.68,
+              "end": 5.76,
+              "probability": 0.801
+            },
+            {
+              "word": "matin.",
+              "start": 5.76,
+              "end": 6.16,
+              "probability": 0.805
+            },
+            {
+              "word": "Il",
+              "start": 7.2,
+              "end": 7.68,
+              "probability": 0.998
+            },
+            {
+              "word": "faut",
+              "start": 7.68,
+              "end": 7.84,
+              "probability": 0.998
+            },
+            {
+              "word": "que",
+              "start": 7.84,
+              "end": 8.0,
+              "probability": 1.0
+            },
+            {
+              "word": "Marc",
+              "start": 8.0,
+              "end": 8.32,
+              "probability": 0.721
+            },
+            {
+              "word": "valide",
+              "start": 8.32,
+              "end": 8.64,
+              "probability": 0.714
+            },
+            {
+              "word": "avec",
+              "start": 8.64,
+              "end": 8.96,
+              "probability": 1.0
+            },
+            {
+              "word": "la",
+              "start": 8.96,
+              "end": 9.12,
+              "probability": 0.983
+            },
+            {
+              "word": "banque",
+              "start": 9.12,
+              "end": 9.36,
+              "probability": 0.984
+            },
+            {
+              "word": "avant",
+              "start": 9.36,
+              "end": 9.52,
+              "probability": 0.978
+            },
+            {
+              "word": "vendredi.",
+              "start": 9.52,
+              "end": 9.92,
+              "probability": 0.979
+            }
+          ],
+          "ttft_ms": 27.0,
+          "decode_tps": 460.3
+        }
+      },
+      {
+        "language": "fr",
+        "trial": 1,
+        "audio_seconds": 10,
+        "wall_ms": 198.86974996188655,
+        "result": {
+          "text": "Donc on garde le budget à 40 000 pour le moment. Oui c'est ça, je t'envoie le gris d'hommes à matin. Il faut que Marc valide avec la banque avant vendredi.",
+          "language": "fr",
+          "words": [
+            {
+              "word": "Donc",
+              "start": 0.08,
+              "end": 0.4,
+              "probability": 0.99
+            },
+            {
+              "word": "on",
+              "start": 0.4,
+              "end": 0.48,
+              "probability": 0.938
+            },
+            {
+              "word": "garde",
+              "start": 0.48,
+              "end": 0.8,
+              "probability": 0.968
+            },
+            {
+              "word": "le",
+              "start": 0.8,
+              "end": 0.96,
+              "probability": 1.0
+            },
+            {
+              "word": "budget",
+              "start": 0.96,
+              "end": 1.28,
+              "probability": 0.956
+            },
+            {
+              "word": "à",
+              "start": 1.28,
+              "end": 1.44,
+              "probability": 1.0
+            },
+            {
+              "word": "40",
+              "start": 1.44,
+              "end": 1.76,
+              "probability": 0.987
+            },
+            {
+              "word": "000",
+              "start": 1.76,
+              "end": 2.08,
+              "probability": 0.989
+            },
+            {
+              "word": "pour",
+              "start": 2.08,
+              "end": 2.32,
+              "probability": 1.0
+            },
+            {
+              "word": "le",
+              "start": 2.32,
+              "end": 2.48,
+              "probability": 1.0
+            },
+            {
+              "word": "moment.",
+              "start": 2.48,
+              "end": 2.72,
+              "probability": 0.999
+            },
+            {
+              "word": "Oui",
+              "start": 3.76,
+              "end": 4.0,
+              "probability": 0.971
+            },
+            {
+              "word": "c'est",
+              "start": 4.0,
+              "end": 4.16,
+              "probability": 0.908
+            },
+            {
+              "word": "ça,",
+              "start": 4.16,
+              "end": 4.4,
+              "probability": 0.998
+            },
+            {
+              "word": "je",
+              "start": 4.56,
+              "end": 4.72,
+              "probability": 0.968
+            },
+            {
+              "word": "t'envoie",
+              "start": 4.72,
+              "end": 5.04,
+              "probability": 0.907
+            },
+            {
+              "word": "le",
+              "start": 5.04,
+              "end": 5.2,
+              "probability": 0.99
+            },
+            {
+              "word": "gris",
+              "start": 5.2,
+              "end": 5.44,
+              "probability": 0.304
+            },
+            {
+              "word": "d'hommes",
+              "start": 5.44,
+              "end": 5.68,
+              "probability": 0.633
+            },
+            {
+              "word": "à",
+              "start": 5.68,
+              "end": 5.76,
+              "probability": 0.801
+            },
+            {
+              "word": "matin.",
+              "start": 5.76,
+              "end": 6.16,
+              "probability": 0.805
+            },
+            {
+              "word": "Il",
+              "start": 7.2,
+              "end": 7.68,
+              "probability": 0.998
+            },
+            {
+              "word": "faut",
+              "start": 7.68,
+              "end": 7.84,
+              "probability": 0.998
+            },
+            {
+              "word": "que",
+              "start": 7.84,
+              "end": 8.0,
+              "probability": 1.0
+            },
+            {
+              "word": "Marc",
+              "start": 8.0,
+              "end": 8.32,
+              "probability": 0.721
+            },
+            {
+              "word": "valide",
+              "start": 8.32,
+              "end": 8.64,
+              "probability": 0.714
+            },
+            {
+              "word": "avec",
+              "start": 8.64,
+              "end": 8.96,
+              "probability": 1.0
+            },
+            {
+              "word": "la",
+              "start": 8.96,
+              "end": 9.12,
+              "probability": 0.983
+            },
+            {
+              "word": "banque",
+              "start": 9.12,
+              "end": 9.36,
+              "probability": 0.984
+            },
+            {
+              "word": "avant",
+              "start": 9.36,
+              "end": 9.52,
+              "probability": 0.978
+            },
+            {
+              "word": "vendredi.",
+              "start": 9.52,
+              "end": 9.92,
+              "probability": 0.979
+            }
+          ],
+          "ttft_ms": 31.8,
+          "decode_tps": 470.7
+        }
+      },
+      {
+        "language": "fr",
+        "trial": 2,
+        "audio_seconds": 10,
+        "wall_ms": 100.79416597727686,
+        "result": {
+          "text": "Donc on garde le budget à 40 000 pour le moment. Oui c'est ça, je t'envoie le gris d'hommes à matin. Il faut que Marc valide avec la banque avant vendredi.",
+          "language": "fr",
+          "words": [
+            {
+              "word": "Donc",
+              "start": 0.08,
+              "end": 0.4,
+              "probability": 0.99
+            },
+            {
+              "word": "on",
+              "start": 0.4,
+              "end": 0.48,
+              "probability": 0.938
+            },
+            {
+              "word": "garde",
+              "start": 0.48,
+              "end": 0.8,
+              "probability": 0.968
+            },
+            {
+              "word": "le",
+              "start": 0.8,
+              "end": 0.96,
+              "probability": 1.0
+            },
+            {
+              "word": "budget",
+              "start": 0.96,
+              "end": 1.28,
+              "probability": 0.956
+            },
+            {
+              "word": "à",
+              "start": 1.28,
+              "end": 1.44,
+              "probability": 1.0
+            },
+            {
+              "word": "40",
+              "start": 1.44,
+              "end": 1.76,
+              "probability": 0.987
+            },
+            {
+              "word": "000",
+              "start": 1.76,
+              "end": 2.08,
+              "probability": 0.989
+            },
+            {
+              "word": "pour",
+              "start": 2.08,
+              "end": 2.32,
+              "probability": 1.0
+            },
+            {
+              "word": "le",
+              "start": 2.32,
+              "end": 2.48,
+              "probability": 1.0
+            },
+            {
+              "word": "moment.",
+              "start": 2.48,
+              "end": 2.72,
+              "probability": 0.999
+            },
+            {
+              "word": "Oui",
+              "start": 3.76,
+              "end": 4.0,
+              "probability": 0.971
+            },
+            {
+              "word": "c'est",
+              "start": 4.0,
+              "end": 4.16,
+              "probability": 0.908
+            },
+            {
+              "word": "ça,",
+              "start": 4.16,
+              "end": 4.4,
+              "probability": 0.998
+            },
+            {
+              "word": "je",
+              "start": 4.56,
+              "end": 4.72,
+              "probability": 0.968
+            },
+            {
+              "word": "t'envoie",
+              "start": 4.72,
+              "end": 5.04,
+              "probability": 0.907
+            },
+            {
+              "word": "le",
+              "start": 5.04,
+              "end": 5.2,
+              "probability": 0.99
+            },
+            {
+              "word": "gris",
+              "start": 5.2,
+              "end": 5.44,
+              "probability": 0.304
+            },
+            {
+              "word": "d'hommes",
+              "start": 5.44,
+              "end": 5.68,
+              "probability": 0.633
+            },
+            {
+              "word": "à",
+              "start": 5.68,
+              "end": 5.76,
+              "probability": 0.801
+            },
+            {
+              "word": "matin.",
+              "start": 5.76,
+              "end": 6.16,
+              "probability": 0.805
+            },
+            {
+              "word": "Il",
+              "start": 7.2,
+              "end": 7.68,
+              "probability": 0.998
+            },
+            {
+              "word": "faut",
+              "start": 7.68,
+              "end": 7.84,
+              "probability": 0.998
+            },
+            {
+              "word": "que",
+              "start": 7.84,
+              "end": 8.0,
+              "probability": 1.0
+            },
+            {
+              "word": "Marc",
+              "start": 8.0,
+              "end": 8.32,
+              "probability": 0.721
+            },
+            {
+              "word": "valide",
+              "start": 8.32,
+              "end": 8.64,
+              "probability": 0.714
+            },
+            {
+              "word": "avec",
+              "start": 8.64,
+              "end": 8.96,
+              "probability": 1.0
+            },
+            {
+              "word": "la",
+              "start": 8.96,
+              "end": 9.12,
+              "probability": 0.983
+            },
+            {
+              "word": "banque",
+              "start": 9.12,
+              "end": 9.36,
+              "probability": 0.984
+            },
+            {
+              "word": "avant",
+              "start": 9.36,
+              "end": 9.52,
+              "probability": 0.978
+            },
+            {
+              "word": "vendredi.",
+              "start": 9.52,
+              "end": 9.92,
+              "probability": 0.979
+            }
+          ],
+          "ttft_ms": 16.5,
+          "decode_tps": 1055.9
+        }
+      }
+    ]
+  },
+  "temporary_assets_deleted": true,
+  "child_joined": true,
+  "free_disk_after_bytes": 387997696
+}

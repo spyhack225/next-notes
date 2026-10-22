@@ -121,6 +121,13 @@ struct AgentWorkingCard: View {
         .padding(DS.Space.cardTight)
         .frame(maxWidth: .infinity, alignment: .leading)
         .glassSurface(cornerRadius: DS.Radius.card)
+        .overlay {
+            // Only actual execution earns a work rim. Park the treatment: the existing
+            // avatar remains this card's live mark, with no off-screen beam clock.
+            if task.status == .running, currentPreview?.isYielded != true, inlineReview == nil {
+                ThemeBorderBeam(cornerRadius: DS.Radius.card, isAnimated: false)
+            }
+        }
     }
 
     // MARK: - Status pill

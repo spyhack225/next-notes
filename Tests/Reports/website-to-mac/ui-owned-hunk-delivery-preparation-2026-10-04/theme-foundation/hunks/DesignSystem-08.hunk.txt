@@ -1,0 +1,7 @@
+--- a/Sources/NextNotes/UI/DesignSystem.swift
++++ b/Sources/NextNotes/UI/DesignSystem.swift
+@@ -65 +75,3 @@ enum DS {
+-        static let graphDecision = success
++        /// Decision identity keeps its green explicitly for the same reason: status
++        /// *text* moved to dark ink, but a decision dot is data, not a status word.
++        static let graphDecision = SwiftUI.Color(nsColor: .systemGreen)

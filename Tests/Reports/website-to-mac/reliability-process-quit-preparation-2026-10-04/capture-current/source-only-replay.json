@@ -1,0 +1,8 @@
+{
+  "status": "IN_MEMORY_RELATIVE_REPLAY_ONLY_UNCOMPILED_NATIVE_UNRUN",
+  "originalToCommonExact": true,
+  "commonToFixedExact": true,
+  "normalDoneAndStopEngineByteIdentical": true,
+  "noNewTaskInProcessQuitAPIs": true,
+  "currentSourceStillMatchesOriginal": true
+}

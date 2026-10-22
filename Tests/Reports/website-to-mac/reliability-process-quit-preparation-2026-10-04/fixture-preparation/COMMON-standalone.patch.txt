@@ -1,0 +1,24 @@
+--- a/Sources/NextNotes/Support/NativeTerminationSelfTest.swift
++++ b/Sources/NextNotes/Support/NativeTerminationSelfTest.swift
+@@ -9,6 +9,13 @@
+     static func runStandalone() {
+         // Force exact accepted-flag validation before constructing any owner.
+         guard SelfTest.requested == "--selftest-native-termination" else { return }
++        if NativeBackgroundQuitSelfTest.isRequested {
++            do { try NativeBackgroundQuitSelfTest.validateArgumentsBeforeOwners() }
++            catch {
++                print("BACKGROUND_QUIT_INVALID: confined exact-mode bootstrap unavailable")
++                exit(1)
++            }
++        }
+         if CommandLine.arguments.contains("--native-startup-case") {
+             do { try NativeStartupTerminationSelfTest.validateArgumentsBeforeOwners() }
+             catch {
+@@ -33,6 +40,7 @@
+     }
+ 
+     static func arm() async throws {
++        if try await NativeBackgroundQuitSelfTest.armIfRequested() { return }
+         if try await NativeOtherLlamaQuitSelfTest.armIfRequested() { return }
+         if try await NativeStartupTerminationSelfTest.armIfRequested() { return }
+         guard SelfTest.isRunning, SelfTest.requested == "--selftest-native-termination",

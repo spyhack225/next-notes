@@ -13,6 +13,7 @@ enum ComposioCredentialStore {
     static var hasCredential: Bool { apiKey != nil }
 
     static var apiKey: String? {
+        guard SelfTest.requested != "--selftest-settings-sheet" else { return nil }
         var query = baseQuery
         query[kSecReturnData as String] = true
         query[kSecMatchLimit as String] = kSecMatchLimitOne

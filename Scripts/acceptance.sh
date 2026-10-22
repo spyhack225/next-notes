@@ -30,6 +30,10 @@
 #                 credential-bound diagnostics, and `--selftest-cleanup`. These are
 #                 allowed to be red or to report an absent precondition honestly.
 #
+# `--jobs-report` is intentionally outside the self-test tiers: it reads real task history
+# before harness isolation. Its deterministic owned-store cases ride --selftest-activity;
+# run the real report separately only with explicit owner-read scope.
+#
 # Honest accounting
 # -----------------
 # The app's own rules are the source of truth: `writeSelfTest` in NextNotesApp.swift
@@ -130,8 +134,12 @@ CORE_ENTRIES=(
   # remote approval (IM-13): one exact action, once, payload frozen. CORE: an
   # approval that fires the wrong payload is a send the user never approved
   "selftest-imessage-approval|300"
+  # bounded recovery scaffold (IM-16): isolated temp roots only — no live
+  # database, no production host, no resend-on-wake, no second durability
+  "selftest-imessage-recovery|300"
   # ACP and MCP fixtures
   "selftest-acp|300"
+  "selftest-acp-offered-options|300"
   "selftest-mcp|300"
 )
 
@@ -150,6 +158,9 @@ INTEGRATION_ENTRIES=(
   "selftest-memory|300"
   "selftest-memory-review|300"
   "selftest-memory-portability|300"
+  # Actual reader fitting and transcript-grounded meeting review producer regressions.
+  "selftest-meeting-agent-fit|300"
+  "selftest-meeting-agent-evidence|300"
   # routines / schedule
   "selftest-schedule|300"
   "selftest-routine-authority|300"
@@ -201,6 +212,26 @@ INTEGRATION_ENTRIES=(
   "selftest-notes-longform|300"
   # a cut-off notes answer says so instead of claiming nothing was decided (M-13)
   "selftest-notes-truncation|120"
+  # the notes input's coverage limits are frozen once and disclosed in plain words
+  # above the document (MR-06). No model, no store.
+  "selftest-notes-coverage|180"
+  # truthful saved-coverage verdicts, warning hysteresis and old-meeting decode
+  # (MR-02 / MR-04). No model, no microphone, no session.
+  "selftest-meeting-capture-coverage|180"
+  # the frames a buffer list really carries and the cadence a track must keep
+  # (MR-01 / MR-03a). No hardware, no model.
+  "selftest-meeting-frame-layout|180"
+  # the frame/clock facts per track: buffers, converted frames, drift, layout
+  # changes, conversion outcomes and the yields nobody counted (MR-01).
+  "selftest-meeting-frame-shape|180"
+  # a resampler fed a stream keeps every frame it was given (MR-01 / MR-03a).
+  "selftest-audio-conversion-stream|180"
+  # one eligibility decision for automatic and manual diarization, three distinct
+  # outcomes, names preserved on failure, tail projection (MR-06). No model.
+  "selftest-diarize-eligibility|180"
+  # a settled call takes its meeting's real title only where the evidence is
+  # exact, and a calendar-fetch failure is a provider-and-stage fact (MR-01).
+  "selftest-meeting-title-match|180"
   # nearest-run and neighbour fallback for far-end labels (M-04)
   "selftest-diarize-assign|120"
   # speaker-count hints, voice-print cluster merge and the measured threshold (M-03):
@@ -497,6 +528,11 @@ classify() {
 run_one() {
   local tier=$1 flag=$2 timeout=$3 modes=$4
   local out="$RUN_DIR/$flag.out"
+  # The early-entry ACP fixture admits only a fresh confined Foundation temp
+  # parent; it creates that parent itself before writing the actual verdict.
+  if [[ "$flag" == "selftest-acp-offered-options" ]]; then
+    out="${TMPDIR%/}/NextNotesACPOptionsTest-$(uuidgen)/selftest.log"
+  fi
   local log="$RUN_DIR/$flag.log"
   local cmd=("$LAUNCHER")
   if [[ ",$modes," == *",via-open,"* ]]; then

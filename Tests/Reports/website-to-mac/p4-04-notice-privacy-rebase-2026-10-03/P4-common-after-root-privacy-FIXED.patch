@@ -1,0 +1,125 @@
+--- a/Sources/NextNotes/UI/Island/IslandState.swift
++++ b/Sources/NextNotes/UI/Island/IslandState.swift
+@@ -118,6 +118,7 @@
+         case agentWorking(steps: [String], current: Int, total: Int)
+         /// A spoken answer, held as a notice so it can be read.
+         case agentReply(String)
++        case agentHeadsUp(IslandHeadsUp)
+         /// Something went wrong, in the words it went wrong in.
+         ///
+         /// Added because the island had no way to say so. A failed dictation is
+@@ -149,6 +150,7 @@
+             case .agentListening: "agentListening"
+             case .agentWorking: "agentWorking"
+             case .agentReply: "agentReply"
++            case .agentHeadsUp: "agentHeadsUp"
+             case .problem: "problem"
+             }
+         }
+@@ -191,6 +193,7 @@
+             case .agentListening: "agent.listening"
+             case .agentWorking(_, let current, let total): "agent.working:\(current)/\(total)"
+             case .agentReply: "agent.reply"
++            case .agentHeadsUp(let card): "headsup:\(card.id)"
+             case .problem(let message): "problem:\(message)"
+             }
+         }
+@@ -200,7 +203,7 @@
+         /// no use as a badge.
+         var demandsAttention: Bool {
+             switch self {
+-            case .meetingArmed, .notesReady, .agentProposal, .agentListening, .agentWorking, .agentReply: true
++            case .meetingArmed, .notesReady, .agentProposal, .agentListening, .agentWorking, .agentReply, .agentHeadsUp: true
+             // A sentence the user has to read is no use as a badge under the notch.
+             case .problem: true
+             // P1-16: **deliberately false**, and the reason is in the case's own comment. A card
+@@ -249,6 +252,7 @@
+             case .agentListening: .listening
+             case .agentWorking: .searching
+             case .agentReply: .composing
++            case .agentHeadsUp: nil
+             // No orb. An orb is what every *working* state wears, and the whole complaint
+             // was an orb standing in for an explanation. A glyph says "stopped", not "busy".
+             case .hidden, .notesReady, .problem: nil
+@@ -291,7 +295,7 @@
+         case .agentListening: .listening
+         case .agentWorking: AgentActivityStore.shared.liveAvatarState ?? .thinking
+         case .agentProposal: .waiting
+-        case .agentReply: .done
++        case .agentReply, .agentHeadsUp: .done
+         default: nil
+         }
+     }
+@@ -321,6 +325,7 @@
+         case .agentProposal(let proposal): proposal.title
+         case .pendingApproval(let proposal, _): proposal.title
+         case .agentListening, .agentWorking, .agentReply: AgentIdentityStore.shared.name
++        case .agentHeadsUp(let card): card.title
+         case .problem: "That didn\u{2019}t work"
+         }
+     }
+@@ -365,18 +370,23 @@
+     /// P1-16: where the island reads a pending approval from, injected so the self-test can
+     /// drive the whole live-state machine without standing up a real `PermissionGate.ask` —
+     /// which would need a continuation resumed by a person who is not there.
++    @ObservationIgnored private let headsUpHUDPlacement: @MainActor () -> HUDPlacement
+     @ObservationIgnored private let pendingSource: @MainActor () -> (IslandProposal, Int)?
+ 
+     init(
+         meetings: MeetingController = .shared,
+         notes: NotesService = .shared,
+         diarization: DiarizationService = .shared,
+-        pendingApproval: @escaping @MainActor () -> (IslandProposal, Int)? = IslandState.livePendingApproval
++        pendingApproval: @escaping @MainActor () -> (IslandProposal, Int)? = IslandState.livePendingApproval,
++        dictation: DictationController? = nil,
++        headsUpHUDPlacement: @escaping @MainActor () -> HUDPlacement = { Settings.shared.hudPlacement }
+     ) {
+         self.meetings = meetings
+         self.notes = notes
+         self.diarization = diarization
+         self.pendingSource = pendingApproval
++        self.dictation = dictation
++        self.headsUpHUDPlacement = headsUpHUDPlacement
+     }
+ 
+     /// The real one. Reads the gate on demand rather than being told, so a cancel, an answer
+@@ -499,6 +509,27 @@
+     func showAgentReply(_ text: String) {
+         push(.agentReply(text), for: DS.Motion.islandNotice)
+     }
++
++    @ObservationIgnored var onHeadsUpAction: ((IslandHeadsUp.Action) -> Void)?
++    /// Passive meeting context never replaces the visible turn/Stop or unanswered card.
++    /// The existing pending supplier remains authoritative even while a notice is visible.
++    var canShowHeadsUp: Bool {
++        guard pendingSource() == nil else { return false }
++        switch kind {
++        case .agentListening, .agentWorking, .dictating, .pendingApproval, .agentProposal: return false
++        default: return true
++        }
++    }
++    func showHeadsUp(_ card: IslandHeadsUp) {
++        push(.agentHeadsUp(card), for: DS.Motion.islandNoticeFor(text: card.text))
++    }
++    func answerHeadsUp(_ action: IslandHeadsUp.Action) { onHeadsUpAction?(action) }
++    func dismissHeadsUp(id: String) {
++        guard case .agentHeadsUp(let card) = notice?.kind, card.id == id else { return }
++        dismissNotice()
++    }
++    /// Read-only actual notice checkpoint; never a substitute for paint/accessibility.
++    var noticeExpirationForTesting: Date? { SelfTest.isRunning ? notice?.expires : nil }
+ 
+     func dismissNotice() {
+         clearNotice()
+@@ -779,6 +810,11 @@
+ 
+     // MARK: - Notice plumbing
+ 
++    /// The exact category policy consumed by push's public notice log.
++    static func noticeLogLabel(for kind: Kind) -> String {
++        kind.noticeLogKind
++    }
++
+     private func push(_ kind: Kind, for duration: TimeInterval) {
+         notice = Notice(
+             kind: kind,

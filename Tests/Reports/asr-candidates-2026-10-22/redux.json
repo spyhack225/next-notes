@@ -1,0 +1,187 @@
+{
+  "engine": "redux",
+  "repo": "FluidInference/parakeet-redux-coreml",
+  "revision": "8c5ef97a29cd120dc76b354b3f22b7fec3b486f9",
+  "download_bytes": 220304193,
+  "free_disk_before_bytes": 5566193664,
+  "runtime_probe_sha256": "9bbd5f641c4d1f24c94bcdbbf6d6bfe96900da0666e8317f006883760e16afa0",
+  "scope": "same cached FluidAudio v3-family decoder; explicit alternative CoreML weights",
+  "artifacts": [
+    {
+      "path": "Decoder.mlmodelc/analytics/coremldata.bin",
+      "bytes": 243,
+      "sha256": "7f24e7248d57024c6f1c5a2ea306f4a6a89db45a363218523bb6410c4b1aecf0"
+    },
+    {
+      "path": "Decoder.mlmodelc/coremldata.bin",
+      "bytes": 560,
+      "sha256": "422da51d983e93a3e48cd6d46a17d6c32844452414c8e242fb0caaca2b8af5ed"
+    },
+    {
+      "path": "Decoder.mlmodelc/model.mil",
+      "bytes": 13110,
+      "sha256": "956f600207f88396017ca5c96cfa3acd5bfee60835a5b44b762e033a8fb28955"
+    },
+    {
+      "path": "Decoder.mlmodelc/weights/weight.bin",
+      "bytes": 23604992,
+      "sha256": "6c6c88c23ee5492a6b229e8cc636ddadb2b01ae0dd559d9cb63123bebf507d77"
+    },
+    {
+      "path": "Encoder.mlmodelc/analytics/coremldata.bin",
+      "bytes": 243,
+      "sha256": "7862e972e09315df099d4bfd320743bf106acbf7fe4343317f9de45b0635d7b7"
+    },
+    {
+      "path": "Encoder.mlmodelc/coremldata.bin",
+      "bytes": 506,
+      "sha256": "ca0b212fe3c06c3ccd35e508fa61e4dfaad19dd0c55b82e4f5bf8711e7758fd9"
+    },
+    {
+      "path": "Encoder.mlmodelc/model.mil",
+      "bytes": 965906,
+      "sha256": "165487e314ed93c4a44dfec99d57be4e436e7c3dba6eef49fd3f0daf9de6d0d4"
+    },
+    {
+      "path": "Encoder.mlmodelc/weights/weight.bin",
+      "bytes": 182389312,
+      "sha256": "adbb5550dc6488717d3a1407b53122fbdb1af5e99c330ee20f8d8cfd9ec49252"
+    },
+    {
+      "path": "JointDecisionv3.mlmodelc/analytics/coremldata.bin",
+      "bytes": 243,
+      "sha256": "fc857a756b8c9c9f31aa9e1062766cc0a82ac035ef369d6e1cbe97184921479c"
+    },
+    {
+      "path": "JointDecisionv3.mlmodelc/coremldata.bin",
+      "bytes": 592,
+      "sha256": "611ea653e2adede7cc1cfe70da36296844f97e95e2c7dd961d45230e5599389d"
+    },
+    {
+      "path": "JointDecisionv3.mlmodelc/model.mil",
+      "bytes": 11777,
+      "sha256": "791b3c3cf3eb2079c84623fc880f6bba008d1366e5f8b03e9a8ed8bd4d7194a0"
+    },
+    {
+      "path": "JointDecisionv3.mlmodelc/weights/weight.bin",
+      "bytes": 12642764,
+      "sha256": "73b0288acd115fc4c36038f66b6cbf49233182488febf5d8c787bea4009535f7"
+    },
+    {
+      "path": "Preprocessor.mlmodelc/analytics/coremldata.bin",
+      "bytes": 243,
+      "sha256": "c9beeb989c8d66f8be11df59bc6df277ec76cee404f6865b46243835ef562f6d"
+    },
+    {
+      "path": "Preprocessor.mlmodelc/coremldata.bin",
+      "bytes": 486,
+      "sha256": "dbde3f2300842c1fd51ef3ff948a0bcffe65ffd2dca10707f2509f32c1d65b1d"
+    },
+    {
+      "path": "Preprocessor.mlmodelc/metadata.json",
+      "bytes": 2841,
+      "sha256": "2a98699e22d279dd37fa1d238aeb1c6db1df0d6fad687775324157689d8f3acf"
+    },
+    {
+      "path": "Preprocessor.mlmodelc/model.mil",
+      "bytes": 28181,
+      "sha256": "4b8518a956450fec57f06c2a21bdffc26973f7f1fa6842fb38fe917f896b6b93"
+    },
+    {
+      "path": "Preprocessor.mlmodelc/weights/weight.bin",
+      "bytes": 491072,
+      "sha256": "129b76e3aeafa8afa3ea76d995b964b145fe83700d579f6ff42c4c38fa0968ea"
+    },
+    {
+      "path": "parakeet_v3_vocab.json",
+      "bytes": 151122,
+      "sha256": "7ec60e05f1b24480736ec0eed40900f4626bce1fa9a60fd700ec7e2a59198735"
+    }
+  ],
+  "child_exit": 0,
+  "child_joined": true,
+  "stdout": "",
+  "stderr": "",
+  "benchmark": {
+    "compute": "cpuAndNeuralEngine; preprocessor cpuOnly",
+    "load_ms": 6102.475047111511,
+    "peak_rss_bytes": 1631371264,
+    "scope": "explicit CoreML files, v3-family decoder, whole-file unpaced runtime probe",
+    "trials": [
+      {
+        "audio_seconds": 60.585375,
+        "fixture": "/Users/sergekadjo/Documents/Claude/Projects/next-notes/Tests/Fixtures/meetings/en-dialogue.wav",
+        "rtfx": 86.07651010075092,
+        "text": "Okay so the plan is to ship the installer on Friday. Right, and then we write the release note together. We need Sam to approve the budget before Thursday. No wait, that is not the same price as yesterday. We sign the contract next week, no exceptions. Agreed, and we schedule delivery for the 15th. The client wants three copies, not two noted I will tell the team this afternoon Did you see Priya's report about the delays? Yes, she suggests moving the meeting to Thursday. Perfect, we booked the room for nine in the morning. And we invite Jordan for the technical part. There are $12,000 left for expenses. We came plat for surprises in December. So that is settled, we meet again next Monday. Great, I will send the summary tonight.",
+        "trial": 0,
+        "wall_seconds": 0.7038549184799194,
+        "edits": 7,
+        "reference_words": 136,
+        "wer": 0.051470588235294115,
+        "fixture_sha256": "5e4c00f6c703bd20e49bd8e7470703776311169e3ba0aff8d8fd247bd875f203"
+      },
+      {
+        "audio_seconds": 60.585375,
+        "fixture": "/Users/sergekadjo/Documents/Claude/Projects/next-notes/Tests/Fixtures/meetings/en-dialogue.wav",
+        "rtfx": 100.58201905969707,
+        "text": "Okay so the plan is to ship the installer on Friday. Right, and then we write the release note together. We need Sam to approve the budget before Thursday. No wait, that is not the same price as yesterday. We sign the contract next week, no exceptions. Agreed, and we schedule delivery for the 15th. The client wants three copies, not two noted I will tell the team this afternoon Did you see Priya's report about the delays? Yes, she suggests moving the meeting to Thursday. Perfect, we booked the room for nine in the morning. And we invite Jordan for the technical part. There are $12,000 left for expenses. We came plat for surprises in December. So that is settled, we meet again next Monday. Great, I will send the summary tonight.",
+        "trial": 1,
+        "wall_seconds": 0.6023479700088501,
+        "edits": 7,
+        "reference_words": 136,
+        "wer": 0.051470588235294115,
+        "fixture_sha256": "5e4c00f6c703bd20e49bd8e7470703776311169e3ba0aff8d8fd247bd875f203"
+      },
+      {
+        "audio_seconds": 60.585375,
+        "fixture": "/Users/sergekadjo/Documents/Claude/Projects/next-notes/Tests/Fixtures/meetings/en-dialogue.wav",
+        "rtfx": 103.50087313445601,
+        "text": "Okay so the plan is to ship the installer on Friday. Right, and then we write the release note together. We need Sam to approve the budget before Thursday. No wait, that is not the same price as yesterday. We sign the contract next week, no exceptions. Agreed, and we schedule delivery for the 15th. The client wants three copies, not two noted I will tell the team this afternoon Did you see Priya's report about the delays? Yes, she suggests moving the meeting to Thursday. Perfect, we booked the room for nine in the morning. And we invite Jordan for the technical part. There are $12,000 left for expenses. We came plat for surprises in December. So that is settled, we meet again next Monday. Great, I will send the summary tonight.",
+        "trial": 2,
+        "wall_seconds": 0.5853610038757324,
+        "edits": 7,
+        "reference_words": 136,
+        "wer": 0.051470588235294115,
+        "fixture_sha256": "5e4c00f6c703bd20e49bd8e7470703776311169e3ba0aff8d8fd247bd875f203"
+      },
+      {
+        "audio_seconds": 58.406875,
+        "fixture": "/Users/sergekadjo/Documents/Claude/Projects/next-notes/Tests/Fixtures/meetings/fr-dialogue.wav",
+        "rtfx": 89.72987197782395,
+        "text": "Donc on garde le budget à 40 000 pour le moment. Oui c'est ça, je t'envoie le devis demain matin. Il faut que Mark valide avec la banque avant vendredi. Non mais attends, ce n'est pas le même prix qu'hier. On signe le contrat la semaine prochaine, sans faute. D'accord, et on prévoit la nouvelle raison pour le 15. Le client veut trois exemplaires, pas deux. Je note ça, je préviens l'équipe cet après-midi midi. Tu as vu le rapport de Sophie sur les retards. Oui, elle propose de décamer ma réunion à jeudi. Parfait, on confirme la salle pour 9 heures. Et on a vu qu'arrive pour la partie technique. Il reste 12 000 euros sur l'enveloppe travaux. On les garde pour mes ans prévues de décembre. Alors c'est réglé, on se revoit lundi prochain. Très bien, je t'envoie le compte rendu ce soir.",
+        "trial": 0,
+        "wall_seconds": 0.6509189605712891,
+        "edits": 19,
+        "reference_words": 151,
+        "wer": 0.12582781456953643,
+        "fixture_sha256": "b25cfc815260c4184ef564150417b48201013ecf1baec9802914899e05e3b8c5"
+      },
+      {
+        "audio_seconds": 58.406875,
+        "fixture": "/Users/sergekadjo/Documents/Claude/Projects/next-notes/Tests/Fixtures/meetings/fr-dialogue.wav",
+        "rtfx": 86.97089775293284,
+        "text": "Donc on garde le budget à 40 000 pour le moment. Oui c'est ça, je t'envoie le devis demain matin. Il faut que Mark valide avec la banque avant vendredi. Non mais attends, ce n'est pas le même prix qu'hier. On signe le contrat la semaine prochaine, sans faute. D'accord, et on prévoit la nouvelle raison pour le 15. Le client veut trois exemplaires, pas deux. Je note ça, je préviens l'équipe cet après-midi midi. Tu as vu le rapport de Sophie sur les retards. Oui, elle propose de décamer ma réunion à jeudi. Parfait, on confirme la salle pour 9 heures. Et on a vu qu'arrive pour la partie technique. Il reste 12 000 euros sur l'enveloppe travaux. On les garde pour mes ans prévues de décembre. Alors c'est réglé, on se revoit lundi prochain. Très bien, je t'envoie le compte rendu ce soir.",
+        "trial": 1,
+        "wall_seconds": 0.6715680360794067,
+        "edits": 19,
+        "reference_words": 151,
+        "wer": 0.12582781456953643,
+        "fixture_sha256": "b25cfc815260c4184ef564150417b48201013ecf1baec9802914899e05e3b8c5"
+      },
+      {
+        "audio_seconds": 58.406875,
+        "fixture": "/Users/sergekadjo/Documents/Claude/Projects/next-notes/Tests/Fixtures/meetings/fr-dialogue.wav",
+        "rtfx": 85.46926294261245,
+        "text": "Donc on garde le budget à 40 000 pour le moment. Oui c'est ça, je t'envoie le devis demain matin. Il faut que Mark valide avec la banque avant vendredi. Non mais attends, ce n'est pas le même prix qu'hier. On signe le contrat la semaine prochaine, sans faute. D'accord, et on prévoit la nouvelle raison pour le 15. Le client veut trois exemplaires, pas deux. Je note ça, je préviens l'équipe cet après-midi midi. Tu as vu le rapport de Sophie sur les retards. Oui, elle propose de décamer ma réunion à jeudi. Parfait, on confirme la salle pour 9 heures. Et on a vu qu'arrive pour la partie technique. Il reste 12 000 euros sur l'enveloppe travaux. On les garde pour mes ans prévues de décembre. Alors c'est réglé, on se revoit lundi prochain. Très bien, je t'envoie le compte rendu ce soir.",
+        "trial": 2,
+        "wall_seconds": 0.6833670139312744,
+        "edits": 19,
+        "reference_words": 151,
+        "wer": 0.12582781456953643,
+        "fixture_sha256": "b25cfc815260c4184ef564150417b48201013ecf1baec9802914899e05e3b8c5"
+      }
+    ]
+  },
+  "temporary_assets_deleted": true,
+  "free_disk_after_bytes": 4342366208
+}

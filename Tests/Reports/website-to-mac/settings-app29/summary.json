@@ -1,0 +1,89 @@
+{
+  "installedBinarySHA256": "c7e6468913226d281684ed2fa1fdbfe03a1b218882b4e1d0aa868266602b0eee",
+  "results": [
+    {
+      "pane": "computer",
+      "width": 320,
+      "checks": {
+        "exit0": true,
+        "fourPNG": true,
+        "constructor": true,
+        "guardNegative": true,
+        "consumer": true,
+        "finalOK": true,
+        "binaryUnchanged": true
+      },
+      "elapsed": 0.92
+    },
+    {
+      "pane": "computer",
+      "width": 560,
+      "checks": {
+        "exit0": true,
+        "fourPNG": true,
+        "constructor": true,
+        "guardNegative": true,
+        "consumer": true,
+        "finalOK": true,
+        "binaryUnchanged": true
+      },
+      "elapsed": 0.568
+    },
+    {
+      "pane": "formatting",
+      "width": 320,
+      "checks": {
+        "exit0": true,
+        "fourPNG": true,
+        "constructor": true,
+        "guardNegative": true,
+        "consumer": true,
+        "finalOK": true,
+        "binaryUnchanged": true
+      },
+      "elapsed": 0.679
+    },
+    {
+      "pane": "formatting",
+      "width": 560,
+      "checks": {
+        "exit0": true,
+        "fourPNG": true,
+        "constructor": true,
+        "guardNegative": true,
+        "consumer": true,
+        "finalOK": true,
+        "binaryUnchanged": true
+      },
+      "elapsed": 0.734
+    },
+    {
+      "pane": "agent",
+      "width": 320,
+      "checks": {
+        "exit0": true,
+        "fourPNG": true,
+        "constructor": true,
+        "guardNegative": true,
+        "consumer": true,
+        "finalOK": true,
+        "binaryUnchanged": true
+      },
+      "elapsed": 0.81
+    },
+    {
+      "pane": "agent",
+      "width": 560,
+      "checks": {
+        "exit0": true,
+        "fourPNG": true,
+        "constructor": true,
+        "guardNegative": true,
+        "consumer": true,
+        "finalOK": true,
+        "binaryUnchanged": true
+      },
+      "elapsed": 0.862
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "status": "SOURCE_ONLY_REVIEWED_CONSUMER_BOUNDARIES_NO_APPLICATION",
+  "artifacts": {
+    "README.md": "b725e7d4d313ea3d57a62a10449f8704b669f6d7ff442f4ddcf7477598267ca6",
+    "pins.json": "79d42de0b05dd600659956093d2b19db163e805fa3ae72da8641a345db43c3a4",
+    "fragment-acceptance.json": "09e88bd3830623ccb9da7b11a918fff871eca65fd401c3904073cabe85f04f39"
+  },
+  "foundationManifestSHA256": "56e0e2bd29c2c9c7867ebf4658b112480413abd150829a2b0ce2b12b09caefa7",
+  "prerequisiteManifestSHA256": "5de2762bad32cd9bd823c9b36ccce3c0b4d04f44556e1cf6004ef67081020cfb",
+  "packagingManifestSHA256": "a8879a8e6b5767256494e6da975abf69f2b168cb5adb903dde4d423f523408ec",
+  "historicalIntegratedPatch": "MISSING",
+  "sourceBuildNative": "UNRUN"
+}

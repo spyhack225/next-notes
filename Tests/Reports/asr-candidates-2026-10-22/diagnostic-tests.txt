@@ -1,0 +1,16 @@
+test/model: weights.bin (7 bytes)
+test/model: weights.bin (6 bytes)
+test/model: weights.bin (8 bytes)
+test/model: weights.bin (7 bytes)
+test_digest_mismatch_refused (test_asr_benchmark.ASRBenchmarkBoundaryTests.test_digest_mismatch_refused) ... ok
+test_oversize_refused (test_asr_benchmark.ASRBenchmarkBoundaryTests.test_oversize_refused) ... ok
+test_path_escape_refused_before_network (test_asr_benchmark.ASRBenchmarkBoundaryTests.test_path_escape_refused_before_network) ... ok
+test_score_is_word_edit_distance (test_asr_benchmark.ASRBenchmarkBoundaryTests.test_score_is_word_edit_distance) ... ok
+test_serial_lock_refuses_second_process (test_asr_benchmark.ASRBenchmarkBoundaryTests.test_serial_lock_refuses_second_process) ... ok
+test_truncation_refused (test_asr_benchmark.ASRBenchmarkBoundaryTests.test_truncation_refused) ... ok
+test_verified_download (test_asr_benchmark.ASRBenchmarkBoundaryTests.test_verified_download) ... ok
+
+----------------------------------------------------------------------
+Ran 7 tests in 0.045s
+
+OK

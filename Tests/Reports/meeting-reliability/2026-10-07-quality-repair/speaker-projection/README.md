@@ -112,3 +112,8 @@ Public native-recorder identity plan was sent through agent-relay under `speaker
 ## Explicit invitation name choice prepared
 
 [INVITE-NAME-CHOICE-NEXT.md](INVITE-NAME-CHOICE-NEXT.md) records existing calendar-name flow and the passive-chip gap. A two-target cache candidate adds only per-row explicit selection and extends the actual save fixture after its unchanged81 checks. No automatic attribution, provider grant or missing names for the zero-attendee Zoom call is claimed. Compilation/native/physical/installed acceptance remains pending; Sources unchanged.
+
+
+## Bounded owned-cache cleanup — 8 October
+
+[Cleanup receipt](speaker-owned-cache-cleanup-20261008.json) records removal of the completed three speaker component executables and duplicate tracked main fixture, participant coverage two executables and their generated ModuleCache:58 regular files,31,604,736 allocated bytes (30.140625MiB). Exact source/results remain in tracked Reports, verified by hashes; immediate process references and open handles were absent. Source/preimage/log caches and the uncompiled invite chooser are preserved (~1.03MB allocated). No shared bundle/cache, model, owner data, Source/index, compiler or native app action occurred. Allocated removed bytes are not a filesystem-wide reclamation measurement or permission to bypass a fresh resource gate.

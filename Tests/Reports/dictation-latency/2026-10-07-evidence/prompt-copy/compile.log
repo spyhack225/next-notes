@@ -1,0 +1,19 @@
+xcrun swiftc -swift-version 6 -O PromptCopyLookup.swift LookupCheck.swift -o lookup-check
+        0.88 real         0.82 user         0.13 sys
+           150044672  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+               34722  page reclaims
+                 578  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   1  signals received
+                  20  voluntary context switches
+                1557  involuntary context switches
+            72811699  instructions retired
+            33036656  cycles elapsed
+             1622376  peak memory footprint

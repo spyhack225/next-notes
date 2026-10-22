@@ -1,0 +1,15 @@
+# Composition review contract (draft, not frozen)
+
+Parent assembles only relative off-source patches; canonical Sources, compiler/build, native/models/assets/defaults/index/install and owner-quit remain held. These are diagnostic prerequisites for the existing Settings producer and private Notes owner, not full crash/liveness/phase readiness.
+
+Apply SAME COMMON to four current producers/fixture files and the one new fixture file, then vary only the Settings initializer eager-vs-lazy expression under FIXED. App callbacks, metadata root-selection, trace, inputs and assertions stay byte-identical before both. No Manager snapshot or rebase belongs here.
+
+Required source preimages: current Settings884f7a29, MeetingDiarizerbee04c83, Appbc01a27f and NativeTerminationSelfTest's exact current pin supplied by peer. Root must recheck before application; a text replay cannot authorize a transplant across drift. Relative patches are the review object.
+
+Required runtime ordering: settle exact flags/admission; initialize ONE existing NativeQuitTrace in immutable diagnostic binding; seed the sole existing per-PID suite after guard; install MainActor actual-RHS observer before singleton init (latch rejects late install); initialize real Settings; retained INVALID on any refusal; settings-only cases end before explicit NSApplication/Delegate/native work; native case mounts the private Notes callbacks and confined runtime override before backend/summarize; exactly one Notes operation; actual native bracket/success at Cocoa; existing captured-task join BEFORE vote; real drain AND all veto callbacks; readonly actual false-drain vote; one deliberate veto and same task cleanup/recheck; safe second vote independent from retained FAILED/INVALID grading; applicationWillTerminate gives receipt. No second Task/map/native pass/Notes join.
+
+Safe missing inputs: exact requested metadata mode never falls back to owner modelsRoot; only actual admitted empty tmpdir is checked using existing real fileExists. Mode absent keeps ordinary and real diarization routes. Wrong model/root/output/flags/empty-dir identity/source-public pin/natural overlap is INVALID, not a product RED. Same private callbacks must handle late failure after native entry; no exit over live native work or generic shared quit fallback.
+
+Actual public model source identity/hash is supplied and qualified by serial root, not by expected-size acceptance alone. Passive path metadata is not atomic cross-process CAS; concurrent input mutation is not valid qualification. Settings singleton/AppKit-derived geometry needs a suitable environment. Fresh reader is private file/cache evidence, not process crash or power-loss proof.
+
+Copy-only patch replay/pins and finite source review may prove textual composition. No Swift parse/typecheck/compile/native original or fixed run, model metadata/weight/default access, or owner migration is performed here. Existing aggregate9/10 and latency/privacy/permission/original crash gates remain open. Root review/serial slot follows proposal, not a request for user reconfirmation.

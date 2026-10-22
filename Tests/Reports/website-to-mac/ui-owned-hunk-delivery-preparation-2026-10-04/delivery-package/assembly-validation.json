@@ -1,0 +1,20 @@
+{
+  "execution": "read/hash report artifacts only; no source/index/compiler/native/model/assets/defaults execution",
+  "component_manifests_verified": 8,
+  "component_artifacts_verified": 108,
+  "selected_hunk_count": 89,
+  "unique_selected_hunks": 89,
+  "accepted_conditional_source_review": 87,
+  "held_agentview_fragments": [
+    "theme:AgentView-08",
+    "theme:AgentView-26"
+  ],
+  "new_pure_theme_units": 5,
+  "foreign_foundation_hunks": 46,
+  "foreign_settings_hunks": 18,
+  "foreign_counts_are_not_additive": "DS hunks appear across inventories; DS format140 belongs to Settings only, foundation theme hunks belong to foundation only",
+  "historical_six_caller_patch": "MISSING; no fabricated replay",
+  "resource_hashes": "HISTORICAL; root must revalidate bytes",
+  "canonical_or_index_changes": 0,
+  "native_or_compile_runs": 0
+}

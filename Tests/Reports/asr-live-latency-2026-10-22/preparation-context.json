@@ -1,0 +1,40 @@
+{
+  "observed_at": "2026-10-22T15:07:27.077981+00:00",
+  "source_sha256": {
+    "asr_live.py": "dd6b9f4f83d5440f7135318d2e7ac8fff3fa695992e67c79cac8f654ca2309a8",
+    "asr_cached_live.py": "c9f7b05626c5f5e514d56d4df53145d348425f779e96e228a371b88b89c70dac",
+    "asr_voz_live.py": "25467689b7731d570a4613b5a8821ba953d67c6d28f3fe240fe5a60b025bd130",
+    "asr_benchmark.py": "64cc791e70faa0c91e6d491f1042f6e8806936023994159baffb6a795712df29",
+    "asr_coreml_compare.py": "a236d56735a726a60aefb96640a8277cc53016257b5348f7007c2e73f24cb4f3",
+    "asr_phonon_compare.py": "ca306fb784115ff0ad649bed3fca5f250f39379af659481cac8a5bf8c9040a57",
+    "asr_qwen_compare.py": "0e35d18fa31c95f4cd76203867c164cf288ebac13065ba2ad0f421cbfda0d2d2",
+    "test_asr_live.py": "d1aa867510a7d0b0fd4b27a02e5860387680c1f01523103bfe658179cd3b3cfb"
+  },
+  "tests_exit": 0,
+  "disk_free": 4507254784,
+  "thermal": {
+    "exit": 0,
+    "stdout": "Note: No thermal warning level has been recorded\nNote: No performance warning level has been recorded\nNote: No CPU power status has been recorded\n",
+    "stderr": ""
+  },
+  "power": {
+    "exit": 0,
+    "stdout": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=24379491)\t100%; charged; 0:00 remaining present: true\n",
+    "stderr": ""
+  },
+  "swap": {
+    "exit": 0,
+    "stdout": "vm.swapusage: total = 7680.00M  used = 6279.94M  free = 1400.06M  (encrypted)\n",
+    "stderr": ""
+  },
+  "os": {
+    "exit": 0,
+    "stdout": "ProductName:\t\tmacOS\nProductVersion:\t\t27.2\nBuildVersion:\t\t26B5091g\n",
+    "stderr": ""
+  },
+  "revision": {
+    "exit": 0,
+    "stdout": "6cf744cc4a27ed4a57bd3fea2c233ea999506fc0\n",
+    "stderr": ""
+  }
+}

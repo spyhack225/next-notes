@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "id": "2026-09-13-tts-kokoro",
+  "title": "Kokoro ONNX v1.0 / af_sarah",
+  "date": "2026-09-13",
+  "category": "tts",
+  "status": "measured",
+  "scope": "Generated PCM callback",
+  "summary": "Historical warm first generated PCM range 3200\u20133400 ms; actual playback unmeasured.",
+  "environment": {
+    "hardware": "Apple M3, 8 cores, 16 GB RAM",
+    "os": "macOS 26.5.2"
+  },
+  "provenance": {
+    "kind": "historical evidence import",
+    "build": "See original evidence; not re-run by hub"
+  },
+  "metrics": [
+    {
+      "name": "Warm first generated PCM minimum",
+      "value": 3200,
+      "unit": "ms",
+      "boundary": "Text request to complete generated buffer; no streaming callback",
+      "samples": 4,
+      "aggregation": "minimum of four warm generations"
+    },
+    {
+      "name": "Warm first generated PCM maximum",
+      "value": 3400,
+      "unit": "ms",
+      "boundary": "Text request to complete generated buffer; no streaming callback",
+      "samples": 4,
+      "aggregation": "maximum of four warm generations"
+    }
+  ],
+  "limitations": [
+    "Historical Python runtime probe; neither adapter was integrated into app playback in this comparison.",
+    "Whole-buffer Kokoro and streamed Piper have different first-output boundaries.",
+    "No audible-output, speech quality or full-duplex acceptance."
+  ],
+  "sources": [
+    "Tests/Reports/tts-benchmark-2026-09-13.md"
+  ],
+  "publication": {
+    "approved": true,
+    "reviewed_by": "benchmark-hub-20261022",
+    "reviewed_on": "2026-10-22"
+  }
+}

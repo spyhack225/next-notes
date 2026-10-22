@@ -1,0 +1,7 @@
+{
+  "scope": "Compiler-only failure, not installed. No native Settings verdict.",
+  "exit": 2,
+  "error": "actualFixtureInputsMatch local helper lacks MainActor isolation in TaskLocal closure",
+  "duringBuildSourceChanges": [],
+  "installedRemains": "app22 dc264d8dfbc0dcba8485595106beff9b365b11f81dbaa6b8df8186933793ff83"
+}

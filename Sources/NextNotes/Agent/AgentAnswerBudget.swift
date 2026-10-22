@@ -52,8 +52,8 @@ enum AgentAnswerBudget {
     /// not the loaded model's trained window — `NotesModelRuntime.contextTokens` is the
     /// real one once the weights are resident, and it is clamped there already.
     static func readerContextTokens(for provider: any LLMProvider) async -> Int {
-        if provider.id == .appLLM, await NotesModelRuntime.shared.isLoaded {
-            return await NotesModelRuntime.shared.contextTokens
+        if let local = provider as? LlamaLLMProvider, await local.runtime.isLoaded {
+            return await local.runtime.contextTokens
         }
         return provider.contextTokens
     }

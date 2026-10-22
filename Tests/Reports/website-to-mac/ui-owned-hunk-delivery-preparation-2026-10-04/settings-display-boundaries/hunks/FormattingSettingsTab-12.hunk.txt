@@ -1,0 +1,5 @@
+--- a/Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift
++++ b/Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift
+@@ -122,2 +115,0 @@ struct FormattingSettingsTab: View {
+-                .buttonStyle(.link)
+-                .help(OutputProfileStore.fileURL.path)

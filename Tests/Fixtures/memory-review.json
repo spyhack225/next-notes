@@ -773,6 +773,212 @@
         "saves": [],
         "absent": []
       }
+    },
+    {
+      "id": "explicit-statement-role",
+      "label": "Explicit committed statement role",
+      "turns": [
+        {
+          "role": "user",
+          "text": "I'm the CEO of ProductFlo",
+          "source": "text"
+        },
+        {
+          "role": "assistant",
+          "text": "Okay."
+        }
+      ],
+      "scripted": "<tool_call>{\"name\": \"memory.remember\", \"arguments\": {\"kind\": \"profile\", \"text\": \"I'm the CEO of ProductFlo.\"}}</tool_call>",
+      "expect": {
+        "saves": [
+          {
+            "kind": "profile",
+            "contains": [
+              "CEO",
+              "ProductFlo"
+            ]
+          }
+        ],
+        "absent": []
+      }
+    },
+    {
+      "id": "explicit-statement-relation",
+      "label": "Explicit committed statement relation",
+      "turns": [
+        {
+          "role": "user",
+          "text": "my brother is Cyril",
+          "source": "text"
+        },
+        {
+          "role": "assistant",
+          "text": "Okay."
+        }
+      ],
+      "scripted": "<tool_call>{\"name\": \"memory.remember\", \"arguments\": {\"kind\": \"profile\", \"text\": \"My brother is Cyril.\"}}</tool_call>",
+      "expect": {
+        "saves": [
+          {
+            "kind": "profile",
+            "contains": [
+              "brother",
+              "Cyril"
+            ]
+          }
+        ],
+        "absent": []
+      }
+    },
+    {
+      "id": "explicit-statement-question",
+      "label": "Explicit committed statement question",
+      "turns": [
+        {
+          "role": "user",
+          "text": "Is my brother Cyril coming?",
+          "source": "text"
+        },
+        {
+          "role": "assistant",
+          "text": "Okay."
+        }
+      ],
+      "scripted": "No new memories.",
+      "expect": {
+        "saves": [],
+        "absent": [
+          "Cyril",
+          "CEO"
+        ]
+      }
+    },
+    {
+      "id": "explicit-statement-negation",
+      "label": "Explicit committed statement negation",
+      "turns": [
+        {
+          "role": "user",
+          "text": "I'm not the CEO anymore",
+          "source": "text"
+        },
+        {
+          "role": "assistant",
+          "text": "Okay."
+        }
+      ],
+      "scripted": "No new memories.",
+      "expect": {
+        "saves": [],
+        "absent": [
+          "Cyril",
+          "CEO"
+        ]
+      }
+    },
+    {
+      "id": "durable-unavailable-fridays",
+      "label": "Durable wording is not a transient environment failure or request.",
+      "turns": [
+        {
+          "role": "user",
+          "text": "The user is unavailable on Fridays."
+        },
+        {
+          "role": "assistant",
+          "text": "Okay."
+        }
+      ],
+      "scripted": "<tool_call>{\"name\": \"memory.remember\", \"arguments\": {\"kind\": \"profile\", \"text\": \"The user is unavailable on Fridays.\"}}</tool_call>",
+      "expect": {
+        "saves": [
+          {
+            "kind": "profile",
+            "contains": [
+              "The user is unavailable on Fridays."
+            ]
+          }
+        ],
+        "absent": []
+      }
+    },
+    {
+      "id": "durable-offline-first",
+      "label": "Durable wording is not a transient environment failure or request.",
+      "turns": [
+        {
+          "role": "user",
+          "text": "The user prefers offline-first tools."
+        },
+        {
+          "role": "assistant",
+          "text": "Okay."
+        }
+      ],
+      "scripted": "<tool_call>{\"name\": \"memory.remember\", \"arguments\": {\"kind\": \"profile\", \"text\": \"The user prefers offline-first tools.\"}}</tool_call>",
+      "expect": {
+        "saves": [
+          {
+            "kind": "profile",
+            "contains": [
+              "The user prefers offline-first tools."
+            ]
+          }
+        ],
+        "absent": []
+      }
+    },
+    {
+      "id": "durable-search-company",
+      "label": "Durable wording is not a transient environment failure or request.",
+      "turns": [
+        {
+          "role": "user",
+          "text": "The user's company builds search software."
+        },
+        {
+          "role": "assistant",
+          "text": "Okay."
+        }
+      ],
+      "scripted": "<tool_call>{\"name\": \"memory.remember\", \"arguments\": {\"kind\": \"profile\", \"text\": \"The user's company builds search software.\"}}</tool_call>",
+      "expect": {
+        "saves": [
+          {
+            "kind": "profile",
+            "contains": [
+              "The user's company builds search software."
+            ]
+          }
+        ],
+        "absent": []
+      }
+    },
+    {
+      "id": "durable-bugs-work-style",
+      "label": "Durable wording is not a transient environment failure or request.",
+      "turns": [
+        {
+          "role": "user",
+          "text": "The user fixes bugs before features."
+        },
+        {
+          "role": "assistant",
+          "text": "Okay."
+        }
+      ],
+      "scripted": "<tool_call>{\"name\": \"memory.remember\", \"arguments\": {\"kind\": \"profile\", \"text\": \"The user fixes bugs before features.\"}}</tool_call>",
+      "expect": {
+        "saves": [
+          {
+            "kind": "profile",
+            "contains": [
+              "The user fixes bugs before features."
+            ]
+          }
+        ],
+        "absent": []
+      }
     }
   ]
 }

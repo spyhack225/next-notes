@@ -1,0 +1,21 @@
+{
+  "status": "SOURCE_ONLY_AUDIT_NO_IMPLEMENTATION_OR_NATIVE_VERDICT",
+  "frozenQuitPacketSHA256": "e59de055911266d8602414dd2fa12f589ef38ac299f8e6dcdea1858695fe1e2b",
+  "documents": {
+    "README.md": "337ed0554a5569336569cf3825cadd547aed1fbac0b4608653bd6df7d0bd46bd",
+    "formatter-notes.md": "d2ec508f5676432bc65d928e5aa94dc1428a3969e458c94c8e613fa534506e74",
+    "formatter-notes-pins.json": "83217f61add7b8cf5c64f7be610b15a826438b7e3515d04a9b252bd58a146c2c",
+    "speech-preparation.md": "f878c84e0ca0968fb1bd6ca2bbcaeacdcbac14bf8ef192da7ff032ead9830153",
+    "speech-preparation-pins.json": "023ad48e3ea50d55030651e5e506a44fb5fb5559299c008b512982e419c3679e",
+    "capture-background.md": "12022627780aac9f8cac5b41a764eb510fa0efdb83e63f1371542af630c14d2c",
+    "capture-background-pins.json": "c09600affa198836413c174070530d1f2013fc55b9bdee9996e1a8f46d1ea00b",
+    "parent-verification.json": "d721a0dfcf2f0d48f066375232df5f1723bd8cdc5a32c89eb02f487712280a0f"
+  },
+  "parentCheck": {
+    "pinOccurrences": 31,
+    "matches": 30,
+    "concurrentSourceDrifts": 1,
+    "verifiedAnchors": 54
+  },
+  "release": "HELD_RECHECK_CURRENT_SOURCES_AND_QUALIFY_ORIGINAL_FLOW"
+}

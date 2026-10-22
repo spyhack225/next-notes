@@ -1,0 +1,43 @@
+{
+  "swift_syntax": {
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  "python_tests": {
+    "exit": 0,
+    "stdout": "test/model: weights.bin (7 bytes)\ntest/model: weights.bin (6 bytes)\ntest/model: weights.bin (8 bytes)\ntest/model: weights.bin (7 bytes)\nLIVE en/0 first=2400.0000000000005 final=2000.0ms\n",
+    "stderr": "..........\n----------------------------------------------------------------------\nRan 10 tests in 0.076s\n\nOK\n"
+  },
+  "catalog": {
+    "exit": 1,
+    "stdout": "",
+    "stderr": "BENCHMARK_CATALOG_FAILED: stale generated files; run python3 Scripts/benchmarks.py render: Benchmarks/inventory/files.json, Benchmarks/inventory/asr.md, Benchmarks/README.md, Benchmarks/EVIDENCE.md\n"
+  },
+  "at": "2026-10-22T15:46:00.657979+00:00",
+  "source_sha256": {
+    "asr_live.py": "1d52c7b024050158c49e752cb4a4e59818b0dea48c2d5d2b40bafc5b4e5eefed",
+    "test_asr_live.py": "7fb573bdbb9a666e2ee0567b3ef372b54ba49f8f554ee11c0f699787e50b81d6",
+    "asr_cached_live.py": "c9f7b05626c5f5e514d56d4df53145d348425f779e96e228a371b88b89c70dac",
+    "asr_voz_live.py": "ef0cea147dc1697da79415dc7f8c536734fbb21a0becb12dd1f28eeaf05ff3b0",
+    "VozASRLiveProbe.swift": "e458a39e9ada9348ea56f83c3e21b7cc8dd0190b954b925132b58d20317914b8",
+    "run_asr_live_serial.py": "109bc338e61a0e9e4cb54e46b7614bd8d00197a2206d4243540e63f974d58af8",
+    "ASRRuntimeBenchmark.swift": "e023ad4bb5c559124051a3e3b971e43ce1562f2ed89b57cee8c0989f48e1642b",
+    "PhononASRRuntimeBenchmark.swift": "1be7d7ca146313d31dac14a9b808cb386288de8f86a3792d3c439b0a285fbf53",
+    "asr_benchmark.py": "d24482c120fc9bbeab24e855c4b3635ef6bc6d3a7a1c9cdfa5eab6e3e9168fdf",
+    "asr_qwen_compare.py": "0e35d18fa31c95f4cd76203867c164cf288ebac13065ba2ad0f421cbfda0d2d2",
+    "asr_coreml_compare.py": "a236d56735a726a60aefb96640a8277cc53016257b5348f7007c2e73f24cb4f3",
+    "asr_phonon_compare.py": "ca306fb784115ff0ad649bed3fca5f250f39379af659481cac8a5bf8c9040a57",
+    "build_asr_probe.py": "8e37addb2d1fb56363021890dafa9f517858ba67fd837a76d1d87454e5a4d6e6"
+  },
+  "free_disk_bytes": 561008640,
+  "remaining_owned_cache_entries": [
+    "serial.lock"
+  ],
+  "new_defaults_or_app_install": false,
+  "catalog_initial_stale_reason": "Inventory refreshed after new report files were retained; no model results changed.",
+  "catalog_after_render": {
+    "exit": 0,
+    "stdout": "BENCHMARK_CATALOG_OK:37 runs,13 generated files (verified after registration)"
+  }
+}

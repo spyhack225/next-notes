@@ -1,0 +1,29 @@
+{
+  "atUTC": "2026-10-08T06:43:05.508062+00:00",
+  "scope": "Independent read-only machine profile for peer one no-ASR Mini quality arm; no dictation model launch",
+  "physicalMemoryBytes": 17179869184,
+  "reportedFreePercent": 56,
+  "vmPageBytes": 16384,
+  "pages": {
+    "free": 43238,
+    "active": 267052,
+    "inactive": 262419,
+    "wired": 201201,
+    "fileBacked": 203196,
+    "compressorOccupied": 235385
+  },
+  "normalGate": {
+    "ok": true,
+    "swapGB": 7.78021484375,
+    "diskFreeGB": 7.092044830322266,
+    "load": 2.9
+  },
+  "ownerProcess": {
+    "pid": 31982,
+    "start": 466489713701,
+    "footprintBytes": 666848640,
+    "rssBytes": 80494592
+  },
+  "rootANEServiceCounters": "Unavailable, not zero",
+  "review": "One pinned1.561GB GGUF no-ASR copied notes quality arm, start55%/ongoing50%, unchangednormal8swap/6.5disk/3GBappfoot/300s+30AppKitdrain; freshadmission andexactowner/sourcepins required. Prior60% notpassed; not general gate/default/performance promotion. No subsequentarm beforeactualverdict."
+}

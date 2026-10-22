@@ -1,0 +1,16 @@
+{
+  "status": "OFF_SOURCE_SOURCE_ONLY_UNCOMPILED_UNRUN",
+  "relativeTo": "direct-current lateCommon Engine; replacement fixed patch supersedes only late-input-fixed-after-common.patch.txt",
+  "lateCommonEngineSHA256": "180b31f4f757f4a9884a3c608c3e5d500098b907225e71805059db16de873211",
+  "priorLateFixedEngineSHA256": "3467842abec7b0e178891cd1144fcb2c72fa7c8be93f07f16160a08d5b4483ab",
+  "revisedLateFixedEngineSHA256": "e54729044ac44ada124aafa07f2251f6d82b0c23d370975c13228443d52b4edc",
+  "patches": {
+    "late-fixed-owned-replacement.patch.txt": "22bd8b0f399114fcbc9c4ee2e951c3968cb56248a4b9caf07b025bb7c824dea6",
+    "late-fixed-owner-revision-after-existing.patch.txt": "7007720333141cf3e83dcbd94b49947d4bb4f086e76a01186e649d84f799585f"
+  },
+  "sameEngineProductionRestartFound": false,
+  "inheritedEarlierRefusalHazardsOpen": true,
+  "sourceOnlyReplaySHA256": "d9455685aae6978a54bc827678137c6979a7522abec4a92057f0db0daa6dcfb5",
+  "reviewREADME_SHA256": "31ef7fd8738aa5179e53899fd0bcc9e917c87e1bef95fba0b74dfb3f4ba88ba8",
+  "qualification": "actual same-engine producer-call original/fixed required; no same-instance successor production caller found; inherited earlier cleanup may invalidate fixture"
+}

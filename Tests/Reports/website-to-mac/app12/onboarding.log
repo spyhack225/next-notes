@@ -1,0 +1,139 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-onboarding --selftest-timeout 300 --selftest-out /tmp/nextnotes-agent-closure-focused-12/onboarding.out
+2026-10-01 22:27:34.207 NextNotes[70369:840755] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+ONBOARDING: first-run state machine
+  ok   order is welcome → dictation → shortcut → meetings → files → brain → all set
+  ok   seven screens
+  ok   manual practice text alone is not dictation success
+  ok   a delivery from before practice cannot earn success
+  ok   clipboard delivery never claims words landed in practice
+  ok   an insertion outside this field cannot earn practice success
+  ok   another hold's receipt cannot earn practice success
+  ok   a hold begun outside practice cannot earn success
+  ok   words already in the field before the hold are not a new delivery
+  ok   an empty insertion is not a first success
+  ok   the receipt waits for the field's actual words
+  ok   new actual insertion and its words earn practice success
+  ok   only meetings and files are optional
+  ok   welcome, dictation, shortcut, brain and all set are required
+  ok   skip refused on welcome
+  ok   skip left welcome in place
+  ok   welcome not marked as skipped
+  ok   skip on welcome did not complete setup
+  ok   skip refused on dictation
+  ok   skip left dictation in place
+  ok   dictation not marked as skipped
+  ok   skip on dictation did not complete setup
+  ok   skip refused on shortcut
+  ok   skip left shortcut in place
+  ok   shortcut not marked as skipped
+  ok   skip on shortcut did not complete setup
+  ok   skip refused on brain
+  ok   skip left brain in place
+  ok   brain not marked as skipped
+  ok   skip on brain did not complete setup
+  ok   skip refused on allSet
+  ok   skip left allSet in place
+  ok   allSet not marked as skipped
+  ok   skip on allSet did not complete setup
+  ok   skip accepted on meetings
+  ok   skip moved on from meetings
+  ok   meetings remembered as skipped
+  ok   skip accepted on files
+  ok   skip moved on from files
+  ok   files remembered as skipped
+  ok   continue visits every screen once, in order
+  ok   reaching the last screen is not the same as finishing
+  ok   continue on the last screen has nowhere to go
+  ok   continue on the last screen finishes setup
+  ok   back leaves files
+  ok   back lands on meetings
+  ok   back kept the skip mark
+  ok   back on the first screen does nothing
+  ok   …and stays on welcome
+  ok   continuing off a skipped screen un-skips it
+  ok   a fresh Mac starts on welcome
+  ok   two continues reach the shortcut screen
+  ok   the shortcut screen refuses to be skipped
+  ok   the meetings screen can be skipped
+  ok   a relaunch resumes where the user left off
+  ok   a relaunch remembers what was skipped
+  ok   a half-finished run is not a finished one
+  ok   setup is shown on a Mac that has never seen it
+  ok   setup is not shown again once it is finished
+  ok   setup is never shown during a self-test
+  ok   two more continues reach the last screen
+  ok   Done finishes setup
+  ok   the rest of the app was told exactly once
+  ok   the completion flag was written
+  ok   a relaunch reads the completion flag back
+  ok   a relaunch after Done does not show setup
+  ok   Run setup again starts at the beginning
+  ok   Run setup again clears the completion flag
+  ok   Run setup again forgets what was skipped
+  ok   the rest of the app was told it is unfinished again
+  ok   setup is shown again after Run setup again
+  ok   both switches on is dictation
+  ok   a finished setup says so
+  ok   …and opens with the key to hold
+  ok   …with nothing left outstanding
+  ok   not dictation: mic false, typing false
+  ok   no all-set claim: mic false, typing false
+  ok   the ending opens with what is still missing: mic false, typing false
+  ok   the ending never tells them to hold the key: mic false, typing false
+  ok   not dictation: mic true, typing false
+  ok   no all-set claim: mic true, typing false
+  ok   the ending opens with what is still missing: mic true, typing false
+  ok   the ending never tells them to hold the key: mic true, typing false
+  ok   not dictation: mic false, typing true
+  ok   no all-set claim: mic false, typing true
+  ok   the ending opens with what is still missing: mic false, typing true
+  ok   the ending never tells them to hold the key: mic false, typing true
+  ok   not dictation: mic true, typing true, blocked
+  ok   no all-set claim: mic true, typing true, blocked
+  ok   the ending opens with what is still missing: mic true, typing true, blocked
+  ok   the ending never tells them to hold the key: mic true, typing true, blocked
+  ok   a skipped screen is not claimed on the last one
+  ok   a screen that was answered is worth a tip
+  ok   calendar grant with automatic recording off asks the person to choose Record
+  ok   automatic recording on describes the actual skip choice
+  ok   three continues reach the meetings screen
+  ok   …which can be passed over
+  ok   the last screen is told meetings was passed over
+  ok   …so it never offers to sit in on one
+  ok   welcome has not promised an assistant
+  ok   five continues reach the assistant screen
+  ok   …and that screen makes the promise
+  ok   so does anything past it
+  ok   an unfinished download is picked up again
+  ok   a Mac that was never shown the screen is left alone
+  ok   a self-test never starts a download
+  ok   nothing is fetched twice
+  ok   a download in flight is not restarted
+  ok   a full disk is not filled the rest of the way
+  ok   two attempts in a row are not made back to back
+  ok   …but the next one comes after the interval
+  ok   with no answer of their own, a Mac that has the models identifies speakers
+  ok   …and one that has not downloaded them yet does not
+  ok   a Mac that turned it off stays off once the models are here
+  ok   a Mac that turned it on keeps it on without the models
+  ok   nothing stored in the suite is the same as nothing stored on a Mac
+  ok   a stored no in the suite is a no on a Mac with the models
+  ok   a stored yes in the suite is a yes without the models
+  ok   a finished meeting with another voice in it earns the offer
+  ok   a meeting that only heard the Mac's own microphone does not
+  ok   …nor does an agent command, which is the user's own voice
+  ok   …nor an empty system line
+  ok   a meeting still running is not offered anything
+  ok   a Mac already identifying speakers has nothing to offer
+  ok   …and an answer of Not Now is an answer
+  ok   the offer never says “diariz”
+  ok   the offer never says “model id”
+  ok   the offer never says “cluster”
+  ok   the offer never says “embed”
+  ok   the offer never says “segmentation”
+  ok   the offer never says “FluidAudio”
+  ok   the offer never says “download the speaker models”
+  ok   the offer has no empty string in it
+  ok   …and says the recording is temporary, which is the cost being asked about
+  ok   the two buttons are not the same words
+ONBOARDING_OK

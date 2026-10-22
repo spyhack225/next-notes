@@ -1,0 +1,135 @@
+--- a/Sources/NextNotes/Core/DictationController.swift
++++ b/Sources/NextNotes/Core/DictationController.swift
+@@ -655,16 +655,39 @@
+         await runTail(session: self.session &- 1, audio: nil)
+     }
+ 
++
++    private struct NativeFinishOwner {
++        let binding: UUID
++        let task: Task<Void, Never>
++    }
++    private var nativeFinishOwner: NativeFinishOwner?
++    private var terminationRequested = false
++
+     private func makeNativeFinishJob(
+         priority: TaskPriority? = nil,
+         _ work: @escaping @Sendable () async -> Void
+     ) -> Task<Void, Never> {
++        let previous = nativeFinishOwner?.task
++        let binding = UUID()
+         let job = Task(priority: priority) {
+-            await work()
+-            if SelfTest.isRunning && NativeDirectDictationQuitSelfTest.isRequested {
+-                self.nativeFinishEndedForTesting?()
++            defer {
++                // A retired predecessor may not erase a later cleanup owner.
++                if self.nativeFinishOwner?.binding == binding { self.nativeFinishOwner = nil }
+             }
+-        }
++            await withTaskCancellationHandler {
++                // In the bounded leg work settles its SAME RaceGate here, BEFORE
++                // the predecessor join. The user's result never waits on that join.
++                await work()
++                await previous?.value
++                if SelfTest.isRunning && NativeDirectDictationQuitSelfTest.isRequested {
++                    self.nativeFinishEndedForTesting?()
++                }
++            } onCancel: {
++                previous?.cancel()
++            }
++        }
++        nativeFinishOwner = NativeFinishOwner(binding: binding, task: job)
++        if terminationRequested { job.cancel() }
+         if SelfTest.isRunning && NativeDirectDictationQuitSelfTest.isRequested {
+             nativeFinishCreatedForTesting?(job)
+         }
+@@ -698,14 +721,29 @@
+         }
+     }
+ 
+-    // Missing-feature scaffold. Original retains no retired native handle.
++    /// Permanently close before capturing SAME current and retired native work.
++    /// Ordinary cancel remains immediate; only application quit cancels this chain.
+     func beginTermination() -> Task<Void, Never>? {
++        if !terminationRequested {
++            terminationRequested = true
++            cancelDictation()
++        }
++        let owned = nativeFinishOwner?.task
+         if SelfTest.isRunning && NativeDirectDictationQuitSelfTest.isRequested {
+-            nativeFinishCapturedForTesting?(false)
+-        }
+-        return nil
+-    }
+-    func finishTermination(_ owned: Task<Void, Never>?) async {}
++            nativeFinishCapturedForTesting?(owned != nil)
++        }
++        owned?.cancel()
++        return owned
++    }
++    func finishTermination(_ owned: Task<Void, Never>?) async {
++        await owned?.value
++        // Drain the existing finish chain, including its same-slot late cleanup.
++        // Uncaptured startup/feed work is explicitly outside this bounded proof.
++        while let remaining = nativeFinishOwner?.task {
++            remaining.cancel()
++            await remaining.value
++        }
++    }
+ 
+     private var engine: (any TranscriptionEngine)?
+     private var consumeTask: Task<Void, Never>?
+@@ -1044,6 +1082,7 @@
+     /// `.listening` and `.finishing` stay refused: `.finishing` is D-13's
+     /// evidence-gated territory, not this task's.
+     private var canStartHold: Bool {
++        guard !terminationRequested else { return false }
+         if case .idle = state { return true }
+         if case .error = state { return true }
+         return false
+@@ -1162,6 +1201,7 @@
+     /// microphone left out of it: the tail runs as soon as the engine has started. Never
+     /// automatic — only this and the menu item call it, and both are a person's click.
+     func retryLastFailedHold() {
++        guard !terminationRequested else { return }
+         guard canRetryLastHold, let kept = lastFailedHold else { return }
+         session &+= 1
+         let session = self.session
+@@ -1329,6 +1369,7 @@
+     }
+ 
+     private func beginDictation(intent: RecordingIntent) {
++        guard !terminationRequested else { return }
+         guard canStartHold else { reportRefusedPress(); return }
+         // A Command Mode message outlives its hold by design — "Select some text first"
+         // stays up for four seconds so it can be read. It must not outlive it *into the
+--- a/Sources/NextNotes/Transcription/ParakeetEngine.swift
++++ b/Sources/NextNotes/Transcription/ParakeetEngine.swift
+@@ -229,6 +229,10 @@
+             queuedPartial = nil
+         }
+ 
++        guard !Task.isCancelled else {
++            if let jobID { await ComputeScheduler.shared.release(jobID) }
++            return
++        }
+         guard samples.count >= ParakeetInput.minimumCapturedSamples else {
+             Log.speech.info("Parakeet: skipped — only \(self.samples.count) samples captured")
+             if let jobID { await ComputeScheduler.shared.release(jobID) }
+@@ -254,6 +258,7 @@
+                     """)
+             } else {
+                 let manager = try await models.manager()
++                try Task.checkCancellation()
+                 var decoderState = try TdtDecoderState()
+                 let started = Date()
+                 // D-04: 0.1–0.3 s of audio is zero-padded to the model's 0.3 s
+@@ -349,6 +354,7 @@
+         guard generation == recognitionGeneration, !Task.isCancelled else { return }
+         do {
+             let manager = try await models.manager()
++            guard generation == recognitionGeneration, !Task.isCancelled else { return }
+             var decoderState = try TdtDecoderState()
+             nativeFinishTraceForTesting?.entered()
+             let text: String

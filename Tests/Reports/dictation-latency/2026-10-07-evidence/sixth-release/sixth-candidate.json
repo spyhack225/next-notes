@@ -1,0 +1,13 @@
+{
+  "app": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-86781/Next Notes.app",
+  "sha256": "8d079a72b32223a2c552d0490aa34b599ee6a3dcef18a5db8149a9f3700db6e9",
+  "buildWallSeconds": 819.1611505839974,
+  "sourceInvariant": true,
+  "sourceCount": 1173,
+  "codesignExit": 0,
+  "installed": false,
+  "verifiedAt": "2026-10-08T05:25:09.510893+00:00",
+  "UUID": "UUID: 05D0E999-2611-39AD-837B-40F992BAD6B1 (arm64) /Users/sergekadjo/Library/Caches/NextNotesBuild/install-86781/Next Notes.app/Contents/MacOS/NextNotes",
+  "designatedRequirement": "Executable=/Users/sergekadjo/Library/Caches/NextNotesBuild/install-86781/Next Notes.app/Contents/MacOS/NextNotes",
+  "linkedDependencyScope": "current shared scratch Package.resolved and source forest pins; no model cache modification by build"
+}

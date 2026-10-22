@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "id": "2026-10-22-asr-live-pending",
+  "title": "Live speech recognition latency in progress",
+  "date": "2026-10-22",
+  "category": "asr",
+  "status": "unrun",
+  "scope": "Paced authored-fixture runtime replay",
+  "summary": "Native timings pending; live text, committed text and release-final clocks will be separate.",
+  "environment": {
+    "hardware": "unknown",
+    "os": "unknown",
+    "workload": "unknown",
+    "power_thermal": "unknown"
+  },
+  "provenance": {
+    "source_revision": "unknown",
+    "binary_sha256": "unknown",
+    "model_revision": "unknown",
+    "fixture_sha256": "unknown",
+    "command": "unknown",
+    "grader": "unknown"
+  },
+  "metrics": [],
+  "limitations": [
+    "Active ASR agent is preparing a separate paced replay. Whole-file throughput cannot stand in for live latency.",
+    "No accepted native timing rows or app default promotion."
+  ],
+  "sources": [
+    "Tests/Reports/asr-live-latency-2026-10-22/README.md"
+  ],
+  "publication": {
+    "approved": true,
+    "reviewed_by": "benchmark-hub-20261022",
+    "reviewed_on": "2026-10-22"
+  }
+}

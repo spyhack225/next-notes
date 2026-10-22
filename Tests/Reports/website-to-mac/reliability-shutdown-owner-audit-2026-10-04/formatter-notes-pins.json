@@ -1,0 +1,227 @@
+{
+  "status": "SOURCE_ONLY_UNRUN",
+  "scope": "current original shutdown-owner source; no model/owner store/native/OSLog/process read",
+  "frozenPacketUnchanged": "Tests/Reports/website-to-mac/reliability-quit-preparation-2026-10-04/direct-rebase/manifest.json",
+  "files": {
+    "Sources/NextNotes/NextNotesApp.swift": {
+      "sha256": "bc01a27f48478a297d07a1d35669c313615cc7c182c0c6d113b4899e792a1b61",
+      "lineCount": 10277,
+      "anchors": {
+        "func applicationShouldTerminate(_ sender:": [
+          9635
+        ],
+        "let ownedNotesTasks = service?.beginTermination()": [
+          9656
+        ],
+        "library?.beginTermination()": [
+          9674
+        ],
+        "nativeTerminationTask = Task { @MainActor in": [
+          9696
+        ],
+        "await runtime.beginTermination()": [
+          9697
+        ],
+        "await s1.finishTermination()": [
+          9701
+        ],
+        "await embedding.finishTermination()": [
+          9702
+        ],
+        "await LlamaBackend.shared.beginTermination()": [
+          9707
+        ],
+        "for task in ownedNotesTasks { await task.value }": [
+          9717
+        ],
+        "let drained = await runtime.finishTermination()": [
+          9724
+        ],
+        "sender.reply(toApplicationShouldTerminate: allowExit)": [
+          9732
+        ],
+        "func applicationWillTerminate(_ notification:": [
+          9749
+        ]
+      }
+    },
+    "Sources/NextNotes/Formatting/S1MiniFormatter.swift": {
+      "sha256": "88347151289217ef343fec9cd1692b0931457a61b7d13f2da2d53125acb429f2",
+      "lineCount": 317,
+      "anchors": {
+        "func format(_ raw: String) async -> String": [
+          37
+        ],
+        "group.cancelAll()": [
+          58
+        ],
+        "nonisolated func finishTermination()": [
+          129
+        ],
+        "private func closeForTermination()": [
+          130
+        ],
+        "func normalize(_ transcript:": [
+          153
+        ],
+        "terminationTraceForTesting?.nativeEntered()": [
+          204,
+          222
+        ],
+        "func shutdown()": [
+          237
+        ]
+      }
+    },
+    "Sources/NextNotes/Formatting/LLM/NotesModelRuntime.swift": {
+      "sha256": "45ef55fe4afed62847932bd9fdf36f8819f093fb030a3f461af754b52deaef88",
+      "lineCount": 2408,
+      "anchors": {
+        "func beginTermination()": [
+          192
+        ],
+        "func finishTermination() async -> Bool": [
+          204
+        ],
+        "private func checkTerminationAdmission()": [
+          215
+        ],
+        "private func reserveNativeContext(": [
+          1297
+        ],
+        "private func loadIfNeeded(schedulerJobID:": [
+          2102
+        ],
+        "private func decodePromptWhileScheduled(": [
+          966
+        ],
+        "private func completeWhileScheduled(": [
+          993
+        ],
+        "func shutdown() -> Bool": [
+          1820
+        ]
+      }
+    },
+    "Sources/NextNotes/Meetings/NotesService.swift": {
+      "sha256": "c1577429843cd4f2a50bca738a8afe95ed574e7faea29153de38fe8264c79652",
+      "lineCount": 438,
+      "anchors": {
+        "func beginTermination() -> [Task<Void, Never>]": [
+          79
+        ],
+        "func generate(": [
+          132
+        ],
+        "func summarize(": [
+          324
+        ],
+        "tasks[id] = Task { @MainActor": [
+          355
+        ],
+        "func cancel(_ id: UUID)": [
+          431
+        ]
+      }
+    },
+    "Sources/NextNotes/Formatting/LLM/LlamaBackend.swift": {
+      "sha256": "a5093f80bcd746a37e5f5aaaa437eb9607cd218711d8221668e436c4dc20f95d",
+      "lineCount": 117,
+      "anchors": {
+        "nonisolated func beginTermination()": [
+          22
+        ],
+        "private func closeNativeProbesForTermination()": [
+          23
+        ],
+        "func initialize() async": [
+          30
+        ],
+        "func shutdown()": [
+          59
+        ]
+      }
+    },
+    "Sources/NextNotes/Knowledge/EmbeddingRuntime.swift": {
+      "sha256": "85f147396dbec90865b75978004da8b8b7618b2634aa538e9860136cc6ace85a",
+      "lineCount": 288,
+      "anchors": {
+        "nonisolated func finishTermination()": [
+          80
+        ],
+        "private func closeForTermination()": [
+          84
+        ],
+        "nonisolated func requestStop()": [
+          172
+        ],
+        "nonisolated func stopNow()": [
+          178
+        ],
+        "func shutdown()": [
+          185
+        ],
+        "terminationTraceForTesting?.nativeEntered()": [
+          156
+        ]
+      }
+    },
+    "Sources/NextNotes/Support/ModelLibrary/InstalledModelLibrary.swift": {
+      "sha256": "7bd54f6f0d94ab963a7d25f61c75e42529e2bde50df62c9401959aafee4c7f97",
+      "lineCount": 666,
+      "anchors": {
+        "func beginTermination()": [
+          454
+        ],
+        "func finishTermination() async": [
+          462
+        ],
+        "func drainProbes() async": [
+          472
+        ]
+      }
+    },
+    "Sources/NextNotes/Support/NativeTerminationSelfTest.swift": {
+      "sha256": "a1c1d30f8198e63758dde34abd8812b236c281a191cd9168383eff95a47aa4f5",
+      "lineCount": 183,
+      "anchors": {
+        "static func runStandalone()": [
+          9
+        ],
+        "static func arm() async throws": [
+          35
+        ],
+        "try delegate.configureNativeTerminationFixture(": [
+          104
+        ],
+        "service.summarize(meeting, using: .appLLM, announce: false)": [
+          145
+        ]
+      }
+    },
+    "Sources/NextNotes/Support/NativeOtherLlamaQuitSelfTest.swift": {
+      "sha256": "c413fae2d882e334634030b8601a7719dbc3ee476cc1c130c5eae83100d16704",
+      "lineCount": 391,
+      "anchors": {
+        "nonisolated static let modes": [
+          14
+        ],
+        "try delegate.configureOtherLlamaTerminationFixture(": [
+          202
+        ],
+        "check(\"F01 actual owner closes before process exit\"": [
+          181
+        ],
+        "static func armIfRequested()": [
+          95
+        ],
+        "SelfTest.requestTermination()": [
+          278,
+          317
+        ]
+      }
+    }
+  },
+  "documentSHA256": "d2ec508f5676432bc65d928e5aa94dc1428a3969e458c94c8e613fa534506e74",
+  "frozenPacketManifestSHA256": "e59de055911266d8602414dd2fa12f589ef38ac299f8e6dcdea1858695fe1e2b"
+}

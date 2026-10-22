@@ -1,0 +1,14 @@
+{
+  "status": "REVIEWED_HUNK_OWNERSHIP_PACKAGE_SOURCE_ONLY_ROOT_RECONCILIATION_HELD",
+  "artifacts": {
+    "README.md": "e944351feb66b048a96364a249b39302f9a51644e36ebc899dc4c4b99d7c778d",
+    "components.json": "e90aa0cc0dc1228cc3f50d7d8b434e29dc9c463f012304a98fa04d576ed25847",
+    "owned-hunk-acceptance.json": "cff7f6c33f009415e905d710c0eb772685b1fd136d51798305380c72482f104a",
+    "new-theme-units.json": "7c53a228e1fd1c048b590ced99e27d47c9e1c0dcc6aa7edb6390fb863fa5ca48",
+    "assembly-validation.json": "5e9b1ed60c64b0357b53ebd86a2f61414b5f274335d04ace9490c836deae3ebc"
+  },
+  "accepted_source_only_hunks": 87,
+  "held_hunks": 2,
+  "new_pure_theme_units": 5,
+  "source_index_build_native_model_changes": 0
+}

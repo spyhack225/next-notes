@@ -10,7 +10,7 @@ import SwiftUI
 /// whose only control is "go away" makes them hunt through a menu for the second half.
 struct ProblemBanner: View {
     let message: String
-    var retryTitle: String = "Try again"
+    var retryTitle: String? = "Try again"
     var retry: (() -> Void)?
     let dismiss: () -> Void
 
@@ -22,7 +22,7 @@ struct ProblemBanner: View {
                 .font(DS.Font.callout)
                 .fixedSize(horizontal: false, vertical: true)
             Spacer()
-            if let retry {
+            if let retry, let retryTitle {
                 Button(retryTitle, action: retry)
                     .buttonStyle(.link)
             }

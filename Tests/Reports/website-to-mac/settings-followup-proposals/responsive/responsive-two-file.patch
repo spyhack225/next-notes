@@ -1,0 +1,177 @@
+--- a/Sources/NextNotes/UI/Settings/ComputerBrowserReadiness.swift
++++ b/Sources/NextNotes/UI/Settings/ComputerBrowserReadiness.swift
+@@ -258,20 +258,15 @@
+ 
+     var body: some View {
+         VStack(alignment: .leading, spacing: DS.Space.xs) {
+-            HStack(spacing: DS.Space.s) {
+-                Text(title)
+-                    .font(DS.Font.headline)
+-                Spacer()
+-                if let busy {
+-                    ThinkingOrb(state: busy, size: DS.Size.orbBadge)
+-                        .accessibilityHidden(true)
++            ViewThatFits(in: .horizontal) {
++                HStack(spacing: DS.Space.s) {
++                    titleLabel.fixedSize(horizontal: true, vertical: true)
++                    Spacer()
++                    statusAndAction.fixedSize(horizontal: true, vertical: true)
+                 }
+-                Text(status)
+-                    .font(DS.Font.callout)
+-                    .foregroundStyle(statusColor)
+-                if let actionTitle, let action {
+-                    Button(actionTitle, action: action)
+-                        .font(DS.Font.caption)
++                VStack(alignment: .leading, spacing: DS.Space.xs) {
++                    titleLabel.fixedSize(horizontal: false, vertical: true)
++                    statusAndAction
+                 }
+             }
+             if let detail {
+@@ -282,4 +277,27 @@
+             }
+         }
+     }
++
++    private var titleLabel: some View {
++        Text(title)
++            .font(DS.Font.headline)
++    }
++
++    private var statusAndAction: some View {
++        HStack(spacing: DS.Space.s) {
++            if let busy {
++                ThinkingOrb(state: busy, size: DS.Size.orbBadge)
++                    .accessibilityHidden(true)
++            }
++            Text(status)
++                .font(DS.Font.callout)
++                .foregroundStyle(statusColor)
++                .fixedSize(horizontal: false, vertical: true)
++            if let actionTitle, let action {
++                Button(actionTitle, action: action)
++                    .font(DS.Font.caption)
++                    .fixedSize(horizontal: true, vertical: true)
++            }
++        }
++    }
+ }
+--- a/Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift
++++ b/Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift
+@@ -111,21 +111,35 @@
+ 
+     private var file: some View {
+         Section {
+-            HStack {
+-                Button("Add apps Next Notes knows about") { store.addMissingDefaults() }
+-                    .help("Puts back any built-in app you have removed. Your own rows and "
+-                          + "your edits are left alone.")
+-                Spacer()
+-                Button("Reveal formatting.txt") {
+-                    NSWorkspace.shared.activateFileViewerSelecting([OutputProfileStore.fileURL])
+-                }
+-                .buttonStyle(.link)
+-                .help(OutputProfileStore.fileURL.path)
++            ViewThatFits(in: .horizontal) {
++                HStack {
++                    addDefaultsButton.fixedSize(horizontal: true, vertical: true)
++                    Spacer(minLength: DS.Space.s)
++                    revealFileButton.fixedSize(horizontal: true, vertical: true)
++                }
++                VStack(alignment: .leading, spacing: DS.Space.s) {
++                    addDefaultsButton.fixedSize(horizontal: false, vertical: true)
++                    revealFileButton.fixedSize(horizontal: false, vertical: true)
++                }
+             }
+         } footer: {
+             SettingsNote(text: "The table is a plain text file. Edit it in any editor and "
+                          + "the app picks up the change immediately.")
+         }
++    }
++
++    private var addDefaultsButton: some View {
++        Button("Add apps Next Notes knows about") { store.addMissingDefaults() }
++            .help("Puts back any built-in app you have removed. Your own rows and "
++                  + "your edits are left alone.")
++    }
++
++    private var revealFileButton: some View {
++        Button("Reveal formatting.txt") {
++            NSWorkspace.shared.activateFileViewerSelecting([OutputProfileStore.fileURL])
++        }
++        .buttonStyle(.link)
++        .help(OutputProfileStore.fileURL.path)
+     }
+ 
+     // MARK: - Screen names
+@@ -183,11 +197,30 @@
+     // MARK: - The table
+ 
+     private var columnHeader: some View {
++        ViewThatFits(in: .horizontal) {
++            HStack(spacing: DS.Space.xs) {
++                appHeader.fixedSize(horizontal: true, vertical: true)
++                Spacer(minLength: DS.Space.xs)
++                capabilityHeader.fixedSize(horizontal: true, vertical: true)
++            }
++            VStack(alignment: .leading, spacing: DS.Space.xs) {
++                appHeader
++                HStack {
++                    Spacer()
++                    capabilityHeader
++                }
++            }
++        }
++    }
++
++    private var appHeader: some View {
++        Text("App")
++            .font(DS.Font.caption)
++            .foregroundStyle(DS.Color.textSecondary)
++    }
++
++    private var capabilityHeader: some View {
+         HStack(spacing: DS.Space.xs) {
+-            Text("App")
+-                .font(DS.Font.caption)
+-                .foregroundStyle(DS.Color.textSecondary)
+-            Spacer()
+             ForEach(OutputCapability.allCases, id: \.self) { capability in
+                 Image(systemName: capability.systemImage)
+                     .font(DS.Font.caption)
+@@ -245,6 +278,21 @@
+     }
+ 
+     private var controls: some View {
++        ViewThatFits(in: .horizontal) {
++            HStack(spacing: DS.Space.s) {
++                addRemoveControls.fixedSize(horizontal: true, vertical: true)
++                Spacer(minLength: DS.Space.s)
++                addFrontmostButton.fixedSize(horizontal: true, vertical: true)
++            }
++            VStack(alignment: .leading, spacing: DS.Space.s) {
++                addRemoveControls
++                addFrontmostButton.fixedSize(horizontal: false, vertical: true)
++            }
++        }
++        .labelStyle(.iconOnly)
++    }
++
++    private var addRemoveControls: some View {
+         HStack(spacing: DS.Space.s) {
+             Menu {
+                 Button("Choose from Installed Apps…") { isPicking = true }
+@@ -265,11 +313,7 @@
+             .disabled(selection.isEmpty)
+             .help("Remove the selected apps. They fall back to plain prose.")
+ 
+-            Spacer()
+-
+-            addFrontmostButton
+-        }
+-        .labelStyle(.iconOnly)
++        }
+     }
+ 
+     /// One click for the app the user was in a moment ago.

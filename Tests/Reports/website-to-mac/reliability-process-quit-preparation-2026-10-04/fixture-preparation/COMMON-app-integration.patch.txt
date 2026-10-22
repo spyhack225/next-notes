@@ -1,0 +1,155 @@
+--- a/Sources/NextNotes/NextNotesApp.swift
++++ b/Sources/NextNotes/NextNotesApp.swift
+@@ -152,6 +152,7 @@
+                                         "--native-startup-case", "--native-startup-assets",
+                                         "--native-termination-recording-mode",
+                                         "--native-llama-owner-case", "--native-llama-owner-model",
++                                        "--native-background-case", "--native-background-root",
+                                         outputFlag, timeoutFlag]
+             let extraFlags = arguments.filter { $0.hasPrefix("-") && !allowed.contains($0) }
+             let hasStartupCase = arguments.contains("--native-startup-case")
+@@ -164,9 +165,15 @@
+             let mixedOther = hasOtherCase && (hasStartupCase || hasStartupAssets
+                 || arguments.contains("--native-termination-recording-mode")
+                 || arguments.contains("--native-termination-model"))
++            let hasBackgroundCase = arguments.contains("--native-background-case")
++            let hasBackgroundRoot = arguments.contains("--native-background-root")
++            let mixedBackground = hasBackgroundCase && (hasStartupCase || hasStartupAssets
++                || hasOtherCase || hasOtherModel || arguments.contains("--native-termination-recording-mode")
++                || arguments.contains("--native-termination-model"))
+             guard named == ["--selftest-native-termination"], extraFlags.isEmpty,
+                   hasStartupCase == hasStartupAssets, !mixedStartup,
+-                  hasOtherCase == hasOtherModel, !mixedOther else {
++                  hasOtherCase == hasOtherModel, !mixedOther,
++                  hasBackgroundCase == hasBackgroundRoot, !mixedBackground else {
+                 print("NATIVE_TERMINATION_FAILED: conflicting diagnostic or live modifier")
+                 exit(1)
+             }
+@@ -370,7 +377,7 @@
+         willExit: @escaping @MainActor () -> Void
+     ) throws {
+         guard SelfTest.isRunning, SelfTest.requested == "--selftest-native-termination",
+-              terminationFixtureForTesting == nil else { throw CocoaError(.fileWriteNoPermission) }
++              terminationFixtureForTesting == nil, backgroundTerminationFixtureForTesting == nil else { throw CocoaError(.fileWriteNoPermission) }
+         terminationFixtureForTesting = (service, runtime, reply, willExit)
+     }
+ 
+@@ -389,7 +396,8 @@
+     ) throws {
+         guard SelfTest.isRunning, SelfTest.requested == "--selftest-native-termination",
+               NativeRecordingQuitSelfTest.isRequested,
+-              recordingQuitFixtureForTesting == nil, terminationFixtureForTesting == nil else {
++              recordingQuitFixtureForTesting == nil, terminationFixtureForTesting == nil,
++              backgroundTerminationFixtureForTesting == nil else {
+             throw CocoaError(.fileWriteNoPermission)
+         }
+         recordingQuitFixtureForTesting = (runtime, isRecording, stop, reply, willExit)
+@@ -410,7 +418,7 @@
+     ) throws {
+         guard SelfTest.requested == "--selftest-native-termination",
+               CommandLine.arguments.contains("--native-startup-case"),
+-              startupTerminationFixtureForTesting == nil,
++              startupTerminationFixtureForTesting == nil, backgroundTerminationFixtureForTesting == nil,
+               terminationFixtureForTesting == nil, recordingQuitFixtureForTesting == nil,
+               (parakeet != nil ? 1 : 0) + (pocket != nil ? 1 : 0) + (queue != nil ? 1 : 0) + (diarizer != nil ? 1 : 0) == 1,
+               queue == nil || queue === TranscriptionQueue.shared,
+@@ -439,8 +447,32 @@
+         guard NativeOtherLlamaQuitSelfTest.isRequested,
+               otherLlamaTerminationFixtureForTesting == nil,
+               terminationFixtureForTesting == nil, startupTerminationFixtureForTesting == nil,
+-              recordingQuitFixtureForTesting == nil else { throw CocoaError(.fileWriteNoPermission) }
++              recordingQuitFixtureForTesting == nil, backgroundTerminationFixtureForTesting == nil else { throw CocoaError(.fileWriteNoPermission) }
+         otherLlamaTerminationFixtureForTesting = (s1, embedding, library, finalReply, safetyDrain, reply, willExit)
++    }
++
++    private var backgroundTerminationFixtureForTesting: (
++        manager: AgentTaskManager, runtime: NotesModelRuntime, embedding: EmbeddingRuntime,
++        finalReply: @MainActor (Bool) -> Bool,
++        safetyDrain: (@MainActor () async -> Void)?,
++        reply: @MainActor (NSApplication.TerminateReply) -> Void,
++        willExit: @MainActor () -> Void
++    )?
++
++    func configureBackgroundTerminationFixture(
++        manager: AgentTaskManager, runtime: NotesModelRuntime, embedding: EmbeddingRuntime,
++        admission: NativeBackgroundQuitSelfTest.Admission,
++        reply: @escaping @MainActor (NSApplication.TerminateReply) -> Void,
++        finalReply: @escaping @MainActor (Bool) -> Bool,
++        safetyDrain: @escaping @MainActor () async -> Void,
++        willExit: @escaping @MainActor () -> Void
++    ) throws {
++        guard NativeBackgroundQuitSelfTest.isAdmitted(admission),
++              manager.backgroundQuitSnapshotForTesting(admission: admission) != nil,
++              backgroundTerminationFixtureForTesting == nil, terminationFixtureForTesting == nil,
++              recordingQuitFixtureForTesting == nil, startupTerminationFixtureForTesting == nil,
++              otherLlamaTerminationFixtureForTesting == nil else { throw CocoaError(.fileWriteNoPermission) }
++        backgroundTerminationFixtureForTesting = (manager, runtime, embedding, finalReply, safetyDrain, reply, willExit)
+     }
+ 
+     private func observedTerminationReply(_ reply: NSApplication.TerminateReply) -> NSApplication.TerminateReply {
+@@ -448,6 +480,7 @@
+         startupTerminationFixtureForTesting?.reply(reply)
+         recordingQuitFixtureForTesting?.reply(reply)
+         otherLlamaTerminationFixtureForTesting?.reply(reply)
++        backgroundTerminationFixtureForTesting?.reply(reply)
+         return reply
+     }
+ 
+@@ -9651,9 +9684,11 @@
+         let service = terminationFixtureForTesting?.service
+             ?? (stopRecording ? NotesService.shared : NotesService.sharedIfLoaded)
+         // Constructing the empty shared actor starts no native/file/model work.
+-        let runtime = recordingQuitFixtureForTesting?.runtime
++        let runtime = backgroundTerminationFixtureForTesting?.runtime ?? recordingQuitFixtureForTesting?.runtime
+             ?? terminationFixtureForTesting?.runtime ?? NotesModelRuntime.shared
+         let ownedNotesTasks = service?.beginTermination() ?? []
++        let finishBackgroundWork = (backgroundTerminationFixtureForTesting?.manager
++            ?? AgentTaskManager.sharedIfLoaded)?.beginProcessTermination()
+         // Empty singleton owns no native/file work. Close before recording stop
+         // so its later default final-pass submission cannot escape quit ownership.
+         let finalTranscripts = FinalTranscriptService.shared
+@@ -9677,7 +9712,9 @@
+         // private owner for non-embedding modes, avoiding the ORIGINAL eager URL.
+         let s1 = otherLlamaTerminationFixtureForTesting?.s1 ?? S1MiniRuntime.shared
+         let embedding: EmbeddingRuntime
+-        if let selected = otherLlamaTerminationFixtureForTesting?.embedding {
++        if let selected = backgroundTerminationFixtureForTesting?.embedding {
++            embedding = selected
++        } else if let selected = otherLlamaTerminationFixtureForTesting?.embedding {
+             embedding = selected
+         } else if SelfTest.requested == "--selftest-native-termination",
+                   startupTerminationFixtureForTesting != nil || recordingQuitFixtureForTesting != nil {
+@@ -9721,13 +9758,16 @@
+             await diarizer.finishTermination()
+             await pocket.finishTermination()
+             await parakeet.finishTermination()
++            await finishBackgroundWork?()
+             let drained = await runtime.finishTermination()
+-            let diagnosticDrain = self.otherLlamaTerminationFixtureForTesting?.safetyDrain
++            let diagnosticDrain = self.backgroundTerminationFixtureForTesting?.safetyDrain
++                ?? self.otherLlamaTerminationFixtureForTesting?.safetyDrain
+             // Preserve the ordinary nil path's existing release/reply ordering.
+             if diagnosticDrain == nil { self.nativeTerminationTask = nil }
+             // Veto-only diagnostic callbacks cannot promote a false real result.
+             let allowExit = drained && (self.startupTerminationFixtureForTesting?.finalReply?(drained) ?? true)
+                 && (self.otherLlamaTerminationFixtureForTesting?.finalReply?(drained) ?? true)
++                && (self.backgroundTerminationFixtureForTesting?.finalReply(drained) ?? true)
+             if allowExit { self.nativeTerminationTask = nil }
+             sender.reply(toApplicationShouldTerminate: allowExit)
+             guard !allowExit, drained, let diagnosticDrain else {
+@@ -9739,6 +9779,7 @@
+             // Consume the diagnostic continuation once. A failed safety predicate
+             // after cleanup cannot schedule an unbounded Cocoa re-quit loop.
+             self.otherLlamaTerminationFixtureForTesting?.safetyDrain = nil
++            self.backgroundTerminationFixtureForTesting?.safetyDrain = nil
+             await diagnosticDrain()
+             self.nativeTerminationTask = nil
+             SelfTest.requestTermination()
+@@ -9751,6 +9792,7 @@
+         startupTerminationFixtureForTesting?.willExit()
+         recordingQuitFixtureForTesting?.willExit()
+         otherLlamaTerminationFixtureForTesting?.willExit()
++        backgroundTerminationFixtureForTesting?.willExit()
+         controller.deactivate()
+         // The resident fast-listening engine is a child process and nothing kills it for us.
+         // Synchronous on purpose: this method cannot await, and a `Task` here would be

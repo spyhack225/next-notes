@@ -1,0 +1,7 @@
+--- a/Sources/NextNotes/UI/Settings/AgentSettingsTab.swift
++++ b/Sources/NextNotes/UI/Settings/AgentSettingsTab.swift
+@@ -165,0 +166,4 @@ struct AgentSettingsTab: View {
++                } label: {
++                    Text("Manage in Models")
++                        .underline()
++                        .foregroundStyle(DS.Color.accent)

@@ -1,0 +1,9 @@
+--- a/Sources/NextNotes/UI/Settings/SettingsWindow.swift
++++ b/Sources/NextNotes/UI/Settings/SettingsWindow.swift
+@@ -128 +130,5 @@ enum SettingsTab: String, CaseIterable, Identifiable, Hashable {
+-    var heading: String {
++    var heading: String { headingSpans.lead + " " + headingSpans.accent }
++
++    /// Explicit static spans are the single producer for the existing heading text.
++    /// No word splitting, localization parsing or dynamic title styling.
++    var headingSpans: (lead: String, accent: String) {

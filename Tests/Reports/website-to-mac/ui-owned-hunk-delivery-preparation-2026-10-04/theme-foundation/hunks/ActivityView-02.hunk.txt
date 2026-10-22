@@ -1,0 +1,5 @@
+--- a/Sources/NextNotes/UI/Agent/ActivityView.swift
++++ b/Sources/NextNotes/UI/Agent/ActivityView.swift
+@@ -52 +55 @@ struct ActivityView: View {
+-                title: "Activity",
++                title: "Your companion’s",

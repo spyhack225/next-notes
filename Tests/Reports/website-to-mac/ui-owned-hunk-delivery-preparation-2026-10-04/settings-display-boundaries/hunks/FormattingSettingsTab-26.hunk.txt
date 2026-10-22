@@ -1,0 +1,6 @@
+--- a/Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift
++++ b/Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift
+@@ -241,3 +275,0 @@ struct FormattingSettingsTab: View {
+-            .listStyle(.inset)
+-            .alternatingRowBackgrounds()
+-            .scrollDisabled(true)

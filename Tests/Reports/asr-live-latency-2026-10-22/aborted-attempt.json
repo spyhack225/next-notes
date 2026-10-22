@@ -1,0 +1,16 @@
+{
+  "at": "2026-10-22T15:34:19.539161+00:00",
+  "native_status": "aborted during short-prefix warmup; no accepted latency; new weights never downloaded",
+  "probe_pid": 88377,
+  "child_joined": true,
+  "source_of_machine_pressure": "unconfirmed; native short-prefix call had not returned; do not attribute from RSS alone",
+  "disk_free_bytes": 379101184,
+  "removed": {
+    "path": "/Users/sergekadjo/Library/Caches/NextNotesASRBench/runtime-probe",
+    "bytes": 19373776,
+    "sha256": "84e25e37e7c5a5f86ebf2cb2286ec7e92c205e75cbb16402644a15cebced2aab"
+  },
+  "disk_free_after_probe_cleanup": 398467072,
+  "swap": "vm.swapusage: total = 10752.00M  used = 10233.75M  free = 518.25M  (encrypted)\n",
+  "top": "Processes: 692 total, 3 running, 689 sleeping, 5566 threads \n2026/10/22 11:34:20\nLoad Avg: 4.28, 5.28, 4.92 \nCPU usage: 19.30% user, 15.27% sys, 65.41% idle \nSharedLibs: 493M resident, 56M data, 152M linkedit.\nMemRegions: 524191 total, 4139M resident, 160M private, 1404M shared.\nPhysMem: 13G used (4115M wired, 1762M compressor), 2604M unused.\nVM: 353T vsize, 57G framework vsize, 19139302(0) swapins, 22663756(0) swapouts.\nNetworks: packets: 45154197/39G in, 40179421/35G out.\nDisks: 139223932/2907G read, 79346043/1278G written.\n\nPID    COMMAND          MEM   CMPRS\n49093  python3.12       1696M 1683M\n79756  iPhone Mirroring 1038M 1013M\n93969  Codex (Renderer) 958M  274M \n86436  ANECompilerServi 826M  535M \n62123  WindowServer     790M  256M \n93965  codex            516M  299M \n44706  node             505M  40M  \n73507  Google Chrome He 499M  47M  \n41772  opencode         490M  313M \n549    mysqld           465M  462M \n93746  ChatGPT          460M  248M \n41679  Terminal         427M  41M  \n"
+}

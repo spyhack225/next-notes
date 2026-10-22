@@ -1,0 +1,1167 @@
+{
+  "status": "SOURCE_ONLY_REVIEW_INVENTORY_NO_LEASE_OR_STAGING_GRANT",
+  "HEAD": "f4d2a162ba7e337572d13c90b4449bef30ab44c5",
+  "newPureThemeFiles": [
+    {
+      "path": "Sources/NextNotes/UI/ThemeFixed.swift",
+      "currentSHA256": "4d6aaef3329387a33d8ef95a6e1c641ec8f3eb428abc7b0d3670e4554c3bdd06",
+      "HEADSHA256": null,
+      "tracked": false,
+      "historicalHandoffSHA256": "4d6aaef3329387a33d8ef95a6e1c641ec8f3eb428abc7b0d3670e4554c3bdd06",
+      "sameAsHistoricalHandoff": true,
+      "currentFreeze": "observation only; no source lease",
+      "ownerBoundary": "Canonical theme/root; full NEW file is a theme-only review unit, not an authorization to add it."
+    },
+    {
+      "path": "Sources/NextNotes/UI/Components/Theme/ThemeHeadline.swift",
+      "currentSHA256": "7e6706c5f839cd5aef673083f2ad4ee1d8c29803f79e2199c39ca3040e57a1fe",
+      "HEADSHA256": null,
+      "tracked": false,
+      "historicalHandoffSHA256": "7e6706c5f839cd5aef673083f2ad4ee1d8c29803f79e2199c39ca3040e57a1fe",
+      "sameAsHistoricalHandoff": true,
+      "currentFreeze": "observation only; no source lease",
+      "ownerBoundary": "Canonical theme/root; full NEW file is a theme-only review unit, not an authorization to add it."
+    },
+    {
+      "path": "Sources/NextNotes/UI/Components/Theme/ThemeGlass.swift",
+      "currentSHA256": "43bf1deea72e9929ce2d1ad88d0538be4ba7f75f46e3e89548ec709f298a2619",
+      "HEADSHA256": null,
+      "tracked": false,
+      "historicalHandoffSHA256": "43bf1deea72e9929ce2d1ad88d0538be4ba7f75f46e3e89548ec709f298a2619",
+      "sameAsHistoricalHandoff": true,
+      "currentFreeze": "observation only; no source lease",
+      "ownerBoundary": "Canonical theme/root; full NEW file is a theme-only review unit, not an authorization to add it."
+    },
+    {
+      "path": "Sources/NextNotes/UI/Components/Theme/ThemeBorderBeam.swift",
+      "currentSHA256": "07abde63ff092072216a55a6bfbdc269d5d739eb92dc0153b6ba1ab83c05db3d",
+      "HEADSHA256": null,
+      "tracked": false,
+      "historicalHandoffSHA256": "07abde63ff092072216a55a6bfbdc269d5d739eb92dc0153b6ba1ab83c05db3d",
+      "sameAsHistoricalHandoff": true,
+      "currentFreeze": "observation only; no source lease",
+      "ownerBoundary": "Canonical theme/root; full NEW file is a theme-only review unit, not an authorization to add it."
+    },
+    {
+      "path": "Sources/NextNotes/UI/Components/Theme/ThemeVoiceGlow.swift",
+      "currentSHA256": "4d628c5596a5562d483ccc7aecdb739b51f2260e50e68a68f89be79ba4ee186a",
+      "HEADSHA256": null,
+      "tracked": false,
+      "historicalHandoffSHA256": "4d628c5596a5562d483ccc7aecdb739b51f2260e50e68a68f89be79ba4ee186a",
+      "sameAsHistoricalHandoff": true,
+      "currentFreeze": "observation only; no source lease",
+      "ownerBoundary": "Canonical theme/root; full NEW file is a theme-only review unit, not an authorization to add it."
+    }
+  ],
+  "currentSourcePins": {
+    "Sources/NextNotes/UI/ThemeFixed.swift": {
+      "currentSHA256": "4d6aaef3329387a33d8ef95a6e1c641ec8f3eb428abc7b0d3670e4554c3bdd06",
+      "HEADSHA256": null,
+      "tracked": false,
+      "historicalHandoffSHA256": "4d6aaef3329387a33d8ef95a6e1c641ec8f3eb428abc7b0d3670e4554c3bdd06",
+      "sameAsHistoricalHandoff": true,
+      "currentFreeze": "observation only; no source lease"
+    },
+    "Sources/NextNotes/UI/Components/Theme/ThemeHeadline.swift": {
+      "currentSHA256": "7e6706c5f839cd5aef673083f2ad4ee1d8c29803f79e2199c39ca3040e57a1fe",
+      "HEADSHA256": null,
+      "tracked": false,
+      "historicalHandoffSHA256": "7e6706c5f839cd5aef673083f2ad4ee1d8c29803f79e2199c39ca3040e57a1fe",
+      "sameAsHistoricalHandoff": true,
+      "currentFreeze": "observation only; no source lease"
+    },
+    "Sources/NextNotes/UI/Components/Theme/ThemeGlass.swift": {
+      "currentSHA256": "43bf1deea72e9929ce2d1ad88d0538be4ba7f75f46e3e89548ec709f298a2619",
+      "HEADSHA256": null,
+      "tracked": false,
+      "historicalHandoffSHA256": "43bf1deea72e9929ce2d1ad88d0538be4ba7f75f46e3e89548ec709f298a2619",
+      "sameAsHistoricalHandoff": true,
+      "currentFreeze": "observation only; no source lease"
+    },
+    "Sources/NextNotes/UI/Components/Theme/ThemeBorderBeam.swift": {
+      "currentSHA256": "07abde63ff092072216a55a6bfbdc269d5d739eb92dc0153b6ba1ab83c05db3d",
+      "HEADSHA256": null,
+      "tracked": false,
+      "historicalHandoffSHA256": "07abde63ff092072216a55a6bfbdc269d5d739eb92dc0153b6ba1ab83c05db3d",
+      "sameAsHistoricalHandoff": true,
+      "currentFreeze": "observation only; no source lease"
+    },
+    "Sources/NextNotes/UI/Components/Theme/ThemeVoiceGlow.swift": {
+      "currentSHA256": "4d628c5596a5562d483ccc7aecdb739b51f2260e50e68a68f89be79ba4ee186a",
+      "HEADSHA256": null,
+      "tracked": false,
+      "historicalHandoffSHA256": "4d628c5596a5562d483ccc7aecdb739b51f2260e50e68a68f89be79ba4ee186a",
+      "sameAsHistoricalHandoff": true,
+      "currentFreeze": "observation only; no source lease"
+    },
+    "Sources/NextNotes/UI/DesignSystem.swift": {
+      "currentSHA256": "4834688eb005804071731afa6a359aa68434cdc3fd99cd62f5ac444bf57c1fe4",
+      "HEADSHA256": "0554e3afe6c23c6739355fb30077ff01b3a782fa5fc3bf6b81e0a9ac9ca9ac8a",
+      "tracked": true,
+      "historicalHandoffSHA256": "4834688eb005804071731afa6a359aa68434cdc3fd99cd62f5ac444bf57c1fe4",
+      "sameAsHistoricalHandoff": true,
+      "currentFreeze": "observation only; no source lease"
+    },
+    "Sources/NextNotes/UI/Components/GlassSurface.swift": {
+      "currentSHA256": "c296b474b6868c13ef734f2ac54696620f3f3aa8584e393974e6cb1798b8b0e4",
+      "HEADSHA256": "3b4c6293c72ba9979847eacd900019539ab849f4e6e7088095bfb58d40366434",
+      "tracked": true,
+      "historicalHandoffSHA256": "c296b474b6868c13ef734f2ac54696620f3f3aa8584e393974e6cb1798b8b0e4",
+      "sameAsHistoricalHandoff": true,
+      "currentFreeze": "observation only; no source lease"
+    },
+    "Sources/NextNotes/UI/Components/SectionHeading.swift": {
+      "currentSHA256": "68f10152d8be83c8e912c8c297f821daa74cfecac32053dc6584889775e5f435",
+      "HEADSHA256": "a9d976649beff1c4daa3ed053e5f2364a4d8cf27e2c20dcb6a41b5fdea50fe55",
+      "tracked": true,
+      "historicalHandoffSHA256": "68f10152d8be83c8e912c8c297f821daa74cfecac32053dc6584889775e5f435",
+      "sameAsHistoricalHandoff": true,
+      "currentFreeze": "observation only; no source lease"
+    },
+    "Sources/NextNotes/UI/Agent/AgentPaneLayout.swift": {
+      "currentSHA256": "15271f90abb694bdceb6a75579d147f8de584a18362c8ed36f98aebf4e41deb4",
+      "HEADSHA256": "e1a682ae6dd87ae8f3cd35756f528e47bdc373d0429fa941f420cffed0a6e702",
+      "tracked": true,
+      "historicalHandoffSHA256": "15271f90abb694bdceb6a75579d147f8de584a18362c8ed36f98aebf4e41deb4",
+      "sameAsHistoricalHandoff": true,
+      "currentFreeze": "observation only; no source lease"
+    },
+    "Sources/NextNotes/UI/Agent/AgentView.swift": {
+      "currentSHA256": "dec7e55a9e50b4f27d16190193e7276b06c37a771285c3e5780cdec82af9b919",
+      "HEADSHA256": "32e5adcb7771739ca957a131fa3192fe183beecf64e54351f56f8c80a182200b",
+      "tracked": true,
+      "historicalHandoffSHA256": "7e7eed666368a2ea260548de5071b8bdae1243f1cc364c0b1fb6efbe2c29f7c2",
+      "sameAsHistoricalHandoff": false,
+      "currentFreeze": "observation only; no source lease"
+    },
+    "Sources/NextNotes/UI/Agent/ActivityView.swift": {
+      "currentSHA256": "2fc1b5ee0f8ef36d0b359e57d41d9552ace8f60b44650d68543728557ec005cc",
+      "HEADSHA256": "ad96426ac59b786c1373a3c5e2157517f015ded13bd5009b420086ccf0587b24",
+      "tracked": true,
+      "historicalHandoffSHA256": "3b6785726fd7d8c0db5b19aa4624228c21bcaa9ae46bb3f0a17973afbbbd9477",
+      "sameAsHistoricalHandoff": false,
+      "currentFreeze": "observation only; no source lease"
+    },
+    "Sources/NextNotes/UI/Agent/AgentWorkingCard.swift": {
+      "currentSHA256": "c070708cb25be23e85d0185b0b39588bf64837e44143427b70664e1afc246108",
+      "HEADSHA256": "2d5aa735a815f349a1b2f84a27a3fe31ae2ccfca4e82b54a63ee5b84143d182a",
+      "tracked": true,
+      "historicalHandoffSHA256": "90130118f5d69acdded1e72d423cfa0877d740385bbe69119f17d0e8ae0dfb2d",
+      "sameAsHistoricalHandoff": false,
+      "currentFreeze": "observation only; no source lease"
+    },
+    "Sources/NextNotes/UI/Settings/SettingsChrome.swift": {
+      "currentSHA256": "a228a7e07670b2848b8984f4041bec525adfd6b88107f0005557ca42f20d71b4",
+      "HEADSHA256": "b89503d92cc98647ef22fee929cab1e43fd6115ef08b4ad8822aab0d7fc1f42a",
+      "tracked": true,
+      "historicalHandoffSHA256": "f4677c14514b8092b6aaf002ba1dfd6151ecee6f4eeb12a1a61220b40278e1ad",
+      "sameAsHistoricalHandoff": false,
+      "currentFreeze": "observation only; no source lease"
+    },
+    "Sources/NextNotes/UI/Settings/SettingsWindow.swift": {
+      "currentSHA256": "d9c854b3b6d9f0a80e310f525d3cc9f3c99f89be8af5a5e7cd480214a54d39f6",
+      "HEADSHA256": "59b5a13b898cac4389066264766109d44ae52cf5aab4c3b4c565424ae0178f8d",
+      "tracked": true,
+      "historicalHandoffSHA256": "d9c854b3b6d9f0a80e310f525d3cc9f3c99f89be8af5a5e7cd480214a54d39f6",
+      "sameAsHistoricalHandoff": true,
+      "currentFreeze": "observation only; no source lease"
+    },
+    "Sources/NextNotes/UI/MainWindow.swift": {
+      "currentSHA256": "5f65aea558ea800d47f62d6deb5a9085a0b8fec4790485b6846578dccbc01150",
+      "HEADSHA256": "19fe38311d9a86d59439eef095f088bf2049a9d4bc2ee0ae4a1bf9acdcf7214d",
+      "tracked": true,
+      "historicalHandoffSHA256": "5f65aea558ea800d47f62d6deb5a9085a0b8fec4790485b6846578dccbc01150",
+      "sameAsHistoricalHandoff": true,
+      "currentFreeze": "observation only; no source lease"
+    },
+    "Sources/NextNotes/UI/HUDView.swift": {
+      "currentSHA256": "0f695e3f4da92e98dbdb7d4ed69ead9643db5e9b497e94278b18d7a8a1d94e13",
+      "HEADSHA256": "4021b5fe8333c653501a07e2f0fc86c75d02ffc3abd8a4fd73f6615bbffc0058",
+      "tracked": true,
+      "historicalHandoffSHA256": "0f695e3f4da92e98dbdb7d4ed69ead9643db5e9b497e94278b18d7a8a1d94e13",
+      "sameAsHistoricalHandoff": true,
+      "currentFreeze": "observation only; no source lease"
+    },
+    "Sources/NextNotes/UI/Island/IslandView.swift": {
+      "currentSHA256": "4d53c60d50e954863ca330961b1bcf5f006899daffce1867d82d567f3aa1bf09",
+      "HEADSHA256": "0355eb716f992afb95767f00ff4529ca0e15d981045c3f268589744dc8e46ab1",
+      "tracked": true,
+      "historicalHandoffSHA256": "4d53c60d50e954863ca330961b1bcf5f006899daffce1867d82d567f3aa1bf09",
+      "sameAsHistoricalHandoff": true,
+      "currentFreeze": "observation only; no source lease"
+    },
+    "Sources/NextNotes/UI/Meetings/MeetingConsoleSheet.swift": {
+      "currentSHA256": "6645bac730b41d97de7ad180dd217b69851830cad28915301e44f82b8e1cd507",
+      "HEADSHA256": "c37410b0391ed81d93bc3ea2914fb0b3ce0e96d3446c16b3ed80adda1d00cbb7",
+      "tracked": true,
+      "historicalHandoffSHA256": "6645bac730b41d97de7ad180dd217b69851830cad28915301e44f82b8e1cd507",
+      "sameAsHistoricalHandoff": true,
+      "currentFreeze": "observation only; no source lease"
+    },
+    "Sources/NextNotes/UI/Onboarding/OnboardingChrome.swift": {
+      "currentSHA256": "2c7d5f15efae8ae66d56ea443ae2118533db880165f4f8b9b43890fdf8105b3a",
+      "HEADSHA256": "91b6cfcedaab4f87e6c21b4173dad15ed7df3fe5d4ff22f791392c0dabb76932",
+      "tracked": true,
+      "historicalHandoffSHA256": "2c7d5f15efae8ae66d56ea443ae2118533db880165f4f8b9b43890fdf8105b3a",
+      "sameAsHistoricalHandoff": true,
+      "currentFreeze": "observation only; no source lease"
+    },
+    "Sources/NextNotes/UI/Onboarding/OnboardingWindow.swift": {
+      "currentSHA256": "99e0f48f64e001953b18c3aba3ce6e968cf5f4a9341b124f8f31bf699729897e",
+      "HEADSHA256": "78149a3347a29732afebb97c68a1f455a53c3ff49b2fb63d63d3c66152911b7e",
+      "tracked": true,
+      "historicalHandoffSHA256": "99e0f48f64e001953b18c3aba3ce6e968cf5f4a9341b124f8f31bf699729897e",
+      "sameAsHistoricalHandoff": true,
+      "currentFreeze": "observation only; no source lease"
+    },
+    "Sources/NextNotes/UI/Onboarding/OnboardingSteps.swift": {
+      "currentSHA256": "125dcacf5485293784be0dbe6fc710ee34e02bb3e6b0d9040cc0c348cf4f9274",
+      "HEADSHA256": "cd710d1c038a1fc0bda529f0f6bb7afa990bec01cef25bda496165bdd4146f64",
+      "tracked": true,
+      "historicalHandoffSHA256": "125dcacf5485293784be0dbe6fc710ee34e02bb3e6b0d9040cc0c348cf4f9274",
+      "sameAsHistoricalHandoff": true,
+      "currentFreeze": "observation only; no source lease"
+    },
+    "Sources/NextNotes/NextNotesApp.swift": {
+      "currentSHA256": "bc01a27f48478a297d07a1d35669c313615cc7c182c0c6d113b4899e792a1b61",
+      "HEADSHA256": "1e8779b4153b1fa656deec4ec9a92ede9d2b26c33afc2dd21e807af4f19f54d2",
+      "tracked": true,
+      "historicalHandoffSHA256": "bdc62ae293975b47dd19c704af32c7ed9fcf0fcd52aa18f13cda7c39b62af973",
+      "sameAsHistoricalHandoff": false,
+      "currentFreeze": "observation only; no source lease"
+    },
+    "Package.swift": {
+      "currentSHA256": "d0d5806a3efd36fb250657b71a3ea681dbd57a603999241ba6273f92838eabaa",
+      "HEADSHA256": "d0d5806a3efd36fb250657b71a3ea681dbd57a603999241ba6273f92838eabaa",
+      "tracked": true,
+      "historicalHandoffSHA256": "d0d5806a3efd36fb250657b71a3ea681dbd57a603999241ba6273f92838eabaa",
+      "sameAsHistoricalHandoff": true,
+      "currentFreeze": "observation only; no source lease"
+    }
+  },
+  "relativeHunks": [
+    {
+      "id": "DesignSystem-01",
+      "source": "Sources/NextNotes/UI/DesignSystem.swift",
+      "relativeHeader": "@@ -0,0 +1 @@",
+      "hunkSHA256": "68174c96dcd80ac3c2155e51c34a0694fcb9a795512a77f0960477db6770a878",
+      "classification": "CANONICAL_THEME_REVIEW",
+      "candidateOwnedThemeReview": true,
+      "reason": "Shared theme/semantic type producer; canonical owner review required.",
+      "reviewArtifact": "hunks/DesignSystem-01.hunk.txt"
+    },
+    {
+      "id": "DesignSystem-02",
+      "source": "Sources/NextNotes/UI/DesignSystem.swift",
+      "relativeHeader": "@@ -23,5 +24,9 @@ enum DS {",
+      "hunkSHA256": "fad62fc3f57beb1838ca9542fc969e2d83eda99926643779014776081d1c2e5c",
+      "classification": "CANONICAL_THEME_REVIEW",
+      "candidateOwnedThemeReview": true,
+      "reason": "Shared theme/semantic type producer; canonical owner review required.",
+      "reviewArtifact": "hunks/DesignSystem-02.hunk.txt"
+    },
+    {
+      "id": "DesignSystem-03",
+      "source": "Sources/NextNotes/UI/DesignSystem.swift",
+      "relativeHeader": "@@ -30,8 +35,11 @@ enum DS {",
+      "hunkSHA256": "3f20c63ab8d6756a48f78d843419582d2b4643bf2b6d36a00e26bba90d13d8f9",
+      "classification": "CANONICAL_THEME_REVIEW",
+      "candidateOwnedThemeReview": true,
+      "reason": "Shared theme/semantic type producer; canonical owner review required.",
+      "reviewArtifact": "hunks/DesignSystem-03.hunk.txt"
+    },
+    {
+      "id": "DesignSystem-04",
+      "source": "Sources/NextNotes/UI/DesignSystem.swift",
+      "relativeHeader": "@@ -41,8 +49,6 @@ enum DS {",
+      "hunkSHA256": "e433c6b3cdf8513273bca33c657dc1c80a44f2d6707f5230982d2683a5291a32",
+      "classification": "CANONICAL_THEME_REVIEW",
+      "candidateOwnedThemeReview": true,
+      "reason": "Shared theme/semantic type producer; canonical owner review required.",
+      "reviewArtifact": "hunks/DesignSystem-04.hunk.txt"
+    },
+    {
+      "id": "DesignSystem-05",
+      "source": "Sources/NextNotes/UI/DesignSystem.swift",
+      "relativeHeader": "@@ -55 +61 @@ enum DS {",
+      "hunkSHA256": "9b566e26a984801973d0ffd4697dbba35e37243031911d2969777f8115d0bd78",
+      "classification": "CANONICAL_THEME_REVIEW",
+      "candidateOwnedThemeReview": true,
+      "reason": "Shared theme/semantic type producer; canonical owner review required.",
+      "reviewArtifact": "hunks/DesignSystem-05.hunk.txt"
+    },
+    {
+      "id": "DesignSystem-06",
+      "source": "Sources/NextNotes/UI/DesignSystem.swift",
+      "relativeHeader": "@@ -57,4 +63,5 @@ enum DS {",
+      "hunkSHA256": "3c3ec115cae3ca2a9f400f256976cc1cb36e58735b9a312240d049f38275cb74",
+      "classification": "CANONICAL_THEME_REVIEW",
+      "candidateOwnedThemeReview": true,
+      "reason": "Shared theme/semantic type producer; canonical owner review required.",
+      "reviewArtifact": "hunks/DesignSystem-06.hunk.txt"
+    },
+    {
+      "id": "DesignSystem-07",
+      "source": "Sources/NextNotes/UI/DesignSystem.swift",
+      "relativeHeader": "@@ -63 +70,4 @@ enum DS {",
+      "hunkSHA256": "4ce4b3e3b50ffd206df880e49d3ada09a4c3bf455e71f71818bfc2a3c4244e90",
+      "classification": "CANONICAL_THEME_REVIEW",
+      "candidateOwnedThemeReview": true,
+      "reason": "Shared theme/semantic type producer; canonical owner review required.",
+      "reviewArtifact": "hunks/DesignSystem-07.hunk.txt"
+    },
+    {
+      "id": "DesignSystem-08",
+      "source": "Sources/NextNotes/UI/DesignSystem.swift",
+      "relativeHeader": "@@ -65 +75,3 @@ enum DS {",
+      "hunkSHA256": "650fc14b7f6f5eaef757cc3c4fd0e64ce11440ac0deb2c2e57c88eac949fe019",
+      "classification": "CANONICAL_THEME_REVIEW",
+      "candidateOwnedThemeReview": true,
+      "reason": "Shared theme/semantic type producer; canonical owner review required.",
+      "reviewArtifact": "hunks/DesignSystem-08.hunk.txt"
+    },
+    {
+      "id": "DesignSystem-09",
+      "source": "Sources/NextNotes/UI/DesignSystem.swift",
+      "relativeHeader": "@@ -121 +133,4 @@ enum DS {",
+      "hunkSHA256": "973ce1a29860233111b8b9822b5be7782b1e5c75d9bf6f60354b3443a7c5abcc",
+      "classification": "CANONICAL_THEME_REVIEW",
+      "candidateOwnedThemeReview": true,
+      "reason": "Shared theme/semantic type producer; canonical owner review required.",
+      "reviewArtifact": "hunks/DesignSystem-09.hunk.txt"
+    },
+    {
+      "id": "DesignSystem-10",
+      "source": "Sources/NextNotes/UI/DesignSystem.swift",
+      "relativeHeader": "@@ -123,11 +138,11 @@ enum DS {",
+      "hunkSHA256": "15ff93fe2d378f55d600ebf3bcad84aed697be86b45d11e848ad04267a0d3b78",
+      "classification": "CANONICAL_THEME_REVIEW",
+      "candidateOwnedThemeReview": true,
+      "reason": "Shared theme/semantic type producer; canonical owner review required.",
+      "reviewArtifact": "hunks/DesignSystem-10.hunk.txt"
+    },
+    {
+      "id": "DesignSystem-11",
+      "source": "Sources/NextNotes/UI/DesignSystem.swift",
+      "relativeHeader": "@@ -136 +151 @@ enum DS {",
+      "hunkSHA256": "960c205801eeafb4cd9a69963710b91128d6749e0818c8bf237f2dbddf939c4c",
+      "classification": "CANONICAL_THEME_REVIEW",
+      "candidateOwnedThemeReview": true,
+      "reason": "Shared theme/semantic type producer; canonical owner review required.",
+      "reviewArtifact": "hunks/DesignSystem-11.hunk.txt"
+    },
+    {
+      "id": "DesignSystem-12",
+      "source": "Sources/NextNotes/UI/DesignSystem.swift",
+      "relativeHeader": "@@ -143,4 +158,4 @@ enum DS {",
+      "hunkSHA256": "7b2ee4c6cd9b57213e09cf0d29ccd24a9d4c27f99f5f8f9fb823603d47ee2134",
+      "classification": "CANONICAL_THEME_REVIEW",
+      "candidateOwnedThemeReview": true,
+      "reason": "Shared theme/semantic type producer; canonical owner review required.",
+      "reviewArtifact": "hunks/DesignSystem-12.hunk.txt"
+    },
+    {
+      "id": "DesignSystem-13",
+      "source": "Sources/NextNotes/UI/DesignSystem.swift",
+      "relativeHeader": "@@ -151 +166 @@ enum DS {",
+      "hunkSHA256": "edee6427f9548c5f73d4f4e7486f60f8e84f3e0d172f3dc54ace0daa782b6507",
+      "classification": "CANONICAL_THEME_REVIEW",
+      "candidateOwnedThemeReview": true,
+      "reason": "Shared theme/semantic type producer; canonical owner review required.",
+      "reviewArtifact": "hunks/DesignSystem-13.hunk.txt"
+    },
+    {
+      "id": "DesignSystem-14",
+      "source": "Sources/NextNotes/UI/DesignSystem.swift",
+      "relativeHeader": "@@ -158,2 +173,2 @@ enum DS {",
+      "hunkSHA256": "0cf520f20fa744f4234b1873a77377ab6bdefb98ecf8ccec6d19c2f2dd237a2a",
+      "classification": "CANONICAL_THEME_REVIEW",
+      "candidateOwnedThemeReview": true,
+      "reason": "Shared theme/semantic type producer; canonical owner review required.",
+      "reviewArtifact": "hunks/DesignSystem-14.hunk.txt"
+    },
+    {
+      "id": "DesignSystem-15",
+      "source": "Sources/NextNotes/UI/DesignSystem.swift",
+      "relativeHeader": "@@ -403,0 +419,3 @@ enum DS {",
+      "hunkSHA256": "3cf21c1007a06c2c23fd73f3aec4b824e908aa0b159951069427361fe2ff123d",
+      "classification": "SETTINGS_LAYOUT_PREREQUISITE_ROOT_OWNED",
+      "candidateOwnedThemeReview": false,
+      "reason": "140pt Formatting label minimum belongs to the separately accepted Settings display producer."
+    },
+    {
+      "id": "DesignSystem-16",
+      "source": "Sources/NextNotes/UI/DesignSystem.swift",
+      "relativeHeader": "@@ -656 +674 @@ enum DS {",
+      "hunkSHA256": "fea84385ca976e81e69892e15a257950b82cfdbc21b70e08555dbc09fa665083",
+      "classification": "CANONICAL_THEME_REVIEW",
+      "candidateOwnedThemeReview": true,
+      "reason": "Shared theme/semantic type producer; canonical owner review required.",
+      "reviewArtifact": "hunks/DesignSystem-16.hunk.txt"
+    },
+    {
+      "id": "DesignSystem-17",
+      "source": "Sources/NextNotes/UI/DesignSystem.swift",
+      "relativeHeader": "@@ -659,3 +677,5 @@ enum DS {",
+      "hunkSHA256": "ca68a112b08c76435ffa857acef46b356faebfbdb12b90ca4014caa3d4b6ba8d",
+      "classification": "CANONICAL_THEME_REVIEW",
+      "candidateOwnedThemeReview": true,
+      "reason": "Shared theme/semantic type producer; canonical owner review required.",
+      "reviewArtifact": "hunks/DesignSystem-17.hunk.txt"
+    },
+    {
+      "id": "DesignSystem-18",
+      "source": "Sources/NextNotes/UI/DesignSystem.swift",
+      "relativeHeader": "@@ -947,0 +968,345 @@ enum DS {",
+      "hunkSHA256": "a8b72ccda638e66e3c505ab01e85abc9b7a09b9266b6dc20e4667b8ab99c9897",
+      "classification": "CANONICAL_THEME_REVIEW",
+      "candidateOwnedThemeReview": true,
+      "reason": "Shared theme/semantic type producer; canonical owner review required.",
+      "reviewArtifact": "hunks/DesignSystem-18.hunk.txt"
+    },
+    {
+      "id": "GlassSurface-01",
+      "source": "Sources/NextNotes/UI/Components/GlassSurface.swift",
+      "relativeHeader": "@@ -19 +18,0 @@ struct GlassSurfaceModifier<S: Shape>: ViewModifier {",
+      "hunkSHA256": "e03c9f5918d25a43050916b93c88b4edd067cfa20636d6197402f6273ee1b973",
+      "classification": "CANONICAL_THEME_REVIEW",
+      "candidateOwnedThemeReview": true,
+      "reason": "Single glass/optional heading/shared explicit accent producer.",
+      "reviewArtifact": "hunks/GlassSurface-01.hunk.txt"
+    },
+    {
+      "id": "GlassSurface-02",
+      "source": "Sources/NextNotes/UI/Components/GlassSurface.swift",
+      "relativeHeader": "@@ -25 +24,4 @@ struct GlassSurfaceModifier<S: Shape>: ViewModifier {",
+      "hunkSHA256": "69046aee17b3e1e8ec01ba4c9ebf2c378c75802032afe9de7c84935318ce801e",
+      "classification": "CANONICAL_THEME_REVIEW",
+      "candidateOwnedThemeReview": true,
+      "reason": "Single glass/optional heading/shared explicit accent producer.",
+      "reviewArtifact": "hunks/GlassSurface-02.hunk.txt"
+    },
+    {
+      "id": "GlassSurface-03",
+      "source": "Sources/NextNotes/UI/Components/GlassSurface.swift",
+      "relativeHeader": "@@ -36,2 +38 @@ extension View {",
+      "hunkSHA256": "e2c091669009387d4ebba89e2205279e91dc10cae92d0949a2cba4f24f6754b4",
+      "classification": "CANONICAL_THEME_REVIEW",
+      "candidateOwnedThemeReview": true,
+      "reason": "Single glass/optional heading/shared explicit accent producer.",
+      "reviewArtifact": "hunks/GlassSurface-03.hunk.txt"
+    },
+    {
+      "id": "GlassSurface-04",
+      "source": "Sources/NextNotes/UI/Components/GlassSurface.swift",
+      "relativeHeader": "@@ -39 +40 @@ extension View {",
+      "hunkSHA256": "d3ab70df2395d37b743c050dc30836228ca65f871c7fb5976b4800f7af936f4d",
+      "classification": "CANONICAL_THEME_REVIEW",
+      "candidateOwnedThemeReview": true,
+      "reason": "Single glass/optional heading/shared explicit accent producer.",
+      "reviewArtifact": "hunks/GlassSurface-04.hunk.txt"
+    },
+    {
+      "id": "GlassSurface-05",
+      "source": "Sources/NextNotes/UI/Components/GlassSurface.swift",
+      "relativeHeader": "@@ -45,2 +46 @@ extension View {",
+      "hunkSHA256": "d3b1decf724aa6e94b4793a592b0fde8a1d89f342796a552e00fdf453a644ae2",
+      "classification": "CANONICAL_THEME_REVIEW",
+      "candidateOwnedThemeReview": true,
+      "reason": "Single glass/optional heading/shared explicit accent producer.",
+      "reviewArtifact": "hunks/GlassSurface-05.hunk.txt"
+    },
+    {
+      "id": "GlassSurface-06",
+      "source": "Sources/NextNotes/UI/Components/GlassSurface.swift",
+      "relativeHeader": "@@ -50,2 +50 @@ extension View {",
+      "hunkSHA256": "29e516079103a121f1d3abc233212c56fb34fb6f37f16fb48d93ec5366c90ba7",
+      "classification": "CANONICAL_THEME_REVIEW",
+      "candidateOwnedThemeReview": true,
+      "reason": "Single glass/optional heading/shared explicit accent producer.",
+      "reviewArtifact": "hunks/GlassSurface-06.hunk.txt"
+    },
+    {
+      "id": "SectionHeading-01",
+      "source": "Sources/NextNotes/UI/Components/SectionHeading.swift",
+      "relativeHeader": "@@ -17,0 +18,8 @@ struct SectionHeading: View {",
+      "hunkSHA256": "00c0d49750b8bf508c0f43007b409e7d32415959fbde893287a0bbc06108e4e3",
+      "classification": "CANONICAL_THEME_REVIEW",
+      "candidateOwnedThemeReview": true,
+      "reason": "Single glass/optional heading/shared explicit accent producer.",
+      "reviewArtifact": "hunks/SectionHeading-01.hunk.txt"
+    },
+    {
+      "id": "SectionHeading-02",
+      "source": "Sources/NextNotes/UI/Components/SectionHeading.swift",
+      "relativeHeader": "@@ -45,5 +53,10 @@ struct SectionHeading: View {",
+      "hunkSHA256": "bbe017968cb180682a302ee1d89998189a224cc0338f738460388c2b2d2ba3e0",
+      "classification": "CANONICAL_THEME_REVIEW",
+      "candidateOwnedThemeReview": true,
+      "reason": "Single glass/optional heading/shared explicit accent producer.",
+      "reviewArtifact": "hunks/SectionHeading-02.hunk.txt"
+    },
+    {
+      "id": "AgentPaneLayout-01",
+      "source": "Sources/NextNotes/UI/Agent/AgentPaneLayout.swift",
+      "relativeHeader": "@@ -49,0 +50,2 @@ struct AgentPaneHeader<Accessory: View>: View {",
+      "hunkSHA256": "db0675b417e52a42b07db6e039311a21f9bfd9674371dbbeb30f0458e18b5ddc",
+      "classification": "CANONICAL_THEME_REVIEW",
+      "candidateOwnedThemeReview": true,
+      "reason": "Single glass/optional heading/shared explicit accent producer.",
+      "reviewArtifact": "hunks/AgentPaneLayout-01.hunk.txt"
+    },
+    {
+      "id": "AgentPaneLayout-02",
+      "source": "Sources/NextNotes/UI/Agent/AgentPaneLayout.swift",
+      "relativeHeader": "@@ -55,2 +57,7 @@ struct AgentPaneHeader<Accessory: View>: View {",
+      "hunkSHA256": "c0523da415bec3d2c1c1dcc4d9534dd0913d67cff8642ff4c9e4643670d85221",
+      "classification": "CANONICAL_THEME_REVIEW",
+      "candidateOwnedThemeReview": true,
+      "reason": "Single glass/optional heading/shared explicit accent producer.",
+      "reviewArtifact": "hunks/AgentPaneLayout-02.hunk.txt"
+    },
+    {
+      "id": "AgentPaneLayout-03",
+      "source": "Sources/NextNotes/UI/Agent/AgentPaneLayout.swift",
+      "relativeHeader": "@@ -73,2 +80,2 @@ extension AgentPaneHeader where Accessory == EmptyView {",
+      "hunkSHA256": "93281b1b127270faece2a691e4dce715739e4f36412b7dbaf4eaeabc73c7320f",
+      "classification": "CANONICAL_THEME_REVIEW",
+      "candidateOwnedThemeReview": true,
+      "reason": "Single glass/optional heading/shared explicit accent producer.",
+      "reviewArtifact": "hunks/AgentPaneLayout-03.hunk.txt"
+    },
+    {
+      "id": "AgentView-01",
+      "source": "Sources/NextNotes/UI/Agent/AgentView.swift",
+      "relativeHeader": "@@ -28,2 +27,0 @@ struct AgentView: View {",
+      "hunkSHA256": "4c4c8f74724d43fb048a33d451beefba25553244ad061c13b7101ed92d432071",
+      "classification": "FOREIGN_RUNTIME_OR_DIAGNOSTIC",
+      "candidateOwnedThemeReview": false,
+      "reason": "Empty-state headline or parked working composer edge only; preserve root typed-work/history/approval/citation/input/send hunks."
+    },
+    {
+      "id": "AgentView-02",
+      "source": "Sources/NextNotes/UI/Agent/AgentView.swift",
+      "relativeHeader": "@@ -34,0 +33,2 @@ struct AgentView: View {",
+      "hunkSHA256": "8a917899d946d69c7cb7af350dc26d7e7f77218c383187fceab0f2a7e7ba5bd9",
+      "classification": "FOREIGN_RUNTIME_OR_DIAGNOSTIC",
+      "candidateOwnedThemeReview": false,
+      "reason": "Empty-state headline or parked working composer edge only; preserve root typed-work/history/approval/citation/input/send hunks."
+    },
+    {
+      "id": "AgentView-03",
+      "source": "Sources/NextNotes/UI/Agent/AgentView.swift",
+      "relativeHeader": "@@ -52,4 +52 @@ struct AgentView: View {",
+      "hunkSHA256": "f05be13e5310b32f5f88bcd6b70c8ab625e80842556e4e510f3d7108c3df4993",
+      "classification": "FOREIGN_RUNTIME_OR_DIAGNOSTIC",
+      "candidateOwnedThemeReview": false,
+      "reason": "Empty-state headline or parked working composer edge only; preserve root typed-work/history/approval/citation/input/send hunks."
+    },
+    {
+      "id": "AgentView-04",
+      "source": "Sources/NextNotes/UI/Agent/AgentView.swift",
+      "relativeHeader": "@@ -61 +57,0 @@ struct AgentView: View {",
+      "hunkSHA256": "c7eda9d14c560afeac712e1a7da5c1a7282a50f2fd167f1beba5e5e69fd4b301",
+      "classification": "FOREIGN_RUNTIME_OR_DIAGNOSTIC",
+      "candidateOwnedThemeReview": false,
+      "reason": "Empty-state headline or parked working composer edge only; preserve root typed-work/history/approval/citation/input/send hunks."
+    },
+    {
+      "id": "AgentView-05",
+      "source": "Sources/NextNotes/UI/Agent/AgentView.swift",
+      "relativeHeader": "@@ -68 +63,0 @@ struct AgentView: View {",
+      "hunkSHA256": "db95bb26b6126f775093da8be21df621a78a2cb04457ef08561c3aa0c7cb96c3",
+      "classification": "FOREIGN_RUNTIME_OR_DIAGNOSTIC",
+      "candidateOwnedThemeReview": false,
+      "reason": "Empty-state headline or parked working composer edge only; preserve root typed-work/history/approval/citation/input/send hunks."
+    },
+    {
+      "id": "AgentView-06",
+      "source": "Sources/NextNotes/UI/Agent/AgentView.swift",
+      "relativeHeader": "@@ -76 +71 @@ struct AgentView: View {",
+      "hunkSHA256": "91336ac7e5e4954bac6b892e1f70ea0999e3ef5f211f6f1658aa012b140b438b",
+      "classification": "FOREIGN_RUNTIME_OR_DIAGNOSTIC",
+      "candidateOwnedThemeReview": false,
+      "reason": "Empty-state headline or parked working composer edge only; preserve root typed-work/history/approval/citation/input/send hunks."
+    },
+    {
+      "id": "AgentView-07",
+      "source": "Sources/NextNotes/UI/Agent/AgentView.swift",
+      "relativeHeader": "@@ -91,4 +86 @@ struct AgentView: View {",
+      "hunkSHA256": "70dc1309d95c9ec862c45ad7ad30b84bea95fa412f970dbe0df702122094f395",
+      "classification": "FOREIGN_RUNTIME_OR_DIAGNOSTIC",
+      "candidateOwnedThemeReview": false,
+      "reason": "Empty-state headline or parked working composer edge only; preserve root typed-work/history/approval/citation/input/send hunks."
+    },
+    {
+      "id": "AgentView-08",
+      "source": "Sources/NextNotes/UI/Agent/AgentView.swift",
+      "relativeHeader": "@@ -250,2 +242,2 @@ struct AgentView: View {",
+      "hunkSHA256": "5f7fdef5fe67a40ebbcfa698a15229b406f9f73871bac22c6fb8b86d4df781b9",
+      "classification": "ROOT_AGENT_CALLER_THEME_REVIEW",
+      "candidateOwnedThemeReview": true,
+      "reason": "Empty-state headline or parked working composer edge only; preserve root typed-work/history/approval/citation/input/send hunks.",
+      "reviewArtifact": "hunks/AgentView-08.hunk.txt"
+    },
+    {
+      "id": "AgentView-09",
+      "source": "Sources/NextNotes/UI/Agent/AgentView.swift",
+      "relativeHeader": "@@ -280 +271,0 @@ struct AgentView: View {",
+      "hunkSHA256": "275c09cdeef0e08d8da9016035de4ee21e8e22f8f18450f0711d3c2a8a2378e3",
+      "classification": "FOREIGN_RUNTIME_OR_DIAGNOSTIC",
+      "candidateOwnedThemeReview": false,
+      "reason": "Empty-state headline or parked working composer edge only; preserve root typed-work/history/approval/citation/input/send hunks."
+    },
+    {
+      "id": "AgentView-10",
+      "source": "Sources/NextNotes/UI/Agent/AgentView.swift",
+      "relativeHeader": "@@ -283 +274 @@ struct AgentView: View {",
+      "hunkSHA256": "24792e6a0b02ea31b759b54cfcba2e11c949c99b589df9de8f0997e877426a6c",
+      "classification": "FOREIGN_RUNTIME_OR_DIAGNOSTIC",
+      "candidateOwnedThemeReview": false,
+      "reason": "Empty-state headline or parked working composer edge only; preserve root typed-work/history/approval/citation/input/send hunks."
+    },
+    {
+      "id": "AgentView-11",
+      "source": "Sources/NextNotes/UI/Agent/AgentView.swift",
+      "relativeHeader": "@@ -294 +285 @@ struct AgentView: View {",
+      "hunkSHA256": "cd6f84816e264e7b5e60c5739cb6a9b339543014b96cd22d212d78143358be84",
+      "classification": "FOREIGN_RUNTIME_OR_DIAGNOSTIC",
+      "candidateOwnedThemeReview": false,
+      "reason": "Empty-state headline or parked working composer edge only; preserve root typed-work/history/approval/citation/input/send hunks."
+    },
+    {
+      "id": "AgentView-12",
+      "source": "Sources/NextNotes/UI/Agent/AgentView.swift",
+      "relativeHeader": "@@ -317,0 +309 @@ struct AgentView: View {",
+      "hunkSHA256": "d9bf8d41567b31f545d706c7edf1bd8d76a6e8983430af97bff80acef12ff65d",
+      "classification": "FOREIGN_RUNTIME_OR_DIAGNOSTIC",
+      "candidateOwnedThemeReview": false,
+      "reason": "Empty-state headline or parked working composer edge only; preserve root typed-work/history/approval/citation/input/send hunks."
+    },
+    {
+      "id": "AgentView-13",
+      "source": "Sources/NextNotes/UI/Agent/AgentView.swift",
+      "relativeHeader": "@@ -351 +343 @@ struct AgentView: View {",
+      "hunkSHA256": "e0c0ce13ab3db8295e8b2f035da6c8b812bdb764b0e607f7b12fb6d8f52894a2",
+      "classification": "FOREIGN_RUNTIME_OR_DIAGNOSTIC",
+      "candidateOwnedThemeReview": false,
+      "reason": "Empty-state headline or parked working composer edge only; preserve root typed-work/history/approval/citation/input/send hunks."
+    },
+    {
+      "id": "AgentView-14",
+      "source": "Sources/NextNotes/UI/Agent/AgentView.swift",
+      "relativeHeader": "@@ -377 +368,0 @@ struct AgentView: View {",
+      "hunkSHA256": "136690608a7da1bf7c0a33b79ffb1331b1ab3b80def1b68d575c486cad7ec0c9",
+      "classification": "FOREIGN_RUNTIME_OR_DIAGNOSTIC",
+      "candidateOwnedThemeReview": false,
+      "reason": "Empty-state headline or parked working composer edge only; preserve root typed-work/history/approval/citation/input/send hunks."
+    },
+    {
+      "id": "AgentView-15",
+      "source": "Sources/NextNotes/UI/Agent/AgentView.swift",
+      "relativeHeader": "@@ -499,9 +490,9 @@ struct AgentView: View {",
+      "hunkSHA256": "08b4ad894b84f9e5dc0a9fe82fb752d0ab2591b57eb7709255713666af7e1701",
+      "classification": "FOREIGN_RUNTIME_OR_DIAGNOSTIC",
+      "candidateOwnedThemeReview": false,
+      "reason": "Empty-state headline or parked working composer edge only; preserve root typed-work/history/approval/citation/input/send hunks."
+    },
+    {
+      "id": "AgentView-16",
+      "source": "Sources/NextNotes/UI/Agent/AgentView.swift",
+      "relativeHeader": "@@ -529 +520,10 @@ struct AgentView: View {",
+      "hunkSHA256": "7a7a8fc770dec20148ee140bff9e9a250a70dde513e7d8046dc640cc4bfd439f",
+      "classification": "FOREIGN_RUNTIME_OR_DIAGNOSTIC",
+      "candidateOwnedThemeReview": false,
+      "reason": "Empty-state headline or parked working composer edge only; preserve root typed-work/history/approval/citation/input/send hunks."
+    },
+    {
+      "id": "AgentView-17",
+      "source": "Sources/NextNotes/UI/Agent/AgentView.swift",
+      "relativeHeader": "@@ -535,0 +536,5 @@ struct AgentView: View {",
+      "hunkSHA256": "0d5ff4a55620a745008275c19cea5a348416b8a690f2880955861045b36e460e",
+      "classification": "FOREIGN_RUNTIME_OR_DIAGNOSTIC",
+      "candidateOwnedThemeReview": false,
+      "reason": "Empty-state headline or parked working composer edge only; preserve root typed-work/history/approval/citation/input/send hunks."
+    },
+    {
+      "id": "AgentView-18",
+      "source": "Sources/NextNotes/UI/Agent/AgentView.swift",
+      "relativeHeader": "@@ -542 +547 @@ struct AgentView: View {",
+      "hunkSHA256": "c20cebcfd73e6371b7be4bc095e8373528ff5ddcb526a8467b5c19f6fa9a1157",
+      "classification": "FOREIGN_RUNTIME_OR_DIAGNOSTIC",
+      "candidateOwnedThemeReview": false,
+      "reason": "Empty-state headline or parked working composer edge only; preserve root typed-work/history/approval/citation/input/send hunks."
+    },
+    {
+      "id": "AgentView-19",
+      "source": "Sources/NextNotes/UI/Agent/AgentView.swift",
+      "relativeHeader": "@@ -544 +549,2 @@ struct AgentView: View {",
+      "hunkSHA256": "566e722b9d5e385945c0be097aea73f7c90e48de864d81cd79d0c8e975f0bd91",
+      "classification": "FOREIGN_RUNTIME_OR_DIAGNOSTIC",
+      "candidateOwnedThemeReview": false,
+      "reason": "Empty-state headline or parked working composer edge only; preserve root typed-work/history/approval/citation/input/send hunks."
+    },
+    {
+      "id": "AgentView-20",
+      "source": "Sources/NextNotes/UI/Agent/AgentView.swift",
+      "relativeHeader": "@@ -646 +652,2 @@ struct AgentView: View {",
+      "hunkSHA256": "109a4b007b554b65e9add3e310839d9da3481ce88982a6ce89f80d3fc9ff3f75",
+      "classification": "FOREIGN_RUNTIME_OR_DIAGNOSTIC",
+      "candidateOwnedThemeReview": false,
+      "reason": "Empty-state headline or parked working composer edge only; preserve root typed-work/history/approval/citation/input/send hunks."
+    },
+    {
+      "id": "AgentView-21",
+      "source": "Sources/NextNotes/UI/Agent/AgentView.swift",
+      "relativeHeader": "@@ -669 +676,2 @@ struct AgentView: View {",
+      "hunkSHA256": "b2f6cadd1f83b251aacb9ed32c9736cb026ea04c98141b28ae432b50cd10772b",
+      "classification": "FOREIGN_RUNTIME_OR_DIAGNOSTIC",
+      "candidateOwnedThemeReview": false,
+      "reason": "Empty-state headline or parked working composer edge only; preserve root typed-work/history/approval/citation/input/send hunks."
+    },
+    {
+      "id": "AgentView-22",
+      "source": "Sources/NextNotes/UI/Agent/AgentView.swift",
+      "relativeHeader": "@@ -690,3 +698,2 @@ struct AgentView: View {",
+      "hunkSHA256": "9065eacb3ecf8f757750a124692c0e13028efd0d48d6c987c4f36aa6e15893e6",
+      "classification": "FOREIGN_RUNTIME_OR_DIAGNOSTIC",
+      "candidateOwnedThemeReview": false,
+      "reason": "Empty-state headline or parked working composer edge only; preserve root typed-work/history/approval/citation/input/send hunks."
+    },
+    {
+      "id": "AgentView-23",
+      "source": "Sources/NextNotes/UI/Agent/AgentView.swift",
+      "relativeHeader": "@@ -694,3 +701,3 @@ struct AgentView: View {",
+      "hunkSHA256": "f2d1ffb50a7bbc6c362c720deb475a4d9e8b70b47bce6de7f3f9af92f7efbe27",
+      "classification": "FOREIGN_RUNTIME_OR_DIAGNOSTIC",
+      "candidateOwnedThemeReview": false,
+      "reason": "Empty-state headline or parked working composer edge only; preserve root typed-work/history/approval/citation/input/send hunks."
+    },
+    {
+      "id": "AgentView-24",
+      "source": "Sources/NextNotes/UI/Agent/AgentView.swift",
+      "relativeHeader": "@@ -697,0 +705,7 @@ struct AgentView: View {",
+      "hunkSHA256": "16258bb6ed9e2099df20a9be47398b5e5500b7be8d8d36e819c30f9585dbffb3",
+      "classification": "FOREIGN_RUNTIME_OR_DIAGNOSTIC",
+      "candidateOwnedThemeReview": false,
+      "reason": "Empty-state headline or parked working composer edge only; preserve root typed-work/history/approval/citation/input/send hunks."
+    },
+    {
+      "id": "AgentView-25",
+      "source": "Sources/NextNotes/UI/Agent/AgentView.swift",
+      "relativeHeader": "@@ -793 +807 @@ struct AgentView: View {",
+      "hunkSHA256": "d9e8a537c1f2a7a8628a5b909d41b75f8c3879ac650f55ddade5bab25285d873",
+      "classification": "FOREIGN_RUNTIME_OR_DIAGNOSTIC",
+      "candidateOwnedThemeReview": false,
+      "reason": "Empty-state headline or parked working composer edge only; preserve root typed-work/history/approval/citation/input/send hunks."
+    },
+    {
+      "id": "AgentView-26",
+      "source": "Sources/NextNotes/UI/Agent/AgentView.swift",
+      "relativeHeader": "@@ -819,0 +834,7 @@ struct AgentView: View {",
+      "hunkSHA256": "42975de01a47d634f4ec91f47eebb30e7c9c514d15079f2bac7da2cf2cf2e591",
+      "classification": "ROOT_AGENT_CALLER_THEME_REVIEW_WITH_FOREIGN_PREREQUISITE",
+      "candidateOwnedThemeReview": true,
+      "reason": "Empty-state headline or parked working composer edge only; preserve root typed-work/history/approval/citation/input/send hunks.",
+      "reviewArtifact": "hunks/AgentView-26.hunk.txt",
+      "requiresForeignProducer": "Current isWorking property is absent from HEAD; root must separately qualify its exact typed-work producer or omit this caller."
+    },
+    {
+      "id": "AgentView-27",
+      "source": "Sources/NextNotes/UI/Agent/AgentView.swift",
+      "relativeHeader": "@@ -830,9 +851 @@ struct AgentView: View {",
+      "hunkSHA256": "ab7f5243a8cc8dd06648d562b90e62088fee7fb806234288967fe6ccdb596b34",
+      "classification": "FOREIGN_RUNTIME_OR_DIAGNOSTIC",
+      "candidateOwnedThemeReview": false,
+      "reason": "Empty-state headline or parked working composer edge only; preserve root typed-work/history/approval/citation/input/send hunks."
+    },
+    {
+      "id": "ActivityView-01",
+      "source": "Sources/NextNotes/UI/Agent/ActivityView.swift",
+      "relativeHeader": "@@ -21,0 +22,3 @@ struct ActivityView: View {",
+      "hunkSHA256": "65a433460c8741fb40fe745b686c46735047aab518fac05f87847b22a58af8e1",
+      "classification": "FOREIGN_RUNTIME_OR_DIAGNOSTIC",
+      "candidateOwnedThemeReview": false,
+      "reason": "Exact static header spans only; saved jobs/SQL reload/history fixtures remain foreign."
+    },
+    {
+      "id": "ActivityView-02",
+      "source": "Sources/NextNotes/UI/Agent/ActivityView.swift",
+      "relativeHeader": "@@ -52 +55 @@ struct ActivityView: View {",
+      "hunkSHA256": "226c2ef5cbc9873b1e6b67f4e5371087e9a6a122721ab9d55e08f91b69d926f5",
+      "classification": "ROOT_ACTIVITY_CALLER_THEME_REVIEW",
+      "candidateOwnedThemeReview": true,
+      "reason": "Exact static header spans only; saved jobs/SQL reload/history fixtures remain foreign.",
+      "reviewArtifact": "hunks/ActivityView-02.hunk.txt"
+    },
+    {
+      "id": "ActivityView-03",
+      "source": "Sources/NextNotes/UI/Agent/ActivityView.swift",
+      "relativeHeader": "@@ -54 +57,2 @@ struct ActivityView: View {",
+      "hunkSHA256": "21df4a07ea4279b4ad1d0d28f3e458297669c2e935f65333ff58457929d15150",
+      "classification": "ROOT_ACTIVITY_CALLER_THEME_REVIEW",
+      "candidateOwnedThemeReview": true,
+      "reason": "Exact static header spans only; saved jobs/SQL reload/history fixtures remain foreign.",
+      "reviewArtifact": "hunks/ActivityView-03.hunk.txt"
+    },
+    {
+      "id": "ActivityView-04",
+      "source": "Sources/NextNotes/UI/Agent/ActivityView.swift",
+      "relativeHeader": "@@ -56 +60,9 @@ struct ActivityView: View {",
+      "hunkSHA256": "e246b2e9f007406c0c1957275d716563839b4965b4583768ac91e3fd91227c3a",
+      "classification": "FOREIGN_RUNTIME_OR_DIAGNOSTIC",
+      "candidateOwnedThemeReview": false,
+      "reason": "Exact static header spans only; saved jobs/SQL reload/history fixtures remain foreign."
+    },
+    {
+      "id": "ActivityView-05",
+      "source": "Sources/NextNotes/UI/Agent/ActivityView.swift",
+      "relativeHeader": "@@ -58,0 +71 @@ struct ActivityView: View {",
+      "hunkSHA256": "d6c592a3454e03e3f7346d5624a61ecb6648719690caaa2b8f5969d1d22aa648",
+      "classification": "FOREIGN_RUNTIME_OR_DIAGNOSTIC",
+      "candidateOwnedThemeReview": false,
+      "reason": "Exact static header spans only; saved jobs/SQL reload/history fixtures remain foreign."
+    },
+    {
+      "id": "ActivityView-06",
+      "source": "Sources/NextNotes/UI/Agent/ActivityView.swift",
+      "relativeHeader": "@@ -211,3 +224,4 @@ struct ActivityView: View {",
+      "hunkSHA256": "9edc9aa30522299c8eeda215ff158c5230f1efc1f5261b0ad2e5c5830ff33a22",
+      "classification": "FOREIGN_RUNTIME_OR_DIAGNOSTIC",
+      "candidateOwnedThemeReview": false,
+      "reason": "Exact static header spans only; saved jobs/SQL reload/history fixtures remain foreign."
+    },
+    {
+      "id": "ActivityView-07",
+      "source": "Sources/NextNotes/UI/Agent/ActivityView.swift",
+      "relativeHeader": "@@ -256,0 +271,87 @@ struct ActivityView: View {",
+      "hunkSHA256": "5f389c6066a36a64a0f4ace017f328724de36ec653d6cc99b574055c1757680c",
+      "classification": "FOREIGN_RUNTIME_OR_DIAGNOSTIC",
+      "candidateOwnedThemeReview": false,
+      "reason": "Exact static header spans only; saved jobs/SQL reload/history fixtures remain foreign."
+    },
+    {
+      "id": "ActivityView-08",
+      "source": "Sources/NextNotes/UI/Agent/ActivityView.swift",
+      "relativeHeader": "@@ -264,21 +365,21 @@ struct ActivityView: View {",
+      "hunkSHA256": "1d143d8bfe5833c8699f3a195eb956d1150f3cab13d22329b204951e9556c34a",
+      "classification": "FOREIGN_RUNTIME_OR_DIAGNOSTIC",
+      "candidateOwnedThemeReview": false,
+      "reason": "Exact static header spans only; saved jobs/SQL reload/history fixtures remain foreign."
+    },
+    {
+      "id": "ActivityView-09",
+      "source": "Sources/NextNotes/UI/Agent/ActivityView.swift",
+      "relativeHeader": "@@ -286 +386,0 @@ struct ActivityView: View {",
+      "hunkSHA256": "c8159fc8d63c3af69b716500996eea257935441460b2032eb7ed75ce8ec5877c",
+      "classification": "FOREIGN_RUNTIME_OR_DIAGNOSTIC",
+      "candidateOwnedThemeReview": false,
+      "reason": "Exact static header spans only; saved jobs/SQL reload/history fixtures remain foreign."
+    },
+    {
+      "id": "ActivityView-10",
+      "source": "Sources/NextNotes/UI/Agent/ActivityView.swift",
+      "relativeHeader": "@@ -288,2 +388,10 @@ struct ActivityView: View {",
+      "hunkSHA256": "da91eaf956159c7e3c989e81b27d48c43a7b9ad1396f995327a9c456c45575af",
+      "classification": "FOREIGN_RUNTIME_OR_DIAGNOSTIC",
+      "candidateOwnedThemeReview": false,
+      "reason": "Exact static header spans only; saved jobs/SQL reload/history fixtures remain foreign."
+    },
+    {
+      "id": "ActivityView-11",
+      "source": "Sources/NextNotes/UI/Agent/ActivityView.swift",
+      "relativeHeader": "@@ -291,0 +400,3 @@ struct ActivityView: View {",
+      "hunkSHA256": "053f6fad3cfb305b6a6b0eb7bc433b748a2a3ff0889f1a37590ec4d52b8ddd82",
+      "classification": "FOREIGN_RUNTIME_OR_DIAGNOSTIC",
+      "candidateOwnedThemeReview": false,
+      "reason": "Exact static header spans only; saved jobs/SQL reload/history fixtures remain foreign."
+    },
+    {
+      "id": "ActivityView-12",
+      "source": "Sources/NextNotes/UI/Agent/ActivityView.swift",
+      "relativeHeader": "@@ -293,4 +403,0 @@ struct ActivityView: View {",
+      "hunkSHA256": "84117780cbdda33a37d5e929cbdf07711aa4d43f7d5fb1912a13b629f42445e1",
+      "classification": "FOREIGN_RUNTIME_OR_DIAGNOSTIC",
+      "candidateOwnedThemeReview": false,
+      "reason": "Exact static header spans only; saved jobs/SQL reload/history fixtures remain foreign."
+    },
+    {
+      "id": "ActivityView-13",
+      "source": "Sources/NextNotes/UI/Agent/ActivityView.swift",
+      "relativeHeader": "@@ -298,8 +405,14 @@ struct ActivityView: View {",
+      "hunkSHA256": "7004dd952705e6c98f8abff9918e1048f9b04bffa76fe4446a80b5663261d58a",
+      "classification": "FOREIGN_RUNTIME_OR_DIAGNOSTIC",
+      "candidateOwnedThemeReview": false,
+      "reason": "Exact static header spans only; saved jobs/SQL reload/history fixtures remain foreign."
+    },
+    {
+      "id": "AgentWorkingCard-01",
+      "source": "Sources/NextNotes/UI/Agent/AgentWorkingCard.swift",
+      "relativeHeader": "@@ -51,0 +52,5 @@ struct AgentWorkingCard: View {",
+      "hunkSHA256": "ea6135f8660e6f603c63c411bab0e300b1f576d68cd181e4d2fe0475a516850e",
+      "classification": "FOREIGN_RUNTIME_OR_DIAGNOSTIC",
+      "candidateOwnedThemeReview": false,
+      "reason": "Parked rim only; typed cancellation/status/control producer is foreign."
+    },
+    {
+      "id": "AgentWorkingCard-02",
+      "source": "Sources/NextNotes/UI/Agent/AgentWorkingCard.swift",
+      "relativeHeader": "@@ -53 +58,8 @@ struct AgentWorkingCard: View {",
+      "hunkSHA256": "3c49bb786b169c0c83551660d05576cce746a8cf7a08f846004c79f8e9a3431a",
+      "classification": "FOREIGN_RUNTIME_OR_DIAGNOSTIC",
+      "candidateOwnedThemeReview": false,
+      "reason": "Parked rim only; typed cancellation/status/control producer is foreign."
+    },
+    {
+      "id": "AgentWorkingCard-03",
+      "source": "Sources/NextNotes/UI/Agent/AgentWorkingCard.swift",
+      "relativeHeader": "@@ -111,0 +124,7 @@ struct AgentWorkingCard: View {",
+      "hunkSHA256": "9c712e6f6423a36d1c933faa57a7bbb8c48b532c41285703a3b708644f8024a9",
+      "classification": "ROOT_WORK_CARD_THEME_REVIEW",
+      "candidateOwnedThemeReview": true,
+      "reason": "Parked rim only; typed cancellation/status/control producer is foreign.",
+      "reviewArtifact": "hunks/AgentWorkingCard-03.hunk.txt"
+    },
+    {
+      "id": "AgentWorkingCard-04",
+      "source": "Sources/NextNotes/UI/Agent/AgentWorkingCard.swift",
+      "relativeHeader": "@@ -133 +152,2 @@ struct AgentWorkingCard: View {",
+      "hunkSHA256": "58528d795ca527e98d305411ae7f977fe7b7f507619f29b40bdc001d86eb1e71",
+      "classification": "FOREIGN_RUNTIME_OR_DIAGNOSTIC",
+      "candidateOwnedThemeReview": false,
+      "reason": "Parked rim only; typed cancellation/status/control producer is foreign."
+    },
+    {
+      "id": "AgentWorkingCard-05",
+      "source": "Sources/NextNotes/UI/Agent/AgentWorkingCard.swift",
+      "relativeHeader": "@@ -146,0 +167 @@ struct AgentWorkingCard: View {",
+      "hunkSHA256": "cbf8f29056198bf507c1bdf23a16b6fd6a4f10ba584fd96ef90153534b8dabc1",
+      "classification": "FOREIGN_RUNTIME_OR_DIAGNOSTIC",
+      "candidateOwnedThemeReview": false,
+      "reason": "Parked rim only; typed cancellation/status/control producer is foreign."
+    },
+    {
+      "id": "SettingsChrome-01",
+      "source": "Sources/NextNotes/UI/Settings/SettingsChrome.swift",
+      "relativeHeader": "@@ -68 +68,6 @@ struct SettingsPane<Content: View>: View {",
+      "hunkSHA256": "8c69b9727149d4a00d61a21d2920e89a14b724be6922ff2c0d33baeb05b24ed4",
+      "classification": "ROOT_CALLER_THEME_REVIEW",
+      "candidateOwnedThemeReview": true,
+      "reason": "Existing Settings heading consumer only; throwaway-window lifetime fixes are foreign.",
+      "reviewArtifact": "hunks/SettingsChrome-01.hunk.txt"
+    },
+    {
+      "id": "SettingsChrome-02",
+      "source": "Sources/NextNotes/UI/Settings/SettingsChrome.swift",
+      "relativeHeader": "@@ -349,0 +355,2 @@ struct SettingsWindowFrame: NSViewRepresentable {",
+      "hunkSHA256": "f9bc9ec1487be3d419de39f3c9de9e4fbace5965d531d6ddfa1ad25a839067af",
+      "classification": "FOREIGN_RUNTIME_OR_DIAGNOSTIC",
+      "candidateOwnedThemeReview": false,
+      "reason": "Existing Settings heading consumer only; throwaway-window lifetime fixes are foreign."
+    },
+    {
+      "id": "SettingsChrome-03",
+      "source": "Sources/NextNotes/UI/Settings/SettingsChrome.swift",
+      "relativeHeader": "@@ -365,0 +373 @@ struct SettingsWindowFrame: NSViewRepresentable {",
+      "hunkSHA256": "3a7a2d9227f9407a0aab629fedb4094032d384b4a286eb429bd773ed31a97d24",
+      "classification": "FOREIGN_RUNTIME_OR_DIAGNOSTIC",
+      "candidateOwnedThemeReview": false,
+      "reason": "Existing Settings heading consumer only; throwaway-window lifetime fixes are foreign."
+    },
+    {
+      "id": "SettingsWindow-01",
+      "source": "Sources/NextNotes/UI/Settings/SettingsWindow.swift",
+      "relativeHeader": "@@ -41,0 +42,2 @@ struct SettingsWindow: View {",
+      "hunkSHA256": "ef5dcec39284ba79e7a10a6357fca9f817fb29e29de8b871153af19cca3153e5",
+      "classification": "ROOT_CALLER_THEME_REVIEW",
+      "candidateOwnedThemeReview": true,
+      "reason": "Inherited fixed ink/tint/type or explicit static Settings headline spans; current root owns application.",
+      "reviewArtifact": "hunks/SettingsWindow-01.hunk.txt"
+    },
+    {
+      "id": "SettingsWindow-02",
+      "source": "Sources/NextNotes/UI/Settings/SettingsWindow.swift",
+      "relativeHeader": "@@ -128 +130,5 @@ enum SettingsTab: String, CaseIterable, Identifiable, Hashable {",
+      "hunkSHA256": "cd758cd012127c4ba38ed6fdb01e56bf6ac87155087dceae1f774e0053a6edbd",
+      "classification": "ROOT_CALLER_THEME_REVIEW",
+      "candidateOwnedThemeReview": true,
+      "reason": "Inherited fixed ink/tint/type or explicit static Settings headline spans; current root owns application.",
+      "reviewArtifact": "hunks/SettingsWindow-02.hunk.txt"
+    },
+    {
+      "id": "SettingsWindow-03",
+      "source": "Sources/NextNotes/UI/Settings/SettingsWindow.swift",
+      "relativeHeader": "@@ -130,12 +136,12 @@ enum SettingsTab: String, CaseIterable, Identifiable, Hashable {",
+      "hunkSHA256": "93f959daaa89f6cd594d4197402a7b0db583cc4d823bf9e51897f57400ddf25f",
+      "classification": "ROOT_CALLER_THEME_REVIEW",
+      "candidateOwnedThemeReview": true,
+      "reason": "Inherited fixed ink/tint/type or explicit static Settings headline spans; current root owns application.",
+      "reviewArtifact": "hunks/SettingsWindow-03.hunk.txt"
+    },
+    {
+      "id": "MainWindow-01",
+      "source": "Sources/NextNotes/UI/MainWindow.swift",
+      "relativeHeader": "@@ -23,0 +24,2 @@ struct MainWindow: View {",
+      "hunkSHA256": "0bc97963ddfddc3d74c3760b87ea910d9a92c71f3d9760a00cce36ba5539ac25",
+      "classification": "ROOT_CALLER_THEME_REVIEW",
+      "candidateOwnedThemeReview": true,
+      "reason": "Inherited fixed ink/tint/type or explicit static Settings headline spans; current root owns application.",
+      "reviewArtifact": "hunks/MainWindow-01.hunk.txt"
+    },
+    {
+      "id": "HUDView-01",
+      "source": "Sources/NextNotes/UI/HUDView.swift",
+      "relativeHeader": "@@ -18,0 +19,6 @@ struct HUDView: View {",
+      "hunkSHA256": "f4c3434470f559d274e35d52cb00d00c9580a909af86076df53c77489ddd5c87",
+      "classification": "ROOT_CALLER_THEME_REVIEW",
+      "candidateOwnedThemeReview": true,
+      "reason": "Inherited fixed ink/tint/type or explicit static Settings headline spans; current root owns application.",
+      "reviewArtifact": "hunks/HUDView-01.hunk.txt"
+    },
+    {
+      "id": "IslandView-01",
+      "source": "Sources/NextNotes/UI/Island/IslandView.swift",
+      "relativeHeader": "@@ -37,0 +38,2 @@ struct IslandView: View {",
+      "hunkSHA256": "df2c24d99865f72326752ff9b37f1dafd392403d09f5012d488fd801592090bb",
+      "classification": "ROOT_ISLAND_CALLER_THEME_REVIEW",
+      "candidateOwnedThemeReview": true,
+      "reason": "Inherited theme or token/comment adoption only; line-limit/runtime notice changes foreign, future P3-09 ownership root-held.",
+      "reviewArtifact": "hunks/IslandView-01.hunk.txt"
+    },
+    {
+      "id": "IslandView-02",
+      "source": "Sources/NextNotes/UI/Island/IslandView.swift",
+      "relativeHeader": "@@ -80 +82 @@ struct IslandView: View {",
+      "hunkSHA256": "46e51dab9b8a250a997ddeb4f4001cd00022ccaade80839268b0d3a1c588d3f0",
+      "classification": "ROOT_ISLAND_CALLER_THEME_REVIEW",
+      "candidateOwnedThemeReview": true,
+      "reason": "Inherited theme or token/comment adoption only; line-limit/runtime notice changes foreign, future P3-09 ownership root-held.",
+      "reviewArtifact": "hunks/IslandView-02.hunk.txt"
+    },
+    {
+      "id": "IslandView-03",
+      "source": "Sources/NextNotes/UI/Island/IslandView.swift",
+      "relativeHeader": "@@ -159 +161 @@ struct IslandView: View {",
+      "hunkSHA256": "36c0674c833372a9a99c443fc297db970653fdb4134a858f39cafd12485ba51a",
+      "classification": "ROOT_ISLAND_CALLER_THEME_REVIEW",
+      "candidateOwnedThemeReview": true,
+      "reason": "Inherited theme or token/comment adoption only; line-limit/runtime notice changes foreign, future P3-09 ownership root-held.",
+      "reviewArtifact": "hunks/IslandView-03.hunk.txt"
+    },
+    {
+      "id": "IslandView-04",
+      "source": "Sources/NextNotes/UI/Island/IslandView.swift",
+      "relativeHeader": "@@ -288,0 +291 @@ struct IslandView: View {",
+      "hunkSHA256": "a630b5476d62d8f29c188751c937af0d12c94431cd6d2cb8ea87f71be8fa8e65",
+      "classification": "FOREIGN_RUNTIME_OR_DIAGNOSTIC",
+      "candidateOwnedThemeReview": false,
+      "reason": "Inherited theme or token/comment adoption only; line-limit/runtime notice changes foreign, future P3-09 ownership root-held."
+    },
+    {
+      "id": "IslandView-05",
+      "source": "Sources/NextNotes/UI/Island/IslandView.swift",
+      "relativeHeader": "@@ -298,0 +302 @@ struct IslandView: View {",
+      "hunkSHA256": "8c8d1e81f7a2d9cfb5206dcebbfdadfc8cce068b8346b4248296fc4b83e228a3",
+      "classification": "FOREIGN_RUNTIME_OR_DIAGNOSTIC",
+      "candidateOwnedThemeReview": false,
+      "reason": "Inherited theme or token/comment adoption only; line-limit/runtime notice changes foreign, future P3-09 ownership root-held."
+    },
+    {
+      "id": "IslandView-06",
+      "source": "Sources/NextNotes/UI/Island/IslandView.swift",
+      "relativeHeader": "@@ -306,0 +311 @@ struct IslandView: View {",
+      "hunkSHA256": "7cdfec8a7f1d328342b14546ef15370756839e3259223472bd68495470f0f0a8",
+      "classification": "FOREIGN_RUNTIME_OR_DIAGNOSTIC",
+      "candidateOwnedThemeReview": false,
+      "reason": "Inherited theme or token/comment adoption only; line-limit/runtime notice changes foreign, future P3-09 ownership root-held."
+    },
+    {
+      "id": "IslandView-07",
+      "source": "Sources/NextNotes/UI/Island/IslandView.swift",
+      "relativeHeader": "@@ -454 +459 @@ struct IslandView: View {",
+      "hunkSHA256": "75936899f4cd2a1af28b1596db21575eff2f741ccca543c96bec0cb9cde4aa88",
+      "classification": "ROOT_ISLAND_CALLER_THEME_REVIEW",
+      "candidateOwnedThemeReview": true,
+      "reason": "Inherited theme or token/comment adoption only; line-limit/runtime notice changes foreign, future P3-09 ownership root-held.",
+      "reviewArtifact": "hunks/IslandView-07.hunk.txt"
+    },
+    {
+      "id": "IslandView-08",
+      "source": "Sources/NextNotes/UI/Island/IslandView.swift",
+      "relativeHeader": "@@ -591,2 +596,2 @@ struct IslandView: View {",
+      "hunkSHA256": "787fb2b4eb8db9dbef0b93891c11a7e8196db3d320a511d0afde03b7d13c2c8f",
+      "classification": "ROOT_ISLAND_CALLER_THEME_REVIEW",
+      "candidateOwnedThemeReview": true,
+      "reason": "Inherited theme or token/comment adoption only; line-limit/runtime notice changes foreign, future P3-09 ownership root-held.",
+      "reviewArtifact": "hunks/IslandView-08.hunk.txt"
+    },
+    {
+      "id": "MeetingConsoleSheet-01",
+      "source": "Sources/NextNotes/UI/Meetings/MeetingConsoleSheet.swift",
+      "relativeHeader": "@@ -146,0 +147,2 @@ struct MeetingConsoleSheet: View {",
+      "hunkSHA256": "c81cac4ed2764f5e7821905e8c20339962460a5b4cad68aa692cffc336cc2df0",
+      "classification": "ROOT_CALLER_THEME_REVIEW",
+      "candidateOwnedThemeReview": true,
+      "reason": "Inherited fixed ink/tint/type or explicit static Settings headline spans; current root owns application.",
+      "reviewArtifact": "hunks/MeetingConsoleSheet-01.hunk.txt"
+    }
+  ],
+  "historicalFontResourcePrerequisites": {
+    "Resources/ThemeFonts/InstrumentSerif-Italic.ttf": {
+      "historicalSHA256": "8564755a783a6b6e337c2f19c90fd4acf7bb94d62eaf51a47f7ada320ad78f6f",
+      "admission": "Historical provenance only; no font asset bytes read or copied. Root must verify current resources/package."
+    },
+    "Resources/ThemeFonts/InstrumentSerif-Regular.ttf": {
+      "historicalSHA256": "aaf1ca921710639b1e685b1a7c9cfdbc7daf0d1aa47818309bedd6ed6c3cd387",
+      "admission": "Historical provenance only; no font asset bytes read or copied. Root must verify current resources/package."
+    },
+    "Resources/ThemeFonts/Inter-Bold.ttf": {
+      "historicalSHA256": "50d2e7434b31e6a1092030b07255ac68ff3a7764f2038d0e465454db464e1aae",
+      "admission": "Historical provenance only; no font asset bytes read or copied. Root must verify current resources/package."
+    },
+    "Resources/ThemeFonts/Inter-Medium.ttf": {
+      "historicalSHA256": "8d2df172662ea8b727793c752296f21ed3384b565b49ebd20378fb10393ebd69",
+      "admission": "Historical provenance only; no font asset bytes read or copied. Root must verify current resources/package."
+    },
+    "Resources/ThemeFonts/Inter-Regular.ttf": {
+      "historicalSHA256": "ee5db7d9709c84d3a013d780e4ff436fc81c8d2c618d99bfdec0e678bbf33446",
+      "admission": "Historical provenance only; no font asset bytes read or copied. Root must verify current resources/package."
+    },
+    "Resources/ThemeFonts/Inter-SemiBold.ttf": {
+      "historicalSHA256": "fc17ae28f958f5826e903510926d3aed86240e948c59df337a2d68b95a481247",
+      "admission": "Historical provenance only; no font asset bytes read or copied. Root must verify current resources/package."
+    },
+    "Resources/ThemeFonts/README.md": {
+      "historicalSHA256": "e682e120182ec30e32fd400d27faaa3734b41573534f09909f5d1d59e4f7be63",
+      "admission": "Historical provenance only; no font asset bytes read or copied. Root must verify current resources/package."
+    },
+    "Resources/ThemeFonts/instrument-serif-OFL.txt": {
+      "historicalSHA256": "b6106a757902d2d412e09d94dc4a226fe3da80485208a98003969f1b8b6b1d74",
+      "admission": "Historical provenance only; no font asset bytes read or copied. Root must verify current resources/package."
+    },
+    "Resources/ThemeFonts/inter-OFL.txt": {
+      "historicalSHA256": "3b0a5fca3d17942cde889069889dedbbbd075e9b599968c82a95f4d944e9b345",
+      "admission": "Historical provenance only; no font asset bytes read or copied. Root must verify current resources/package."
+    },
+    "Resources/ThemeFonts/manifest.json": {
+      "historicalSHA256": "75326b2537f588165ecf1174eba2c40b1af0600391503cefb12407d28b64285c",
+      "admission": "Historical provenance only; no font asset bytes read or copied. Root must verify current resources/package."
+    }
+  },
+  "evidenceAndPrerequisitePins": {
+    "Tests/Reports/website-to-mac/ux11-settings-coherent-dependency-handoff-2026-10-02.md": "10f0b215162c6db3084e8a9b8bc4a7510f55d85f4638ab12ede1c7481b7729be",
+    "Tests/Reports/website-to-mac/ux11-settings-coherent-dependency-handoff-2026-10-02.json": "581d641444db05c1721dd24404a4bca868939cb0ecb06e421bd55d191a147ec1",
+    "Tests/Reports/website-to-mac/ux11-final-adoption.md": "bdd48b5a47e6948914722370ac65bc5b03cd3eb4a51bc0bb5009b4374d87360d",
+    "Tests/Reports/website-to-mac/ux11-theme.md": "1e51a23a51a4bc2d7b162fee18227784bb02d1c4878625da128bf409311f8b9b",
+    "Tests/Reports/website-to-mac/ux11-surface-audit.md": "192d88cc71477014d5546164aadfa6d1a1fc3619954ee8e254715589f8b324fb",
+    "Tests/Reports/website-to-mac/settings-app41/README.md": "6dae6df2064bedd4e89a10b88d0cc45e41559015431ee1aa31a0f60cd3984103",
+    "Tests/Reports/website-to-mac/settings-app41/artifact-manifest.json": "1106ca2cd28fb94c4eb653d7d3e06b9800f935f93912c51a0532e38f4788ca09",
+    "Tests/Reports/website-to-mac/settings-isolation-source-handoff.md": "09b4b0530ea32444a2483ed0a55a8068ef17a6ee38e431f896cb9b3c36f88603",
+    "Tests/Reports/website-to-mac/settings-isolation-source-handoff.json": "78a82a3c478bf5a2d6af80daa6fe57e1ba7981252a0b17ab4ac77372024182f7",
+    "site/DESIGN-SYSTEM.md": "b904d6d08ac9517462d93e0ed5ef96ecd48780ef9cd71d9ec3b3a559081fd0c6",
+    "AGENTS.md": "e44623c84371cc6edfe2f097de76c05a014732b31f0d709b5ccc8d9e43d6b4e0",
+    "Tests/Reports/website-to-mac/ui-owned-hunk-delivery-preparation-2026-10-04/packaging-boundaries/manifest.json": "a8879a8e6b5767256494e6da975abf69f2b168cb5adb903dde4d423f523408ec"
+  },
+  "selectedHunkCount": 45,
+  "foreignHunkCount": 46
+}

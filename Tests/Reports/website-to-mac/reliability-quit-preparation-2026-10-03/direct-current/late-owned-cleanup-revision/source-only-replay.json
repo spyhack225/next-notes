@@ -1,0 +1,17 @@
+{
+  "status": "SOURCE_ONLY_UNCOMPILED_UNRUN",
+  "results": [
+    {
+      "choice": "replacement",
+      "checkExit": 0,
+      "applyExit": 0,
+      "engineSHA256": "e54729044ac44ada124aafa07f2251f6d82b0c23d370975c13228443d52b4edc"
+    },
+    {
+      "choice": "after-existing",
+      "checkExit": 0,
+      "applyExit": 0,
+      "engineSHA256": "e54729044ac44ada124aafa07f2251f6d82b0c23d370975c13228443d52b4edc"
+    }
+  ]
+}

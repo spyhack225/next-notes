@@ -1,0 +1,18 @@
+--- a/Sources/NextNotes/NextNotesApp.swift
++++ b/Sources/NextNotes/NextNotesApp.swift
+@@ -9654,6 +9654,7 @@
+         let runtime = recordingQuitFixtureForTesting?.runtime
+             ?? terminationFixtureForTesting?.runtime ?? NotesModelRuntime.shared
+         let ownedNotesTasks = service?.beginTermination() ?? []
++        let finishBackgroundWork = AgentTaskManager.sharedIfLoaded?.beginProcessTermination()
+         // Empty singleton owns no native/file work. Close before recording stop
+         // so its later default final-pass submission cannot escape quit ownership.
+         let finalTranscripts = FinalTranscriptService.shared
+@@ -9721,6 +9722,7 @@
+             await diarizer.finishTermination()
+             await pocket.finishTermination()
+             await parakeet.finishTermination()
++            await finishBackgroundWork?()
+             let drained = await runtime.finishTermination()
+             let diagnosticDrain = self.otherLlamaTerminationFixtureForTesting?.safetyDrain
+             // Preserve the ordinary nil path's existing release/reply ordering.

@@ -52,6 +52,16 @@ enum KnowledgeAskSelfTest {
         } catch {
             failures.append("knowledge boundary fixture failed: \(error)")
         }
+        do {
+            try await KnowledgeTypedRouteSelfTest.originalCases(context: context, check: check)
+        } catch {
+            failures.append("typed knowledge route fixture unavailable")
+        }
+        do {
+            try await KnowledgeReaderWindowSelfTest.originalCases(root: root, check: check)
+        } catch {
+            failures.append("resolved knowledge reader fixture unavailable")
+        }
         let pricing = KnowledgeFixtures.pricingID
 
         failures += catalogueFailures()

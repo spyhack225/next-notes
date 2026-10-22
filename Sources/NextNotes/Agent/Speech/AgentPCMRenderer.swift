@@ -18,6 +18,7 @@ final class AgentPCMRenderer {
         let requestedToken = Atomic<UInt64>(0)
         let renderedToken = Atomic<UInt64>(0)
         let paused = Atomic<Bool>(false)
+        let outputGainBits = Atomic<UInt32>(Float(1).bitPattern)
         let firstSampleHostTime = Atomic<UInt64>(0)
         let lastSampleHostTime = Atomic<UInt64>(0)
         let referenceDropped = Atomic<Int>(0)
@@ -40,6 +41,10 @@ final class AgentPCMRenderer {
                 ? output.read(into: outputBuffer, maxCount: count) : 0
             if copied < count {
                 outputBuffer.advanced(by: copied).update(repeating: 0, count: count - copied)
+            }
+            let gain = Float(bitPattern: outputGainBits.load(ordering: .relaxed))
+            if gain != 1 {
+                for index in 0..<copied { outputBuffer[index] *= gain }
             }
             // Include silence. AEC's reverse stream must remain continuous
             // across turn boundaries and while a suspended output is quiet.
@@ -401,6 +406,11 @@ final class AgentPCMRenderer {
     func pause(token requested: UInt64) {
         guard token == requested else { return }
         core?.paused.store(true, ordering: .releasing)
+    }
+
+    /// Apply ducking before publishing the same samples to the echo reference.
+    func setOutputGain(_ gain: Float) {
+        core?.outputGainBits.store(max(0, min(1, gain)).bitPattern, ordering: .releasing)
     }
 
     func resume(token requested: UInt64) {

@@ -1,0 +1,5 @@
+--- a/Sources/NextNotes/UI/Meetings/MeetingConsoleSheet.swift
++++ b/Sources/NextNotes/UI/Meetings/MeetingConsoleSheet.swift
+@@ -146,0 +147,2 @@ struct MeetingConsoleSheet: View {
++        .tint(DS.Color.accent)
++        .font(DS.Font.body)

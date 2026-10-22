@@ -1,0 +1,36 @@
+{
+  "status": "OFF_SOURCE_HELD_REGISTERED_HANDLES_ONLY_UNCOMPILED_NATIVE_UNRUN",
+  "currentSourcePreimage": {
+    "Sources/NextNotes/Activation/AgentCaptureController.swift": "5bd0ea27b5e610a668075d6e1521369eeec730a4ff779ae7796cc55629d98128"
+  },
+  "contextSourcePins": {
+    "Sources/NextNotes/Activation/LocalVoiceTurnDetector.swift": "1f7dbc05314ec46b44865fd4274b363a699ba1fa76159ef319452ac70309a7e6",
+    "Sources/NextNotes/Transcription/AppleSpeechEngine.swift": "db2737c2aa067ba6b43de21ca74db324602324e201b7829f0483574fc0227c79",
+    "Sources/NextNotes/Formatting/LLM/LocalVoiceFrontend.swift": "505559bd50c31b91b3f9bb63b27522064ef49074872b60216408c91b448ab02e"
+  },
+  "postimages": {
+    "COMMON": "0308ae8c5c3413799925ca73f842c494a4b9d8282de8e95d7643720fd63a4775",
+    "FIXED": "a17cdfe3dc57237a0cba0bc00783cc824f434147e44b64e1532b03fb9ac354c4"
+  },
+  "patches": {
+    "COMMON-capture-current.patch": "412afcbe13ffaeebbd6aa00d202f39a3df47f29bb4466de95c85209eb94ebdc4",
+    "producer-capture-current.patch": "6f3a7a19e533b6e4323b136a5fa5a4f89a526604cbae9e456a07d6660bad2244"
+  },
+  "artifacts": {
+    "AgentCaptureController.original.swift.txt": "5bd0ea27b5e610a668075d6e1521369eeec730a4ff779ae7796cc55629d98128",
+    "AgentCaptureController.COMMON.swift.txt": "0308ae8c5c3413799925ca73f842c494a4b9d8282de8e95d7643720fd63a4775",
+    "AgentCaptureController.FIXED.swift.txt": "a17cdfe3dc57237a0cba0bc00783cc824f434147e44b64e1532b03fb9ac354c4",
+    "source-only-replay.json": "f3b9e5b48d527e45b3af8e87a0a7b48dc1d22368b81d9d1d068102a624a92085",
+    "README.md": "32d39fd78f9c4d34ffc41d3230a547135f9ccd9f037734daae4bb727ded74aeb"
+  },
+  "frozenDirectRebaseManifestSHA256": "e59de055911266d8602414dd2fa12f589ef38ac299f8e6dcdea1858695fe1e2b",
+  "snapshotHandoffCurrentMatches": true,
+  "nativeVerdict": null,
+  "limits": [
+    "Not complete Capture shutdown or exit authority",
+    "No original native input or safe hosted fixture qualification yet",
+    "Retired normalDone/unpublished startup/unretained prep/frontend/model/background owners excluded",
+    "Finish must not run on any captured Task",
+    "Normal Done and stopEngine unchanged"
+  ]
+}

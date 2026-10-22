@@ -1,0 +1,68 @@
+# Benchmark results
+
+One catalog for model comparisons and complete workflows. Original evidence stays at its linked path.
+
+[How to save a result](FORMAT.md) · [All evidence](EVIDENCE.md) · [Branch/worktree audit](inventory/README.md) · [Website](https://next-notes.com/?page=benchmarks)
+
+Status describes the stated scope only. A measured component is not production acceptance. Targets are not results; missing measurements stay missing.
+
+| Date | Area | Benchmark | Status | Result and limits |
+|---|---|---|---|---|
+| 2026-10-22 | tts | [Native TTS comparison in progress](runs/2026-10-22-tts-native.json) | unrun | Native build and timing acceptance pending; no accepted timing table yet. |
+| 2026-10-22 | asr | [Whistle](runs/2026-10-22-asr-whistle.json) | measured | English 150.2× throughput, 5.15% word error. App provider acceptance remains open. |
+| 2026-10-22 | asr | [Voz (CoreML CLI)](runs/2026-10-22-asr-voz.json) | measured | English 375.3× throughput, 3.68% word error. App provider acceptance remains open. |
+| 2026-10-22 | asr | [Parakeet Ultra (CoreML)](runs/2026-10-22-asr-ultra.json) | measured | English 256.1× throughput, 4.41% word error. App provider acceptance remains open. |
+| 2026-10-22 | asr | [Parakeet Redux (CoreML)](runs/2026-10-22-asr-redux.json) | measured | English 102.0× throughput, 5.15% word error. App provider acceptance remains open. |
+| 2026-10-22 | asr | [Qwen3-ASR 1.7B (4-bit MLX)](runs/2026-10-22-asr-qwen-17b.json) | measured | English 14.3× throughput, 3.68% word error. App provider acceptance remains open. |
+| 2026-10-22 | asr | [Qwen3-ASR 0.6B (4-bit MLX)](runs/2026-10-22-asr-qwen-06b.json) | measured | English 31.6× throughput, 0.74% word error. App provider acceptance remains open. |
+| 2026-10-22 | asr | [Phonon-2 (CoreML)](runs/2026-10-22-asr-phonon.json) | measured | English 466.0× throughput, 0.74% word error. App provider acceptance remains open. |
+| 2026-10-22 | asr | [Parakeet v3 (cached FluidAudio)](runs/2026-10-22-asr-parakeet-v3-runtime.json) | measured | English 247.1× throughput, 4.41% word error. App provider acceptance remains open. |
+| 2026-10-22 | asr | [Whistle paced ASR latency](runs/2026-10-22-asr-paced-whistle.json) | partial | Six authored short holds completed under machine pressure; no default promotion. |
+| 2026-10-22 | asr | [Voz (CoreML CLI) paced ASR latency](runs/2026-10-22-asr-paced-voz.json) | blocked | Not started: insufficient internal storage after pressure incident; model not downloaded. |
+| 2026-10-22 | asr | [Parakeet Ultra (CoreML) paced ASR latency](runs/2026-10-22-asr-paced-ultra.json) | blocked | Not started: insufficient internal storage after pressure incident; model not downloaded. |
+| 2026-10-22 | asr | [Parakeet Redux (CoreML) paced ASR latency](runs/2026-10-22-asr-paced-redux.json) | blocked | Not started: insufficient internal storage after pressure incident; model not downloaded. |
+| 2026-10-22 | asr | [Qwen3-ASR 1.7B (4-bit MLX) paced ASR latency](runs/2026-10-22-asr-paced-qwen-17b.json) | blocked | Not started: insufficient internal storage after pressure incident; model not downloaded. |
+| 2026-10-22 | asr | [Qwen3-ASR 0.6B (4-bit MLX) paced ASR latency](runs/2026-10-22-asr-paced-qwen-06b.json) | blocked | Not started: insufficient internal storage after pressure incident; model not downloaded. |
+| 2026-10-22 | asr | [Phonon-2 (CoreML) paced ASR latency](runs/2026-10-22-asr-paced-phonon.json) | blocked | Not started: insufficient internal storage after pressure incident; model not downloaded. |
+| 2026-10-22 | asr | [Parakeet v3 (cached FluidAudio) paced ASR latency](runs/2026-10-22-asr-paced-parakeet-v3.json) | blocked | Cached model short-prefix warmup aborted during disk/swap pressure; no timing accepted. |
+| 2026-10-22 | asr | [Live speech recognition latency in progress](runs/2026-10-22-asr-live-pending.json) | unrun | Native timings pending; live text, committed text and release-final clocks will be separate. |
+| 2026-10-13 | meetings | [Whole meeting pipeline baseline](runs/2026-10-13-meeting-full-pipeline.json) | partial | 21 scoped checks pass; saved audio coverage, hardware routes and semantic acceptance remain open. |
+| 2026-10-08 | voice | [Voice response latency audit](runs/2026-10-08-voice-latency.json) | partial | First-audio median improved from 3.78 s to 2.65 s; 0.9 s target remains unmet. |
+| 2026-10-08 | agent | [Agent quality, voice and model workload audit](runs/2026-10-08-agent-acceptance.json) | partial | Quick 9–10/10; full 25/30 and 23/30; owner 8/9. Full acceptance remains open. |
+| 2026-10-07 | dictation | [Dictation release-to-delivery investigation](runs/2026-10-07-dictation-latency.json) | partial | Cleanup dominates retained slow turns; final polished delivery target remains open. |
+| 2026-10-06 | models | [MiniCPM5-2B decode with ASR overlapping](runs/2026-10-06-minicpm-asr-overlap-decode.json) | measured | 42.20 tokens/s median over 96 rounds and 604.28 s with ASR overlap. Combined voice remains unqualified. |
+| 2026-10-01 | workflows | [Durable tasks and workflow checks](runs/2026-10-01-workflow-durability.json) | partial | Bounded regression evidence exists; broad recovery, retry and remote authority remain separate contracts. |
+| 2026-09-30 | dictation | [Qwen3.5-4B Q4_K_M](runs/2026-09-30-cleanup-qwen35.json) | measured | 11/42 failed assertions; 8.58 s median cleanup. Historical tested configuration. |
+| 2026-09-30 | dictation | [Qwen3-4B Instruct 2507 Q4_K_M](runs/2026-09-30-cleanup-qwen3.json) | measured | 8/42 failed assertions; 1.61 s median cleanup. Historical tested configuration. |
+| 2026-09-30 | dictation | [MiniCPM5-2B Q4_K_M](runs/2026-09-30-cleanup-minicpm5.json) | measured | 3/42 failed assertions; 0.59 s median cleanup. Historical tested configuration. |
+| 2026-09-30 | dictation | [Gemma 4 E4B Q4_K_M variability](runs/2026-09-30-cleanup-gemma.json) | partial | 3–11 failed assertions; 2.62–8.51 s median across retained conditions. No single ranking. |
+| 2026-09-30 | dictation | [Apple Foundation Models grammar](runs/2026-09-30-cleanup-apple.json) | measured | 0/42 failed assertions; 3.03 s median cleanup. Historical tested configuration. |
+| 2026-09-23 | models | [Needle resident server](runs/2026-09-23-decision-needle-serve.json) | measured | 73.2% exact-tool accuracy; 277.0 ms median decision latency on 112 fixtures. |
+| 2026-09-23 | models | [Needle per-proposal process](runs/2026-09-23-decision-needle.json) | measured | 73.2% exact-tool accuracy; 994.7 ms median decision latency on 112 fixtures. |
+| 2026-09-23 | models | [Laya typed decisions](runs/2026-09-23-decision-laya-typed-decisions.json) | measured | 74.1% exact-tool accuracy; 462.3 ms median decision latency on 112 fixtures. |
+| 2026-09-23 | models | [Laya multilingual](runs/2026-09-23-decision-laya-multilingual.json) | measured | 69.6% exact-tool accuracy; 89.3 ms median decision latency on 112 fixtures. |
+| 2026-09-23 | models | [Decision model comparison](runs/2026-09-23-decision-gate.json) | measured | Historical measured candidate results and separately labelled published-only candidates retained. |
+| 2026-09-13 | tts | [Piper 1.8.0 / lessac medium](runs/2026-09-13-tts-piper.json) | measured | Historical warm first generated PCM range 98–109 ms; actual playback unmeasured. |
+| 2026-09-13 | tts | [Kokoro ONNX v1.0 / af_sarah](runs/2026-09-13-tts-kokoro.json) | measured | Historical warm first generated PCM range 3200–3400 ms; actual playback unmeasured. |
+| 2026-09-13 | tts | [Apple short-response synthesis](runs/2026-09-13-tts-apple.json) | measured | 201.8 ms warm median first generated PCM; 450.3 ms first trial. |
+
+## Evidence by area
+
+- [Asr](inventory/asr.md): 36 evidence files.
+- [Dictation](inventory/dictation.md): 551 evidence files.
+- [Meetings](inventory/meetings.md): 1127 evidence files.
+- [Agent](inventory/agent.md): 476 evidence files.
+- [Voice](inventory/voice.md): 309 evidence files.
+- [Tts](inventory/tts.md): 10 evidence files.
+- [Workflows](inventory/workflows.md): 176 evidence files.
+- [Models](inventory/models.md): 20 evidence files.
+- [Other](inventory/other.md): 518 evidence files.
+
+## Operating rules
+
+- Keep cold, warm, load, generated PCM, audible output and complete delivery separate.
+- Compare only matching fixtures, metric boundaries, hardware, workload and grading rules.
+- Keep failures, partial coverage, blocked runs and unrun checks visible.
+- New models run one at a time: save, exit/unload, delete owned temporary assets, then continue.
+- Website summaries require explicit publication review. Owner audio, transcripts and raw outputs stay private.
+- No benchmark runs on app startup, dictation, meeting capture or voice paths.

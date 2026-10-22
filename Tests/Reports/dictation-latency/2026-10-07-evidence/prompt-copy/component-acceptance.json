@@ -1,0 +1,23 @@
+{
+  "atUTC": "2026-10-08T05:41:44.151463+00:00",
+  "status": "COMPONENT PASS ONLY; PRODUCTION CANDIDATE UNAPPLIED AND FULL NATIVE UNRUN",
+  "componentChecks": 19138,
+  "pins": {
+    "NotesModelRuntime.before.swift": "9d872a3db9928018875c0e1141a70baad6d1df25e6a628ac64b08cf4d3095607",
+    "NotesModelRuntime.prompt-copy-candidate.swift": "451861fbfad7ff57714babd91b02d161c21960756993f6c6419b21816b60c18a",
+    "LookupCheck.swift": "9e224f83d5c63c6f407cb0010e7fa1181f59f44806585cca2608c8ed950e3576",
+    "Makefile": "88b42548f3e34428df9c7b20480f1c12e7272752fb6be3b0b58d580fa59d1176",
+    "compile.log": "24ac425896f75a47aa838bf42646eb9ad6e333decbd3e1b26f88686f5598b5ca",
+    "comparison.log": "f369c86e92d55f238e81cacc0ea40fe8d43de1b6c97faaede5df22ec7ee025ad",
+    "manifest.json": "52fe1ddfabdc882734aa83853ba2816f3c7cfd2e17488c8a414fb8c223279e3a",
+    "implementation-contract.md": "27c09949db702bf446c90dc176ee7995edaa5b24ff845b89bf97af928c2228be",
+    "prompt-copy-experiment-review-only.patch": "63442e2426bf77899b836071b81cbfbec262f38a8a4cea80bc04bcb447aad439",
+    "PromptCopyLookup.swift": "690f68caa9b754795ea6d3ca71d8c2ffbca0bdd39740fabeec87f9ffd3b32d84"
+  },
+  "sourceChanged": false,
+  "nativeInference": false,
+  "sourceInvariant": 1173,
+  "resourceException": "relay589 reviewed two small component compiles/runs only, max9swap/min6disk/free>=60%; normal gate NOT passed",
+  "scope": "Actual copied-token lookup helper only; native sampler, KV rollback, batch numerics, accuracy and full pipeline unrun",
+  "measured": "1000lookups in100/1500/6000token repeated inputs:0.954625/14.358625/45.807500ms. Repeated inputs may match earlier locations; not a worst-case guarantee or native acceleration."
+}

@@ -1,0 +1,97 @@
+--- a/Sources/NextNotes/UI/Settings/SettingsSheet.swift
++++ b/Sources/NextNotes/UI/Settings/SettingsSheet.swift
+@@ -361,7 +361,7 @@
+                             .environment(\._accessibilityReduceMotion, variant.motion)
+                             .environment(\._accessibilityReduceTransparency, variant.transparency)
+                             .allowsHitTesting(false)
+-                            guard let image = renderFixture(content, width: width, trace: {
++                            guard let image = renderFixture(content, width: width, observeProfileLayout: tab == .formatting, trace: {
+                                 tracePreferenceCheckpoint("\(capture)/\($0)")
+                             }) else {
+                                 SelfTest.diagnostic("SETTINGS_SHEET_FIXTURE_FAILED: pane=\(tab.rawValue) native render unavailable")
+@@ -553,7 +553,7 @@
+         return result
+     }
+ 
+-    private static func renderFixture(_ view: some View, width: CGFloat, trace: (String) -> Void) -> Data? {
++    private static func renderFixture(_ view: some View, width: CGFloat, observeProfileLayout: Bool = false, trace: (String) -> Void) -> Data? {
+         let height = DS.Size.settingsWindowMinHeight * 2
+         let panel = NSPanel(contentRect: NSRect(x: 0, y: 0, width: width, height: height),
+                             styleMask: [.titled], backing: .buffered, defer: false)
+@@ -570,9 +570,76 @@
+         panel.layoutIfNeeded()
+         hosting.layoutSubtreeIfNeeded()
+         trace("after-host-layout")
++        if observeProfileLayout { observeFixtureProfileLayout(hosting, stage: 2) }
+         guard let representation = hosting.bitmapImageRepForCachingDisplay(in: hosting.bounds) else { return nil }
+         hosting.cacheDisplay(in: hosting.bounds, to: representation)
+         trace("after-host-cache-display")
++        if observeProfileLayout { observeFixtureProfileLayout(hosting, stage: 3) }
+         return representation.representation(using: .png, properties: [:])
+     }
++
++    // Temporary diagnostic observation only. No strings, AX contents, class names,
++    // fitting-size queries, native reload, extra layout/draw, scrolling or activation.
++    private static func observeFixtureProfileLayout(_ root: NSView, stage: Int) {
++        guard SelfTest.requested == "--selftest-settings-sheet" else { return }
++        func scalar(_ value: CGFloat) -> String {
++            value.isFinite ? String(format: "%.3f", Double(value)) : "null"
++        }
++        func rect(_ value: NSRect) -> String {
++            "\(scalar(value.origin.x)),\(scalar(value.origin.y)),\(scalar(value.width)),\(scalar(value.height))"
++        }
++        func bit(_ value: Bool) -> Int { value ? 1 : 0 }
++        var nextIndex = 0
++        var familyCounts = [Int](repeating: 0, count: 8)
++        @MainActor func visit(_ view: NSView, parent: Int, depth: Int) {
++            let index = nextIndex
++            nextIndex += 1
++            let family: Int
++            if view is NSOutlineView { family = 3 }
++            else if view is NSTableView { family = 4 }
++            else if view is NSCollectionView { family = 5 }
++            else if view is NSScrollView { family = 1 }
++            else if view is NSClipView { family = 2 }
++            else if view is NSTableRowView { family = 6 }
++            else if view is NSControl { family = 7 }
++            else { family = 0 }
++            familyCounts[family] += 1
++            let hostBounds = view.convert(view.bounds, to: root)
++            let hostVisible = view.convert(view.visibleRect, to: root)
++            let captureIntersection = hostVisible.intersection(root.bounds)
++            // All record values after the fixed tag/field labels are numeric or null.
++            SelfTest.diagnostic("SETTINGS_PROFILE_NODE: stage=\(stage) index=\(index) parent=\(parent) depth=\(depth) family=\(family) children=\(view.subviews.count) frame=\(rect(view.frame)) bounds=\(rect(view.bounds)) hostBounds=\(rect(hostBounds)) hostVisible=\(rect(hostVisible)) captureIntersection=\(rect(captureIntersection)) hidden=\(bit(view.isHidden)) hiddenAncestor=\(bit(view.isHiddenOrHasHiddenAncestor)) alpha=\(scalar(CGFloat(view.alphaValue))) attached=\(bit(view.window != nil)) needsLayout=\(bit(view.needsLayout)) needsDisplay=\(bit(view.needsDisplay))")
++            if let table = view as? NSTableView {
++                let rows = table.numberOfRows
++                var existingRows = 0
++                for row in 0..<rows {
++                    // false avoids constructing row views just to observe them.
++                    if table.rowView(atRow: row, makeIfNecessary: false) != nil { existingRows += 1 }
++                }
++                let visibleRows = table.rows(in: table.visibleRect).length
++                let first = rows > 0 ? table.rect(ofRow: 0) : .zero
++                let last = rows > 0 ? table.rect(ofRow: rows - 1) : .zero
++                SelfTest.diagnostic("SETTINGS_PROFILE_TABLE: stage=\(stage) index=\(index) rows=\(rows) columns=\(table.numberOfColumns) existingRows=\(existingRows) visibleRows=\(visibleRows) selectedRows=\(table.selectedRowIndexes.count) firstRect=\(rect(first)) lastRect=\(rect(last))")
++            }
++            if let collection = view as? NSCollectionView {
++                let sections = collection.numberOfSections
++                var items = 0
++                for section in 0..<sections { items += collection.numberOfItems(inSection: section) }
++                let activeItems = collection.visibleItems()
++                let loadedItems = activeItems.filter { $0.isViewLoaded }
++                let intersectingItems = loadedItems.filter {
++                    let loadedView = $0.view // isViewLoaded was required above.
++                    let itemBounds = loadedView.convert(loadedView.bounds, to: collection)
++                    return !itemBounds.intersection(collection.visibleRect).isEmpty
++                }.count
++                SelfTest.diagnostic("SETTINGS_PROFILE_COLLECTION: stage=\(stage) index=\(index) sections=\(sections) items=\(items) activeItems=\(activeItems.count) loadedItems=\(loadedItems.count) unloadedItems=\(activeItems.count - loadedItems.count) intersectingItems=\(intersectingItems)")
++            }
++            if let scroll = view as? NSScrollView {
++                SelfTest.diagnostic("SETTINGS_PROFILE_SCROLL: stage=\(stage) index=\(index) document=\(bit(scroll.documentView != nil)) documentFrame=\(rect(scroll.documentView?.frame ?? .zero)) documentVisible=\(rect(scroll.documentVisibleRect)) clipBounds=\(rect(scroll.contentView.bounds)) verticalScroller=\(bit(scroll.hasVerticalScroller)) horizontalScroller=\(bit(scroll.hasHorizontalScroller))")
++            }
++            for child in view.subviews { visit(child, parent: index, depth: depth + 1) }
++        }
++        visit(root, parent: -1, depth: 0)
++        SelfTest.diagnostic("SETTINGS_PROFILE_SUMMARY: stage=\(stage) storeCount=\(OutputProfileStore.shared.profiles.count) defaultCount=\(OutputProfileDefaults.all.count) nodes=\(nextIndex) families=\(familyCounts.map(String.init).joined(separator: ",")) window=\(bit(root.window != nil)) windowVisible=\(bit(root.window?.isVisible ?? false)) windowKey=\(bit(root.window?.isKeyWindow ?? false))")
++    }
+ }

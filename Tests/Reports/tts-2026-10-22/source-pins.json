@@ -1,0 +1,24 @@
+{
+  "scope": "Working source, includes inherited changes. SDK/runtime objects compiled before latest diagnostic-only edits; full app did not link.",
+  "files": {
+    "Package.swift": "0ed265d907c8a896afb124144be08f88e2e70b3ccbaadda9a652355168328eaf",
+    "Sources/NextNotes/Agent/Speech/NativeAgentVoice.swift": "d4ad2216771c8c35e85744456311e13b9d2f2cc4c4e2c5ec1540410cf5026fa0",
+    "Sources/NextNotes/Agent/Speech/NativeVoiceAssets.swift": "0a9f97d965cf9ebcf92661ba2d9b7154bceb186caab7294ab75e0049c8768b1d",
+    "Sources/NextNotes/Agent/Speech/TTSFirstAudioBenchmark.swift": "127fbdb7ce1c1b5228cd9be228801955db07fd163102e83370ddd61374249c30",
+    "Sources/NextNotes/Agent/Speech/PocketSourceSpeechBacking.swift": "d5f89a08bfa9219f81b7b3daa0e23ba624d3d93e721580293dbcb427365e3d09",
+    "Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift": "d0d66c52f9f33165758713fdcafcf42118ab7a5b73065b1583416f572033da4c",
+    "Sources/NextNotes/Agent/Speech/AgentPCMRenderer.swift": "2bc6194ac1673c1027fafb696fde83a9b827ef7ad41a797d0b9ccfb97e78f671",
+    "Sources/NextNotes/Agent/Speech/LongFormRenderer.swift": "1845a4721570c27b65365a5e5c2e2541a6fef3ea25c098c9a7a6991aba3093d1",
+    "Sources/NextNotes/Support/ModelDownloader.swift": "e9252df0d063ce2216f8fa84deb7140ec461bccc30ebffb8351d2edd9629d0d9",
+    "Sources/NextNotes/UI/Settings/ModelsSettingsTab.swift": "e48dc9503199e49e136d3d6c65585b5423ed992cc7409d072ee999ae2ee738a5",
+    "Sources/NextNotes/NextNotesApp.swift": "5d1c8a0c4cfff56b37236342bc8a9725baf2ab62cd5d8e63f6dd5e10052bb801",
+    "Tools/tts_compare.py": "4ff25e80a9202963a2e13764a9fba2d58b262a0e68661832c445be1073d24ea0",
+    "Tools/test_tts_compare.py": "e47afa492949aabfb1cb833a4abdb7cdc8c51bdbf38f56deaeb7e33390d42f09",
+    "Package.resolved": "06f77a17011963112bfacd8ca1d18e43ccd397b7d7bfac4717a4761c0b2dd0ac",
+    "Makefile": "9005f966f9be5e0275fafb3fdbb091e7dd676613482378ada2046756c4e9ff06",
+    "Tools/build-mlx-metal.sh": "c35a10b616e4fe08754231f93bacf348ebb1ef92ed458a73372f336790736a2a",
+    ".github/workflows/macos.yml": "618aee915f16a829b47c17d0813e0c753214af81986e3b34de0fe282b8758150",
+    "Sources/NextNotes/UI/Settings/GeneralSettingsTab.swift": "42a56326f2e805854b497d68831d6e573d235c6dc314976235e61f1f0169dacc"
+  },
+  "generatedAt": "2026-10-22T15:38:01.242366+00:00"
+}

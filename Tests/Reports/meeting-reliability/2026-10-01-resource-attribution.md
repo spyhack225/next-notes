@@ -123,8 +123,13 @@ after later successful packets. Consumer integration must preserve these facts
 in the existing meeting integrity record and refuse final transcript replacement
 for the affected source. The existing 60% word-count heuristic alone cannot
 prove sample coverage; partial saved audio can pass it while omitting live speech.
-Until the real final-pass consumer regression passes, this product risk remains
-open; writer readback by itself does not prove its resolution.
+The signed integrity fixture now exercises the real final-pass consumer: the
+damaged system candidate passes the old word-count threshold but must preserve
+the live system transcript, while the complete microphone candidate improves.
+Disabling the producer repair and track-coverage gates produced ten failures;
+restoring them passed the signed `MEETING_INTEGRITY_OK: 69 checks` flag, including
+rendered interruption projections after a separate temporary-path validator
+repair. Writer readback alone would not establish this consumer behavior.
 
 ## Storage query cost and policy implications
 
@@ -139,8 +144,8 @@ open; writer readback by itself does not prove its resolution.
 
 Important-use capacity includes reclaimable space and is not a guarantee that
 the next write can obtain it immediately. A storage query must run away from
-capture callbacks and MainActor. A 30-second lifecycle sample incurs approximately
-1.92 MB incremental stereo PCM between observations; this explains the recording
+capture callbacks and MainActor. The implemented five-second sample incurs approximately
+0.32 MB incremental stereo PCM between observations; this explains the recording
 reaction cost, **not** a guaranteed system paging reserve. Unknown capacity must
 stay unknown. Thresholds cannot promise immunity to OS low-swap termination.
 
@@ -166,14 +171,135 @@ or survival under physical low swap.
 
 `--selftest-meeting-resources-live` is an explicit isolated native diagnostic:
 writer-only → ASR cold load → first/steady inference → the former speculative
-notes load → notes inference → safe unload. It samples physical footprint every
-20 ms and reports CPU, RSS and runtime-registry state without transcript text.
+notes load → notes inference → actual pressure-guardian unload. It samples total
+process physical footprint every 20 ms and reports CPU, RSS, two task wakeup
+counter deltas, and runtime-registry state without transcript text. Each ASR
+track must complete real native calls; swallowed model errors fail this probe.
+The injected warning runs the shared release producer, requires actual notes
+teardown within five seconds and denied optional reload, and keeps ASR loaded.
+It creates no OS memory pressure and restores admission only after observing
+native teardown. Physical-footprint deltas are process observations, not a
+model-specific Metal/CoreML attribution.
 It refuses unknown/<8 GB capacity before native loads, absent installed models
 or ongoing pressure; no automatic download or cloud fallback. That safeguard
 prevented the initial native run when immediately available capacity was below
 1 GB. A later read-only capacity check found about 25 GiB available; the disk
-guard no longer blocks a coordinated run. No native run has been performed by
-this diagnostic yet. Native/device allocation
-breakdown, per-model fixed floor, CPU/wakeups, real notes latency and physical
-capture/interactive overlap remain open. MR-03 pressure policy and the rejected
+guard no longer blocks a coordinated run. The first native result is recorded
+below. Native/device allocation breakdown, per-model fixed floor, representative
+notes latency and physical capture/interactive overlap remain open.
+MR-03 pressure policy and the rejected
 copy hypothesis do not complete MR-03a's normal-efficiency acceptance.
+
+
+## First actual native measurement (16 GB Mac)
+
+Signed diagnostic bundle completed `MEETING_RESOURCES_LIVE_OK` on Apple M3,
+16 GiB RAM, macOS 27.2 build 26B5091g. Installed Parakeet v3 used CPU/Neural
+Engine; local GGUF file was 1,561,318,368 bytes. No download or private audio.
+The input was the same generated 20-second, two-track tone for each audio stage.
+This is a short controlled diagnostic, not a realistic speech/long-meeting run.
+All values below are decimal MB, and footprint is total process accounting.
+The 20 ms sampler contributes to reported CPU/wakeups; these counters are
+whole-diagnostic totals, not isolated engine costs. The test ran in signed staged
+bundle `install-9867`, with only integrity regression guards disabled for the
+before-proof experiment; resource/runtime producers were the measured versions.
+An exact model digest/configured-role provenance still needs recording before a
+model-specific envelope claim.
+
+| Stage | Wall s | CPU s | Footprint after MB | Sampled footprint peak MB | RSS after MB | Interrupt / idle wakeups |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Writer only | 0.026 | 0.015 | 125.37 | 125.40 | 161.94 | 6 / 0 |
+| ASR cold load | 59.716 | 3.019 | 98.68 | 180.77 | 112.67 | 1746 / 8 |
+| ASR first inference | 11.776 | 1.483 | 110.71 | 110.74 | 142.18 | 44 / 0 |
+| ASR next inference | 10.821 | 1.386 | 112.40 | 115.61 | 127.68 | 34 / 0 |
+| Optional local notes load | 150.778 | 3.641 | 151.39 | 162.73 | 773.37 | 1528 / 0 |
+| Notes first inference | 14.574 | 1.868 | 271.58 | 283.89 | 465.81 | 139 / 1 |
+| Injected warning / native release | 0.248 | 0.058 | 181.19 | 271.58 | 100.71 | 1 / 0 |
+
+The real guardian released the native notes owner in **219 ms**, denied an
+optional reload during warning, and retained the actual loaded speech owner.
+Process footprint fell **90,391,728 bytes** across that stage. It also released
+existing optional embedding/vector caches, so that total delta is not a precise
+per-model allocation. This is injected policy plus actual native effect, not an
+OS exhaustion survival result.
+
+The optional load increased footprint by **38,995,144 bytes** but RSS by much
+more; clean mapped weights and device/service allocation cannot be inferred from
+one process RSS. These results do not explain the incident's lifetime 1.87 GiB
+peak or establish a supported total ceiling. The cold notes load took 150.8 s:
+removing startup prewarm moves a possible cold cost to notes generation, and a
+representative latency comparison remains required.
+
+A diagnostic inconsistency was exposed: `ParakeetModels.isLoaded` was true and
+real native calls completed, while the runtime registry still said unloaded.
+Direct meeting/batch loads bypass the dictation engine's registry transitions.
+The next diagnostic logs actual owner booleans beside registry state; registry
+state alone must not establish loaded-model attribution. Native/device allocation
+breakdown, equal-build normal-meeting before/after, longer growth and physical
+capture/Agent/voice overlap remain open.
+
+## Model verification and independent live refinement
+
+The targeted comparison exposed a model-verification peak before any native model
+loaded. The exact prior hashing producer retained autoreleased Foundation chunks;
+the repaired per-chunk pool reduced the selected model's standalone physical-
+footprint peak from 1,570,473,448 to 7,586,224 bytes with the identical digest.
+Twelve focused contracts and the signed actual model-library consumer pass. See
+[the verification report](2026-10-01-model-verification-memory.md). This does not
+attribute the historical meeting's lifetime resident-memory peak.
+
+The first signed normal-comparison attempt failed its strict owner-store guard;
+the changed key/file detail was unavailable in that version. It remains failed,
+and the unused second arm supplies no evidence. Subsequent diagnostics retain the
+same guard and report bounded key/basename differences at stage boundaries.
+
+A fixed-hashing comparison with live understanding left at its local automatic
+setting exposed a separate real workload: the generated recording emitted two
+`meeting.reconcile` usage rows. That background context producer loaded the shared
+local language model during capture (8.194 s load), even without startup prewarm.
+Its recorded process peak RSS reached 1,911,439,360 bytes; the later recorded
+physical footprint was 246,270,376 bytes. These different measures cannot identify
+native/device allocations or establish incident-time residency. Streaming speech
+does not eliminate this independent language-model work.
+
+The removed arm consequently failed its no-notes-load invariant, so that pair is
+not accepted as an isolated prewarm comparison. The next pair explicitly sets
+the existing live-understanding preference to false in **both disposable harness
+arms**, restores it afterward, and logs that configuration. Product settings and
+automatic live refinement remain intact; representative feature-overlap acceptance
+is separate. This trace also exposed an optional-refinement pressure-admission
+bypass. The [responsible producer repair](2026-10-01-live-refinement-pressure.md)
+passes all 46 new checks and existing grounding; original routing fails 23 checks.
+
+The isolated former arm in `install-23179` aborted its resource guard after 118 s.
+Its metrics independently record an actual, uninjected pressure teardown of notes
+in 116 ms. This is a real observer/release effect during generated capture, not
+an accepted normal-condition comparison or an OS-exhaustion survival result.
+
+The final attempt (`install-25062`) uses the fully regression-verified runtime,
+same generated fixtures/model hashes and explicit live understanding off. ASR
+fresh-process loading takes 17.101 s/1.754 CPU s with sampled physical-footprint
+peak 142,427,576 B. Generated capture takes 182.854 s/18.258 CPU s; sampled peak
+footprint is 178,964,808 B, after footprint 174,737,736 B, with 9,867 interrupt
+and 40 idle wakeups. Fresh channel readback confirms exactly 2,908,098 frames
+per track and zero missing saved originals. These are measurements of that arm,
+including replay/sampler overhead and filesystem warmed by identity reads.
+
+The stage guard then rejects changes in owner audit/conversation/metrics files.
+Abort diagnostics report normal pressure (generation zero), 8,301,473,792 B
+immediate capacity and no cancellation. The failed exit is retained, and the
+removed arm is not run. No paired reduction, steady-state ceiling, native device
+allocation or post-Stop notes-latency comparison is credited from this attempt.
+
+
+## Resumed native acceptance
+
+The [resumed acceptance report](2026-10-01-resumed-acceptance.md) records a clean
+former-prewarm arm with all saved frames, real native inference and unchanged
+owner stores. Its steady process footprint is 151,816,520 bytes. The paired
+removed arm fails on actual warning pressure; a reverse-order retry fails when
+immediate capacity falls below 8 GB. Reclaiming three obsolete staged test copies
+restores disk headroom, but a 60-second preflight still observes warning pressure
+and launches no further native test. No paired reduction or full native-allocation
+envelope is credited. Short physical microphone/system-tap checks now pass;
+representative long physical overlap and visible warnings remain open.

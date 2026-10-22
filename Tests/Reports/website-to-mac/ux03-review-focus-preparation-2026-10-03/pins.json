@@ -1,0 +1,35 @@
+{
+  "status": "OFF-SOURCE CANDIDATE; source and native behavior UNRUN; root release required",
+  "canonicalFilesChanged": false,
+  "candidateScope": [
+    "Sources/NextNotes/UI/Agent/ToolReviewCard.swift",
+    "Sources/NextNotes/UI/Agent/AgentView.swift",
+    "Sources/NextNotes/UI/Agent/AgentWorkingCard.swift"
+  ],
+  "pins": {
+    "Sources/NextNotes/UI/Agent/ToolReviewCard.swift": "cebe6257971dfbdd22b6aa0a80201a2ba5b3b6ebec1c3fdadb142d9246771bc7",
+    "Sources/NextNotes/UI/Agent/AgentView.swift": "e16690c46235dfe28d69d03351928e4f4b3f2746472bb35815e9976b3c63fc85",
+    "Sources/NextNotes/UI/Agent/AgentWorkingCard.swift": "3de2f41d24dfb211821ee901aeabb06cf4f54b2b459fed84d9b4e90a5fdc8aa9",
+    "Sources/NextNotes/Agent/Permissions/PermissionGate.swift": "27aef47f594195a0549887ef381a986f1ef52abe279f47f6dc3dd13d7dd5836e",
+    "Sources/NextNotes/Agent/Permissions/ToolCallReviewStore.swift": "5bde038c10c0ae0a26e251520ca068ba702afc8cc575e693705d3aacec9a5f89",
+    "Sources/NextNotes/Agent/Permissions/ToolCallReviewSelfTest.swift": "9f13da23dc0076cddadfdbc85bb28ea2e717aefab486420123929ecb24b1eae5",
+    "Sources/NextNotes/Agent/Permissions/ToolCallReviewGuidedSelfTest.swift": "af4b7df6dcd35ec705a1ebe7899ccfd530ab90e6647c140972f50db7c8f1f702",
+    "Sources/NextNotes/UI/Agent/AgentPresentationSelfTest.swift": "0f2fbf1f628121ad05e3f59156d1ba659ad0502a43547ae0cd387527b7f123ed",
+    "Sources/NextNotes/UI/ExperienceSheet.swift": "17ecee4dd6f01f96c965b7fced9844eadac312216450d8f75545fb7f6b88ccaa",
+    "Sources/NextNotes/Agent/RealtimeAgent.swift": "217b2125a6d1b4c40af563e95baa5589920c41e92ab2a346db36f3c596e7b933"
+  },
+  "artifacts": {
+    "proposed/Sources/NextNotes/UI/Agent/ToolReviewCard.swift": "f9aa83c0f15af659cafe5ca8fd7b71f096d3dee989d7e9308d046f49cb47df0d",
+    "proposed/Sources/NextNotes/UI/Agent/AgentView.swift": "9cc3cb785e258f5b79385180f614f38dcf5af1a526b8fd53ce44c866b261c9fc",
+    "proposed/Sources/NextNotes/UI/Agent/AgentWorkingCard.swift": "6516b05459d25c1395971589d67ecfb26d2cdca34d3f2219bc44d73c08857f30",
+    "candidate.patch": "300667802666aef73036b7907974a752f39f2a0c6e35fe01d6672dea129408f3",
+    "README.md": "d2aac3d3bcfd3ca04d2d52e77a1c848d81a60e60d99969000ea48b172b941f59"
+  },
+  "validation": {
+    "savedCopyGitApplyCheck": "PASS; --check --directory baseline only; no application",
+    "compiler": "UNRUN",
+    "nativeFocusAndVoiceOver": "UNRUN",
+    "originalFailure": "UNREPRODUCED source-backed hypotheses",
+    "canonicalPreimagesStillMatch": true
+  }
+}

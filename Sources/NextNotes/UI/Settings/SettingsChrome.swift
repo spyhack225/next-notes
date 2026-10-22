@@ -65,7 +65,12 @@ struct SettingsPane<Content: View>: View {
             }
             .frame(width: DS.Size.orbSmall, height: DS.Size.orbSmall)
 
-            SectionHeading(title: tab.heading, eyebrow: tab.title)
+            SectionHeading(
+                title: tab.headingSpans.lead,
+                eyebrow: tab.title,
+                accent: tab.headingSpans.accent,
+                accentLevel: .pane
+            )
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, DS.Space.page)
@@ -347,6 +352,8 @@ struct SettingsWindowFrame: NSViewRepresentable {
             backing: .buffered,
             defer: false
         )
+        // Swift/ARC owns this throwaway window; close must not release it again.
+        sized.isReleasedWhenClosed = false
         sized.contentMinSize = NSSize(width: 900, height: 600)
         pin(sized, to: NSSize(width: 800, height: 560))
         if sized.contentMinSize.width != 900 || sized.contentMinSize.height != 600 {
@@ -363,6 +370,7 @@ struct SettingsWindowFrame: NSViewRepresentable {
             backing: .buffered,
             defer: false
         )
+        bare.isReleasedWhenClosed = false
         bare.contentMinSize = .zero
         pin(bare, to: NSSize(width: 800, height: 560))
         if bare.contentMinSize.width < 800 || bare.contentMinSize.height < 560 {

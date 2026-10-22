@@ -1,0 +1,8 @@
+--- a/Sources/NextNotes/UI/DesignSystem.swift
++++ b/Sources/NextNotes/UI/DesignSystem.swift
+@@ -63 +70,4 @@ enum DS {
+-        static let graphPerson = accent
++        /// Person identity keeps the site teal explicitly: `accent` above is now the
++        /// fixed control ink, and folding a person node into it would erase the one
++        /// data encoding this colour carries.
++        static let graphPerson = Theme.Palette.accent

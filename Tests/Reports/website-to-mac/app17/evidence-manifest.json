@@ -1,0 +1,17 @@
+{
+  "binary_sha256": "0ee52308a47c409b115d0a0050719a5476c08a9132cf336fe053b185b83cb85c",
+  "phase": "serial installed app17",
+  "copy_scope": "metadata-only fixture output; no Settings images or owner content",
+  "files": {
+    "README.md": "58038ddd7045a84c6eab8d1025a0c0444325631ae45f6301768a08c2ef849602",
+    "dictation-current.log": "5adae930e5cd23f82eeee6c6d947ec4583b01b85fb27cc8c04d1d826e5eeb041",
+    "dictation-current.out": "16a639c6183496934c7ceb2b92c30d2c80f0951be1928eefd76c8ef0d321954e",
+    "onboarding-trace.log": "1d92c38534166362682a2c749ed6c45c6b81f21ce194e4f05590a3b164c16450",
+    "onboarding-trace.out": "2b8c09d1ac33ad60f6895987b6d495a4c9ef1c5d59ee07427dd5791831832c5f",
+    "source-manifest.json": "da4f722c6e60bd8bfcb4bd5ecb9b1f12fb84ee5f3390a09d4d49477b241cc7d7",
+    "store-isolation.log": "552f79a6269472e0dd9f7ef67305adbbc90be9ff775c4f2bc8f44f372c16ce28",
+    "store-isolation.out": "dcb5879fec650d82a2f69a398b1ebbe3536bdfc3814a1ec5035a5e450ad3e4b5",
+    "summary.json": "a6037823395ba5bea374053257b96bf546a31f13f4ab7368dfa411524d90209c",
+    "usage-log.log": "4c9a0df3e2a2203bdc9489c79a740637d8ed1b33de62ceaec5a8486e300c7562"
+  }
+}

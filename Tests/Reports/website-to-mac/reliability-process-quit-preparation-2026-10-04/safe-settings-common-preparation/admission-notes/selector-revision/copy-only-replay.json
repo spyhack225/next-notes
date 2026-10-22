@@ -1,0 +1,8 @@
+{
+  "kind": "text-only additive git apply to frozen COMMON fixture copy",
+  "baseFixtureSHA256": "3fec2febf8bd28ae338dbf7866a976dc4beafbc44d579a572775e790c0498878",
+  "revisedFixtureSHA256": "24633ea451ba21caff6de79b68dd1e63ed87e3f808a23f6f3e7fc06184797756",
+  "match": true,
+  "compiler": "UNRUN",
+  "native": "UNRUN"
+}

@@ -61,6 +61,31 @@ final class MeetingSession {
     private var micContinuation: AsyncStream<MeetingAudioPacket>.Continuation?
     private var systemContinuation: AsyncStream<MeetingAudioPacket>.Continuation?
     private let captureDrops = MeetingCaptureDrops()
+    /// What each track has actually delivered, measured against the clock it
+    /// claims (MR-01). The audit found a live system track whose timestamps ended
+    /// near half the meeting's wall duration while the drop counters read zero,
+    /// so what arrived is now counted against what the track said it was sending.
+    /// The meeting's frame/clock facts per track (the system frame contract):
+    /// the hub's delivery worker records the microphone's buffers and
+    /// conversions, the session counts stream yields and the system track's
+    /// arrivals, and the tap's conversion path keeps its own. One read of
+    /// `frameShapeSnapshot()` serves every consumer.
+    private let systemFrameShape = MeetingFrameShapeAccumulator()
+    /// The last snapshot a health tick or Stop produced. `frameShapeSnapshot()`
+    /// keeps returning it once capture has ended, so a finished meeting's
+    /// answer is the one the recording was judged on rather than a clock that
+    /// kept running after the captures stopped.
+    private var lastFrameShapeSnapshot: MeetingFrameShapes?
+    /// The writer's counters retained after `writer` is cleared — the trim and
+    /// silence-fill facts outlive the actor that produced them.
+    private var lastWriterSnapshot: MeetingAudioWriter.ResourceSnapshot?
+    /// The last coverage verdict this session showed, so a warning fires once
+    /// per transition rather than once per tick.
+    private var lastCoverageVerdict: MeetingCaptureCoverage.Verdict = .unknown
+    /// The plain-words coverage message, when the recording is known to be
+    /// short. The banner carries a shorter version; this is the sentence a
+    /// person can act on.
+    private(set) var coverageMessage: String?
     private var clock: Task<Void, Never>?
 
     /// The late-join retry for the system tap (M-09), armed when the first start
@@ -68,6 +93,13 @@ final class MeetingSession {
     /// and `abort`, ended by success or by the attempt limit.
     private var tapRetry: Task<Void, Never>?
 
+    /// Whether this recording was meant to carry the other speakers.
+    ///
+    /// A meeting the person kept, or one whose speakers are being identified,
+    /// or one whose transcript is re-read from the file, all asked for the
+    /// system track. A meeting that asked for none of them is a microphone
+    /// recording, and a missing system track is not its loss.
+    private var systemTrackRequired = false
     private var startedAt = Date()
     private var startedHostTime: UInt64 = 0
     private var isStopping = false
@@ -82,6 +114,42 @@ final class MeetingSession {
     var captureHostOriginForTesting: UInt64? {
         SelfTest.isRunning && hasBegunCapture ? startedHostTime : nil
     }
+
+    /// The capture facts the pure coverage evaluator reads (MR-02 / MR-04).
+    var captureIntegrity: MeetingCaptureIntegrity? { meeting.captureIntegrity }
+
+    /// The frame-shape verdict, in the spellings `MeetingCaptureCoverage` reads.
+    ///
+    /// A track that stopped delivering while the other kept going is the fact
+    /// the audit was missing; a track that is merely quiet is not a stall, so
+    /// silence never produces a verdict here. A track delivering about half the
+    /// samples it claims is the audit's other symptom, and it is a loss rather
+    /// than a stall — the frames were there and did not arrive.
+    ///
+    /// `nil` means there is nothing to say, and it never means "everything is
+    /// fine" — that is a different question, answered by the coverage facts.
+    func frameShapeDriftVerdict() -> String? {
+        let shapes = frameShapeSnapshot()
+        let mic = shapes.mic.verdict()
+        let system = shapes.system.verdict()
+        // The tap's own conversion path is consulted too: a tap that converts
+        // at the wrong rate is the audit's symptom even when the delivered
+        // stream looks healthy.
+        let tap = shapes.systemTap.verdict()
+        if tap == .halfCadenceSuspect { return "system-half-cadence" }
+        if tap == .stalled, system != .stalled { return "system-stalled" }
+        if system == .halfCadenceSuspect, mic != .halfCadenceSuspect { return "system-half-cadence" }
+        if mic == .halfCadenceSuspect, system != .halfCadenceSuspect { return "mic-half-cadence" }
+        // Both tracks at half speed is the audit's symptom exactly, and it is
+        // not a per-track statement: the whole recording is running at half the
+        // wall clock.
+        if system == .halfCadenceSuspect, mic == .halfCadenceSuspect { return "half-cadence" }
+        if system == .stalled, mic == .stalled { return "both-stalled" }
+        if system == .stalled, mic != .stalled { return "system-stalled" }
+        if mic == .stalled, system != .stalled { return "mic-stalled" }
+        return nil
+    }
+
 
     /// Test-only (`--selftest-meeting-tap-retry`): replaces the transcriber model call
     /// so the tap-retry self-test runs without Parakeet. Set by the test, cleared after.
@@ -184,9 +252,24 @@ final class MeetingSession {
 
     /// In-memory only. `MeetingStore.rename` writes the file and then calls this so the
     /// live pane and the island do not keep showing the old name until the session ends.
-    func applyTitle(_ title: String, ifID id: UUID) {
+    /// Carries a title, and the evidence that came with it, into the running
+    /// session.
+    ///
+    /// The session holds its own copy of the meeting and saves that copy on the
+    /// health tick, so anything applied to the stored row alone is undone
+    /// within seconds. The evidence travels with the title for that reason.
+    func applyTitle(
+        _ title: String,
+        source: MeetingTitleSource,
+        attendees: [String]? = nil,
+        calendarName: String? = nil,
+        ifID id: UUID
+    ) {
         guard meeting.id == id else { return }
         meeting.title = title
+        meeting.titleSource = source
+        if let attendees, !attendees.isEmpty { meeting.attendees = attendees }
+        if let calendarName { meeting.calendarName = calendarName }
     }
 
     // MARK: - Lifecycle
@@ -215,6 +298,11 @@ final class MeetingSession {
         startedAt = Date()
         startedHostTime = mach_absolute_time()
         lastSpeechAt = startedAt
+        captureHub.beginMicFrameShape(captureStartedHostTime: startedHostTime)
+        systemFrameShape.reset()
+        systemFrameShape.recordCaptureStarted(startedHostTime)
+        lastFrameShapeSnapshot = nil
+        lastWriterSnapshot = nil
         meeting.start = startedAt
         meeting.status = .recording
         meeting.captureIntegrity = MeetingCaptureIntegrity()
@@ -238,6 +326,8 @@ final class MeetingSession {
             finalPass: Settings.shared.meetingsFinalPass,
             freeBytes: freeBytes
         )
+        systemTrackRequired = keep || Settings.shared.meetingsDiarize
+            || Settings.shared.meetingsFinalPass
         if !wantsAudio,
            keep || Settings.shared.meetingsDiarize || Settings.shared.meetingsFinalPass {
             audioProblem = "A recording could not be saved. This meeting is using the live transcript."
@@ -256,6 +346,7 @@ final class MeetingSession {
                 // reports once through the callback below; the meeting keeps going on
                 // the transcript alone.
                 let writeError: @Sendable (String) -> Void = { [weak self] _ in
+                    let observedAt = Date()
                     Task { @MainActor in
                         guard let self else { return }
                         self.captureDrops.setLiveTranscriptionDeferred(false)
@@ -264,7 +355,7 @@ final class MeetingSession {
                         integrity.markAudioWriteFailure()
                         self.meeting.captureIntegrity = integrity
                         self.persistMeeting()
-                        self.reportHealthIssue(.audioWriteFailure)
+                        self.reportHealthIssue(.audioWriteFailure, observedAt: observedAt)
                     }
                 }
                 let audioWriter = try writerFactory?(url, writeError)
@@ -291,6 +382,7 @@ final class MeetingSession {
             let startedAt = self.startedAt
             let startedHostTime = self.startedHostTime
             let captureDrops = self.captureDrops
+            let micFrameShape = captureHub.micFrameShape
             try captureHub.subscribe(
                 .meeting,
                 outputFormat: format,
@@ -298,11 +390,26 @@ final class MeetingSession {
                     let packet = Self.audioPacket(
                         chunk, startedAt: startedAt, startedHostTime: startedHostTime)
                     captureDrops.observe(packet, from: .mic, beganAt: startedAt)
-                    if let result = micContinuation?.yield(packet),
-                       case .dropped(let dropped) = result {
-                        if captureDrops.addStreamFrames(dropped.samples.count) {
+                    if let result = micContinuation?.yield(packet) {
+                        switch result {
+                        case .dropped(let dropped):
+                            if captureDrops.addStreamFrames(dropped.samples.count) {
+                                Task { @MainActor in self?.reportCaptureGap() }
+                            }
+                        case .terminated:
+                            // The lane was closed while the meeting was still
+                            // recording. It used to be invisible: only a drop
+                            // was counted, so a track that simply stopped
+                            // delivering read as a clean meeting.
+                            micFrameShape.recordTerminatedYield()
                             Task { @MainActor in self?.reportCaptureGap() }
+                        case .enqueued:
+                            break
+                        @unknown default:
+                            break
                         }
+                    } else {
+                        micFrameShape.recordUnmatchedYield()
                     }
                 },
                 onLevel: { [weak self] level in
@@ -387,6 +494,7 @@ final class MeetingSession {
         micLevel = 0
         systemLevel = 0
 
+        captureDrops.markClosing()
         micContinuation?.finish()
         systemContinuation?.finish()
         micContinuation = nil
@@ -419,7 +527,22 @@ final class MeetingSession {
         systemTranscriber = nil
 
         await writer?.finish()
-        if let saved = writer?.resourceSnapshot() { recordSavedAudioCoverage(saved) }
+        // The finished verdict, once the writer has flushed and said what it
+        // saved. Decided on the final counters: a verdict taken before the
+        // flush judges the meeting on samples that were still in memory.
+        if let saved = writer?.resourceSnapshot() {
+            lastWriterSnapshot = saved
+            recordSavedAudioCoverage(saved, isFinal: true)
+        }
+        updateCoverageWarning(
+            now: meeting.end ?? Date(),
+            isRecording: false,
+            expectsSystem: systemAudioProblem == nil,
+            systemTrackRequired: systemTrackRequired)
+        if let saved = writer?.resourceSnapshot() {
+            lastWriterSnapshot = saved
+            recordSavedAudioCoverage(saved)
+        }
         if let saved = await writer?.resourceSnapshot(), saved.writtenFrames > 0 {
             var integrity = meeting.captureIntegrity ?? .init()
             integrity.recordCaptured(until: startedAt.addingTimeInterval(Double(saved.writtenFrames) / ChunkedTranscriber.sampleRate))
@@ -428,6 +551,7 @@ final class MeetingSession {
         }
         let writerFailed = await writer?.didFail ?? false
         writer = nil
+        refreshFrameShapeSnapshot()
         let lostCapture = captureDrops.hasLoss
         let hasAudio = audioFileHasContent
         let savedAudioComplete = meeting.captureIntegrity?.hasKnownSavedAudioLoss(on: .mic) != true
@@ -508,15 +632,40 @@ final class MeetingSession {
         systemCapture.stop()
         clock?.cancel()
         clock = nil
+        captureDrops.markClosing()
         micContinuation?.finish()
         systemContinuation?.finish()
         micDrain?.cancel()
         systemDrain?.cancel()
 
+        // External producers publish these facts before their MainActor warning
+        // callbacks. Quit must persist what is already known without waiting for
+        // that callback or the next health poll.
+        let saved = writer?.resourceSnapshot()
+        if let saved {
+            lastWriterSnapshot = saved
+            recordSavedAudioCoverage(saved)
+            if saved.writeFailed { reportHealthIssue(.audioWriteFailure) }
+        }
+        refreshFrameShapeSnapshot()
+        if captureDrops.hasLoss { reportCaptureGap() }
         meeting.end = Date()
         var integrity = meeting.captureIntegrity ?? .init()
+        if let saved, saved.writtenFrames > 0 {
+            integrity.recordCaptured(until: startedAt.addingTimeInterval(
+                Double(saved.writtenFrames) / ChunkedTranscriber.sampleRate))
+        }
         integrity.markInterrupted(at: meeting.end!, lastCapturedAt: integrity.lastCapturedAt)
         meeting.captureIntegrity = integrity
+        // The finished verdict. A recording that ended is judged on what was
+        // saved, and "we cannot confirm it" is the honest answer when the
+        // measurement never ran — which is a different answer from "all of it
+        // was saved", and the one an old meeting deserves.
+        updateCoverageWarning(
+            now: meeting.end!,
+            isRecording: false,
+            expectsSystem: systemAudioProblem == nil,
+            systemTrackRequired: systemTrackRequired)
         switch MeetingStore.resumeAction(
             for: .recording,
             hasTranscript: !segments.isEmpty,
@@ -574,6 +723,7 @@ final class MeetingSession {
         let startedAt = self.startedAt
         let startedHostTime = self.startedHostTime
         let captureDrops = self.captureDrops
+        let systemFrameShape = self.systemFrameShape
         tapRetry = Task { [weak self] in
             defer { self?.tapRetry = nil }
             var attempts = 0
@@ -598,10 +748,32 @@ final class MeetingSession {
                             let packet = Self.audioPacket(
                                 chunk, startedAt: startedAt, startedHostTime: startedHostTime)
                             captureDrops.observe(packet, from: .system, beganAt: startedAt)
-                            if let result = continuation?.yield(packet),
-                               case .dropped(let dropped) = result,
-                               captureDrops.addStreamFrames(dropped.samples.count) {
-                                Task { @MainActor in self?.reportCaptureGap() }
+                            systemFrameShape.recordDelivery(
+                                hostTime: chunk.captureHostTime,
+                                samples: packet.samples.count,
+                                signature: MeetingFrameASBDSignature(
+                                    chunk.buffer.format,
+                                    numberBuffers: chunk.buffer.audioBufferList.pointee.mNumberBuffers))
+                            if let result = continuation?.yield(packet) {
+                                switch result {
+                                case .dropped(let dropped):
+                                    if captureDrops.addStreamFrames(dropped.samples.count) {
+                                        Task { @MainActor in self?.reportCaptureGap() }
+                                    }
+                                case .terminated:
+                                    // The lane was closed while the meeting was
+                                    // still recording. The audit found this
+                                    // invisible: the drop counters read zero on
+                                    // a meeting that lost its system track.
+                                    systemFrameShape.recordTerminatedYield()
+                                    Task { @MainActor in self?.reportCaptureGap() }
+                                case .enqueued:
+                                    break
+                                @unknown default:
+                                    break
+                                }
+                            } else {
+                                systemFrameShape.recordUnmatchedYield()
                             }
                         },
                         onLevel: { [weak self] level in
@@ -719,6 +891,7 @@ final class MeetingSession {
         let startedAt = self.startedAt
         let startedHostTime = self.startedHostTime
         let captureDrops = self.captureDrops
+        let systemFrameShape = self.systemFrameShape
         do {
             try await systemCapture.start(
                 outputFormat: outputFormat,
@@ -726,10 +899,30 @@ final class MeetingSession {
                     let packet = Self.audioPacket(
                         chunk, startedAt: startedAt, startedHostTime: startedHostTime)
                     captureDrops.observe(packet, from: .system, beganAt: startedAt)
-                    if let result = continuation?.yield(packet), case .dropped(let dropped) = result {
-                        if captureDrops.addStreamFrames(dropped.samples.count) {
+                    systemFrameShape.recordDelivery(
+                        hostTime: chunk.captureHostTime,
+                        samples: packet.samples.count,
+                        signature: MeetingFrameASBDSignature(
+                            chunk.buffer.format,
+                            numberBuffers: chunk.buffer.audioBufferList.pointee.mNumberBuffers))
+                    if let result = continuation?.yield(packet) {
+                        switch result {
+                        case .dropped(let dropped):
+                            if captureDrops.addStreamFrames(dropped.samples.count) {
+                                Task { @MainActor in self?.reportCaptureGap() }
+                            }
+                        case .terminated:
+                            // The lane was closed while the meeting was still
+                            // recording, and the loss used to be invisible.
+                            systemFrameShape.recordTerminatedYield()
                             Task { @MainActor in self?.reportCaptureGap() }
+                        case .enqueued:
+                            break
+                        @unknown default:
+                            break
                         }
+                    } else {
+                        systemFrameShape.recordUnmatchedYield()
                     }
                 },
                 onLevel: { [weak self] level in
@@ -780,6 +973,32 @@ final class MeetingSession {
         )
     }
 
+    /// Every track's frame/clock facts as of now: the microphone as the hub's
+    /// delivery worker saw it, the system track as the session received it, the
+    /// tap's own conversion path, and the writer's counters. A health tick, Stop
+    /// and Quit keep the last recording-time snapshot; without one this computes
+    /// fresh, so the accessor answers honestly before the first tick too.
+    func frameShapeSnapshot() -> MeetingFrameShapes {
+        if let lastFrameShapeSnapshot { return lastFrameShapeSnapshot }
+        return currentFrameShapeSnapshot()
+    }
+
+    private func currentFrameShapeSnapshot() -> MeetingFrameShapes {
+        let now = mach_absolute_time()
+        return MeetingFrameShapes(
+            mic: captureHub.micFrameShape.snapshot(nowHostTime: now),
+            system: systemFrameShape.snapshot(nowHostTime: now),
+            systemTap: systemCapture.frameShapeSnapshot(),
+        )
+    }
+
+    /// Freezes the recording-time facts, so a finished meeting's frame shape is
+    /// judged against the clock the captures actually ran on rather than one
+    /// that kept running after they ended.
+    private func refreshFrameShapeSnapshot() {
+        lastFrameShapeSnapshot = currentFrameShapeSnapshot()
+    }
+
     private func reportCaptureGap() {
         guard [.recording, .transcribing].contains(meeting.status) else { return }
         var integrity = meeting.captureIntegrity ?? .init()
@@ -788,7 +1007,7 @@ final class MeetingSession {
         integrity.missingCaptureFrames = max(integrity.missingCaptureFrames, captureDrops.snapshot.streamFrames)
         meeting.captureIntegrity = integrity
         persistMeeting()
-        reportHealthIssue(.captureGap)
+        reportHealthIssue(.captureGap, observedAt: captureDrops.snapshot.firstLossAt)
     }
 
     private func scheduleResourceHealthCheck(now: Date) {
@@ -820,7 +1039,11 @@ final class MeetingSession {
         let mic = await micTranscriber?.resourceSnapshot()
         let system = await systemTranscriber?.resourceSnapshot()
         guard meeting.status == .recording, !Task.isCancelled else { return }
-        if let saved { recordSavedAudioCoverage(saved) }
+        if let saved {
+            lastWriterSnapshot = saved
+            recordSavedAudioCoverage(saved)
+        }
+        refreshFrameShapeSnapshot()
         let progress = captureDrops.snapshot
         if let saved, saved.writtenFrames > lastWrittenFrames {
             lastWrittenFrames = saved.writtenFrames
@@ -849,6 +1072,7 @@ final class MeetingSession {
         // Risk warnings clear when the condition does. Actual loss remains persisted.
         healthWarnings.removeAll { !$0.isCaptureFailure && $0 != .audioWriteFailure
             && $0 != .savedAudioGap
+            && $0 != .coverageWarning
             && $0 != .transcriptWriteFailure && $0 != .metadataWriteFailure && !issues.contains($0) }
         for issue in issues { reportHealthIssue(issue) }
         var integrity = meeting.captureIntegrity ?? .init()
@@ -860,11 +1084,64 @@ final class MeetingSession {
             integrity.missingCaptureFrames = max(integrity.missingCaptureFrames, progress.streamFrames)
         }
         meeting.captureIntegrity = integrity
+        // After the facts are written, so the verdict reads this tick's own
+        // evidence rather than the previous one.
+        updateCoverageWarning(
+            now: now,
+            isRecording: true,
+            expectsSystem: systemAudioProblem == nil,
+            systemTrackRequired: systemTrackRequired,
+            alreadyReported: issues)
         // Numeric counts only; model/provider attribution stays in usage.jsonl.
         let queued = (mic?.queuedBytes ?? 0) + (system?.queuedBytes ?? 0)
         let active = (mic?.activeBytes ?? 0) + (system?.activeBytes ?? 0)
         let swap = MeetingResourceHealth.swapBytes()
-        let note = "queuedBytes=\(queued) activeBytes=\(active) writerBytes=\(saved.map { $0.writtenFrames * 4 } ?? 0) freeBytes=\(free ?? -1) swapUsed=\(swap.used.map(String.init) ?? "unknown") swapAvailable=\(swap.available.map(String.init) ?? "unknown") pressure=\(pressure.level.rawValue) missedFrames=\(progress.streamFrames) missedBuffers=\(progress.hubBuffers) paused=\(pause ? 1 : 0)"
+        // The frame/clock counts travel with the existing note, so a real
+        // call's numbers are recoverable afterwards: they are the measurement
+        // that names the producer, and without a writer they exist only in
+        // memory.
+        let shapes = frameShapeSnapshot()
+        let micShape = shapes.mic
+        let systemShape = shapes.system
+        let tapShape = shapes.systemTap
+        let writerFrames = lastWriterSnapshot ?? MeetingAudioWriter.ResourceSnapshot(
+            queuedBytes: 0, queueCapacityBytes: 0, writtenFrames: 0,
+            writeFailed: false, writeInFlight: false, writeStartedAt: nil,
+            missingSavedMicFrames: 0, missingSavedSystemFrames: 0,
+            micRealQueuedFrames: 0, systemRealQueuedFrames: 0,
+            silenceFilledMicFrames: 0, silenceFilledSystemFrames: 0,
+            leadFillMicFrames: 0, leadFillSystemFrames: 0,
+            systemSilentAfterSample: nil, micSilentAfterSample: nil)
+        let frameParts: [String] = [
+            "micBuffers=\(micShape.bufferCount)",
+            "micConverted=\(micShape.convertedSamples)",
+            "micExpected=\(micShape.expectedSamplesFromElapsed)",
+            "micDrift=\(micShape.clockDriftSamples)",
+            "micVerdict=\(micShape.verdict().rawValue)",
+            "systemBuffers=\(systemShape.bufferCount)",
+            "systemConverted=\(systemShape.convertedSamples)",
+            "systemExpected=\(systemShape.expectedSamplesFromElapsed)",
+            "systemDrift=\(systemShape.clockDriftSamples)",
+            "systemVerdict=\(systemShape.verdict().rawValue)",
+            "systemTapBuffers=\(tapShape.bufferCount)",
+            "systemTapConverted=\(tapShape.convertedSamples)",
+            "systemTapDrift=\(tapShape.clockDriftSamples)",
+            "systemTapVerdict=\(tapShape.verdict().rawValue)",
+            "terminatedYields=\(micShape.terminatedYields + systemShape.terminatedYields)",
+            "underCounted=\(micShape.underCountedBuffers + systemShape.underCountedBuffers + tapShape.underCountedBuffers)",
+            "converterStarvation=\(systemCapture.converterStarvation)",
+            "writerFrames=\(writerFrames.writtenFrames)",
+            "writerSystemReal=\(writerFrames.systemRealQueuedFrames)",
+            "writerMicReal=\(writerFrames.micRealQueuedFrames)",
+            "writerSystemSilence=\(writerFrames.silenceFilledSystemFrames)",
+            "writerMicSilence=\(writerFrames.silenceFilledMicFrames)",
+            "writerSystemLead=\(writerFrames.leadFillSystemFrames)",
+            "writerMicLead=\(writerFrames.leadFillMicFrames)",
+        ]
+        let frameNote = frameParts.joined(separator: " ")
+        let note = "queuedBytes=\(queued) activeBytes=\(active) writerBytes=\(saved.map { $0.writtenFrames * 4 } ?? 0) freeBytes=\(free ?? -1) swapUsed=\(swap.used.map(String.init) ?? "unknown") swapAvailable=\(swap.available.map(String.init) ?? "unknown") pressure=\(pressure.level.rawValue) missedFrames=\(progress.streamFrames) missedBuffers=\\(progress.hubBuffers) paused=\(pause ? 1 : 0) "
+            + frameNote
+
         let span = LatencyTrace.record(.meetingResources,
             seconds: Date().timeIntervalSince(began), note: note)
         // Reuse that exact sample and the existing metadata save; no second process
@@ -884,19 +1161,131 @@ final class MeetingSession {
         return saved
     }
 
-    private func recordSavedAudioCoverage(_ saved: MeetingAudioWriter.ResourceSnapshot) {
-        guard saved.missingSavedMicFrames > 0 || saved.missingSavedSystemFrames > 0 else { return }
+    private func recordSavedAudioCoverage(
+        _ saved: MeetingAudioWriter.ResourceSnapshot,
+        isFinal: Bool = false
+    ) {
+        let hasTrim = saved.missingSavedMicFrames > 0 || saved.missingSavedSystemFrames > 0
+        let systemWentSilent = saved.systemSilentAfterSample != nil
+        let micWentSilent = saved.micSilentAfterSample != nil
         var integrity = meeting.captureIntegrity ?? .init()
-        integrity.missingSavedMicFrames = max(integrity.missingSavedMicFrames ?? 0,
-            Int64(saved.missingSavedMicFrames))
-        integrity.missingSavedSystemFrames = max(integrity.missingSavedSystemFrames ?? 0,
-            Int64(saved.missingSavedSystemFrames))
+        let wasMeasured = integrity.savedCoverageMeasured == true
+        // While the meeting is recording, the writer's silence boundary says
+        // "this channel is silent right now" — which a late-joining tap makes
+        // true for tens of seconds. Only a finished file's boundary is a fact
+        // about the recording, so only then is it written.
+        if isFinal {
+            integrity.recordSavedCoverage(saved)
+        } else {
+            integrity.savedCoverageMeasured = true
+            // Both counts every time, zero included: "measured, nothing lost"
+            // and "never measured" are different answers.
+            integrity.missingSavedMicFrames = max(
+                integrity.missingSavedMicFrames ?? 0, Int64(saved.missingSavedMicFrames))
+            integrity.missingSavedSystemFrames = max(
+                integrity.missingSavedSystemFrames ?? 0, Int64(saved.missingSavedSystemFrames))
+        }
+        // How long the recording actually was. The calendar's span is not this,
+        // and a fraction of a loss has to be a fraction of the thing that was
+        // recorded.
+        if saved.writtenFrames > 0 {
+            integrity.recordedSeconds = Double(saved.writtenFrames) / ChunkedTranscriber.sampleRate
+        }
+        // The facts are current even when nothing new was lost: the recording's
+        // length grows with every chunk, and a guard that returned before the
+        // assignment would freeze it at the first tick. They are persisted
+        // with it, because the caller does not save the meeting on every tick.
         meeting.captureIntegrity = integrity
+        guard !wasMeasured || hasTrim || systemWentSilent || micWentSilent else {
+            persistMeeting()
+            return
+        }
         persistMeeting()
-        reportHealthIssue(.savedAudioGap)
+        if hasTrim { reportHealthIssue(.savedAudioGap) }
     }
 
-    private func reportHealthIssue(_ issue: MeetingHealthIssue) {
+    /// Re-evaluates what the recording actually covers, and warns once per
+    /// transition (MR-02 / MR-04).
+    ///
+    /// The rule the audit asked for: a finished notes pass does not prove a
+    /// whole recording was saved, and a live frame stream that is healthy right
+    /// now does not un-make a fact established earlier. The verdict is computed
+    /// from the same facts the health tick already has, so this costs no new
+    /// query, timer or capture-callback work, and the warning fires at most
+    /// once per state rather than once per tick.
+    private func updateCoverageWarning(
+        now: Date,
+        isRecording: Bool,
+        expectsSystem: Bool,
+        systemTrackRequired: Bool,
+        alreadyReported: [MeetingHealthIssue] = []
+    ) {
+        let evidence = MeetingCaptureCoverage.evidence(
+            from: self,
+            startedAt: startedAt,
+            now: now,
+            lastMicAt: captureDrops.snapshot.lastMicAt,
+            lastSystemAt: captureDrops.snapshot.lastSystemAt,
+            expectsSystem: expectsSystem,
+            systemTrackRequired: systemTrackRequired,
+            isRecording: isRecording,
+            recordedSeconds: meeting.captureIntegrity?.recordedSeconds)
+        let verdict = MeetingCaptureCoverage.verdict(for: evidence)
+        defer { lastCoverageVerdict = verdict }
+        if case .complete = verdict { coverageMessage = nil }
+        if case .unknown = verdict, !isRecording { coverageMessage = nil }
+        // A delivery fact is persisted whether or not anyone is watching: the
+        // meeting's own record has to carry it, so a later reader — the notes
+        // pass, the meeting list — can see it without being told.
+        persistDeliveryFact(verdict: verdict)
+        guard let alert = MeetingCaptureCoverage.shouldWarn(
+            previous: lastCoverageVerdict, current: verdict, now: now)
+        else { return }
+        coverageMessage = alert.message
+        // The health issues already carry this condition in their own words.
+        // Two banners and two notifications for one stall is noise, and the
+        // person reading them stops reading either.
+        let alreadySaid = alreadyReported.contains(.systemStalled)
+            || alreadyReported.contains(.microphoneStalled)
+        guard !alreadySaid else { return }
+        reportHealthIssue(.coverageWarning, observedAt: nil)
+        // The specific sentence supersedes the generic body: the live pane
+        // shows both, and the generic one says less.
+        healthWarnings.removeAll { $0 == .coverageWarning }
+    }
+
+    /// Records a delivery stall as a durable fact, so "the other speakers
+    /// stopped arriving" survives the process that saw it.
+    private func persistDeliveryFact(verdict: MeetingCaptureCoverage.Verdict) {
+        // Only a stall is a delivery fact. A partial caused by a saved loss is
+        // a different kind of fact, and recording it as a delivery stop would
+        // tell the notes that the conversation's order is uncertain when what
+        // happened is that some audio was not saved.
+        guard case .stalled(let track) = verdict, let track else { return }
+        // The position of the loss is where the track last delivered, which does
+        // not move once the track has stopped. A boundary derived from the
+        // writer's cursor would change on every tick, and the warning list with
+        // it.
+        let lastAt = track == .system
+            ? captureDrops.snapshot.lastSystemAt
+            : captureDrops.snapshot.lastMicAt
+        let atSample = Int64(max(0, (lastAt ?? startedAt)
+            .timeIntervalSince(startedAt) * Double(ChunkedTranscriber.sampleRate)))
+        var integrity = meeting.captureIntegrity ?? .init()
+        let kind: MeetingCoverageWarningKind = track == .system ? .systemStalled : .micStalled
+        let warning = MeetingCaptureCoverageWarning(track: track, kind: kind, atSample: atSample)
+        // Keyed on the track and the kind, not on the position: the position
+        // moves while the track is alive, and keying on it would append a
+        // warning on every tick.
+        guard !(integrity.coverageWarnings ?? []).contains(where: {
+            $0.track == track && $0.kind == kind
+        }) else { return }
+        integrity.addCoverageWarning(warning)
+        meeting.captureIntegrity = integrity
+        persistMeeting()
+    }
+
+    private func reportHealthIssue(_ issue: MeetingHealthIssue, observedAt: Date? = nil) {
         if issue == .audioWriteFailure {
             var integrity = meeting.captureIntegrity ?? .init()
             integrity.markAudioWriteFailure()
@@ -915,7 +1304,9 @@ final class MeetingSession {
             audioProblem = issue.message
         }
         Notifications.shared.postMeetingProblem(meeting: meeting, issue: issue)
-        LatencyTrace.record(.meetingHealthWarning, seconds: 0, note: "kind=\(issue.rawValue)")
+        LatencyTrace.record(.meetingHealthWarning,
+            seconds: observedAt.map { max(0, Date().timeIntervalSince($0)) } ?? 0,
+            note: "kind=\(issue.rawValue) delayMeasured=\(observedAt == nil ? 0 : 1)")
     }
 
     /// Provisional window text for the live UI / `TranscriptBus`. Cleared when a final
@@ -1071,6 +1462,7 @@ final class MeetingSession {
         systemCapture.stop()
         clock?.cancel()
         clock = nil
+        captureDrops.markClosing()
         micContinuation?.finish()
         systemContinuation?.finish()
         micDrain?.cancel()
@@ -1094,19 +1486,30 @@ private struct MeetingAudioPacket: Sendable {
     let startFrame: Int
 }
 
+/// The session answers the coverage reader: the capture facts and the
+/// frame-shape drift verdict the class already produces are what
+/// `MeetingCaptureCoverage.evidence(from:)` reads.
+extension MeetingSession: CaptureCoverageSource {}
+
 /// Capture callbacks cannot hop to the main actor to count loss. Keep one small,
 /// synchronized count per session and ask the UI to surface the first gap.
 private final class MeetingCaptureDrops: @unchecked Sendable {
     private let lock = NSLock()
     private var streamFrames = 0
+    private var firstLossAt: Date?
     private var hubBuffers = 0
     private var lastMicAt: Date?
     private var lastSystemAt: Date?
     private var capturedUntil: Date?
     private var deferLive = false
+    /// True once the recording is being closed. A stream that ends then is the
+    /// teardown, not a mid-meeting loss: the in-flight buffer it drops is the
+    /// last one, and counting it would mark a healthy meeting as interrupted.
+    private var isClosing = false
 
     struct Snapshot: Sendable {
         var streamFrames: Int64
+        var firstLossAt: Date?
         var hubBuffers: Int
         var lastMicAt: Date?
         var lastSystemAt: Date?
@@ -1116,8 +1519,22 @@ private final class MeetingCaptureDrops: @unchecked Sendable {
     var snapshot: Snapshot {
         lock.lock()
         defer { lock.unlock() }
-        return Snapshot(streamFrames: Int64(streamFrames), hubBuffers: hubBuffers,
+        return Snapshot(streamFrames: Int64(streamFrames), firstLossAt: firstLossAt, hubBuffers: hubBuffers,
                         lastMicAt: lastMicAt, lastSystemAt: lastSystemAt, capturedUntil: capturedUntil)
+    }
+
+    /// Marks the capture lanes as closing for the stop.
+    func markClosing() {
+        lock.lock()
+        isClosing = true
+        lock.unlock()
+    }
+
+    /// Whether the capture lanes are closing.
+    var closing: Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return isClosing
     }
 
     func observe(_ packet: MeetingAudioPacket, from source: AudioSource, beganAt: Date) {
@@ -1144,17 +1561,25 @@ private final class MeetingCaptureDrops: @unchecked Sendable {
     func addStreamFrames(_ frames: Int) -> Bool {
         lock.lock()
         let wasClear = streamFrames == 0 && hubBuffers == 0
-        streamFrames += frames
+        if frames > 0 {
+            if firstLossAt == nil { firstLossAt = Date() }
+            let sum = streamFrames.addingReportingOverflow(frames)
+            streamFrames = sum.overflow ? .max : sum.partialValue
+        }
         lock.unlock()
-        return wasClear
+        return wasClear && frames > 0
     }
 
     func addHubBuffers(_ count: Int) -> Bool {
         lock.lock()
         let wasClear = streamFrames == 0 && hubBuffers == 0
-        hubBuffers += count
+        if count > 0 {
+            if firstLossAt == nil { firstLossAt = Date() }
+            let sum = hubBuffers.addingReportingOverflow(count)
+            hubBuffers = sum.overflow ? .max : sum.partialValue
+        }
         lock.unlock()
-        return wasClear
+        return wasClear && count > 0
     }
 
     var hasLoss: Bool {

@@ -1,0 +1,17 @@
+--- a/Sources/NextNotes/UI/DesignSystem.swift
++++ b/Sources/NextNotes/UI/DesignSystem.swift
+@@ -23,5 +24,9 @@ enum DS {
+-        // Text
+-        static let text = SwiftUI.Color.primary
+-        static let textSecondary = SwiftUI.Color.secondary
+-        static let textTertiary = SwiftUI.Color(nsColor: .tertiaryLabelColor)
+-        static let placeholder = SwiftUI.Color(nsColor: .placeholderTextColor)
++        // Text — fixed light ink. Every name below resolves into `Theme.Palette`;
++        // nothing here reads the Mac's appearance any more (owner decision 2026-10-01).
++        static let text = Theme.Palette.foreground
++        static let textSecondary = Theme.Palette.mutedForeground
++        /// Tertiary system text would be unreadably faint on the fixed light
++        /// substrate, so it resolves to the same readable muted ink as secondary.
++        /// `graphTopic` follows it there; that is a reviewed consequence, not an accident.
++        static let textTertiary = Theme.Palette.mutedForeground
++        static let placeholder = Theme.Palette.mutedForeground

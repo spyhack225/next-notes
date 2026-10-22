@@ -15,6 +15,14 @@ struct SectionHeading: View {
     let title: String
     var eyebrow: String?
     var subtitle: String?
+    /// Optional serif-italic accent span appended to the title ("Be present." +
+    /// "Keep your promises."). Caller supplies lead and accent as separate strings —
+    /// never split by word, punctuation, localized text, tool output, or meeting
+    /// title, and never for dynamic content (titles stay plain). Nil keeps the
+    /// existing plain heading.
+    var accent: String? = nil
+    /// Explicit compact level for pane chrome; dynamic headings keep their plain style.
+    var accentLevel: ThemeHeadline.Level = .section
     /// From the vocabulary in `AGENTS.md` — what this section of the app is *about*.
     var orb: OrbGeometry.State?
     var orbSize: CGFloat = DS.Size.orbSmall
@@ -42,11 +50,16 @@ struct SectionHeading: View {
                         .textCase(.uppercase)
                         .foregroundStyle(DS.Color.textSecondary)
                 }
-                Text(title)
-                    .font(DS.Font.title3)
-                    .tracking(DS.Font.wordTracking)
-                    .foregroundStyle(DS.Color.text)
-                    .fixedSize(horizontal: false, vertical: true)
+                if let accent {
+                    ThemeHeadline(lead: title, accent: accent, level: accentLevel)
+                        .fixedSize(horizontal: false, vertical: true)
+                } else {
+                    Text(title)
+                        .font(DS.Font.title3)
+                        .tracking(DS.Font.wordTracking)
+                        .foregroundStyle(DS.Color.text)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
                 if let subtitle {
                     Text(subtitle)
                         .font(DS.Font.subheadline)

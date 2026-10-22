@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "id": "yyyy-mm-dd-area-configuration",
+  "title": "Describe the tested configuration",
+  "date": "2026-10-22",
+  "category": "other",
+  "status": "unrun",
+  "scope": "Exact producer and consumer under test",
+  "summary": "No accepted measurement yet.",
+  "environment": {
+    "hardware": "unknown",
+    "os": "unknown",
+    "workload": "unknown",
+    "power_thermal": "unknown"
+  },
+  "provenance": {
+    "source_revision": "unknown",
+    "binary_sha256": "unknown",
+    "model_revision": "unknown",
+    "fixture_sha256": "unknown",
+    "command": "unknown",
+    "grader": "unknown"
+  },
+  "metrics": [],
+  "limitations": [
+    "Record missing evidence and open acceptance."
+  ],
+  "sources": [
+    "PERFORMANCE-STANDARDS.md"
+  ],
+  "publication": {
+    "approved": false,
+    "reviewed_by": null,
+    "reviewed_on": null
+  }
+}

@@ -1,0 +1,5309 @@
+{
+  "schema": "asr-runtime-probe.v1",
+  "machine": "macOS-27.2-arm64-arm-64bit-Mach-O",
+  "chip": "Apple M3",
+  "engine_revision": "d6c7d6a2e9655505e0f8e23339356dd1705900eb",
+  "runtime_sha256": "0137354250a85fa52d100de948ccff9d9f7d8dd73ced0eea19c38f6e351aef55",
+  "temporary_model_bytes": 16919407,
+  "free_disk_before_bytes": 6125518848,
+  "child_exit": 0,
+  "stderr": "",
+  "stdout": "",
+  "benchmark": {
+    "engine": "Whistle",
+    "model_revision": "741118687e1f008f06d1351a402a731274789790",
+    "model_sha256": "b6e02f048568ac5d01a2042556c658061e699acbc0aa2a1439f52f3d461dffeb",
+    "load_ms": 5.040624993853271,
+    "trials": [
+      {
+        "fixture": "Tests/Fixtures/meetings/en-dialogue.wav",
+        "sha256": "5e4c00f6c703bd20e49bd8e7470703776311169e3ba0aff8d8fd247bd875f203",
+        "language": "en",
+        "trial": 0,
+        "first_inference_after_load": true,
+        "audio_seconds": 60.585375,
+        "wall_seconds": 0.4416763339540921,
+        "rtfx": 137.17143152681857,
+        "result": {
+          "text": "Okay so the plan is to ship the installer on Friday. Right, and then we write the release notes together. We need Sam to approve the budget before Thursday. No wait, that is not the same price as yesterday. We sign the contract next week, no exceptions. Agreed, and we schedule delivery for the 15th. The client wants three copies, not two. \"Noted. I will tell the team this afternoon.\" \"Did you see Prea's report about the delays?\" \"Yes. She suggests moving the meeting the Thursday.\" \"Perfect. We booked the room for nine in the morning.\" \"And we invite Jordan for the technical part.\" \"There are twelve thousand dollars left for expenses.\" \"We keep that for surprises in December.\" \"So that is settled. We meet again next Monday.\" \"Great, I will send the summary to night.",
+          "language": "en",
+          "words": [
+            {
+              "word": "Okay",
+              "start": 0.08,
+              "end": 0.56,
+              "probability": 0.846
+            },
+            {
+              "word": "so",
+              "start": 0.56,
+              "end": 0.64,
+              "probability": 0.918
+            },
+            {
+              "word": "the",
+              "start": 0.64,
+              "end": 0.8,
+              "probability": 0.996
+            },
+            {
+              "word": "plan",
+              "start": 0.8,
+              "end": 1.04,
+              "probability": 0.998
+            },
+            {
+              "word": "is",
+              "start": 1.04,
+              "end": 1.2,
+              "probability": 0.998
+            },
+            {
+              "word": "to",
+              "start": 1.2,
+              "end": 1.36,
+              "probability": 1.0
+            },
+            {
+              "word": "ship",
+              "start": 1.36,
+              "end": 1.6,
+              "probability": 0.959
+            },
+            {
+              "word": "the",
+              "start": 1.6,
+              "end": 1.84,
+              "probability": 1.0
+            },
+            {
+              "word": "installer",
+              "start": 1.84,
+              "end": 2.4,
+              "probability": 0.954
+            },
+            {
+              "word": "on",
+              "start": 2.4,
+              "end": 2.56,
+              "probability": 0.998
+            },
+            {
+              "word": "Friday.",
+              "start": 2.56,
+              "end": 2.96,
+              "probability": 0.994
+            },
+            {
+              "word": "Right,",
+              "start": 4.08,
+              "end": 4.4,
+              "probability": 0.95
+            },
+            {
+              "word": "and",
+              "start": 4.64,
+              "end": 4.88,
+              "probability": 0.998
+            },
+            {
+              "word": "then",
+              "start": 4.88,
+              "end": 5.04,
+              "probability": 1.0
+            },
+            {
+              "word": "we",
+              "start": 5.04,
+              "end": 5.28,
+              "probability": 0.994
+            },
+            {
+              "word": "write",
+              "start": 5.28,
+              "end": 5.52,
+              "probability": 0.914
+            },
+            {
+              "word": "the",
+              "start": 5.52,
+              "end": 5.68,
+              "probability": 0.98
+            },
+            {
+              "word": "release",
+              "start": 5.68,
+              "end": 6.0,
+              "probability": 0.975
+            },
+            {
+              "word": "notes",
+              "start": 6.0,
+              "end": 6.24,
+              "probability": 0.522
+            },
+            {
+              "word": "together.",
+              "start": 6.24,
+              "end": 6.72,
+              "probability": 0.972
+            },
+            {
+              "word": "We",
+              "start": 8.0,
+              "end": 8.16,
+              "probability": 0.996
+            },
+            {
+              "word": "need",
+              "start": 8.16,
+              "end": 8.4,
+              "probability": 0.999
+            },
+            {
+              "word": "Sam",
+              "start": 8.4,
+              "end": 8.64,
+              "probability": 0.824
+            },
+            {
+              "word": "to",
+              "start": 8.64,
+              "end": 8.8,
+              "probability": 1.0
+            },
+            {
+              "word": "approve",
+              "start": 8.8,
+              "end": 9.2,
+              "probability": 0.996
+            },
+            {
+              "word": "the",
+              "start": 9.2,
+              "end": 9.36,
+              "probability": 0.998
+            },
+            {
+              "word": "budget",
+              "start": 9.36,
+              "end": 9.6,
+              "probability": 0.996
+            },
+            {
+              "word": "before",
+              "start": 9.6,
+              "end": 9.92,
+              "probability": 0.998
+            },
+            {
+              "word": "Thursday.",
+              "start": 9.92,
+              "end": 10.4,
+              "probability": 0.989
+            },
+            {
+              "word": "No",
+              "start": 11.68,
+              "end": 11.92,
+              "probability": 0.948
+            },
+            {
+              "word": "wait,",
+              "start": 11.92,
+              "end": 12.16,
+              "probability": 0.698
+            },
+            {
+              "word": "that",
+              "start": 12.4,
+              "end": 12.56,
+              "probability": 0.991
+            },
+            {
+              "word": "is",
+              "start": 12.56,
+              "end": 12.8,
+              "probability": 0.996
+            },
+            {
+              "word": "not",
+              "start": 12.8,
+              "end": 12.96,
+              "probability": 0.999
+            },
+            {
+              "word": "the",
+              "start": 12.96,
+              "end": 13.2,
+              "probability": 0.994
+            },
+            {
+              "word": "same",
+              "start": 13.2,
+              "end": 13.52,
+              "probability": 1.0
+            },
+            {
+              "word": "price",
+              "start": 13.52,
+              "end": 13.84,
+              "probability": 0.902
+            },
+            {
+              "word": "as",
+              "start": 13.84,
+              "end": 14.0,
+              "probability": 0.982
+            },
+            {
+              "word": "yesterday.",
+              "start": 14.0,
+              "end": 14.48,
+              "probability": 0.914
+            },
+            {
+              "word": "We",
+              "start": 15.92,
+              "end": 16.08,
+              "probability": 0.997
+            },
+            {
+              "word": "sign",
+              "start": 16.08,
+              "end": 16.32,
+              "probability": 0.996
+            },
+            {
+              "word": "the",
+              "start": 16.32,
+              "end": 16.56,
+              "probability": 0.799
+            },
+            {
+              "word": "contract",
+              "start": 16.56,
+              "end": 16.96,
+              "probability": 0.997
+            },
+            {
+              "word": "next",
+              "start": 16.96,
+              "end": 17.36,
+              "probability": 1.0
+            },
+            {
+              "word": "week,",
+              "start": 17.36,
+              "end": 17.68,
+              "probability": 1.0
+            },
+            {
+              "word": "no",
+              "start": 18.0,
+              "end": 18.16,
+              "probability": 0.973
+            },
+            {
+              "word": "exceptions.",
+              "start": 18.16,
+              "end": 18.88,
+              "probability": 0.999
+            },
+            {
+              "word": "Agreed,",
+              "start": 20.08,
+              "end": 20.56,
+              "probability": 0.861
+            },
+            {
+              "word": "and",
+              "start": 20.72,
+              "end": 20.88,
+              "probability": 0.994
+            },
+            {
+              "word": "we",
+              "start": 20.88,
+              "end": 21.12,
+              "probability": 0.997
+            },
+            {
+              "word": "schedule",
+              "start": 21.12,
+              "end": 21.6,
+              "probability": 0.975
+            },
+            {
+              "word": "delivery",
+              "start": 21.6,
+              "end": 22.08,
+              "probability": 0.994
+            },
+            {
+              "word": "for",
+              "start": 22.08,
+              "end": 22.32,
+              "probability": 0.719
+            },
+            {
+              "word": "the",
+              "start": 22.32,
+              "end": 22.48,
+              "probability": 0.984
+            },
+            {
+              "word": "15th.",
+              "start": 22.48,
+              "end": 23.28,
+              "probability": 0.976
+            },
+            {
+              "word": "The",
+              "start": 24.4,
+              "end": 24.56,
+              "probability": 0.99
+            },
+            {
+              "word": "client",
+              "start": 24.56,
+              "end": 24.88,
+              "probability": 0.991
+            },
+            {
+              "word": "wants",
+              "start": 24.88,
+              "end": 25.2,
+              "probability": 0.997
+            },
+            {
+              "word": "three",
+              "start": 25.2,
+              "end": 25.52,
+              "probability": 0.996
+            },
+            {
+              "word": "copies,",
+              "start": 25.52,
+              "end": 26.08,
+              "probability": 0.99
+            },
+            {
+              "word": "not",
+              "start": 26.4,
+              "end": 26.56,
+              "probability": 0.996
+            },
+            {
+              "word": "two.",
+              "start": 26.56,
+              "end": 26.88,
+              "probability": 0.87
+            },
+            {
+              "word": "\"Noted.",
+              "start": 28.0,
+              "end": 28.4,
+              "probability": 0.846
+            },
+            {
+              "word": "I",
+              "start": 28.64,
+              "end": 28.8,
+              "probability": 0.995
+            },
+            {
+              "word": "will",
+              "start": 28.8,
+              "end": 28.96,
+              "probability": 0.994
+            },
+            {
+              "word": "tell",
+              "start": 28.96,
+              "end": 29.2,
+              "probability": 0.995
+            },
+            {
+              "word": "the",
+              "start": 29.2,
+              "end": 29.52,
+              "probability": 0.953
+            },
+            {
+              "word": "team",
+              "start": 29.52,
+              "end": 29.76,
+              "probability": 0.99
+            },
+            {
+              "word": "this",
+              "start": 29.76,
+              "end": 30.0,
+              "probability": 0.997
+            },
+            {
+              "word": "afternoon.\"",
+              "start": 30.0,
+              "end": 32.0,
+              "probability": 0.985
+            },
+            {
+              "word": "\"Did",
+              "start": 32.0,
+              "end": 32.24,
+              "probability": 0.973
+            },
+            {
+              "word": "you",
+              "start": 32.24,
+              "end": 32.4,
+              "probability": 0.996
+            },
+            {
+              "word": "see",
+              "start": 32.4,
+              "end": 32.56,
+              "probability": 0.998
+            },
+            {
+              "word": "Prea's",
+              "start": 32.56,
+              "end": 32.96,
+              "probability": 0.751
+            },
+            {
+              "word": "report",
+              "start": 32.96,
+              "end": 33.28,
+              "probability": 0.997
+            },
+            {
+              "word": "about",
+              "start": 33.28,
+              "end": 33.6,
+              "probability": 0.997
+            },
+            {
+              "word": "the",
+              "start": 33.6,
+              "end": 33.76,
+              "probability": 0.993
+            },
+            {
+              "word": "delays?\"",
+              "start": 33.76,
+              "end": 35.12,
+              "probability": 0.853
+            },
+            {
+              "word": "\"Yes.",
+              "start": 35.12,
+              "end": 35.52,
+              "probability": 0.993
+            },
+            {
+              "word": "She",
+              "start": 35.84,
+              "end": 36.0,
+              "probability": 0.98
+            },
+            {
+              "word": "suggests",
+              "start": 36.0,
+              "end": 36.48,
+              "probability": 0.687
+            },
+            {
+              "word": "moving",
+              "start": 36.48,
+              "end": 36.8,
+              "probability": 0.982
+            },
+            {
+              "word": "the",
+              "start": 36.8,
+              "end": 37.12,
+              "probability": 0.944
+            },
+            {
+              "word": "meeting",
+              "start": 37.12,
+              "end": 37.36,
+              "probability": 0.996
+            },
+            {
+              "word": "the",
+              "start": 37.36,
+              "end": 37.68,
+              "probability": 0.884
+            },
+            {
+              "word": "Thursday.\"",
+              "start": 37.68,
+              "end": 39.44,
+              "probability": 0.954
+            },
+            {
+              "word": "\"Perfect.",
+              "start": 39.44,
+              "end": 39.92,
+              "probability": 0.976
+            },
+            {
+              "word": "We",
+              "start": 40.24,
+              "end": 40.4,
+              "probability": 0.999
+            },
+            {
+              "word": "booked",
+              "start": 40.4,
+              "end": 40.64,
+              "probability": 0.815
+            },
+            {
+              "word": "the",
+              "start": 40.64,
+              "end": 40.72,
+              "probability": 0.99
+            },
+            {
+              "word": "room",
+              "start": 40.72,
+              "end": 40.88,
+              "probability": 0.998
+            },
+            {
+              "word": "for",
+              "start": 40.88,
+              "end": 41.12,
+              "probability": 0.998
+            },
+            {
+              "word": "nine",
+              "start": 41.12,
+              "end": 41.36,
+              "probability": 0.995
+            },
+            {
+              "word": "in",
+              "start": 41.36,
+              "end": 41.52,
+              "probability": 0.996
+            },
+            {
+              "word": "the",
+              "start": 41.52,
+              "end": 41.6,
+              "probability": 0.997
+            },
+            {
+              "word": "morning.\"",
+              "start": 41.6,
+              "end": 42.96,
+              "probability": 0.972
+            },
+            {
+              "word": "\"And",
+              "start": 42.96,
+              "end": 43.2,
+              "probability": 0.951
+            },
+            {
+              "word": "we",
+              "start": 43.2,
+              "end": 43.44,
+              "probability": 0.995
+            },
+            {
+              "word": "invite",
+              "start": 43.44,
+              "end": 43.76,
+              "probability": 0.99
+            },
+            {
+              "word": "Jordan",
+              "start": 43.76,
+              "end": 44.24,
+              "probability": 0.956
+            },
+            {
+              "word": "for",
+              "start": 44.24,
+              "end": 44.4,
+              "probability": 0.994
+            },
+            {
+              "word": "the",
+              "start": 44.4,
+              "end": 44.64,
+              "probability": 0.974
+            },
+            {
+              "word": "technical",
+              "start": 44.64,
+              "end": 45.2,
+              "probability": 0.95
+            },
+            {
+              "word": "part.\"",
+              "start": 45.2,
+              "end": 46.8,
+              "probability": 0.924
+            },
+            {
+              "word": "\"There",
+              "start": 46.8,
+              "end": 47.04,
+              "probability": 0.909
+            },
+            {
+              "word": "are",
+              "start": 47.04,
+              "end": 47.2,
+              "probability": 0.998
+            },
+            {
+              "word": "twelve",
+              "start": 47.2,
+              "end": 47.52,
+              "probability": 0.965
+            },
+            {
+              "word": "thousand",
+              "start": 47.52,
+              "end": 47.92,
+              "probability": 0.998
+            },
+            {
+              "word": "dollars",
+              "start": 47.92,
+              "end": 48.32,
+              "probability": 0.999
+            },
+            {
+              "word": "left",
+              "start": 48.32,
+              "end": 48.56,
+              "probability": 0.999
+            },
+            {
+              "word": "for",
+              "start": 48.56,
+              "end": 48.8,
+              "probability": 0.998
+            },
+            {
+              "word": "expenses.\"",
+              "start": 48.8,
+              "end": 50.4,
+              "probability": 0.979
+            },
+            {
+              "word": "\"We",
+              "start": 50.4,
+              "end": 50.64,
+              "probability": 0.95
+            },
+            {
+              "word": "keep",
+              "start": 50.64,
+              "end": 50.96,
+              "probability": 0.926
+            },
+            {
+              "word": "that",
+              "start": 50.96,
+              "end": 51.28,
+              "probability": 0.621
+            },
+            {
+              "word": "for",
+              "start": 51.28,
+              "end": 51.44,
+              "probability": 0.895
+            },
+            {
+              "word": "surprises",
+              "start": 51.44,
+              "end": 52.16,
+              "probability": 0.895
+            },
+            {
+              "word": "in",
+              "start": 52.16,
+              "end": 52.32,
+              "probability": 0.981
+            },
+            {
+              "word": "December.\"",
+              "start": 52.32,
+              "end": 54.08,
+              "probability": 0.99
+            },
+            {
+              "word": "\"So",
+              "start": 54.08,
+              "end": 54.4,
+              "probability": 0.975
+            },
+            {
+              "word": "that",
+              "start": 54.4,
+              "end": 54.64,
+              "probability": 0.969
+            },
+            {
+              "word": "is",
+              "start": 54.64,
+              "end": 54.8,
+              "probability": 0.999
+            },
+            {
+              "word": "settled.",
+              "start": 54.8,
+              "end": 55.12,
+              "probability": 0.999
+            },
+            {
+              "word": "We",
+              "start": 55.28,
+              "end": 55.52,
+              "probability": 0.795
+            },
+            {
+              "word": "meet",
+              "start": 55.52,
+              "end": 55.68,
+              "probability": 0.987
+            },
+            {
+              "word": "again",
+              "start": 55.68,
+              "end": 55.92,
+              "probability": 0.984
+            },
+            {
+              "word": "next",
+              "start": 55.92,
+              "end": 56.24,
+              "probability": 0.996
+            },
+            {
+              "word": "Monday.\"",
+              "start": 56.24,
+              "end": 57.84,
+              "probability": 0.924
+            },
+            {
+              "word": "\"Great,",
+              "start": 57.84,
+              "end": 58.16,
+              "probability": 0.96
+            },
+            {
+              "word": "I",
+              "start": 58.4,
+              "end": 58.48,
+              "probability": 0.996
+            },
+            {
+              "word": "will",
+              "start": 58.48,
+              "end": 58.72,
+              "probability": 0.992
+            },
+            {
+              "word": "send",
+              "start": 58.72,
+              "end": 58.96,
+              "probability": 0.943
+            },
+            {
+              "word": "the",
+              "start": 58.96,
+              "end": 59.2,
+              "probability": 0.202
+            },
+            {
+              "word": "summary",
+              "start": 59.2,
+              "end": 59.6,
+              "probability": 0.619
+            },
+            {
+              "word": "to",
+              "start": 59.6,
+              "end": 59.92,
+              "probability": 0.852
+            },
+            {
+              "word": "night.",
+              "start": 59.92,
+              "end": 60.16,
+              "probability": 0.969
+            }
+          ],
+          "ttft_ms": 85.8,
+          "decode_tps": 970.6
+        },
+        "edits": 7,
+        "reference_words": 136,
+        "wer": 0.051470588235294115
+      },
+      {
+        "fixture": "Tests/Fixtures/meetings/en-dialogue.wav",
+        "sha256": "5e4c00f6c703bd20e49bd8e7470703776311169e3ba0aff8d8fd247bd875f203",
+        "language": "en",
+        "trial": 1,
+        "first_inference_after_load": false,
+        "audio_seconds": 60.585375,
+        "wall_seconds": 0.4119978340459056,
+        "rtfx": 147.05265414878238,
+        "result": {
+          "text": "Okay so the plan is to ship the installer on Friday. Right, and then we write the release notes together. We need Sam to approve the budget before Thursday. No wait, that is not the same price as yesterday. We sign the contract next week, no exceptions. Agreed, and we schedule delivery for the 15th. The client wants three copies, not two. \"Noted. I will tell the team this afternoon.\" \"Did you see Prea's report about the delays?\" \"Yes. She suggests moving the meeting the Thursday.\" \"Perfect. We booked the room for nine in the morning.\" \"And we invite Jordan for the technical part.\" \"There are twelve thousand dollars left for expenses.\" \"We keep that for surprises in December.\" \"So that is settled. We meet again next Monday.\" \"Great, I will send the summary to night.",
+          "language": "en",
+          "words": [
+            {
+              "word": "Okay",
+              "start": 0.08,
+              "end": 0.56,
+              "probability": 0.846
+            },
+            {
+              "word": "so",
+              "start": 0.56,
+              "end": 0.64,
+              "probability": 0.918
+            },
+            {
+              "word": "the",
+              "start": 0.64,
+              "end": 0.8,
+              "probability": 0.996
+            },
+            {
+              "word": "plan",
+              "start": 0.8,
+              "end": 1.04,
+              "probability": 0.998
+            },
+            {
+              "word": "is",
+              "start": 1.04,
+              "end": 1.2,
+              "probability": 0.998
+            },
+            {
+              "word": "to",
+              "start": 1.2,
+              "end": 1.36,
+              "probability": 1.0
+            },
+            {
+              "word": "ship",
+              "start": 1.36,
+              "end": 1.6,
+              "probability": 0.959
+            },
+            {
+              "word": "the",
+              "start": 1.6,
+              "end": 1.84,
+              "probability": 1.0
+            },
+            {
+              "word": "installer",
+              "start": 1.84,
+              "end": 2.4,
+              "probability": 0.954
+            },
+            {
+              "word": "on",
+              "start": 2.4,
+              "end": 2.56,
+              "probability": 0.998
+            },
+            {
+              "word": "Friday.",
+              "start": 2.56,
+              "end": 2.96,
+              "probability": 0.994
+            },
+            {
+              "word": "Right,",
+              "start": 4.08,
+              "end": 4.4,
+              "probability": 0.95
+            },
+            {
+              "word": "and",
+              "start": 4.64,
+              "end": 4.88,
+              "probability": 0.998
+            },
+            {
+              "word": "then",
+              "start": 4.88,
+              "end": 5.04,
+              "probability": 1.0
+            },
+            {
+              "word": "we",
+              "start": 5.04,
+              "end": 5.28,
+              "probability": 0.994
+            },
+            {
+              "word": "write",
+              "start": 5.28,
+              "end": 5.52,
+              "probability": 0.914
+            },
+            {
+              "word": "the",
+              "start": 5.52,
+              "end": 5.68,
+              "probability": 0.98
+            },
+            {
+              "word": "release",
+              "start": 5.68,
+              "end": 6.0,
+              "probability": 0.975
+            },
+            {
+              "word": "notes",
+              "start": 6.0,
+              "end": 6.24,
+              "probability": 0.522
+            },
+            {
+              "word": "together.",
+              "start": 6.24,
+              "end": 6.72,
+              "probability": 0.972
+            },
+            {
+              "word": "We",
+              "start": 8.0,
+              "end": 8.16,
+              "probability": 0.996
+            },
+            {
+              "word": "need",
+              "start": 8.16,
+              "end": 8.4,
+              "probability": 0.999
+            },
+            {
+              "word": "Sam",
+              "start": 8.4,
+              "end": 8.64,
+              "probability": 0.824
+            },
+            {
+              "word": "to",
+              "start": 8.64,
+              "end": 8.8,
+              "probability": 1.0
+            },
+            {
+              "word": "approve",
+              "start": 8.8,
+              "end": 9.2,
+              "probability": 0.996
+            },
+            {
+              "word": "the",
+              "start": 9.2,
+              "end": 9.36,
+              "probability": 0.998
+            },
+            {
+              "word": "budget",
+              "start": 9.36,
+              "end": 9.6,
+              "probability": 0.996
+            },
+            {
+              "word": "before",
+              "start": 9.6,
+              "end": 9.92,
+              "probability": 0.998
+            },
+            {
+              "word": "Thursday.",
+              "start": 9.92,
+              "end": 10.4,
+              "probability": 0.989
+            },
+            {
+              "word": "No",
+              "start": 11.68,
+              "end": 11.92,
+              "probability": 0.948
+            },
+            {
+              "word": "wait,",
+              "start": 11.92,
+              "end": 12.16,
+              "probability": 0.698
+            },
+            {
+              "word": "that",
+              "start": 12.4,
+              "end": 12.56,
+              "probability": 0.991
+            },
+            {
+              "word": "is",
+              "start": 12.56,
+              "end": 12.8,
+              "probability": 0.996
+            },
+            {
+              "word": "not",
+              "start": 12.8,
+              "end": 12.96,
+              "probability": 0.999
+            },
+            {
+              "word": "the",
+              "start": 12.96,
+              "end": 13.2,
+              "probability": 0.994
+            },
+            {
+              "word": "same",
+              "start": 13.2,
+              "end": 13.52,
+              "probability": 1.0
+            },
+            {
+              "word": "price",
+              "start": 13.52,
+              "end": 13.84,
+              "probability": 0.902
+            },
+            {
+              "word": "as",
+              "start": 13.84,
+              "end": 14.0,
+              "probability": 0.982
+            },
+            {
+              "word": "yesterday.",
+              "start": 14.0,
+              "end": 14.48,
+              "probability": 0.914
+            },
+            {
+              "word": "We",
+              "start": 15.92,
+              "end": 16.08,
+              "probability": 0.997
+            },
+            {
+              "word": "sign",
+              "start": 16.08,
+              "end": 16.32,
+              "probability": 0.996
+            },
+            {
+              "word": "the",
+              "start": 16.32,
+              "end": 16.56,
+              "probability": 0.799
+            },
+            {
+              "word": "contract",
+              "start": 16.56,
+              "end": 16.96,
+              "probability": 0.997
+            },
+            {
+              "word": "next",
+              "start": 16.96,
+              "end": 17.36,
+              "probability": 1.0
+            },
+            {
+              "word": "week,",
+              "start": 17.36,
+              "end": 17.68,
+              "probability": 1.0
+            },
+            {
+              "word": "no",
+              "start": 18.0,
+              "end": 18.16,
+              "probability": 0.973
+            },
+            {
+              "word": "exceptions.",
+              "start": 18.16,
+              "end": 18.88,
+              "probability": 0.999
+            },
+            {
+              "word": "Agreed,",
+              "start": 20.08,
+              "end": 20.56,
+              "probability": 0.861
+            },
+            {
+              "word": "and",
+              "start": 20.72,
+              "end": 20.88,
+              "probability": 0.994
+            },
+            {
+              "word": "we",
+              "start": 20.88,
+              "end": 21.12,
+              "probability": 0.997
+            },
+            {
+              "word": "schedule",
+              "start": 21.12,
+              "end": 21.6,
+              "probability": 0.975
+            },
+            {
+              "word": "delivery",
+              "start": 21.6,
+              "end": 22.08,
+              "probability": 0.994
+            },
+            {
+              "word": "for",
+              "start": 22.08,
+              "end": 22.32,
+              "probability": 0.719
+            },
+            {
+              "word": "the",
+              "start": 22.32,
+              "end": 22.48,
+              "probability": 0.984
+            },
+            {
+              "word": "15th.",
+              "start": 22.48,
+              "end": 23.28,
+              "probability": 0.976
+            },
+            {
+              "word": "The",
+              "start": 24.4,
+              "end": 24.56,
+              "probability": 0.99
+            },
+            {
+              "word": "client",
+              "start": 24.56,
+              "end": 24.88,
+              "probability": 0.991
+            },
+            {
+              "word": "wants",
+              "start": 24.88,
+              "end": 25.2,
+              "probability": 0.997
+            },
+            {
+              "word": "three",
+              "start": 25.2,
+              "end": 25.52,
+              "probability": 0.996
+            },
+            {
+              "word": "copies,",
+              "start": 25.52,
+              "end": 26.08,
+              "probability": 0.99
+            },
+            {
+              "word": "not",
+              "start": 26.4,
+              "end": 26.56,
+              "probability": 0.996
+            },
+            {
+              "word": "two.",
+              "start": 26.56,
+              "end": 26.88,
+              "probability": 0.87
+            },
+            {
+              "word": "\"Noted.",
+              "start": 28.0,
+              "end": 28.4,
+              "probability": 0.846
+            },
+            {
+              "word": "I",
+              "start": 28.64,
+              "end": 28.8,
+              "probability": 0.995
+            },
+            {
+              "word": "will",
+              "start": 28.8,
+              "end": 28.96,
+              "probability": 0.994
+            },
+            {
+              "word": "tell",
+              "start": 28.96,
+              "end": 29.2,
+              "probability": 0.995
+            },
+            {
+              "word": "the",
+              "start": 29.2,
+              "end": 29.52,
+              "probability": 0.953
+            },
+            {
+              "word": "team",
+              "start": 29.52,
+              "end": 29.76,
+              "probability": 0.99
+            },
+            {
+              "word": "this",
+              "start": 29.76,
+              "end": 30.0,
+              "probability": 0.997
+            },
+            {
+              "word": "afternoon.\"",
+              "start": 30.0,
+              "end": 32.0,
+              "probability": 0.985
+            },
+            {
+              "word": "\"Did",
+              "start": 32.0,
+              "end": 32.24,
+              "probability": 0.973
+            },
+            {
+              "word": "you",
+              "start": 32.24,
+              "end": 32.4,
+              "probability": 0.996
+            },
+            {
+              "word": "see",
+              "start": 32.4,
+              "end": 32.56,
+              "probability": 0.998
+            },
+            {
+              "word": "Prea's",
+              "start": 32.56,
+              "end": 32.96,
+              "probability": 0.751
+            },
+            {
+              "word": "report",
+              "start": 32.96,
+              "end": 33.28,
+              "probability": 0.997
+            },
+            {
+              "word": "about",
+              "start": 33.28,
+              "end": 33.6,
+              "probability": 0.997
+            },
+            {
+              "word": "the",
+              "start": 33.6,
+              "end": 33.76,
+              "probability": 0.993
+            },
+            {
+              "word": "delays?\"",
+              "start": 33.76,
+              "end": 35.12,
+              "probability": 0.853
+            },
+            {
+              "word": "\"Yes.",
+              "start": 35.12,
+              "end": 35.52,
+              "probability": 0.993
+            },
+            {
+              "word": "She",
+              "start": 35.84,
+              "end": 36.0,
+              "probability": 0.98
+            },
+            {
+              "word": "suggests",
+              "start": 36.0,
+              "end": 36.48,
+              "probability": 0.687
+            },
+            {
+              "word": "moving",
+              "start": 36.48,
+              "end": 36.8,
+              "probability": 0.982
+            },
+            {
+              "word": "the",
+              "start": 36.8,
+              "end": 37.12,
+              "probability": 0.944
+            },
+            {
+              "word": "meeting",
+              "start": 37.12,
+              "end": 37.36,
+              "probability": 0.996
+            },
+            {
+              "word": "the",
+              "start": 37.36,
+              "end": 37.68,
+              "probability": 0.884
+            },
+            {
+              "word": "Thursday.\"",
+              "start": 37.68,
+              "end": 39.44,
+              "probability": 0.954
+            },
+            {
+              "word": "\"Perfect.",
+              "start": 39.44,
+              "end": 39.92,
+              "probability": 0.976
+            },
+            {
+              "word": "We",
+              "start": 40.24,
+              "end": 40.4,
+              "probability": 0.999
+            },
+            {
+              "word": "booked",
+              "start": 40.4,
+              "end": 40.64,
+              "probability": 0.815
+            },
+            {
+              "word": "the",
+              "start": 40.64,
+              "end": 40.72,
+              "probability": 0.99
+            },
+            {
+              "word": "room",
+              "start": 40.72,
+              "end": 40.88,
+              "probability": 0.998
+            },
+            {
+              "word": "for",
+              "start": 40.88,
+              "end": 41.12,
+              "probability": 0.998
+            },
+            {
+              "word": "nine",
+              "start": 41.12,
+              "end": 41.36,
+              "probability": 0.995
+            },
+            {
+              "word": "in",
+              "start": 41.36,
+              "end": 41.52,
+              "probability": 0.996
+            },
+            {
+              "word": "the",
+              "start": 41.52,
+              "end": 41.6,
+              "probability": 0.997
+            },
+            {
+              "word": "morning.\"",
+              "start": 41.6,
+              "end": 42.96,
+              "probability": 0.972
+            },
+            {
+              "word": "\"And",
+              "start": 42.96,
+              "end": 43.2,
+              "probability": 0.951
+            },
+            {
+              "word": "we",
+              "start": 43.2,
+              "end": 43.44,
+              "probability": 0.995
+            },
+            {
+              "word": "invite",
+              "start": 43.44,
+              "end": 43.76,
+              "probability": 0.99
+            },
+            {
+              "word": "Jordan",
+              "start": 43.76,
+              "end": 44.24,
+              "probability": 0.956
+            },
+            {
+              "word": "for",
+              "start": 44.24,
+              "end": 44.4,
+              "probability": 0.994
+            },
+            {
+              "word": "the",
+              "start": 44.4,
+              "end": 44.64,
+              "probability": 0.974
+            },
+            {
+              "word": "technical",
+              "start": 44.64,
+              "end": 45.2,
+              "probability": 0.95
+            },
+            {
+              "word": "part.\"",
+              "start": 45.2,
+              "end": 46.8,
+              "probability": 0.924
+            },
+            {
+              "word": "\"There",
+              "start": 46.8,
+              "end": 47.04,
+              "probability": 0.909
+            },
+            {
+              "word": "are",
+              "start": 47.04,
+              "end": 47.2,
+              "probability": 0.998
+            },
+            {
+              "word": "twelve",
+              "start": 47.2,
+              "end": 47.52,
+              "probability": 0.965
+            },
+            {
+              "word": "thousand",
+              "start": 47.52,
+              "end": 47.92,
+              "probability": 0.998
+            },
+            {
+              "word": "dollars",
+              "start": 47.92,
+              "end": 48.32,
+              "probability": 0.999
+            },
+            {
+              "word": "left",
+              "start": 48.32,
+              "end": 48.56,
+              "probability": 0.999
+            },
+            {
+              "word": "for",
+              "start": 48.56,
+              "end": 48.8,
+              "probability": 0.998
+            },
+            {
+              "word": "expenses.\"",
+              "start": 48.8,
+              "end": 50.4,
+              "probability": 0.979
+            },
+            {
+              "word": "\"We",
+              "start": 50.4,
+              "end": 50.64,
+              "probability": 0.95
+            },
+            {
+              "word": "keep",
+              "start": 50.64,
+              "end": 50.96,
+              "probability": 0.926
+            },
+            {
+              "word": "that",
+              "start": 50.96,
+              "end": 51.28,
+              "probability": 0.621
+            },
+            {
+              "word": "for",
+              "start": 51.28,
+              "end": 51.44,
+              "probability": 0.895
+            },
+            {
+              "word": "surprises",
+              "start": 51.44,
+              "end": 52.16,
+              "probability": 0.895
+            },
+            {
+              "word": "in",
+              "start": 52.16,
+              "end": 52.32,
+              "probability": 0.981
+            },
+            {
+              "word": "December.\"",
+              "start": 52.32,
+              "end": 54.08,
+              "probability": 0.99
+            },
+            {
+              "word": "\"So",
+              "start": 54.08,
+              "end": 54.4,
+              "probability": 0.975
+            },
+            {
+              "word": "that",
+              "start": 54.4,
+              "end": 54.64,
+              "probability": 0.969
+            },
+            {
+              "word": "is",
+              "start": 54.64,
+              "end": 54.8,
+              "probability": 0.999
+            },
+            {
+              "word": "settled.",
+              "start": 54.8,
+              "end": 55.12,
+              "probability": 0.999
+            },
+            {
+              "word": "We",
+              "start": 55.28,
+              "end": 55.52,
+              "probability": 0.795
+            },
+            {
+              "word": "meet",
+              "start": 55.52,
+              "end": 55.68,
+              "probability": 0.987
+            },
+            {
+              "word": "again",
+              "start": 55.68,
+              "end": 55.92,
+              "probability": 0.984
+            },
+            {
+              "word": "next",
+              "start": 55.92,
+              "end": 56.24,
+              "probability": 0.996
+            },
+            {
+              "word": "Monday.\"",
+              "start": 56.24,
+              "end": 57.84,
+              "probability": 0.924
+            },
+            {
+              "word": "\"Great,",
+              "start": 57.84,
+              "end": 58.16,
+              "probability": 0.96
+            },
+            {
+              "word": "I",
+              "start": 58.4,
+              "end": 58.48,
+              "probability": 0.996
+            },
+            {
+              "word": "will",
+              "start": 58.48,
+              "end": 58.72,
+              "probability": 0.992
+            },
+            {
+              "word": "send",
+              "start": 58.72,
+              "end": 58.96,
+              "probability": 0.943
+            },
+            {
+              "word": "the",
+              "start": 58.96,
+              "end": 59.2,
+              "probability": 0.202
+            },
+            {
+              "word": "summary",
+              "start": 59.2,
+              "end": 59.6,
+              "probability": 0.619
+            },
+            {
+              "word": "to",
+              "start": 59.6,
+              "end": 59.92,
+              "probability": 0.852
+            },
+            {
+              "word": "night.",
+              "start": 59.92,
+              "end": 60.16,
+              "probability": 0.969
+            }
+          ],
+          "ttft_ms": 39.5,
+          "decode_tps": 894.8
+        },
+        "edits": 7,
+        "reference_words": 136,
+        "wer": 0.051470588235294115
+      },
+      {
+        "fixture": "Tests/Fixtures/meetings/en-dialogue.wav",
+        "sha256": "5e4c00f6c703bd20e49bd8e7470703776311169e3ba0aff8d8fd247bd875f203",
+        "language": "en",
+        "trial": 2,
+        "first_inference_after_load": false,
+        "audio_seconds": 60.585375,
+        "wall_seconds": 0.394857959006913,
+        "rtfx": 153.4358713507388,
+        "result": {
+          "text": "Okay so the plan is to ship the installer on Friday. Right, and then we write the release notes together. We need Sam to approve the budget before Thursday. No wait, that is not the same price as yesterday. We sign the contract next week, no exceptions. Agreed, and we schedule delivery for the 15th. The client wants three copies, not two. \"Noted. I will tell the team this afternoon.\" \"Did you see Prea's report about the delays?\" \"Yes. She suggests moving the meeting the Thursday.\" \"Perfect. We booked the room for nine in the morning.\" \"And we invite Jordan for the technical part.\" \"There are twelve thousand dollars left for expenses.\" \"We keep that for surprises in December.\" \"So that is settled. We meet again next Monday.\" \"Great, I will send the summary to night.",
+          "language": "en",
+          "words": [
+            {
+              "word": "Okay",
+              "start": 0.08,
+              "end": 0.56,
+              "probability": 0.846
+            },
+            {
+              "word": "so",
+              "start": 0.56,
+              "end": 0.64,
+              "probability": 0.918
+            },
+            {
+              "word": "the",
+              "start": 0.64,
+              "end": 0.8,
+              "probability": 0.996
+            },
+            {
+              "word": "plan",
+              "start": 0.8,
+              "end": 1.04,
+              "probability": 0.998
+            },
+            {
+              "word": "is",
+              "start": 1.04,
+              "end": 1.2,
+              "probability": 0.998
+            },
+            {
+              "word": "to",
+              "start": 1.2,
+              "end": 1.36,
+              "probability": 1.0
+            },
+            {
+              "word": "ship",
+              "start": 1.36,
+              "end": 1.6,
+              "probability": 0.959
+            },
+            {
+              "word": "the",
+              "start": 1.6,
+              "end": 1.84,
+              "probability": 1.0
+            },
+            {
+              "word": "installer",
+              "start": 1.84,
+              "end": 2.4,
+              "probability": 0.954
+            },
+            {
+              "word": "on",
+              "start": 2.4,
+              "end": 2.56,
+              "probability": 0.998
+            },
+            {
+              "word": "Friday.",
+              "start": 2.56,
+              "end": 2.96,
+              "probability": 0.994
+            },
+            {
+              "word": "Right,",
+              "start": 4.08,
+              "end": 4.4,
+              "probability": 0.95
+            },
+            {
+              "word": "and",
+              "start": 4.64,
+              "end": 4.88,
+              "probability": 0.998
+            },
+            {
+              "word": "then",
+              "start": 4.88,
+              "end": 5.04,
+              "probability": 1.0
+            },
+            {
+              "word": "we",
+              "start": 5.04,
+              "end": 5.28,
+              "probability": 0.994
+            },
+            {
+              "word": "write",
+              "start": 5.28,
+              "end": 5.52,
+              "probability": 0.914
+            },
+            {
+              "word": "the",
+              "start": 5.52,
+              "end": 5.68,
+              "probability": 0.98
+            },
+            {
+              "word": "release",
+              "start": 5.68,
+              "end": 6.0,
+              "probability": 0.975
+            },
+            {
+              "word": "notes",
+              "start": 6.0,
+              "end": 6.24,
+              "probability": 0.522
+            },
+            {
+              "word": "together.",
+              "start": 6.24,
+              "end": 6.72,
+              "probability": 0.972
+            },
+            {
+              "word": "We",
+              "start": 8.0,
+              "end": 8.16,
+              "probability": 0.996
+            },
+            {
+              "word": "need",
+              "start": 8.16,
+              "end": 8.4,
+              "probability": 0.999
+            },
+            {
+              "word": "Sam",
+              "start": 8.4,
+              "end": 8.64,
+              "probability": 0.824
+            },
+            {
+              "word": "to",
+              "start": 8.64,
+              "end": 8.8,
+              "probability": 1.0
+            },
+            {
+              "word": "approve",
+              "start": 8.8,
+              "end": 9.2,
+              "probability": 0.996
+            },
+            {
+              "word": "the",
+              "start": 9.2,
+              "end": 9.36,
+              "probability": 0.998
+            },
+            {
+              "word": "budget",
+              "start": 9.36,
+              "end": 9.6,
+              "probability": 0.996
+            },
+            {
+              "word": "before",
+              "start": 9.6,
+              "end": 9.92,
+              "probability": 0.998
+            },
+            {
+              "word": "Thursday.",
+              "start": 9.92,
+              "end": 10.4,
+              "probability": 0.989
+            },
+            {
+              "word": "No",
+              "start": 11.68,
+              "end": 11.92,
+              "probability": 0.948
+            },
+            {
+              "word": "wait,",
+              "start": 11.92,
+              "end": 12.16,
+              "probability": 0.698
+            },
+            {
+              "word": "that",
+              "start": 12.4,
+              "end": 12.56,
+              "probability": 0.991
+            },
+            {
+              "word": "is",
+              "start": 12.56,
+              "end": 12.8,
+              "probability": 0.996
+            },
+            {
+              "word": "not",
+              "start": 12.8,
+              "end": 12.96,
+              "probability": 0.999
+            },
+            {
+              "word": "the",
+              "start": 12.96,
+              "end": 13.2,
+              "probability": 0.994
+            },
+            {
+              "word": "same",
+              "start": 13.2,
+              "end": 13.52,
+              "probability": 1.0
+            },
+            {
+              "word": "price",
+              "start": 13.52,
+              "end": 13.84,
+              "probability": 0.902
+            },
+            {
+              "word": "as",
+              "start": 13.84,
+              "end": 14.0,
+              "probability": 0.982
+            },
+            {
+              "word": "yesterday.",
+              "start": 14.0,
+              "end": 14.48,
+              "probability": 0.914
+            },
+            {
+              "word": "We",
+              "start": 15.92,
+              "end": 16.08,
+              "probability": 0.997
+            },
+            {
+              "word": "sign",
+              "start": 16.08,
+              "end": 16.32,
+              "probability": 0.996
+            },
+            {
+              "word": "the",
+              "start": 16.32,
+              "end": 16.56,
+              "probability": 0.799
+            },
+            {
+              "word": "contract",
+              "start": 16.56,
+              "end": 16.96,
+              "probability": 0.997
+            },
+            {
+              "word": "next",
+              "start": 16.96,
+              "end": 17.36,
+              "probability": 1.0
+            },
+            {
+              "word": "week,",
+              "start": 17.36,
+              "end": 17.68,
+              "probability": 1.0
+            },
+            {
+              "word": "no",
+              "start": 18.0,
+              "end": 18.16,
+              "probability": 0.973
+            },
+            {
+              "word": "exceptions.",
+              "start": 18.16,
+              "end": 18.88,
+              "probability": 0.999
+            },
+            {
+              "word": "Agreed,",
+              "start": 20.08,
+              "end": 20.56,
+              "probability": 0.861
+            },
+            {
+              "word": "and",
+              "start": 20.72,
+              "end": 20.88,
+              "probability": 0.994
+            },
+            {
+              "word": "we",
+              "start": 20.88,
+              "end": 21.12,
+              "probability": 0.997
+            },
+            {
+              "word": "schedule",
+              "start": 21.12,
+              "end": 21.6,
+              "probability": 0.975
+            },
+            {
+              "word": "delivery",
+              "start": 21.6,
+              "end": 22.08,
+              "probability": 0.994
+            },
+            {
+              "word": "for",
+              "start": 22.08,
+              "end": 22.32,
+              "probability": 0.719
+            },
+            {
+              "word": "the",
+              "start": 22.32,
+              "end": 22.48,
+              "probability": 0.984
+            },
+            {
+              "word": "15th.",
+              "start": 22.48,
+              "end": 23.28,
+              "probability": 0.976
+            },
+            {
+              "word": "The",
+              "start": 24.4,
+              "end": 24.56,
+              "probability": 0.99
+            },
+            {
+              "word": "client",
+              "start": 24.56,
+              "end": 24.88,
+              "probability": 0.991
+            },
+            {
+              "word": "wants",
+              "start": 24.88,
+              "end": 25.2,
+              "probability": 0.997
+            },
+            {
+              "word": "three",
+              "start": 25.2,
+              "end": 25.52,
+              "probability": 0.996
+            },
+            {
+              "word": "copies,",
+              "start": 25.52,
+              "end": 26.08,
+              "probability": 0.99
+            },
+            {
+              "word": "not",
+              "start": 26.4,
+              "end": 26.56,
+              "probability": 0.996
+            },
+            {
+              "word": "two.",
+              "start": 26.56,
+              "end": 26.88,
+              "probability": 0.87
+            },
+            {
+              "word": "\"Noted.",
+              "start": 28.0,
+              "end": 28.4,
+              "probability": 0.846
+            },
+            {
+              "word": "I",
+              "start": 28.64,
+              "end": 28.8,
+              "probability": 0.995
+            },
+            {
+              "word": "will",
+              "start": 28.8,
+              "end": 28.96,
+              "probability": 0.994
+            },
+            {
+              "word": "tell",
+              "start": 28.96,
+              "end": 29.2,
+              "probability": 0.995
+            },
+            {
+              "word": "the",
+              "start": 29.2,
+              "end": 29.52,
+              "probability": 0.953
+            },
+            {
+              "word": "team",
+              "start": 29.52,
+              "end": 29.76,
+              "probability": 0.99
+            },
+            {
+              "word": "this",
+              "start": 29.76,
+              "end": 30.0,
+              "probability": 0.997
+            },
+            {
+              "word": "afternoon.\"",
+              "start": 30.0,
+              "end": 32.0,
+              "probability": 0.985
+            },
+            {
+              "word": "\"Did",
+              "start": 32.0,
+              "end": 32.24,
+              "probability": 0.973
+            },
+            {
+              "word": "you",
+              "start": 32.24,
+              "end": 32.4,
+              "probability": 0.996
+            },
+            {
+              "word": "see",
+              "start": 32.4,
+              "end": 32.56,
+              "probability": 0.998
+            },
+            {
+              "word": "Prea's",
+              "start": 32.56,
+              "end": 32.96,
+              "probability": 0.751
+            },
+            {
+              "word": "report",
+              "start": 32.96,
+              "end": 33.28,
+              "probability": 0.997
+            },
+            {
+              "word": "about",
+              "start": 33.28,
+              "end": 33.6,
+              "probability": 0.997
+            },
+            {
+              "word": "the",
+              "start": 33.6,
+              "end": 33.76,
+              "probability": 0.993
+            },
+            {
+              "word": "delays?\"",
+              "start": 33.76,
+              "end": 35.12,
+              "probability": 0.853
+            },
+            {
+              "word": "\"Yes.",
+              "start": 35.12,
+              "end": 35.52,
+              "probability": 0.993
+            },
+            {
+              "word": "She",
+              "start": 35.84,
+              "end": 36.0,
+              "probability": 0.98
+            },
+            {
+              "word": "suggests",
+              "start": 36.0,
+              "end": 36.48,
+              "probability": 0.687
+            },
+            {
+              "word": "moving",
+              "start": 36.48,
+              "end": 36.8,
+              "probability": 0.982
+            },
+            {
+              "word": "the",
+              "start": 36.8,
+              "end": 37.12,
+              "probability": 0.944
+            },
+            {
+              "word": "meeting",
+              "start": 37.12,
+              "end": 37.36,
+              "probability": 0.996
+            },
+            {
+              "word": "the",
+              "start": 37.36,
+              "end": 37.68,
+              "probability": 0.884
+            },
+            {
+              "word": "Thursday.\"",
+              "start": 37.68,
+              "end": 39.44,
+              "probability": 0.954
+            },
+            {
+              "word": "\"Perfect.",
+              "start": 39.44,
+              "end": 39.92,
+              "probability": 0.976
+            },
+            {
+              "word": "We",
+              "start": 40.24,
+              "end": 40.4,
+              "probability": 0.999
+            },
+            {
+              "word": "booked",
+              "start": 40.4,
+              "end": 40.64,
+              "probability": 0.815
+            },
+            {
+              "word": "the",
+              "start": 40.64,
+              "end": 40.72,
+              "probability": 0.99
+            },
+            {
+              "word": "room",
+              "start": 40.72,
+              "end": 40.88,
+              "probability": 0.998
+            },
+            {
+              "word": "for",
+              "start": 40.88,
+              "end": 41.12,
+              "probability": 0.998
+            },
+            {
+              "word": "nine",
+              "start": 41.12,
+              "end": 41.36,
+              "probability": 0.995
+            },
+            {
+              "word": "in",
+              "start": 41.36,
+              "end": 41.52,
+              "probability": 0.996
+            },
+            {
+              "word": "the",
+              "start": 41.52,
+              "end": 41.6,
+              "probability": 0.997
+            },
+            {
+              "word": "morning.\"",
+              "start": 41.6,
+              "end": 42.96,
+              "probability": 0.972
+            },
+            {
+              "word": "\"And",
+              "start": 42.96,
+              "end": 43.2,
+              "probability": 0.951
+            },
+            {
+              "word": "we",
+              "start": 43.2,
+              "end": 43.44,
+              "probability": 0.995
+            },
+            {
+              "word": "invite",
+              "start": 43.44,
+              "end": 43.76,
+              "probability": 0.99
+            },
+            {
+              "word": "Jordan",
+              "start": 43.76,
+              "end": 44.24,
+              "probability": 0.956
+            },
+            {
+              "word": "for",
+              "start": 44.24,
+              "end": 44.4,
+              "probability": 0.994
+            },
+            {
+              "word": "the",
+              "start": 44.4,
+              "end": 44.64,
+              "probability": 0.974
+            },
+            {
+              "word": "technical",
+              "start": 44.64,
+              "end": 45.2,
+              "probability": 0.95
+            },
+            {
+              "word": "part.\"",
+              "start": 45.2,
+              "end": 46.8,
+              "probability": 0.924
+            },
+            {
+              "word": "\"There",
+              "start": 46.8,
+              "end": 47.04,
+              "probability": 0.909
+            },
+            {
+              "word": "are",
+              "start": 47.04,
+              "end": 47.2,
+              "probability": 0.998
+            },
+            {
+              "word": "twelve",
+              "start": 47.2,
+              "end": 47.52,
+              "probability": 0.965
+            },
+            {
+              "word": "thousand",
+              "start": 47.52,
+              "end": 47.92,
+              "probability": 0.998
+            },
+            {
+              "word": "dollars",
+              "start": 47.92,
+              "end": 48.32,
+              "probability": 0.999
+            },
+            {
+              "word": "left",
+              "start": 48.32,
+              "end": 48.56,
+              "probability": 0.999
+            },
+            {
+              "word": "for",
+              "start": 48.56,
+              "end": 48.8,
+              "probability": 0.998
+            },
+            {
+              "word": "expenses.\"",
+              "start": 48.8,
+              "end": 50.4,
+              "probability": 0.979
+            },
+            {
+              "word": "\"We",
+              "start": 50.4,
+              "end": 50.64,
+              "probability": 0.95
+            },
+            {
+              "word": "keep",
+              "start": 50.64,
+              "end": 50.96,
+              "probability": 0.926
+            },
+            {
+              "word": "that",
+              "start": 50.96,
+              "end": 51.28,
+              "probability": 0.621
+            },
+            {
+              "word": "for",
+              "start": 51.28,
+              "end": 51.44,
+              "probability": 0.895
+            },
+            {
+              "word": "surprises",
+              "start": 51.44,
+              "end": 52.16,
+              "probability": 0.895
+            },
+            {
+              "word": "in",
+              "start": 52.16,
+              "end": 52.32,
+              "probability": 0.981
+            },
+            {
+              "word": "December.\"",
+              "start": 52.32,
+              "end": 54.08,
+              "probability": 0.99
+            },
+            {
+              "word": "\"So",
+              "start": 54.08,
+              "end": 54.4,
+              "probability": 0.975
+            },
+            {
+              "word": "that",
+              "start": 54.4,
+              "end": 54.64,
+              "probability": 0.969
+            },
+            {
+              "word": "is",
+              "start": 54.64,
+              "end": 54.8,
+              "probability": 0.999
+            },
+            {
+              "word": "settled.",
+              "start": 54.8,
+              "end": 55.12,
+              "probability": 0.999
+            },
+            {
+              "word": "We",
+              "start": 55.28,
+              "end": 55.52,
+              "probability": 0.795
+            },
+            {
+              "word": "meet",
+              "start": 55.52,
+              "end": 55.68,
+              "probability": 0.987
+            },
+            {
+              "word": "again",
+              "start": 55.68,
+              "end": 55.92,
+              "probability": 0.984
+            },
+            {
+              "word": "next",
+              "start": 55.92,
+              "end": 56.24,
+              "probability": 0.996
+            },
+            {
+              "word": "Monday.\"",
+              "start": 56.24,
+              "end": 57.84,
+              "probability": 0.924
+            },
+            {
+              "word": "\"Great,",
+              "start": 57.84,
+              "end": 58.16,
+              "probability": 0.96
+            },
+            {
+              "word": "I",
+              "start": 58.4,
+              "end": 58.48,
+              "probability": 0.996
+            },
+            {
+              "word": "will",
+              "start": 58.48,
+              "end": 58.72,
+              "probability": 0.992
+            },
+            {
+              "word": "send",
+              "start": 58.72,
+              "end": 58.96,
+              "probability": 0.943
+            },
+            {
+              "word": "the",
+              "start": 58.96,
+              "end": 59.2,
+              "probability": 0.202
+            },
+            {
+              "word": "summary",
+              "start": 59.2,
+              "end": 59.6,
+              "probability": 0.619
+            },
+            {
+              "word": "to",
+              "start": 59.6,
+              "end": 59.92,
+              "probability": 0.852
+            },
+            {
+              "word": "night.",
+              "start": 59.92,
+              "end": 60.16,
+              "probability": 0.969
+            }
+          ],
+          "ttft_ms": 42.3,
+          "decode_tps": 994.8
+        },
+        "edits": 7,
+        "reference_words": 136,
+        "wer": 0.051470588235294115
+      },
+      {
+        "fixture": "Tests/Fixtures/meetings/fr-dialogue.wav",
+        "sha256": "b25cfc815260c4184ef564150417b48201013ecf1baec9802914899e05e3b8c5",
+        "language": "fr",
+        "trial": 0,
+        "first_inference_after_load": false,
+        "audio_seconds": 58.406875,
+        "wall_seconds": 0.6689760420122184,
+        "rtfx": 87.30787252756839,
+        "result": {
+          "text": "Donc on garde le budget à 40 000 pour le moment. Oui, c'est ça. Je t'envoie le gris dans ma matin. Il faut que Marc valide avec la banque avant vendredi. Non, mais attends, ce n'est pas le même prix clair. On signe le contrat à la semaine prochaine, sans faute. D'accord ? Et on prévoit la mise en oeuvre le 15. Le client veut trois exemplaires ? Pas deux. Je note ça. Je prévu un éclipse cet après-midi. Tu as vu le rapport de Sophie sur les retards ? Oui, elle propose de décamer la réunion à Jody. Parfait, on confirme la salle pour 9 heures. Et on a mis Carib pour la partie technique. Il reste 12 000 euros sur l'enveloppe travaux. On l'égard pour mes uns prévus de décembre. Alors c'est réglé, on se revoit lundi prochain. Très bien, je t'envoie le compte français de ce soir.",
+          "language": "fr",
+          "words": [
+            {
+              "word": "Donc",
+              "start": 0.08,
+              "end": 0.4,
+              "probability": 0.982
+            },
+            {
+              "word": "on",
+              "start": 0.4,
+              "end": 0.48,
+              "probability": 0.847
+            },
+            {
+              "word": "garde",
+              "start": 0.48,
+              "end": 0.8,
+              "probability": 0.975
+            },
+            {
+              "word": "le",
+              "start": 0.8,
+              "end": 0.96,
+              "probability": 1.0
+            },
+            {
+              "word": "budget",
+              "start": 0.96,
+              "end": 1.28,
+              "probability": 0.983
+            },
+            {
+              "word": "à",
+              "start": 1.28,
+              "end": 1.44,
+              "probability": 1.0
+            },
+            {
+              "word": "40",
+              "start": 1.44,
+              "end": 1.76,
+              "probability": 0.989
+            },
+            {
+              "word": "000",
+              "start": 1.76,
+              "end": 2.08,
+              "probability": 0.99
+            },
+            {
+              "word": "pour",
+              "start": 2.08,
+              "end": 2.32,
+              "probability": 1.0
+            },
+            {
+              "word": "le",
+              "start": 2.32,
+              "end": 2.48,
+              "probability": 1.0
+            },
+            {
+              "word": "moment.",
+              "start": 2.48,
+              "end": 2.72,
+              "probability": 1.0
+            },
+            {
+              "word": "Oui,",
+              "start": 3.76,
+              "end": 4.0,
+              "probability": 0.979
+            },
+            {
+              "word": "c'est",
+              "start": 4.0,
+              "end": 4.16,
+              "probability": 0.998
+            },
+            {
+              "word": "ça.",
+              "start": 4.16,
+              "end": 4.4,
+              "probability": 0.998
+            },
+            {
+              "word": "Je",
+              "start": 4.56,
+              "end": 4.72,
+              "probability": 0.98
+            },
+            {
+              "word": "t'envoie",
+              "start": 4.72,
+              "end": 5.04,
+              "probability": 0.922
+            },
+            {
+              "word": "le",
+              "start": 5.04,
+              "end": 5.2,
+              "probability": 0.989
+            },
+            {
+              "word": "gris",
+              "start": 5.2,
+              "end": 5.44,
+              "probability": 0.33
+            },
+            {
+              "word": "dans",
+              "start": 5.44,
+              "end": 5.6,
+              "probability": 0.25
+            },
+            {
+              "word": "ma",
+              "start": 5.6,
+              "end": 5.76,
+              "probability": 0.905
+            },
+            {
+              "word": "matin.",
+              "start": 5.76,
+              "end": 6.16,
+              "probability": 0.789
+            },
+            {
+              "word": "Il",
+              "start": 7.36,
+              "end": 7.68,
+              "probability": 0.995
+            },
+            {
+              "word": "faut",
+              "start": 7.68,
+              "end": 7.84,
+              "probability": 0.999
+            },
+            {
+              "word": "que",
+              "start": 7.84,
+              "end": 8.0,
+              "probability": 0.999
+            },
+            {
+              "word": "Marc",
+              "start": 8.0,
+              "end": 8.32,
+              "probability": 0.777
+            },
+            {
+              "word": "valide",
+              "start": 8.32,
+              "end": 8.64,
+              "probability": 0.672
+            },
+            {
+              "word": "avec",
+              "start": 8.64,
+              "end": 8.96,
+              "probability": 1.0
+            },
+            {
+              "word": "la",
+              "start": 8.96,
+              "end": 9.12,
+              "probability": 0.992
+            },
+            {
+              "word": "banque",
+              "start": 9.12,
+              "end": 9.36,
+              "probability": 0.988
+            },
+            {
+              "word": "avant",
+              "start": 9.36,
+              "end": 9.6,
+              "probability": 0.983
+            },
+            {
+              "word": "vendredi.",
+              "start": 9.6,
+              "end": 10.16,
+              "probability": 0.976
+            },
+            {
+              "word": "Non,",
+              "start": 11.12,
+              "end": 11.36,
+              "probability": 0.826
+            },
+            {
+              "word": "mais",
+              "start": 11.36,
+              "end": 11.44,
+              "probability": 0.989
+            },
+            {
+              "word": "attends,",
+              "start": 11.44,
+              "end": 11.84,
+              "probability": 0.91
+            },
+            {
+              "word": "ce",
+              "start": 12.0,
+              "end": 12.16,
+              "probability": 0.993
+            },
+            {
+              "word": "n'est",
+              "start": 12.16,
+              "end": 12.24,
+              "probability": 1.0
+            },
+            {
+              "word": "pas",
+              "start": 12.24,
+              "end": 12.48,
+              "probability": 0.999
+            },
+            {
+              "word": "le",
+              "start": 12.48,
+              "end": 12.56,
+              "probability": 0.959
+            },
+            {
+              "word": "même",
+              "start": 12.56,
+              "end": 12.8,
+              "probability": 1.0
+            },
+            {
+              "word": "prix",
+              "start": 12.8,
+              "end": 13.04,
+              "probability": 0.978
+            },
+            {
+              "word": "clair.",
+              "start": 13.04,
+              "end": 13.36,
+              "probability": 0.528
+            },
+            {
+              "word": "On",
+              "start": 14.72,
+              "end": 14.96,
+              "probability": 0.979
+            },
+            {
+              "word": "signe",
+              "start": 14.96,
+              "end": 15.28,
+              "probability": 0.902
+            },
+            {
+              "word": "le",
+              "start": 15.28,
+              "end": 15.44,
+              "probability": 0.998
+            },
+            {
+              "word": "contrat",
+              "start": 15.44,
+              "end": 15.76,
+              "probability": 0.996
+            },
+            {
+              "word": "à",
+              "start": 15.76,
+              "end": 15.92,
+              "probability": 0.897
+            },
+            {
+              "word": "la",
+              "start": 15.92,
+              "end": 16.0,
+              "probability": 1.0
+            },
+            {
+              "word": "semaine",
+              "start": 16.0,
+              "end": 16.4,
+              "probability": 1.0
+            },
+            {
+              "word": "prochaine,",
+              "start": 16.4,
+              "end": 17.04,
+              "probability": 1.0
+            },
+            {
+              "word": "sans",
+              "start": 17.44,
+              "end": 17.6,
+              "probability": 0.978
+            },
+            {
+              "word": "faute.",
+              "start": 17.6,
+              "end": 18.0,
+              "probability": 0.999
+            },
+            {
+              "word": "D'accord",
+              "start": 19.12,
+              "end": 19.6,
+              "probability": 0.999
+            },
+            {
+              "word": "?",
+              "start": 19.6,
+              "end": 19.84,
+              "probability": 0.635
+            },
+            {
+              "word": "Et",
+              "start": 19.84,
+              "end": 20.0,
+              "probability": 0.855
+            },
+            {
+              "word": "on",
+              "start": 20.0,
+              "end": 20.16,
+              "probability": 0.997
+            },
+            {
+              "word": "prévoit",
+              "start": 20.16,
+              "end": 20.48,
+              "probability": 1.0
+            },
+            {
+              "word": "la",
+              "start": 20.48,
+              "end": 20.64,
+              "probability": 0.959
+            },
+            {
+              "word": "mise",
+              "start": 20.64,
+              "end": 20.8,
+              "probability": 0.46
+            },
+            {
+              "word": "en",
+              "start": 20.8,
+              "end": 20.88,
+              "probability": 0.845
+            },
+            {
+              "word": "oeuvre",
+              "start": 20.88,
+              "end": 21.28,
+              "probability": 0.891
+            },
+            {
+              "word": "le",
+              "start": 21.28,
+              "end": 21.44,
+              "probability": 0.551
+            },
+            {
+              "word": "15.",
+              "start": 21.44,
+              "end": 21.68,
+              "probability": 0.968
+            },
+            {
+              "word": "Le",
+              "start": 23.04,
+              "end": 23.36,
+              "probability": 0.989
+            },
+            {
+              "word": "client",
+              "start": 23.36,
+              "end": 23.68,
+              "probability": 0.912
+            },
+            {
+              "word": "veut",
+              "start": 23.68,
+              "end": 23.92,
+              "probability": 0.993
+            },
+            {
+              "word": "trois",
+              "start": 23.92,
+              "end": 24.16,
+              "probability": 0.989
+            },
+            {
+              "word": "exemplaires",
+              "start": 24.16,
+              "end": 25.12,
+              "probability": 0.994
+            },
+            {
+              "word": "?",
+              "start": 25.12,
+              "end": 25.2,
+              "probability": 0.371
+            },
+            {
+              "word": "Pas",
+              "start": 25.2,
+              "end": 25.44,
+              "probability": 0.993
+            },
+            {
+              "word": "deux.",
+              "start": 25.44,
+              "end": 25.76,
+              "probability": 0.988
+            },
+            {
+              "word": "Je",
+              "start": 26.56,
+              "end": 26.8,
+              "probability": 0.981
+            },
+            {
+              "word": "note",
+              "start": 26.8,
+              "end": 26.96,
+              "probability": 0.676
+            },
+            {
+              "word": "ça.",
+              "start": 26.96,
+              "end": 27.36,
+              "probability": 0.998
+            },
+            {
+              "word": "Je",
+              "start": 27.44,
+              "end": 27.6,
+              "probability": 0.953
+            },
+            {
+              "word": "prévu",
+              "start": 27.6,
+              "end": 27.92,
+              "probability": 0.774
+            },
+            {
+              "word": "un",
+              "start": 27.92,
+              "end": 28.0,
+              "probability": 0.941
+            },
+            {
+              "word": "éclipse",
+              "start": 28.0,
+              "end": 28.48,
+              "probability": 0.817
+            },
+            {
+              "word": "cet",
+              "start": 28.48,
+              "end": 28.64,
+              "probability": 0.606
+            },
+            {
+              "word": "après-midi.",
+              "start": 28.64,
+              "end": 29.28,
+              "probability": 1.0
+            },
+            {
+              "word": "Tu",
+              "start": 30.56,
+              "end": 30.8,
+              "probability": 0.936
+            },
+            {
+              "word": "as",
+              "start": 30.8,
+              "end": 30.88,
+              "probability": 0.986
+            },
+            {
+              "word": "vu",
+              "start": 30.88,
+              "end": 31.12,
+              "probability": 0.999
+            },
+            {
+              "word": "le",
+              "start": 31.12,
+              "end": 31.2,
+              "probability": 1.0
+            },
+            {
+              "word": "rapport",
+              "start": 31.2,
+              "end": 31.52,
+              "probability": 1.0
+            },
+            {
+              "word": "de",
+              "start": 31.52,
+              "end": 31.76,
+              "probability": 0.999
+            },
+            {
+              "word": "Sophie",
+              "start": 31.76,
+              "end": 32.08,
+              "probability": 0.938
+            },
+            {
+              "word": "sur",
+              "start": 32.08,
+              "end": 32.32,
+              "probability": 1.0
+            },
+            {
+              "word": "les",
+              "start": 32.32,
+              "end": 32.48,
+              "probability": 0.991
+            },
+            {
+              "word": "retards",
+              "start": 32.48,
+              "end": 32.96,
+              "probability": 0.999
+            },
+            {
+              "word": "?",
+              "start": 32.96,
+              "end": 34.0,
+              "probability": 0.845
+            },
+            {
+              "word": "Oui,",
+              "start": 34.0,
+              "end": 34.4,
+              "probability": 0.997
+            },
+            {
+              "word": "elle",
+              "start": 34.48,
+              "end": 34.8,
+              "probability": 0.867
+            },
+            {
+              "word": "propose",
+              "start": 34.8,
+              "end": 35.12,
+              "probability": 0.985
+            },
+            {
+              "word": "de",
+              "start": 35.12,
+              "end": 35.36,
+              "probability": 0.988
+            },
+            {
+              "word": "décamer",
+              "start": 35.36,
+              "end": 35.6,
+              "probability": 0.816
+            },
+            {
+              "word": "la",
+              "start": 35.6,
+              "end": 35.76,
+              "probability": 0.678
+            },
+            {
+              "word": "réunion",
+              "start": 35.76,
+              "end": 36.24,
+              "probability": 0.975
+            },
+            {
+              "word": "à",
+              "start": 36.24,
+              "end": 36.4,
+              "probability": 0.953
+            },
+            {
+              "word": "Jody.",
+              "start": 36.4,
+              "end": 36.64,
+              "probability": 0.393
+            },
+            {
+              "word": "Parfait,",
+              "start": 38.08,
+              "end": 38.64,
+              "probability": 0.995
+            },
+            {
+              "word": "on",
+              "start": 38.8,
+              "end": 38.96,
+              "probability": 0.998
+            },
+            {
+              "word": "confirme",
+              "start": 38.96,
+              "end": 39.44,
+              "probability": 0.995
+            },
+            {
+              "word": "la",
+              "start": 39.44,
+              "end": 39.6,
+              "probability": 0.98
+            },
+            {
+              "word": "salle",
+              "start": 39.6,
+              "end": 39.92,
+              "probability": 0.957
+            },
+            {
+              "word": "pour",
+              "start": 39.92,
+              "end": 40.08,
+              "probability": 1.0
+            },
+            {
+              "word": "9",
+              "start": 40.08,
+              "end": 40.24,
+              "probability": 0.443
+            },
+            {
+              "word": "heures.",
+              "start": 40.24,
+              "end": 40.64,
+              "probability": 0.877
+            },
+            {
+              "word": "Et",
+              "start": 41.6,
+              "end": 41.84,
+              "probability": 0.976
+            },
+            {
+              "word": "on",
+              "start": 41.84,
+              "end": 41.92,
+              "probability": 0.964
+            },
+            {
+              "word": "a",
+              "start": 41.92,
+              "end": 42.08,
+              "probability": 0.634
+            },
+            {
+              "word": "mis",
+              "start": 42.08,
+              "end": 42.24,
+              "probability": 0.69
+            },
+            {
+              "word": "Carib",
+              "start": 42.24,
+              "end": 42.64,
+              "probability": 0.417
+            },
+            {
+              "word": "pour",
+              "start": 42.64,
+              "end": 42.8,
+              "probability": 0.984
+            },
+            {
+              "word": "la",
+              "start": 42.8,
+              "end": 42.96,
+              "probability": 0.729
+            },
+            {
+              "word": "partie",
+              "start": 42.96,
+              "end": 43.28,
+              "probability": 0.997
+            },
+            {
+              "word": "technique.",
+              "start": 43.28,
+              "end": 43.76,
+              "probability": 0.905
+            },
+            {
+              "word": "Il",
+              "start": 44.96,
+              "end": 45.2,
+              "probability": 0.992
+            },
+            {
+              "word": "reste",
+              "start": 45.2,
+              "end": 45.52,
+              "probability": 0.852
+            },
+            {
+              "word": "12",
+              "start": 45.52,
+              "end": 45.84,
+              "probability": 0.994
+            },
+            {
+              "word": "000",
+              "start": 45.84,
+              "end": 46.08,
+              "probability": 0.99
+            },
+            {
+              "word": "euros",
+              "start": 46.08,
+              "end": 46.4,
+              "probability": 0.999
+            },
+            {
+              "word": "sur",
+              "start": 46.4,
+              "end": 46.48,
+              "probability": 0.998
+            },
+            {
+              "word": "l'enveloppe",
+              "start": 46.48,
+              "end": 47.04,
+              "probability": 0.997
+            },
+            {
+              "word": "travaux.",
+              "start": 47.04,
+              "end": 47.6,
+              "probability": 0.938
+            },
+            {
+              "word": "On",
+              "start": 48.4,
+              "end": 48.56,
+              "probability": 0.94
+            },
+            {
+              "word": "l'égard",
+              "start": 48.56,
+              "end": 48.88,
+              "probability": 0.799
+            },
+            {
+              "word": "pour",
+              "start": 48.88,
+              "end": 49.12,
+              "probability": 0.996
+            },
+            {
+              "word": "mes",
+              "start": 49.12,
+              "end": 49.28,
+              "probability": 0.878
+            },
+            {
+              "word": "uns",
+              "start": 49.28,
+              "end": 49.44,
+              "probability": 0.676
+            },
+            {
+              "word": "prévus",
+              "start": 49.44,
+              "end": 49.76,
+              "probability": 0.99
+            },
+            {
+              "word": "de",
+              "start": 49.76,
+              "end": 49.92,
+              "probability": 0.965
+            },
+            {
+              "word": "décembre.",
+              "start": 49.92,
+              "end": 50.4,
+              "probability": 0.99
+            },
+            {
+              "word": "Alors",
+              "start": 51.6,
+              "end": 51.92,
+              "probability": 0.997
+            },
+            {
+              "word": "c'est",
+              "start": 51.92,
+              "end": 52.16,
+              "probability": 0.827
+            },
+            {
+              "word": "réglé,",
+              "start": 52.16,
+              "end": 52.64,
+              "probability": 0.992
+            },
+            {
+              "word": "on",
+              "start": 52.8,
+              "end": 52.96,
+              "probability": 0.999
+            },
+            {
+              "word": "se",
+              "start": 52.96,
+              "end": 53.12,
+              "probability": 1.0
+            },
+            {
+              "word": "revoit",
+              "start": 53.12,
+              "end": 53.44,
+              "probability": 0.999
+            },
+            {
+              "word": "lundi",
+              "start": 53.44,
+              "end": 53.84,
+              "probability": 0.958
+            },
+            {
+              "word": "prochain.",
+              "start": 53.84,
+              "end": 54.24,
+              "probability": 0.996
+            },
+            {
+              "word": "Très",
+              "start": 55.28,
+              "end": 55.6,
+              "probability": 0.737
+            },
+            {
+              "word": "bien,",
+              "start": 55.6,
+              "end": 55.92,
+              "probability": 0.997
+            },
+            {
+              "word": "je",
+              "start": 56.16,
+              "end": 56.24,
+              "probability": 0.964
+            },
+            {
+              "word": "t'envoie",
+              "start": 56.24,
+              "end": 56.64,
+              "probability": 0.927
+            },
+            {
+              "word": "le",
+              "start": 56.64,
+              "end": 56.8,
+              "probability": 0.981
+            },
+            {
+              "word": "compte",
+              "start": 56.8,
+              "end": 57.04,
+              "probability": 0.797
+            },
+            {
+              "word": "français",
+              "start": 57.04,
+              "end": 57.36,
+              "probability": 0.76
+            },
+            {
+              "word": "de",
+              "start": 57.36,
+              "end": 57.44,
+              "probability": 0.385
+            },
+            {
+              "word": "ce",
+              "start": 57.44,
+              "end": 57.6,
+              "probability": 0.986
+            },
+            {
+              "word": "soir.",
+              "start": 57.6,
+              "end": 57.92,
+              "probability": 0.989
+            }
+          ],
+          "ttft_ms": 40.6,
+          "decode_tps": 729.3
+        },
+        "edits": 30,
+        "reference_words": 151,
+        "wer": 0.1986754966887417
+      },
+      {
+        "fixture": "Tests/Fixtures/meetings/fr-dialogue.wav",
+        "sha256": "b25cfc815260c4184ef564150417b48201013ecf1baec9802914899e05e3b8c5",
+        "language": "fr",
+        "trial": 1,
+        "first_inference_after_load": false,
+        "audio_seconds": 58.406875,
+        "wall_seconds": 0.5319088330143131,
+        "rtfx": 109.80617612422377,
+        "result": {
+          "text": "Donc on garde le budget à 40 000 pour le moment. Oui, c'est ça. Je t'envoie le gris dans ma matin. Il faut que Marc valide avec la banque avant vendredi. Non, mais attends, ce n'est pas le même prix clair. On signe le contrat à la semaine prochaine, sans faute. D'accord ? Et on prévoit la mise en oeuvre le 15. Le client veut trois exemplaires ? Pas deux. Je note ça. Je prévu un éclipse cet après-midi. Tu as vu le rapport de Sophie sur les retards ? Oui, elle propose de décamer la réunion à Jody. Parfait, on confirme la salle pour 9 heures. Et on a mis Carib pour la partie technique. Il reste 12 000 euros sur l'enveloppe travaux. On l'égard pour mes uns prévus de décembre. Alors c'est réglé, on se revoit lundi prochain. Très bien, je t'envoie le compte français de ce soir.",
+          "language": "fr",
+          "words": [
+            {
+              "word": "Donc",
+              "start": 0.08,
+              "end": 0.4,
+              "probability": 0.982
+            },
+            {
+              "word": "on",
+              "start": 0.4,
+              "end": 0.48,
+              "probability": 0.847
+            },
+            {
+              "word": "garde",
+              "start": 0.48,
+              "end": 0.8,
+              "probability": 0.975
+            },
+            {
+              "word": "le",
+              "start": 0.8,
+              "end": 0.96,
+              "probability": 1.0
+            },
+            {
+              "word": "budget",
+              "start": 0.96,
+              "end": 1.28,
+              "probability": 0.983
+            },
+            {
+              "word": "à",
+              "start": 1.28,
+              "end": 1.44,
+              "probability": 1.0
+            },
+            {
+              "word": "40",
+              "start": 1.44,
+              "end": 1.76,
+              "probability": 0.989
+            },
+            {
+              "word": "000",
+              "start": 1.76,
+              "end": 2.08,
+              "probability": 0.99
+            },
+            {
+              "word": "pour",
+              "start": 2.08,
+              "end": 2.32,
+              "probability": 1.0
+            },
+            {
+              "word": "le",
+              "start": 2.32,
+              "end": 2.48,
+              "probability": 1.0
+            },
+            {
+              "word": "moment.",
+              "start": 2.48,
+              "end": 2.72,
+              "probability": 1.0
+            },
+            {
+              "word": "Oui,",
+              "start": 3.76,
+              "end": 4.0,
+              "probability": 0.979
+            },
+            {
+              "word": "c'est",
+              "start": 4.0,
+              "end": 4.16,
+              "probability": 0.998
+            },
+            {
+              "word": "ça.",
+              "start": 4.16,
+              "end": 4.4,
+              "probability": 0.998
+            },
+            {
+              "word": "Je",
+              "start": 4.56,
+              "end": 4.72,
+              "probability": 0.98
+            },
+            {
+              "word": "t'envoie",
+              "start": 4.72,
+              "end": 5.04,
+              "probability": 0.922
+            },
+            {
+              "word": "le",
+              "start": 5.04,
+              "end": 5.2,
+              "probability": 0.989
+            },
+            {
+              "word": "gris",
+              "start": 5.2,
+              "end": 5.44,
+              "probability": 0.33
+            },
+            {
+              "word": "dans",
+              "start": 5.44,
+              "end": 5.6,
+              "probability": 0.25
+            },
+            {
+              "word": "ma",
+              "start": 5.6,
+              "end": 5.76,
+              "probability": 0.905
+            },
+            {
+              "word": "matin.",
+              "start": 5.76,
+              "end": 6.16,
+              "probability": 0.789
+            },
+            {
+              "word": "Il",
+              "start": 7.36,
+              "end": 7.68,
+              "probability": 0.995
+            },
+            {
+              "word": "faut",
+              "start": 7.68,
+              "end": 7.84,
+              "probability": 0.999
+            },
+            {
+              "word": "que",
+              "start": 7.84,
+              "end": 8.0,
+              "probability": 0.999
+            },
+            {
+              "word": "Marc",
+              "start": 8.0,
+              "end": 8.32,
+              "probability": 0.777
+            },
+            {
+              "word": "valide",
+              "start": 8.32,
+              "end": 8.64,
+              "probability": 0.672
+            },
+            {
+              "word": "avec",
+              "start": 8.64,
+              "end": 8.96,
+              "probability": 1.0
+            },
+            {
+              "word": "la",
+              "start": 8.96,
+              "end": 9.12,
+              "probability": 0.992
+            },
+            {
+              "word": "banque",
+              "start": 9.12,
+              "end": 9.36,
+              "probability": 0.988
+            },
+            {
+              "word": "avant",
+              "start": 9.36,
+              "end": 9.6,
+              "probability": 0.983
+            },
+            {
+              "word": "vendredi.",
+              "start": 9.6,
+              "end": 10.16,
+              "probability": 0.976
+            },
+            {
+              "word": "Non,",
+              "start": 11.12,
+              "end": 11.36,
+              "probability": 0.826
+            },
+            {
+              "word": "mais",
+              "start": 11.36,
+              "end": 11.44,
+              "probability": 0.989
+            },
+            {
+              "word": "attends,",
+              "start": 11.44,
+              "end": 11.84,
+              "probability": 0.91
+            },
+            {
+              "word": "ce",
+              "start": 12.0,
+              "end": 12.16,
+              "probability": 0.993
+            },
+            {
+              "word": "n'est",
+              "start": 12.16,
+              "end": 12.24,
+              "probability": 1.0
+            },
+            {
+              "word": "pas",
+              "start": 12.24,
+              "end": 12.48,
+              "probability": 0.999
+            },
+            {
+              "word": "le",
+              "start": 12.48,
+              "end": 12.56,
+              "probability": 0.959
+            },
+            {
+              "word": "même",
+              "start": 12.56,
+              "end": 12.8,
+              "probability": 1.0
+            },
+            {
+              "word": "prix",
+              "start": 12.8,
+              "end": 13.04,
+              "probability": 0.978
+            },
+            {
+              "word": "clair.",
+              "start": 13.04,
+              "end": 13.36,
+              "probability": 0.528
+            },
+            {
+              "word": "On",
+              "start": 14.72,
+              "end": 14.96,
+              "probability": 0.979
+            },
+            {
+              "word": "signe",
+              "start": 14.96,
+              "end": 15.28,
+              "probability": 0.902
+            },
+            {
+              "word": "le",
+              "start": 15.28,
+              "end": 15.44,
+              "probability": 0.998
+            },
+            {
+              "word": "contrat",
+              "start": 15.44,
+              "end": 15.76,
+              "probability": 0.996
+            },
+            {
+              "word": "à",
+              "start": 15.76,
+              "end": 15.92,
+              "probability": 0.897
+            },
+            {
+              "word": "la",
+              "start": 15.92,
+              "end": 16.0,
+              "probability": 1.0
+            },
+            {
+              "word": "semaine",
+              "start": 16.0,
+              "end": 16.4,
+              "probability": 1.0
+            },
+            {
+              "word": "prochaine,",
+              "start": 16.4,
+              "end": 17.04,
+              "probability": 1.0
+            },
+            {
+              "word": "sans",
+              "start": 17.44,
+              "end": 17.6,
+              "probability": 0.978
+            },
+            {
+              "word": "faute.",
+              "start": 17.6,
+              "end": 18.0,
+              "probability": 0.999
+            },
+            {
+              "word": "D'accord",
+              "start": 19.12,
+              "end": 19.6,
+              "probability": 0.999
+            },
+            {
+              "word": "?",
+              "start": 19.6,
+              "end": 19.84,
+              "probability": 0.635
+            },
+            {
+              "word": "Et",
+              "start": 19.84,
+              "end": 20.0,
+              "probability": 0.855
+            },
+            {
+              "word": "on",
+              "start": 20.0,
+              "end": 20.16,
+              "probability": 0.997
+            },
+            {
+              "word": "prévoit",
+              "start": 20.16,
+              "end": 20.48,
+              "probability": 1.0
+            },
+            {
+              "word": "la",
+              "start": 20.48,
+              "end": 20.64,
+              "probability": 0.959
+            },
+            {
+              "word": "mise",
+              "start": 20.64,
+              "end": 20.8,
+              "probability": 0.46
+            },
+            {
+              "word": "en",
+              "start": 20.8,
+              "end": 20.88,
+              "probability": 0.845
+            },
+            {
+              "word": "oeuvre",
+              "start": 20.88,
+              "end": 21.28,
+              "probability": 0.891
+            },
+            {
+              "word": "le",
+              "start": 21.28,
+              "end": 21.44,
+              "probability": 0.551
+            },
+            {
+              "word": "15.",
+              "start": 21.44,
+              "end": 21.68,
+              "probability": 0.968
+            },
+            {
+              "word": "Le",
+              "start": 23.04,
+              "end": 23.36,
+              "probability": 0.989
+            },
+            {
+              "word": "client",
+              "start": 23.36,
+              "end": 23.68,
+              "probability": 0.912
+            },
+            {
+              "word": "veut",
+              "start": 23.68,
+              "end": 23.92,
+              "probability": 0.993
+            },
+            {
+              "word": "trois",
+              "start": 23.92,
+              "end": 24.16,
+              "probability": 0.989
+            },
+            {
+              "word": "exemplaires",
+              "start": 24.16,
+              "end": 25.12,
+              "probability": 0.994
+            },
+            {
+              "word": "?",
+              "start": 25.12,
+              "end": 25.2,
+              "probability": 0.371
+            },
+            {
+              "word": "Pas",
+              "start": 25.2,
+              "end": 25.44,
+              "probability": 0.993
+            },
+            {
+              "word": "deux.",
+              "start": 25.44,
+              "end": 25.76,
+              "probability": 0.988
+            },
+            {
+              "word": "Je",
+              "start": 26.56,
+              "end": 26.8,
+              "probability": 0.981
+            },
+            {
+              "word": "note",
+              "start": 26.8,
+              "end": 26.96,
+              "probability": 0.676
+            },
+            {
+              "word": "ça.",
+              "start": 26.96,
+              "end": 27.36,
+              "probability": 0.998
+            },
+            {
+              "word": "Je",
+              "start": 27.44,
+              "end": 27.6,
+              "probability": 0.953
+            },
+            {
+              "word": "prévu",
+              "start": 27.6,
+              "end": 27.92,
+              "probability": 0.774
+            },
+            {
+              "word": "un",
+              "start": 27.92,
+              "end": 28.0,
+              "probability": 0.941
+            },
+            {
+              "word": "éclipse",
+              "start": 28.0,
+              "end": 28.48,
+              "probability": 0.817
+            },
+            {
+              "word": "cet",
+              "start": 28.48,
+              "end": 28.64,
+              "probability": 0.606
+            },
+            {
+              "word": "après-midi.",
+              "start": 28.64,
+              "end": 29.28,
+              "probability": 1.0
+            },
+            {
+              "word": "Tu",
+              "start": 30.56,
+              "end": 30.8,
+              "probability": 0.936
+            },
+            {
+              "word": "as",
+              "start": 30.8,
+              "end": 30.88,
+              "probability": 0.986
+            },
+            {
+              "word": "vu",
+              "start": 30.88,
+              "end": 31.12,
+              "probability": 0.999
+            },
+            {
+              "word": "le",
+              "start": 31.12,
+              "end": 31.2,
+              "probability": 1.0
+            },
+            {
+              "word": "rapport",
+              "start": 31.2,
+              "end": 31.52,
+              "probability": 1.0
+            },
+            {
+              "word": "de",
+              "start": 31.52,
+              "end": 31.76,
+              "probability": 0.999
+            },
+            {
+              "word": "Sophie",
+              "start": 31.76,
+              "end": 32.08,
+              "probability": 0.938
+            },
+            {
+              "word": "sur",
+              "start": 32.08,
+              "end": 32.32,
+              "probability": 1.0
+            },
+            {
+              "word": "les",
+              "start": 32.32,
+              "end": 32.48,
+              "probability": 0.991
+            },
+            {
+              "word": "retards",
+              "start": 32.48,
+              "end": 32.96,
+              "probability": 0.999
+            },
+            {
+              "word": "?",
+              "start": 32.96,
+              "end": 34.0,
+              "probability": 0.845
+            },
+            {
+              "word": "Oui,",
+              "start": 34.0,
+              "end": 34.4,
+              "probability": 0.997
+            },
+            {
+              "word": "elle",
+              "start": 34.48,
+              "end": 34.8,
+              "probability": 0.867
+            },
+            {
+              "word": "propose",
+              "start": 34.8,
+              "end": 35.12,
+              "probability": 0.985
+            },
+            {
+              "word": "de",
+              "start": 35.12,
+              "end": 35.36,
+              "probability": 0.988
+            },
+            {
+              "word": "décamer",
+              "start": 35.36,
+              "end": 35.6,
+              "probability": 0.816
+            },
+            {
+              "word": "la",
+              "start": 35.6,
+              "end": 35.76,
+              "probability": 0.678
+            },
+            {
+              "word": "réunion",
+              "start": 35.76,
+              "end": 36.24,
+              "probability": 0.975
+            },
+            {
+              "word": "à",
+              "start": 36.24,
+              "end": 36.4,
+              "probability": 0.953
+            },
+            {
+              "word": "Jody.",
+              "start": 36.4,
+              "end": 36.64,
+              "probability": 0.393
+            },
+            {
+              "word": "Parfait,",
+              "start": 38.08,
+              "end": 38.64,
+              "probability": 0.995
+            },
+            {
+              "word": "on",
+              "start": 38.8,
+              "end": 38.96,
+              "probability": 0.998
+            },
+            {
+              "word": "confirme",
+              "start": 38.96,
+              "end": 39.44,
+              "probability": 0.995
+            },
+            {
+              "word": "la",
+              "start": 39.44,
+              "end": 39.6,
+              "probability": 0.98
+            },
+            {
+              "word": "salle",
+              "start": 39.6,
+              "end": 39.92,
+              "probability": 0.957
+            },
+            {
+              "word": "pour",
+              "start": 39.92,
+              "end": 40.08,
+              "probability": 1.0
+            },
+            {
+              "word": "9",
+              "start": 40.08,
+              "end": 40.24,
+              "probability": 0.443
+            },
+            {
+              "word": "heures.",
+              "start": 40.24,
+              "end": 40.64,
+              "probability": 0.877
+            },
+            {
+              "word": "Et",
+              "start": 41.6,
+              "end": 41.84,
+              "probability": 0.976
+            },
+            {
+              "word": "on",
+              "start": 41.84,
+              "end": 41.92,
+              "probability": 0.964
+            },
+            {
+              "word": "a",
+              "start": 41.92,
+              "end": 42.08,
+              "probability": 0.634
+            },
+            {
+              "word": "mis",
+              "start": 42.08,
+              "end": 42.24,
+              "probability": 0.69
+            },
+            {
+              "word": "Carib",
+              "start": 42.24,
+              "end": 42.64,
+              "probability": 0.417
+            },
+            {
+              "word": "pour",
+              "start": 42.64,
+              "end": 42.8,
+              "probability": 0.984
+            },
+            {
+              "word": "la",
+              "start": 42.8,
+              "end": 42.96,
+              "probability": 0.729
+            },
+            {
+              "word": "partie",
+              "start": 42.96,
+              "end": 43.28,
+              "probability": 0.997
+            },
+            {
+              "word": "technique.",
+              "start": 43.28,
+              "end": 43.76,
+              "probability": 0.905
+            },
+            {
+              "word": "Il",
+              "start": 44.96,
+              "end": 45.2,
+              "probability": 0.992
+            },
+            {
+              "word": "reste",
+              "start": 45.2,
+              "end": 45.52,
+              "probability": 0.852
+            },
+            {
+              "word": "12",
+              "start": 45.52,
+              "end": 45.84,
+              "probability": 0.994
+            },
+            {
+              "word": "000",
+              "start": 45.84,
+              "end": 46.08,
+              "probability": 0.99
+            },
+            {
+              "word": "euros",
+              "start": 46.08,
+              "end": 46.4,
+              "probability": 0.999
+            },
+            {
+              "word": "sur",
+              "start": 46.4,
+              "end": 46.48,
+              "probability": 0.998
+            },
+            {
+              "word": "l'enveloppe",
+              "start": 46.48,
+              "end": 47.04,
+              "probability": 0.997
+            },
+            {
+              "word": "travaux.",
+              "start": 47.04,
+              "end": 47.6,
+              "probability": 0.938
+            },
+            {
+              "word": "On",
+              "start": 48.4,
+              "end": 48.56,
+              "probability": 0.94
+            },
+            {
+              "word": "l'égard",
+              "start": 48.56,
+              "end": 48.88,
+              "probability": 0.799
+            },
+            {
+              "word": "pour",
+              "start": 48.88,
+              "end": 49.12,
+              "probability": 0.996
+            },
+            {
+              "word": "mes",
+              "start": 49.12,
+              "end": 49.28,
+              "probability": 0.878
+            },
+            {
+              "word": "uns",
+              "start": 49.28,
+              "end": 49.44,
+              "probability": 0.676
+            },
+            {
+              "word": "prévus",
+              "start": 49.44,
+              "end": 49.76,
+              "probability": 0.99
+            },
+            {
+              "word": "de",
+              "start": 49.76,
+              "end": 49.92,
+              "probability": 0.965
+            },
+            {
+              "word": "décembre.",
+              "start": 49.92,
+              "end": 50.4,
+              "probability": 0.99
+            },
+            {
+              "word": "Alors",
+              "start": 51.6,
+              "end": 51.92,
+              "probability": 0.997
+            },
+            {
+              "word": "c'est",
+              "start": 51.92,
+              "end": 52.16,
+              "probability": 0.827
+            },
+            {
+              "word": "réglé,",
+              "start": 52.16,
+              "end": 52.64,
+              "probability": 0.992
+            },
+            {
+              "word": "on",
+              "start": 52.8,
+              "end": 52.96,
+              "probability": 0.999
+            },
+            {
+              "word": "se",
+              "start": 52.96,
+              "end": 53.12,
+              "probability": 1.0
+            },
+            {
+              "word": "revoit",
+              "start": 53.12,
+              "end": 53.44,
+              "probability": 0.999
+            },
+            {
+              "word": "lundi",
+              "start": 53.44,
+              "end": 53.84,
+              "probability": 0.958
+            },
+            {
+              "word": "prochain.",
+              "start": 53.84,
+              "end": 54.24,
+              "probability": 0.996
+            },
+            {
+              "word": "Très",
+              "start": 55.28,
+              "end": 55.6,
+              "probability": 0.737
+            },
+            {
+              "word": "bien,",
+              "start": 55.6,
+              "end": 55.92,
+              "probability": 0.997
+            },
+            {
+              "word": "je",
+              "start": 56.16,
+              "end": 56.24,
+              "probability": 0.964
+            },
+            {
+              "word": "t'envoie",
+              "start": 56.24,
+              "end": 56.64,
+              "probability": 0.927
+            },
+            {
+              "word": "le",
+              "start": 56.64,
+              "end": 56.8,
+              "probability": 0.981
+            },
+            {
+              "word": "compte",
+              "start": 56.8,
+              "end": 57.04,
+              "probability": 0.797
+            },
+            {
+              "word": "français",
+              "start": 57.04,
+              "end": 57.36,
+              "probability": 0.76
+            },
+            {
+              "word": "de",
+              "start": 57.36,
+              "end": 57.44,
+              "probability": 0.385
+            },
+            {
+              "word": "ce",
+              "start": 57.44,
+              "end": 57.6,
+              "probability": 0.986
+            },
+            {
+              "word": "soir.",
+              "start": 57.6,
+              "end": 57.92,
+              "probability": 0.989
+            }
+          ],
+          "ttft_ms": 40.1,
+          "decode_tps": 980.5
+        },
+        "edits": 30,
+        "reference_words": 151,
+        "wer": 0.1986754966887417
+      },
+      {
+        "fixture": "Tests/Fixtures/meetings/fr-dialogue.wav",
+        "sha256": "b25cfc815260c4184ef564150417b48201013ecf1baec9802914899e05e3b8c5",
+        "language": "fr",
+        "trial": 2,
+        "first_inference_after_load": false,
+        "audio_seconds": 58.406875,
+        "wall_seconds": 0.5338941249647178,
+        "rtfx": 109.39786049127213,
+        "result": {
+          "text": "Donc on garde le budget à 40 000 pour le moment. Oui, c'est ça. Je t'envoie le gris dans ma matin. Il faut que Marc valide avec la banque avant vendredi. Non, mais attends, ce n'est pas le même prix clair. On signe le contrat à la semaine prochaine, sans faute. D'accord ? Et on prévoit la mise en oeuvre le 15. Le client veut trois exemplaires ? Pas deux. Je note ça. Je prévu un éclipse cet après-midi. Tu as vu le rapport de Sophie sur les retards ? Oui, elle propose de décamer la réunion à Jody. Parfait, on confirme la salle pour 9 heures. Et on a mis Carib pour la partie technique. Il reste 12 000 euros sur l'enveloppe travaux. On l'égard pour mes uns prévus de décembre. Alors c'est réglé, on se revoit lundi prochain. Très bien, je t'envoie le compte français de ce soir.",
+          "language": "fr",
+          "words": [
+            {
+              "word": "Donc",
+              "start": 0.08,
+              "end": 0.4,
+              "probability": 0.982
+            },
+            {
+              "word": "on",
+              "start": 0.4,
+              "end": 0.48,
+              "probability": 0.847
+            },
+            {
+              "word": "garde",
+              "start": 0.48,
+              "end": 0.8,
+              "probability": 0.975
+            },
+            {
+              "word": "le",
+              "start": 0.8,
+              "end": 0.96,
+              "probability": 1.0
+            },
+            {
+              "word": "budget",
+              "start": 0.96,
+              "end": 1.28,
+              "probability": 0.983
+            },
+            {
+              "word": "à",
+              "start": 1.28,
+              "end": 1.44,
+              "probability": 1.0
+            },
+            {
+              "word": "40",
+              "start": 1.44,
+              "end": 1.76,
+              "probability": 0.989
+            },
+            {
+              "word": "000",
+              "start": 1.76,
+              "end": 2.08,
+              "probability": 0.99
+            },
+            {
+              "word": "pour",
+              "start": 2.08,
+              "end": 2.32,
+              "probability": 1.0
+            },
+            {
+              "word": "le",
+              "start": 2.32,
+              "end": 2.48,
+              "probability": 1.0
+            },
+            {
+              "word": "moment.",
+              "start": 2.48,
+              "end": 2.72,
+              "probability": 1.0
+            },
+            {
+              "word": "Oui,",
+              "start": 3.76,
+              "end": 4.0,
+              "probability": 0.979
+            },
+            {
+              "word": "c'est",
+              "start": 4.0,
+              "end": 4.16,
+              "probability": 0.998
+            },
+            {
+              "word": "ça.",
+              "start": 4.16,
+              "end": 4.4,
+              "probability": 0.998
+            },
+            {
+              "word": "Je",
+              "start": 4.56,
+              "end": 4.72,
+              "probability": 0.98
+            },
+            {
+              "word": "t'envoie",
+              "start": 4.72,
+              "end": 5.04,
+              "probability": 0.922
+            },
+            {
+              "word": "le",
+              "start": 5.04,
+              "end": 5.2,
+              "probability": 0.989
+            },
+            {
+              "word": "gris",
+              "start": 5.2,
+              "end": 5.44,
+              "probability": 0.33
+            },
+            {
+              "word": "dans",
+              "start": 5.44,
+              "end": 5.6,
+              "probability": 0.25
+            },
+            {
+              "word": "ma",
+              "start": 5.6,
+              "end": 5.76,
+              "probability": 0.905
+            },
+            {
+              "word": "matin.",
+              "start": 5.76,
+              "end": 6.16,
+              "probability": 0.789
+            },
+            {
+              "word": "Il",
+              "start": 7.36,
+              "end": 7.68,
+              "probability": 0.995
+            },
+            {
+              "word": "faut",
+              "start": 7.68,
+              "end": 7.84,
+              "probability": 0.999
+            },
+            {
+              "word": "que",
+              "start": 7.84,
+              "end": 8.0,
+              "probability": 0.999
+            },
+            {
+              "word": "Marc",
+              "start": 8.0,
+              "end": 8.32,
+              "probability": 0.777
+            },
+            {
+              "word": "valide",
+              "start": 8.32,
+              "end": 8.64,
+              "probability": 0.672
+            },
+            {
+              "word": "avec",
+              "start": 8.64,
+              "end": 8.96,
+              "probability": 1.0
+            },
+            {
+              "word": "la",
+              "start": 8.96,
+              "end": 9.12,
+              "probability": 0.992
+            },
+            {
+              "word": "banque",
+              "start": 9.12,
+              "end": 9.36,
+              "probability": 0.988
+            },
+            {
+              "word": "avant",
+              "start": 9.36,
+              "end": 9.6,
+              "probability": 0.983
+            },
+            {
+              "word": "vendredi.",
+              "start": 9.6,
+              "end": 10.16,
+              "probability": 0.976
+            },
+            {
+              "word": "Non,",
+              "start": 11.12,
+              "end": 11.36,
+              "probability": 0.826
+            },
+            {
+              "word": "mais",
+              "start": 11.36,
+              "end": 11.44,
+              "probability": 0.989
+            },
+            {
+              "word": "attends,",
+              "start": 11.44,
+              "end": 11.84,
+              "probability": 0.91
+            },
+            {
+              "word": "ce",
+              "start": 12.0,
+              "end": 12.16,
+              "probability": 0.993
+            },
+            {
+              "word": "n'est",
+              "start": 12.16,
+              "end": 12.24,
+              "probability": 1.0
+            },
+            {
+              "word": "pas",
+              "start": 12.24,
+              "end": 12.48,
+              "probability": 0.999
+            },
+            {
+              "word": "le",
+              "start": 12.48,
+              "end": 12.56,
+              "probability": 0.959
+            },
+            {
+              "word": "même",
+              "start": 12.56,
+              "end": 12.8,
+              "probability": 1.0
+            },
+            {
+              "word": "prix",
+              "start": 12.8,
+              "end": 13.04,
+              "probability": 0.978
+            },
+            {
+              "word": "clair.",
+              "start": 13.04,
+              "end": 13.36,
+              "probability": 0.528
+            },
+            {
+              "word": "On",
+              "start": 14.72,
+              "end": 14.96,
+              "probability": 0.979
+            },
+            {
+              "word": "signe",
+              "start": 14.96,
+              "end": 15.28,
+              "probability": 0.902
+            },
+            {
+              "word": "le",
+              "start": 15.28,
+              "end": 15.44,
+              "probability": 0.998
+            },
+            {
+              "word": "contrat",
+              "start": 15.44,
+              "end": 15.76,
+              "probability": 0.996
+            },
+            {
+              "word": "à",
+              "start": 15.76,
+              "end": 15.92,
+              "probability": 0.897
+            },
+            {
+              "word": "la",
+              "start": 15.92,
+              "end": 16.0,
+              "probability": 1.0
+            },
+            {
+              "word": "semaine",
+              "start": 16.0,
+              "end": 16.4,
+              "probability": 1.0
+            },
+            {
+              "word": "prochaine,",
+              "start": 16.4,
+              "end": 17.04,
+              "probability": 1.0
+            },
+            {
+              "word": "sans",
+              "start": 17.44,
+              "end": 17.6,
+              "probability": 0.978
+            },
+            {
+              "word": "faute.",
+              "start": 17.6,
+              "end": 18.0,
+              "probability": 0.999
+            },
+            {
+              "word": "D'accord",
+              "start": 19.12,
+              "end": 19.6,
+              "probability": 0.999
+            },
+            {
+              "word": "?",
+              "start": 19.6,
+              "end": 19.84,
+              "probability": 0.635
+            },
+            {
+              "word": "Et",
+              "start": 19.84,
+              "end": 20.0,
+              "probability": 0.855
+            },
+            {
+              "word": "on",
+              "start": 20.0,
+              "end": 20.16,
+              "probability": 0.997
+            },
+            {
+              "word": "prévoit",
+              "start": 20.16,
+              "end": 20.48,
+              "probability": 1.0
+            },
+            {
+              "word": "la",
+              "start": 20.48,
+              "end": 20.64,
+              "probability": 0.959
+            },
+            {
+              "word": "mise",
+              "start": 20.64,
+              "end": 20.8,
+              "probability": 0.46
+            },
+            {
+              "word": "en",
+              "start": 20.8,
+              "end": 20.88,
+              "probability": 0.845
+            },
+            {
+              "word": "oeuvre",
+              "start": 20.88,
+              "end": 21.28,
+              "probability": 0.891
+            },
+            {
+              "word": "le",
+              "start": 21.28,
+              "end": 21.44,
+              "probability": 0.551
+            },
+            {
+              "word": "15.",
+              "start": 21.44,
+              "end": 21.68,
+              "probability": 0.968
+            },
+            {
+              "word": "Le",
+              "start": 23.04,
+              "end": 23.36,
+              "probability": 0.989
+            },
+            {
+              "word": "client",
+              "start": 23.36,
+              "end": 23.68,
+              "probability": 0.912
+            },
+            {
+              "word": "veut",
+              "start": 23.68,
+              "end": 23.92,
+              "probability": 0.993
+            },
+            {
+              "word": "trois",
+              "start": 23.92,
+              "end": 24.16,
+              "probability": 0.989
+            },
+            {
+              "word": "exemplaires",
+              "start": 24.16,
+              "end": 25.12,
+              "probability": 0.994
+            },
+            {
+              "word": "?",
+              "start": 25.12,
+              "end": 25.2,
+              "probability": 0.371
+            },
+            {
+              "word": "Pas",
+              "start": 25.2,
+              "end": 25.44,
+              "probability": 0.993
+            },
+            {
+              "word": "deux.",
+              "start": 25.44,
+              "end": 25.76,
+              "probability": 0.988
+            },
+            {
+              "word": "Je",
+              "start": 26.56,
+              "end": 26.8,
+              "probability": 0.981
+            },
+            {
+              "word": "note",
+              "start": 26.8,
+              "end": 26.96,
+              "probability": 0.676
+            },
+            {
+              "word": "ça.",
+              "start": 26.96,
+              "end": 27.36,
+              "probability": 0.998
+            },
+            {
+              "word": "Je",
+              "start": 27.44,
+              "end": 27.6,
+              "probability": 0.953
+            },
+            {
+              "word": "prévu",
+              "start": 27.6,
+              "end": 27.92,
+              "probability": 0.774
+            },
+            {
+              "word": "un",
+              "start": 27.92,
+              "end": 28.0,
+              "probability": 0.941
+            },
+            {
+              "word": "éclipse",
+              "start": 28.0,
+              "end": 28.48,
+              "probability": 0.817
+            },
+            {
+              "word": "cet",
+              "start": 28.48,
+              "end": 28.64,
+              "probability": 0.606
+            },
+            {
+              "word": "après-midi.",
+              "start": 28.64,
+              "end": 29.28,
+              "probability": 1.0
+            },
+            {
+              "word": "Tu",
+              "start": 30.56,
+              "end": 30.8,
+              "probability": 0.936
+            },
+            {
+              "word": "as",
+              "start": 30.8,
+              "end": 30.88,
+              "probability": 0.986
+            },
+            {
+              "word": "vu",
+              "start": 30.88,
+              "end": 31.12,
+              "probability": 0.999
+            },
+            {
+              "word": "le",
+              "start": 31.12,
+              "end": 31.2,
+              "probability": 1.0
+            },
+            {
+              "word": "rapport",
+              "start": 31.2,
+              "end": 31.52,
+              "probability": 1.0
+            },
+            {
+              "word": "de",
+              "start": 31.52,
+              "end": 31.76,
+              "probability": 0.999
+            },
+            {
+              "word": "Sophie",
+              "start": 31.76,
+              "end": 32.08,
+              "probability": 0.938
+            },
+            {
+              "word": "sur",
+              "start": 32.08,
+              "end": 32.32,
+              "probability": 1.0
+            },
+            {
+              "word": "les",
+              "start": 32.32,
+              "end": 32.48,
+              "probability": 0.991
+            },
+            {
+              "word": "retards",
+              "start": 32.48,
+              "end": 32.96,
+              "probability": 0.999
+            },
+            {
+              "word": "?",
+              "start": 32.96,
+              "end": 34.0,
+              "probability": 0.845
+            },
+            {
+              "word": "Oui,",
+              "start": 34.0,
+              "end": 34.4,
+              "probability": 0.997
+            },
+            {
+              "word": "elle",
+              "start": 34.48,
+              "end": 34.8,
+              "probability": 0.867
+            },
+            {
+              "word": "propose",
+              "start": 34.8,
+              "end": 35.12,
+              "probability": 0.985
+            },
+            {
+              "word": "de",
+              "start": 35.12,
+              "end": 35.36,
+              "probability": 0.988
+            },
+            {
+              "word": "décamer",
+              "start": 35.36,
+              "end": 35.6,
+              "probability": 0.816
+            },
+            {
+              "word": "la",
+              "start": 35.6,
+              "end": 35.76,
+              "probability": 0.678
+            },
+            {
+              "word": "réunion",
+              "start": 35.76,
+              "end": 36.24,
+              "probability": 0.975
+            },
+            {
+              "word": "à",
+              "start": 36.24,
+              "end": 36.4,
+              "probability": 0.953
+            },
+            {
+              "word": "Jody.",
+              "start": 36.4,
+              "end": 36.64,
+              "probability": 0.393
+            },
+            {
+              "word": "Parfait,",
+              "start": 38.08,
+              "end": 38.64,
+              "probability": 0.995
+            },
+            {
+              "word": "on",
+              "start": 38.8,
+              "end": 38.96,
+              "probability": 0.998
+            },
+            {
+              "word": "confirme",
+              "start": 38.96,
+              "end": 39.44,
+              "probability": 0.995
+            },
+            {
+              "word": "la",
+              "start": 39.44,
+              "end": 39.6,
+              "probability": 0.98
+            },
+            {
+              "word": "salle",
+              "start": 39.6,
+              "end": 39.92,
+              "probability": 0.957
+            },
+            {
+              "word": "pour",
+              "start": 39.92,
+              "end": 40.08,
+              "probability": 1.0
+            },
+            {
+              "word": "9",
+              "start": 40.08,
+              "end": 40.24,
+              "probability": 0.443
+            },
+            {
+              "word": "heures.",
+              "start": 40.24,
+              "end": 40.64,
+              "probability": 0.877
+            },
+            {
+              "word": "Et",
+              "start": 41.6,
+              "end": 41.84,
+              "probability": 0.976
+            },
+            {
+              "word": "on",
+              "start": 41.84,
+              "end": 41.92,
+              "probability": 0.964
+            },
+            {
+              "word": "a",
+              "start": 41.92,
+              "end": 42.08,
+              "probability": 0.634
+            },
+            {
+              "word": "mis",
+              "start": 42.08,
+              "end": 42.24,
+              "probability": 0.69
+            },
+            {
+              "word": "Carib",
+              "start": 42.24,
+              "end": 42.64,
+              "probability": 0.417
+            },
+            {
+              "word": "pour",
+              "start": 42.64,
+              "end": 42.8,
+              "probability": 0.984
+            },
+            {
+              "word": "la",
+              "start": 42.8,
+              "end": 42.96,
+              "probability": 0.729
+            },
+            {
+              "word": "partie",
+              "start": 42.96,
+              "end": 43.28,
+              "probability": 0.997
+            },
+            {
+              "word": "technique.",
+              "start": 43.28,
+              "end": 43.76,
+              "probability": 0.905
+            },
+            {
+              "word": "Il",
+              "start": 44.96,
+              "end": 45.2,
+              "probability": 0.992
+            },
+            {
+              "word": "reste",
+              "start": 45.2,
+              "end": 45.52,
+              "probability": 0.852
+            },
+            {
+              "word": "12",
+              "start": 45.52,
+              "end": 45.84,
+              "probability": 0.994
+            },
+            {
+              "word": "000",
+              "start": 45.84,
+              "end": 46.08,
+              "probability": 0.99
+            },
+            {
+              "word": "euros",
+              "start": 46.08,
+              "end": 46.4,
+              "probability": 0.999
+            },
+            {
+              "word": "sur",
+              "start": 46.4,
+              "end": 46.48,
+              "probability": 0.998
+            },
+            {
+              "word": "l'enveloppe",
+              "start": 46.48,
+              "end": 47.04,
+              "probability": 0.997
+            },
+            {
+              "word": "travaux.",
+              "start": 47.04,
+              "end": 47.6,
+              "probability": 0.938
+            },
+            {
+              "word": "On",
+              "start": 48.4,
+              "end": 48.56,
+              "probability": 0.94
+            },
+            {
+              "word": "l'égard",
+              "start": 48.56,
+              "end": 48.88,
+              "probability": 0.799
+            },
+            {
+              "word": "pour",
+              "start": 48.88,
+              "end": 49.12,
+              "probability": 0.996
+            },
+            {
+              "word": "mes",
+              "start": 49.12,
+              "end": 49.28,
+              "probability": 0.878
+            },
+            {
+              "word": "uns",
+              "start": 49.28,
+              "end": 49.44,
+              "probability": 0.676
+            },
+            {
+              "word": "prévus",
+              "start": 49.44,
+              "end": 49.76,
+              "probability": 0.99
+            },
+            {
+              "word": "de",
+              "start": 49.76,
+              "end": 49.92,
+              "probability": 0.965
+            },
+            {
+              "word": "décembre.",
+              "start": 49.92,
+              "end": 50.4,
+              "probability": 0.99
+            },
+            {
+              "word": "Alors",
+              "start": 51.6,
+              "end": 51.92,
+              "probability": 0.997
+            },
+            {
+              "word": "c'est",
+              "start": 51.92,
+              "end": 52.16,
+              "probability": 0.827
+            },
+            {
+              "word": "réglé,",
+              "start": 52.16,
+              "end": 52.64,
+              "probability": 0.992
+            },
+            {
+              "word": "on",
+              "start": 52.8,
+              "end": 52.96,
+              "probability": 0.999
+            },
+            {
+              "word": "se",
+              "start": 52.96,
+              "end": 53.12,
+              "probability": 1.0
+            },
+            {
+              "word": "revoit",
+              "start": 53.12,
+              "end": 53.44,
+              "probability": 0.999
+            },
+            {
+              "word": "lundi",
+              "start": 53.44,
+              "end": 53.84,
+              "probability": 0.958
+            },
+            {
+              "word": "prochain.",
+              "start": 53.84,
+              "end": 54.24,
+              "probability": 0.996
+            },
+            {
+              "word": "Très",
+              "start": 55.28,
+              "end": 55.6,
+              "probability": 0.737
+            },
+            {
+              "word": "bien,",
+              "start": 55.6,
+              "end": 55.92,
+              "probability": 0.997
+            },
+            {
+              "word": "je",
+              "start": 56.16,
+              "end": 56.24,
+              "probability": 0.964
+            },
+            {
+              "word": "t'envoie",
+              "start": 56.24,
+              "end": 56.64,
+              "probability": 0.927
+            },
+            {
+              "word": "le",
+              "start": 56.64,
+              "end": 56.8,
+              "probability": 0.981
+            },
+            {
+              "word": "compte",
+              "start": 56.8,
+              "end": 57.04,
+              "probability": 0.797
+            },
+            {
+              "word": "français",
+              "start": 57.04,
+              "end": 57.36,
+              "probability": 0.76
+            },
+            {
+              "word": "de",
+              "start": 57.36,
+              "end": 57.44,
+              "probability": 0.385
+            },
+            {
+              "word": "ce",
+              "start": 57.44,
+              "end": 57.6,
+              "probability": 0.986
+            },
+            {
+              "word": "soir.",
+              "start": 57.6,
+              "end": 57.92,
+              "probability": 0.989
+            }
+          ],
+          "ttft_ms": 40.7,
+          "decode_tps": 987.3
+        },
+        "edits": 30,
+        "reference_words": 151,
+        "wer": 0.1986754966887417
+      }
+    ],
+    "silence": {
+      "text": "",
+      "language": "",
+      "words": [],
+      "ttft_ms": 0.0,
+      "decode_tps": 0.0
+    },
+    "silence_pass": true,
+    "peak_rss_bytes": 166510592,
+    "memory_note": "macOS process lifetime peak RSS, not Mach physical footprint",
+    "measurement_scope": "whole-file native runtime, not paced microphone or app",
+    "wer_normalizer": "Unicode alphanumeric tokens, casefold; no number rewriting"
+  },
+  "temporary_assets_deleted": true,
+  "child_joined": true,
+  "free_disk_after_bytes": 6125060096
+}

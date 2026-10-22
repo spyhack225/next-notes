@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "id": "2026-10-07-dictation-latency",
+  "title": "Dictation release-to-delivery investigation",
+  "date": "2026-10-07",
+  "category": "dictation",
+  "status": "partial",
+  "scope": "Retained production-path latency evidence",
+  "summary": "Cleanup dominates retained slow turns; final polished delivery target remains open.",
+  "environment": {
+    "hardware": "Not fully recorded; consult original evidence"
+  },
+  "provenance": {
+    "kind": "historical evidence import",
+    "build": "See original evidence; not re-run by hub"
+  },
+  "metrics": [],
+  "limitations": [
+    "Source index includes private-context diagnostics; do not publish raw logs.",
+    "Live text, ASR completion and final inserted polished text have separate boundaries."
+  ],
+  "sources": [
+    "PERFORMANCE-STANDARDS.md",
+    "Tests/Reports/dictation-latency/2026-10-07-evidence/followup/agent-relay-result.json"
+  ],
+  "publication": {
+    "approved": true,
+    "reviewed_by": "benchmark-hub-20261022",
+    "reviewed_on": "2026-10-22"
+  }
+}

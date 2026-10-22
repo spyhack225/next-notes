@@ -1,0 +1,39 @@
+{
+  "status": "HELD_FINITE_SOURCE_CONTRACT_NO_NEW_CODE_UNCOMPILED_NATIVE_UNRUN",
+  "currentSourceSHA256": {
+    "Sources/NextNotes/NextNotesApp.swift": "bc01a27f48478a297d07a1d35669c313615cc7c182c0c6d113b4899e792a1b61",
+    "Sources/NextNotes/Support/NativeTerminationSelfTest.swift": "a1c1d30f8198e63758dde34abd8812b236c281a191cd9168383eff95a47aa4f5",
+    "Sources/NextNotes/Meetings/NotesService.swift": "c1577429843cd4f2a50bca738a8afe95ed574e7faea29153de38fe8264c79652",
+    "Sources/NextNotes/Formatting/LLM/NotesModelRuntime.swift": "45ef55fe4afed62847932bd9fdf36f8819f093fb030a3f461af754b52deaef88",
+    "Sources/NextNotes/Formatting/LLM/LlamaLLMProvider.swift": "cc5dd316734875abfec74fbd842ab88dced96d8f1efc8defe28ef17bb5b9366a",
+    "Sources/NextNotes/Support/ModelDownloader.swift": "dd3ff581ae28606a62ea2ea5f424282fb07325eef99fd829164f677c4d665e07",
+    "Sources/NextNotes/Agent/Tasks/AgentTaskManager.swift": "f51e28b1145d010b8627a96699ac3dd27fc40fadc54571ce1b9b823e99779543",
+    "Sources/NextNotes/Agent/Tasks/TaskBridge.swift": "51402fab811b27e43a42315195e7e0dca4a0d397ca5f86cad025580138978f29",
+    "Sources/NextNotes/Agent/Backend/LocalAgentBackend.swift": "c7f2afc2e02a8be3ce18375b882869e789521ca2fafbcbd083809cf536755300",
+    "Sources/NextNotes/Agent/VoiceConversationCoordinator.swift": "8ea056b1f2afdd193089ab5f0bba03982472a9625fa31e1ee3213e4939b96b88",
+    "Sources/NextNotes/Agent/RealtimeAgent.swift": "89803d22cbaeb61b58c5503d7fc48b0729d6d5336e8375855a2fc7ede1df7cd2",
+    "Sources/NextNotes/Agent/RealtimeAgent+ToolLoop.swift": "6d730cd5ca285b47a067b71705e63afa0da941b7b1a879175e1c0bb79d3637b3",
+    "Sources/NextNotes/Activation/AgentCaptureController.swift": "5bd0ea27b5e610a668075d6e1521369eeec730a4ff779ae7796cc55629d98128",
+    "Sources/NextNotes/Activation/LocalVoiceTurnDetector.swift": "1f7dbc05314ec46b44865fd4274b363a699ba1fa76159ef319452ac70309a7e6",
+    "Sources/NextNotes/Transcription/AppleSpeechEngine.swift": "db2737c2aa067ba6b43de21ca74db324602324e201b7829f0483574fc0227c79",
+    "Sources/NextNotes/Memory/NextMemory.swift": "f6ae03314ce6886567e5458fe2aa57bc57281ffd7ff7f6215eb9b428ce246914"
+  },
+  "artifactsSHA256": {
+    "qualification-contract.md": "06b2d07095114c1b695f8995b1d513cbe1362c8324590c7f9f0f6da10a632736",
+    "current-source-pins.json": "a79ccd70cd71d416b113f6a16cfcdb01fb01eab8af99aed5842b95690ebc42bb"
+  },
+  "canonicalEdits": 0,
+  "compilerRuns": 0,
+  "nativeRuns": 0,
+  "assetReads": 0,
+  "modelReads": 0,
+  "ownerStoreReads": 0,
+  "managerRebase": "prohibited until terminal/scheduled main qualification notice",
+  "limits": [
+    "real Notes native fixture not Manager owner",
+    "native-mode private Bridge/Coordinator gates unavailable",
+    "SDK process wrapper not native-entry proof",
+    "Capture loader/context/assets/preparation owners not confined",
+    "physical consumer stop unobserved"
+  ]
+}

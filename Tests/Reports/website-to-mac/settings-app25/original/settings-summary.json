@@ -1,0 +1,24 @@
+[
+  {
+    "case": "negative-input-directory",
+    "exit": 1,
+    "verdict": "PASS",
+    "elapsed": 1.312,
+    "checks": {
+      "sentinelUnchanged": true,
+      "directoryEmpty": true,
+      "noCaptures": true
+    }
+  },
+  {
+    "case": "negative-input-folders-directory",
+    "exit": 1,
+    "verdict": "FAIL",
+    "elapsed": 0.243,
+    "checks": {
+      "sentinelUnchanged": true,
+      "directoryEmpty": true,
+      "noCaptures": false
+    }
+  }
+]

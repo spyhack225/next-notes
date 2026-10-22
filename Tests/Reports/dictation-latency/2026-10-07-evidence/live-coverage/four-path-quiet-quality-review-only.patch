@@ -1,0 +1,298 @@
+--- a/Sources/NextNotes/Transcription/ParakeetEngine.swift
++++ b/Sources/NextNotes/Transcription/ParakeetEngine.swift
+@@ -29,6 +29,8 @@
+     nonisolated static let emitsPartialsWhileHeld = true
+ 
+     private var samples: [Float] = []
++    /// Exact digital zero carries no acoustic signal. This is not a speech/RMS decision.
++    private var hasNonzeroPCM = false
+     /// Absolute start of retained uncommitted PCM. Retry audio belongs to AudioCounter.
+     private var sampleOffset = 0
+     private var sampleCount: Int { sampleOffset + samples.count }
+@@ -210,7 +212,9 @@
+         // performs **no resampling and no rate validation**. Feed it the wrong sample rate
+         // and it doesn't throw — it silently transcribes garbage.
+         do {
+-            samples.append(contentsOf: try converter.resampleBuffer(buffer))
++            let pcm = try converter.resampleBuffer(buffer)
++            if !hasNonzeroPCM { hasNonzeroPCM = pcm.contains { $0 != 0 } }
++            samples.append(contentsOf: pcm)
+         } catch {
+             Log.speech.error("Parakeet: audio conversion failed — \(error.localizedDescription, privacy: .public)")
+             return
+@@ -252,6 +256,16 @@
+ 
+         guard sampleCount >= ParakeetInput.minimumCapturedSamples else {
+             Log.speech.info("Parakeet: skipped — only \(self.sampleCount) samples captured")
++            return
++        }
++
++        // Literal zero contains no signal for the recognizer to recover. Short zero
++        // fragments can nevertheless produce invented words; avoid creating those passes.
++        guard hasNonzeroPCM else {
++            diagnostics.keyUpPlan = "digital-zero"
++            diagnostics.keyUpSeconds = Date().timeIntervalSince(keyUp)
++            diagnostics.finalText = ""
++            continuation?.yield(TranscriptionChunk(text: "", isFinal: true, committedText: ""))
+             return
+         }
+ 
+@@ -323,6 +337,7 @@
+ 
+     private func resetSession() {
+         samples.removeAll(keepingCapacity: false)
++        hasNonzeroPCM = false
+         sampleOffset = 0
+         segmenter = DictationSegmenter()
+         pendingCuts = []
+@@ -344,15 +359,15 @@
+ 
+     /// Cuts and tail requests for the audio just fed, and the worker if it is idle.
+     private func schedule() {
+-        guard let session = activeSession, !finishing else { return }
++        guard let session = activeSession, !finishing, hasNonzeroPCM else { return }
+         let scan = segmenter.advance(over: samples, sampleOffset: sampleOffset)
+         pendingCuts += scan.cuts
+-        let spokeSinceRequest = segmenter.lastSpeechEnd > lastTailRequestAt
++        let capturedSinceRequest = sampleCount > lastTailRequestAt
+         let tailLength = sampleCount - committedEnd
+         let interval = diagnostics.partials.isEmpty && lastTailRequestAt == 0
+             ? Int(StreamingASR.dictationFirstPartialSeconds * 16_000)
+             : partialIntervalSamples
+-        if tailLength >= ParakeetInput.minimumModelSamples, spokeSinceRequest,
++        if tailLength >= ParakeetInput.minimumModelSamples, capturedSinceRequest,
+            scan.speechEnded || sampleCount - lastTailRequestAt >= interval {
+             // End of speech starts the tail pass at once: by key-up it is usually done.
+             tailRequested = true
+@@ -393,8 +408,7 @@
+                 // Publish the frozen prefix now, even if another tail pass is needed.
+                 // Hiding this behind that pass delayed both the live UI and pre-cleaning.
+                 emitPartial(end: pass.end)
+-                if segmenter.lastSpeechEnd > committedEnd,
+-                   sampleCount - committedEnd >= ParakeetInput.minimumModelSamples {
++                if sampleCount - committedEnd >= ParakeetInput.minimumModelSamples {
+                     tailRequested = true
+                     lastTailRequestAt = sampleCount
+                 }
+@@ -412,9 +426,8 @@
+         }
+         guard tailRequested else { return nil }
+         tailRequested = false
+-        // A tail with no speech in it (a segment just took the last words) needs no pass.
+-        guard sampleCount - committedEnd >= ParakeetInput.minimumModelSamples,
+-              segmenter.lastSpeechEnd > committedEnd else { return nil }
++        // Accepted quiet PCM may contain words below the pause hint's RMS floor.
++        guard sampleCount - committedEnd >= ParakeetInput.minimumModelSamples else { return nil }
+         return ParakeetKeyUp.Pass(isSegment: false, start: committedEnd, end: sampleCount)
+     }
+ 
+--- a/Sources/NextNotes/Transcription/DictationSegmenter.swift
++++ b/Sources/NextNotes/Transcription/DictationSegmenter.swift
+@@ -126,7 +126,11 @@
+             }
+ 
+             let needed = length >= longSegment ? longPause : pause
+-            if length >= minSegment, silenceRun >= needed {
++            // An all-quiet open segment has no observed speech/pause boundary.
++            // Cutting it every three seconds splits whispered words as if they
++            // were digital silence; keep its context until the unchanged hard cap.
++            if length >= minSegment, silenceRun >= needed,
++               lastSpeechEnd > segmentStart {
+                 let cut = scanned - silenceRun / 2
+                 scan.cuts.append(cut)
+                 startSegment(at: cut, rewind: false)
+--- a/Sources/NextNotes/Transcription/DictationSegmentsSelfTest.swift
++++ b/Sources/NextNotes/Transcription/DictationSegmentsSelfTest.swift
+@@ -21,14 +21,30 @@
+         failures += await precleanCases()
+         for failure in failures { log("DICTATION_SEGMENTS_WRONG: \(failure)") }
+ 
++        let maxWER: Double?
++        if let value = SelfTest.value(after: "--dictation-max-wer") {
++            guard let parsed = Double(value), parsed.isFinite, parsed >= 0,
++                  SelfTest.value(after: "--dictation-gold") != nil else {
++                log("DICTATION_SEGMENTS_FAILED: max WER requires a nonnegative finite number and independent gold")
++                return false
++            }
++            maxWER = parsed
++        } else {
++            maxWER = nil
++        }
++
++        if maxWER != nil, wavPath == nil {
++            log("DICTATION_SEGMENTS_FAILED: an independent word-error gate requires an audio replay")
++            return false
++        }
+         var replayOK = true
+         if let wavPath {
+             if let polish = SelfTest.value(after: "--dictation-polish") {
+                 replayOK = await DictationController.runPolishingReplay(
+                     path: wavPath, choice: polish == "apple" ? .apple : .miniCPM,
+-                    warmFirst: CommandLine.arguments.contains("--dictation-polish-warm"), log: log)
++                    warmFirst: CommandLine.arguments.contains("--dictation-polish-warm"), maximumWER: maxWER, log: log)
+             } else {
+-                replayOK = await replay(path: wavPath, goldPath: SelfTest.value(after: "--dictation-gold"), log: log)
++                replayOK = await replay(path: wavPath, goldPath: SelfTest.value(after: "--dictation-gold"), maxWER: maxWER, log: log)
+             }
+         }
+         let ok = failures.isEmpty && replayOK
+@@ -145,6 +161,17 @@
+         var quiet = DictationSegmenter()
+         if quiet.advance(over: silence(2)).speechEnded || quiet.lastSpeechEnd != 0 {
+             failures.append("silence alone reported speech")
++        }
++        // Entirely quiet accepted PCM has no proven pause boundary. A three-second
++        // silence run must not halve a quiet spoken clause and freeze its first words.
++        let quietTurn = tone(3.3, amplitude: 0.002)
++        let quietCuts = cuts(quietTurn, step: 1_600).cuts
++        if !quietCuts.isEmpty {
++            failures.append("entire below-floor turn cut at [\(seconds(quietCuts))] without a speech-to-pause boundary")
++        }
++        let zeroCuts = cuts(silence(3.3), step: 1_600).cuts
++        if !zeroCuts.isEmpty {
++            failures.append("digital silence produced a pause cut without preceding speech")
+         }
+         return failures
+     }
+@@ -295,7 +322,7 @@
+     // MARK: - Real-time replay through the production engine
+ 
+     @MainActor
+-    private static func replay(path: String, goldPath: String?, log: @MainActor (String) -> Void) async -> Bool {
++    private static func replay(path: String, goldPath: String?, maxWER: Double?, log: @MainActor (String) -> Void) async -> Bool {
+         let url = URL(fileURLWithPath: (path as NSString).expandingTildeInPath)
+         guard let audio = try? AudioConversion.monoSamples(fromFileAt: url, sampleRate: Double(rate)),
+               audio.count > rate else {
+@@ -330,7 +357,7 @@
+         let gold: String?
+         if let goldPath {
+             guard let text = try? String(contentsOfFile: (goldPath as NSString).expandingTildeInPath,
+-                                         encoding: .utf8), !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
++                                         encoding: .utf8), maxWER != nil || !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                 log("DICTATION_SEGMENTS_REPLAY_ABSENT: could not read the independent transcript")
+                 return false
+             }
+@@ -342,33 +369,55 @@
+         }
+ 
+         var ok = true
++        let expectsEmpty = maxWER == 0 && gold?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == true
++        if expectsEmpty, !full.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
++            log("DICTATION_SEGMENTS_REPLAY_WRONG: independent no-speech reference returned text")
++            ok = false
++        }
+         let endings: [(String, [Float])] = [
+             (completeAudio ? "complete-file+300ms" : "ends-300ms", Array(audio[0..<lastWord]) + silence(0.3)),
+             (completeAudio ? "complete-file" : "speech-to-keyup", Array(audio[0..<lastWord])),
+         ]
+         for (name, held) in endings {
+             guard let line = await replayOnce(held, reference: full, gold: gold,
+-                output: output.map { $0 + "." + name + ".txt" }) else {
++                output: output.map { $0 + "." + name + ".txt" }, capturePartials: expectsEmpty || output != nil) else {
+                 log("DICTATION_SEGMENTS_REPLAY_WRONG: \(name) produced no final")
+                 ok = false
+                 continue
+             }
+-            log("DICTATION_SEGMENTS_REPLAY: \(name) \(line)")
++            log("DICTATION_SEGMENTS_REPLAY: \(name) \(line.summary)")
++            if expectsEmpty, !line.finalText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !line.partials.isEmpty {
++                log("DICTATION_SEGMENTS_REPLAY_WRONG: \(name) emitted live or final text for independent no-speech input")
++                ok = false
++            }
++            if let maxWER, let gold {
++                let actual = wordErrorRate(reference: gold, hypothesis: line.finalText)
++                if actual > maxWER {
++                    log("DICTATION_SEGMENTS_REPLAY_WRONG: \(name) independent WER \(actual) exceeds required \(maxWER)")
++                    ok = false
++                }
++            }
+         }
+         return ok
+     }
+ 
+     private static func replayOnce(_ audio: [Float], reference: String, gold: String?,
+-        output: String? = nil) async -> String? {
++        output: String? = nil, capturePartials: Bool = false) async -> (summary: String, finalText: String, partials: [String])? {
+         let engine = ParakeetEngine()
+         guard let stream = try? await engine.start(),
+               let format = await engine.preferredInputFormat() else { return nil }
+-        let consumer = Task { () -> String? in
++        let consumer = Task { () -> (final: String?, partials: [String])? in
+             var final: String?
++            var partials: [String] = []
+             do {
+-                for try await chunk in stream where chunk.isFinal { final = chunk.text }
++                for try await chunk in stream {
++                    if chunk.isFinal { final = chunk.text }
++                    else if capturePartials, !chunk.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
++                        partials.append(chunk.text)
++                    }
++                }
+             } catch { return nil }
+-            return final
++            return (final, partials)
+         }
+         let step = rate / 10
+         var fedAt: [Int: TimeInterval] = [:]
+@@ -389,9 +438,12 @@
+         }
+         let keyUp = ProcessInfo.processInfo.systemUptime
+         await engine.finish()
+-        guard let final = await consumer.value else { return nil }
++        guard let observed = await consumer.value, let final = observed.final else { return nil }
+         if let output {
+             try? final.write(toFile: output, atomically: true, encoding: .utf8)
++            if let data = try? JSONEncoder().encode(observed.partials) {
++                try? data.write(to: URL(fileURLWithPath: output + ".partials.json"), options: .atomic)
++            }
+         }
+         let keyUpToFinal = ProcessInfo.processInfo.systemUptime - keyUp
+         let diagnostics = await engine.diagnostics
+@@ -413,7 +465,7 @@
+         if let gold {
+             result += String(format: ", independent WER %.3f", wordErrorRate(reference: gold, hypothesis: final))
+         }
+-        return result
++        return (result, final, observed.partials)
+     }
+ 
+     static func wordErrorRate(reference: String, hypothesis: String) -> Double {
+--- a/Sources/NextNotes/Core/DictationController.swift
++++ b/Sources/NextNotes/Core/DictationController.swift
+@@ -1051,7 +1051,7 @@
+     /// isolated. This measures text ready for insertion, not an Accessibility delivery.
+     static func runPolishingReplay(
+         path: String, choice: CleanupEngineChoice, warmFirst: Bool,
+-        log: @MainActor (String) -> Void
++        maximumWER: Double? = nil, log: @MainActor (String) -> Void
+     ) async -> Bool {
+         guard SelfTest.isRunning, Settings.shared.usesHarnessPreferencesForTesting else { return false }
+         let rate = 16_000
+@@ -1063,6 +1063,10 @@
+         }
+         let gold = SelfTest.value(after: "--dictation-gold").flatMap {
+             try? String(contentsOfFile: ($0 as NSString).expandingTildeInPath, encoding: .utf8)
++        }
++        if maximumWER != nil, gold == nil {
++            log("DICTATION_POLISH_FAILED: could not read the required independent transcript")
++            return false
+         }
+         let settings = Settings.shared
+         let old = (settings.cleanupEnabled, settings.cleanupEngine, settings.cleanupFixesGrammar,
+@@ -1163,9 +1167,14 @@
+                        round, startupMs, String(readyMs <= 2_000), String(visibleWords > 0),
+                        record?.structurePlanRejected ?? "accepted or not requested"))
+             if let gold {
++                let rawWER = DictationSegmentsSelfTest.wordErrorRate(reference: gold, hypothesis: finalASR)
++                let finalWER = DictationSegmentsSelfTest.wordErrorRate(reference: gold, hypothesis: delivered)
+                 log(String(format: "DICTATION_POLISH_WER: round=%d raw=%.3f final=%.3f",
+-                    round, DictationSegmentsSelfTest.wordErrorRate(reference: gold, hypothesis: finalASR),
+-                    DictationSegmentsSelfTest.wordErrorRate(reference: gold, hypothesis: delivered)))
++                    round, rawWER, finalWER))
++                if let maximumWER, rawWER > maximumWER || finalWER > maximumWER {
++                    log("DICTATION_POLISH_WRONG: round=\(round) raw or final independent WER exceeds required \(maximumWER)")
++                    ok = false
++                }
+             }
+             if let output = SelfTest.value(after: "--dictation-asr-output") {
+                 try? finalASR.write(toFile: output + ".\(round).txt", atomically: true, encoding: .utf8)

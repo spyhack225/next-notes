@@ -1,0 +1,25 @@
+{
+  "status": "ADDITIVE_SAME_COMMON_UNCOMPILED_NATIVE_UNRUN",
+  "artifacts": [
+    {
+      "path": "COMMON-app-entry-from-frozen.patch.txt",
+      "sha256": "a52ef3bd5bfe2b6ed8959660ee161e17b793567d603d64f2f37bcb91febd46a0"
+    },
+    {
+      "path": "COMMON-meeting-root-from-selector.patch.txt",
+      "sha256": "b51bd4ac346ce72819f26d1a9e0f1c3559a55ae0817ba99a01c6bbb9f2725ed9"
+    },
+    {
+      "path": "NativeNotesSettingsSelfTest.swift.revised",
+      "sha256": "281d7e56dd7d2ef1ef74ca48cca03dceae9a4112abd64c25d9e63e87ce17caa9"
+    },
+    {
+      "path": "README.md",
+      "sha256": "a1a0a32a570c0f17b81076cbe85568a96fce8f3379e971ef7aad0cd04694b09a"
+    },
+    {
+      "path": "copy-only-postimages.json",
+      "sha256": "2224ec3f8db6f5959cf080e2294a6dc76b7dca7a36307b6c465c195eb39c0392"
+    }
+  ]
+}

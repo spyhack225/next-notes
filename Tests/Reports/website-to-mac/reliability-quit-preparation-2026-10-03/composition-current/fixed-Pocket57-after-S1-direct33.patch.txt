@@ -1,0 +1,338 @@
+--- a/Sources/NextNotes/NextNotesApp.swift
++++ b/Sources/NextNotes/NextNotesApp.swift
+@@ -9692,6 +9692,10 @@
+         let runtime = recordingQuitFixtureForTesting?.runtime
+             ?? terminationFixtureForTesting?.runtime ?? NotesModelRuntime.shared
+         let ownedNotesTasks = service?.beginTermination() ?? []
++        let speech = AgentSpeechSynthesizer.sharedIfLoaded
++        let playbackForTesting = startupTerminationFixtureForTesting?.playback
++        speech?.beginTermination()
++        playbackForTesting?.beginTermination()
+         // Empty singleton owns no native/file work. Close before recording stop
+         // so its later default final-pass submission cannot escape quit ownership.
+         let finalTranscripts = FinalTranscriptService.shared
+@@ -9756,6 +9760,8 @@
+                 }
+             }
+             for task in ownedNotesTasks { await task.value }
++            await speech?.finishTermination()
++            await playbackForTesting?.finishTermination()
+             await asrQueue.finishTermination()
+             await finalTranscripts.finishTermination(ownedFinalTasks)
+             await diarization.finishTermination(ownedDiarizationTasks)
+--- a/Sources/NextNotes/Agent/Speech/PocketAgentVoice.swift
++++ b/Sources/NextNotes/Agent/Speech/PocketAgentVoice.swift
+@@ -144,6 +144,38 @@
+         return frames
+     }
+ 
++    /// Native owner handoff for live playback. A late factory return is joined
++    /// here before refusal, so no unowned session escapes closing/cancellation.
++    func makePlaybackSession(voice: String, trace suppliedTrace: PocketPlaybackTerminationTrace? = nil,
++                             token: UInt64 = 0) async throws -> PocketTtsSession {
++        let trace = SelfTest.isRunning ? suppliedTrace : nil
++        try checkTerminationAdmission()
++        let prepared: Void? = await withBoundedWait(.seconds(10)) { await self.prepare() }
++        try checkTerminationAdmission()
++        guard prepared != nil else { throw PocketPlaybackError.modelUnavailable("Pocket TTS is still preparing.") }
++        guard isReady else { throw PocketPlaybackError.modelUnavailable(errorMessage) }
++        let session: PocketTtsSession
++        do {
++            #if NEXTNOTES_POCKET_OBSERVATION
++            let observer = PocketTtsSynthesizer.streamLifecycleObserver
++            observer?(.factoryEntered)
++            var factorySucceeded = false
++            defer { observer?(.factoryReturned(succeeded: factorySucceeded)) }
++            #endif
++            session = try await manager.makeSession(voice: voice)
++            #if NEXTNOTES_POCKET_OBSERVATION
++            factorySucceeded = true
++            #endif
++        }
++        trace?.sessionReturned(token: token)
++        if terminationRequested || Task.isCancelled {
++            await session.cancel()
++            trace?.sessionJoined(token: token)
++            throw CancellationError()
++        }
++        return session
++    }
++
+     static func runSelfTest() async -> Bool {
+         let voice = PocketAgentVoice.shared
+         await voice.prepare()
+@@ -231,10 +263,33 @@
+         playbackTraceForTesting = trace
+     }
+ 
+-    // COMMON absent-producer scaffold: original playback behavior is unchanged.
+-    func beginTermination() {}
+-    func finishTermination() async {}
+-    var terminationOwnerForTesting: (pending: Bool, closed: Bool) { (task != nil, false) }
++    private var generationCounter: UInt64 = 0
++    private var taskOwner: UInt64 = 0
++    private var terminationRequested = false
++    private var terminationTask: Task<Void, Never>?
++
++    func beginTermination() {
++        guard !terminationRequested else { return }
++        terminationRequested = true
++        terminationTask = task
++        stop()
++    }
++
++    func finishTermination() async {
++        beginTermination()
++        await terminationTask?.value
++        terminationTask = nil
++    }
++
++    var terminationOwnerForTesting: (pending: Bool, closed: Bool) {
++        (task != nil, terminationRequested)
++    }
++
++    private func nextGeneration() -> UInt64 {
++        generationCounter &+= 1
++        if generationCounter == 0 { generationCounter = 1 }
++        return generationCounter
++    }
+     private var pendingFrames = 0
+     private var producerFinished = false
+     private var speaking = false
+@@ -257,12 +312,14 @@
+     var isPlaybackEngineRunning: Bool { engine.isRunning }
+ 
+     func speak(_ text: String, volume: Float, token: UInt64) {
+-        // A drained clause can reuse the running engine even though each
+-        // clause now has a distinct callback token.
++        guard !terminationRequested else { return }
+         let continuing = !speaking && producerFinished
+             && pendingFrames == 0 && engine.isRunning
+         if !continuing { stop() }
+-        generation = token
++        let preceding = task
++        let mine = nextGeneration()
++        generation = mine
++        taskOwner = mine
+         speaking = true
+         pausedForListening = false
+         firstFramePlayed = false
+@@ -278,29 +335,40 @@
+         let voice = playbackVoiceForTesting != nil ? "alba" : Settings.shared.agentPocketVoice
+         let trace = playbackTraceForTesting
+         task = Task { @MainActor [weak self] in
+-            guard let self else { return }
++            guard let self else {
++                await preceding?.value
++                return
++            }
+             trace?.consumerEntered(token: token)
+-            defer { trace?.consumerReturned(token: token) }
++            var ownedSession: PocketTtsSession?
+             do {
++                try Task.checkCancellation()
++                guard !terminationRequested, generation == mine else { throw CancellationError() }
+                 engine.mainMixerNode.outputVolume = max(0, min(1, volume))
+                 if !engine.isRunning { try engine.start() }
+                 if !pausedForListening && !player.isPlaying { player.play() }
+-                let frames: AsyncThrowingStream<PocketTtsSynthesizer.AudioFrame, Error>
++                let session: PocketTtsSession
+                 do {
+                     trace?.factoryEntered(token: token)
+                     defer { trace?.factoryReturned(token: token) }
+                     #if NEXTNOTES_POCKET_OBSERVATION
+-                    frames = try await PocketTtsSynthesizer.$streamLifecycleObserver.withValue(
++                    session = try await PocketTtsSynthesizer.$streamLifecycleObserver.withValue(
+                         trace?.nativeObserver(token: token)) {
+-                            try await provider.frames(for: text, voice: voice)
++                            try await provider.makePlaybackSession(voice: voice, trace: trace, token: token)
+                         }
+                     #else
+-                    frames = try await provider.frames(for: text, voice: voice)
++                    session = try await provider.makePlaybackSession(voice: voice, trace: trace, token: token)
+                     #endif
+                 }
+-                for try await frame in frames {
++                ownedSession = session
++                try Task.checkCancellation()
++                guard !terminationRequested, generation == mine else { throw CancellationError() }
++                session.enqueue(text)
++                session.finish()
++                trace?.enqueued(token: token)
++                for try await frame in session.frames {
+                     try Task.checkCancellation()
+-                    guard generation == token else { return }
++                    guard !terminationRequested, generation == mine else { throw CancellationError() }
+                     trace?.firstPCM(token: token, nonzero: frame.samples.contains { abs($0) > 0.0001 })
+                     if firstProducedAt == nil {
+                         let producedAt = Date()
+@@ -325,29 +393,39 @@
+                     pendingFrames += 1
+                     player.scheduleBuffer(buffer, completionCallbackType: .dataPlayedBack) {
+                         [weak self] _ in
+-                        Task { @MainActor in self?.framePlayed(token: token) }
++                        Task { @MainActor in self?.framePlayed(token: token, generation: mine) }
+                     }
+                 }
+-                guard generation == token else { return }
++                guard !terminationRequested, generation == mine else { throw CancellationError() }
+                 if !firstFramePlayed && pendingFrames == 0 {
+                     throw PocketPlaybackError.emptyOutput
+                 }
+                 producerFinished = true
+-                finishIfDrained(token: token)
++                finishIfDrained(token: token, generation: mine)
+             } catch is CancellationError {
+-                // A newer reply or barge-in has already reset the player.
++                // Immediate stop already invalidated output; cleanup still owns native work.
+             } catch {
+-                guard generation == token else { return }
+-                Log.agent.error("Pocket TTS synthesis failed: \(error.localizedDescription, privacy: .public)")
+-                stop()
+-                onFailure?(text, volume, token)
+-            }
++                if !terminationRequested, generation == mine {
++                    Log.agent.error("Pocket TTS synthesis failed: \(error.localizedDescription, privacy: .public)")
++                    stop()
++                    onFailure?(text, volume, token)
++                }
++            }
++            if let ownedSession {
++                await ownedSession.cancel()
++                trace?.sessionJoined(token: token)
++            }
++            // A successor streamed before this await. This retains cancelled
++            // predecessors without serialising first PCM on their native drain.
++            await preceding?.value
++            trace?.consumerReturned(token: token)
++            if taskOwner == mine { task = nil }
+         }
+     }
+ 
+     func stop() {
+         task?.cancel()
+-        task = nil
++        generation = nextGeneration()
+         player.stop()
+         engine.stop()
+         MainActorSection.run("echo.stopped") { VoicePlaybackReference.stopped() }
+@@ -355,6 +433,7 @@
+         pausedForListening = false
+         pendingFrames = 0
+         producerFinished = false
++        // Retain the same task until its session + predecessors actually drain.
+     }
+ 
+     func pauseForListening() {
+@@ -369,12 +448,12 @@
+         if pendingFrames > 0 && !player.isPlaying { player.play() }
+     }
+ 
+-    private func framePlayed(token: UInt64) {
+-        MainActorSection.run("tts.played") { framePlayedBody(token: token) }
+-    }
+-
+-    private func framePlayedBody(token: UInt64) {
+-        guard generation == token, speaking, pendingFrames > 0 else { return }
++    private func framePlayed(token: UInt64, generation mine: UInt64) {
++        MainActorSection.run("tts.played") { framePlayedBody(token: token, generation: mine) }
++    }
++
++    private func framePlayedBody(token: UInt64, generation mine: UInt64) {
++        guard generation == mine, speaking, pendingFrames > 0 else { return }
+         if !firstFramePlayed {
+             firstFramePlayed = true
+             let playedAt = Date()
+@@ -390,14 +469,13 @@
+             onUtteranceStarted?(token)
+         }
+         pendingFrames -= 1
+-        finishIfDrained(token: token)
+-    }
+-
+-    private func finishIfDrained(token: UInt64) {
+-        guard producerFinished, pendingFrames == 0, generation == token, speaking else { return }
++        finishIfDrained(token: token, generation: mine)
++    }
++
++    private func finishIfDrained(token: UInt64, generation mine: UInt64) {
++        guard producerFinished, pendingFrames == 0, generation == mine, speaking else { return }
+         speaking = false
+         pausedForListening = false
+-        task = nil
+         player.stop()
+         engine.stop()
+         MainActorSection.run("echo.stopped") { VoicePlaybackReference.stopped() }
+--- a/Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift
++++ b/Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift
+@@ -76,7 +76,29 @@
+         case completed(String)
+         case interrupted(String, wasRendered: Bool)
+     }
+-    static let shared = AgentSpeechSynthesizer()
++    private static weak var loadedShared: AgentSpeechSynthesizer?
++    static let shared: AgentSpeechSynthesizer = {
++        let value = AgentSpeechSynthesizer()
++        loadedShared = value
++        return value
++    }()
++    static var sharedIfLoaded: AgentSpeechSynthesizer? { loadedShared }
++
++    private var terminationRequested = false
++
++    /// Quit closure is permanent; ordinary stop remains immediately reversible.
++    func beginTermination() {
++        guard !terminationRequested else { return }
++        terminationRequested = true
++        stop()
++        pocketBacking.beginTermination()
++    }
++
++    /// Bounded Pocket join only; Apple/Kokoro/source owners remain distinct.
++    func finishTermination() async {
++        beginTermination()
++        await pocketBacking.finishTermination()
++    }
+ 
+     private var backing: any AgentSpeechBacking
+     private let systemBacking = AVSpeechBacking()
+@@ -235,6 +257,7 @@
+     /// Prefer `StreamingSpeechBuffer` when text arrives in chunks; this remains
+     /// the one-shot path used by tests and non-streaming callers.
+     func speak(_ reply: String) {
++        guard !terminationRequested else { return }
+         let clauses = AgentSpeechPolicy.spokenClauses(reply)
+         guard !clauses.isEmpty else { return }
+         prepareForStream()
+@@ -249,6 +272,7 @@
+     /// Clear prior playback so a streamed reply can enqueue clauses one by one.
+     /// Called by `StreamingSpeechBuffer.begin` — does not set `didStop`.
+     func prepareForStream() {
++        guard !terminationRequested else { return }
+         voiceResumePending = false
+         voiceResumeBinding = nil
+         usingSystemFallbackForReply = false
+@@ -298,6 +322,7 @@
+     /// queues behind the current utterance. No-op after `stop()` until
+     /// `prepareForStream` / `speak` resets.
+     func enqueueClause(_ clause: String) {
++        guard !terminationRequested else { return }
+         let trimmed = clause.trimmingCharacters(in: .whitespacesAndNewlines)
+         guard !trimmed.isEmpty, !didStop else { return }
+         if backing.isSpeaking || !pendingClauses.isEmpty {
+@@ -497,6 +522,7 @@
+     }
+ 
+     private func startClause(_ clause: String) {
++        guard !terminationRequested else { return }
+         playbackTokenCounter &+= 1
+         currentPlaybackToken = playbackTokenCounter
+         let detail = String(format: "Voice clause start %.3f token=%llu backing=%@ characters=%d",
+@@ -510,6 +536,7 @@
+     }
+ 
+     private func fallbackCurrentClause(text: String, token: UInt64) {
++        guard !terminationRequested else { return }
+         guard token == currentPlaybackToken, !usingSystemFallbackForReply,
+               let currentClause, !currentClause.isEmpty, currentClause == text else { return }
+         usingSystemFallbackForReply = true

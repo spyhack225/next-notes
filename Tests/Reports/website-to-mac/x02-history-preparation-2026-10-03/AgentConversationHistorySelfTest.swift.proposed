@@ -1,0 +1,102 @@
+import Foundation
+
+/// Actual AgentSession append/save/reload into an isolated temporary file, then the
+/// same message projection AgentView uses. No owner conversation, model or index.
+@MainActor
+enum AgentConversationHistorySelfTest {
+    static func failures() -> [String] {
+        guard SelfTest.isRunning else {
+            return ["history: self-test mode unavailable"]
+        }
+        var failures: [String] = []
+        func check(_ name: String, _ condition: Bool) {
+            if !condition { failures.append("history: " + name) }
+        }
+        final class Clock {
+            var current = Date(timeIntervalSince1970: 1_800_000_000)
+            func now() -> Date { current }
+        }
+        let clock = Clock()
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("nextnotes-x02-history-\(UUID().uuidString)", isDirectory: true)
+        let file = root.appendingPathComponent(AgentSession.fileName)
+        do {
+            try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        } catch {
+            return ["history: isolated temporary directory unavailable"]
+        }
+        defer { try? FileManager.default.removeItem(at: root) }
+        func open() -> AgentSession {
+            AgentSession(fileURL: file, now: clock.now, idleMinutes: { 30 },
+                         beginMemorySession: {}, workingBudget: AgentHistoryBudget.maximumCharacters)
+        }
+
+        let first = open()
+        check("session uses only its isolated temporary file", first.fileURL == file)
+        let committedID = UUID()
+        for index in 0..<25 {
+            first.recordUser("Question \(index)", source: .text)
+            if index == 20 {
+                let threshold = AgentView.presentedMessages(first.messages, responding: nil)
+                check("the 41st actual row keeps the first retained row visible",
+                      first.messages.count == 41 && threshold.count == 41
+                        && threshold.first?.id == first.messages.first?.id)
+            }
+            _ = first.recordAssistant("Answer \(index)", source: .text,
+                messageID: index == 24 ? committedID : nil,
+                at: index == 24 ? clock.current : nil,
+                knowledgeClaims: index == 24
+                    ? [KnowledgeClaim(text: "Answer 24", chunkIDs: [])] : nil)
+            clock.current += 5
+        }
+        let firstID = first.messages.first?.id
+        let originalSessionID = first.sessionID
+        check("append produced 50 real rows", first.messages.count == 50)
+        check("isolated session wrote its actual JSON file",
+              FileManager.default.fileExists(atPath: file.path))
+
+        let reopened = open()
+        check("fresh session retained all 50 rows and identity",
+              reopened.messages.count == 50 && reopened.messages.first?.id == firstID
+                && reopened.sessionID == originalSessionID)
+        let shown = AgentView.presentedMessages(reopened.messages, responding: nil)
+        check("Agent pane exposes the oldest saved row beyond 40",
+              shown.count == 50 && shown.first?.id == firstID)
+        check("Agent pane preserves saved row order and identity",
+              shown.map(\.id) == reopened.messages.map(\.id))
+        let committed = reopened.messages.first { $0.id == committedID }
+        check("fresh row retains source, time, claims and session",
+              committed?.source == AgentUtteranceSource.text.rawValue
+                && committed?.at == clock.current.addingTimeInterval(-5)
+                && committed?.sessionID == originalSessionID
+                && committed?.knowledgeClaims == [KnowledgeClaim(text: "Answer 24", chunkIDs: [])])
+        let sameDraft = AgentSession.Message(id: committedID, role: "assistant", text: "Answer 24")
+        let deduped = AgentView.presentedMessages(reopened.messages, responding: sameDraft)
+        check("committed streaming identity is not duplicated", deduped.map(\.id) == shown.map(\.id))
+        let newDraft = AgentSession.Message(role: "assistant", text: "Still answering")
+        let withDraft = AgentView.presentedMessages(reopened.messages, responding: newDraft)
+        check("one live draft follows the saved history", withDraft.count == 51
+              && withDraft.last?.id == newDraft.id && withDraft.dropLast().map(\.id) == shown.map(\.id))
+
+        reopened.recordUser("Continuing after relaunch", source: .text)
+        _ = reopened.recordAssistant("Continued answer", source: .text)
+        let continued = open()
+        check("a fresh continuation retains prior and new rows",
+              continued.messages.count == 52 && continued.messages.first?.id == firstID
+                && continued.messages.last?.text == "Continued answer"
+                && continued.sessionID == originalSessionID)
+        for index in 0..<35 {
+            continued.recordUser("Later question \(index)", source: .text)
+            _ = continued.recordAssistant("Later answer \(index)", source: .text)
+            clock.current += 5
+        }
+        let bounded = open()
+        check("the existing 120-row storage bound is unchanged",
+              bounded.messages.count == 120 && bounded.messages.first?.text == "Question 1"
+                && bounded.messages.last?.text == "Later answer 34")
+        let boundedShown = AgentView.presentedMessages(bounded.messages, responding: nil)
+        check("the pane exposes every currently retained row",
+              boundedShown.map(\.id) == bounded.messages.map(\.id))
+        return failures
+    }
+}

@@ -1,0 +1,29 @@
+{
+  "status": "READ_ONLY_SOURCE_AUDIT_NO_COMPILE_NATIVE_OR_ORIGINAL_QUALIFICATION",
+  "date": "2026-10-04",
+  "sourcePins": {
+    "Sources/NextNotes/NextNotesApp.swift": "bc01a27f48478a297d07a1d35669c313615cc7c182c0c6d113b4899e792a1b61",
+    "Sources/NextNotes/Core/DictationController.swift": "971b783422d52841cf3115862943fc68fc5ff548fa717cd5a15744ee5f35fb6b",
+    "Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift": "871e02fa01dbf36e46f3e437495640f4fc8b4104f9af2ecf931e930f41b7930f",
+    "Sources/NextNotes/Agent/Speech/PocketAgentVoice.swift": "9b0c5a9404e5e8ea68f96659cd2ce70e5efabe69db28f1292d4d75a8fa5acf7d",
+    "Sources/NextNotes/Agent/Speech/KokoroAgentVoice.swift": "66bf1d77947a768a6cc18334c07a6d9a9c7b65cba66f2adcf30f4f2f3ca50630",
+    "Sources/NextNotes/Agent/Speech/VoicePlaybackReference.swift": "7bde6a354fc6b80784d03c4198b99b83567b4f216d2e43735f18ae9c5aa67868",
+    "Sources/NextNotes/Agent/RealtimeAudioSession.swift": "e785ea5eec1b20c808778dcf589cd8fd5512b27fab19972ca0cc28c3e2b313f1",
+    "Sources/NextNotes/UI/Settings/ModelsSettingsTab.swift": "c7149061e368bd11960561d20c0040bda3fd14a6e62582debdab42fe739bb359",
+    "Sources/NextNotes/Support/NativeStartupTerminationSelfTest.swift": "08efb6837d52bd8f216ec3d21ee7d1367d9791472c65f2e162c52bcbc77b73c2",
+    "Sources/NextNotes/Agent/Duplex/ApplePlaybackTimelineSelfTest.swift": "67ff416a34093e440f0ff6f03cdae0059ef90eddadd09c561fc0b401fa039321",
+    "Sources/NextNotes/Agent/Duplex/AppleResumeOwnerSelfTest.swift": "8b47c89c0092da46ff5503b060ed1ca0b491026f8623cdba5913e90e1d088da6"
+  },
+  "reportPins": {
+    "Tests/Reports/website-to-mac/reliability-quit-preparation-2026-10-04/direct-rebase/manifest.json": "e59de055911266d8602414dd2fa12f589ef38ac299f8e6dcdea1858695fe1e2b",
+    "Tests/Reports/website-to-mac/reliability-quit-preparation-2026-10-03/voice-current/manifest.json": "52af800c67a2755b22642443c590ba4a6951b926c9b82b5c5dec3950056e3e84",
+    "Tests/Reports/website-to-mac/reliability-quit-preparation-2026-10-03/voice-current/README.md": "11cb2a6319b0db84d36303de34944c8aca32f5d6f18f49cf44242a905f9bdae8"
+  },
+  "auditDocumentSHA256": "f878c84e0ca0968fb1bd6ca2bbcaeacdcbac14bf8ef192da7ff032ead9830153",
+  "limits": [
+    "No canonical/frozen/worktree mutations",
+    "No compiler/native/model/asset/index/log/process/owner-store access",
+    "Frozen57/17 and Kokoro49 are retained authored qualification contracts, not executed proof in this audit",
+    "Physical consumer cessation and startup-original overlap unobserved"
+  ]
+}

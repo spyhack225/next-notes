@@ -1,0 +1,98 @@
+// Proposed insertion into NextNotesApp.runDictationSelfTest(), immediately BEFORE
+// D-01b g's sink.count == holdsStarted assertion. Root owns that source file.
+// Source prepared only; no claim this fixture compiled or ran.
+// Uses that actual flag's existing limits, hold(), sink and holdsStarted variables.
+// Actual capture hub/microphone and DictationController; only engine, insertion and
+// record effects are replaced. Run under the existing owner-store guard/harness.
+for result in [
+    TextInjector.Outcome.inserted,
+    .copiedByChoice(appName: "Practice example"),
+    .couldNotReturn(appName: "Practice example"),
+] {
+    var heldID: UUID?
+    var recordedID: UUID?
+    var actualOutput = ""
+    var fieldText = ""
+    var practice = OnboardingPracticeReceipt()
+    practice.beginObserving(latestDeliveryID: nil)
+    let owner = UUID()
+    let before = sink.count
+    let controller = DictationController(
+        formatter: RuleBasedFormatter(),
+        makeEngine: { SelfTestEngine(shape: .prompt(delay: .zero)) },
+        limits: limits,
+        insert: { text, _ in
+            actualOutput = text
+            if result == .inserted { fieldText = text }
+            return result
+        },
+        // Memory-only identity witness, never RunLog.record.
+        record: { recordedID = $0.id },
+        log: .selfTest,
+        outcome: { sink.append($0) }
+    )
+    controller.observeHoldBeginnings(owner: owner) { id in
+        heldID = id
+        practice.beganHold(id: id, inPracticeField: true, fieldText: fieldText)
+    }
+    if await hold(controller, held: .seconds(2), settle: 8) == nil {
+        failures.append("delivery receipt hold did not settle through the actual controller")
+    }
+    let outcomes = sink.outcomes(from: before)
+    if outcomes.count != 1 || heldID == nil || recordedID != heldID
+        || outcomes.first?.holdID != heldID || actualOutput.isEmpty {
+        failures.append("delivery receipt hold identity/output did not match actual run and outcome")
+    }
+    let receipt = controller.latestDelivery
+    switch result {
+    case .inserted, .copiedByChoice:
+        let expectedKind: DictationController.Delivery.Kind =
+            result == .inserted ? .inserted : .copied
+        if receipt?.id != heldID || receipt?.text != actualOutput
+            || receipt?.kind != expectedKind {
+            failures.append("actual injector outcome did not publish the exact delivery receipt")
+        }
+        if let receipt {
+            practice.received(id: receipt.id, text: receipt.text,
+                              inserted: receipt.kind == .inserted, fieldText: fieldText)
+        }
+        if practice.hasDeliveredWords != (result == .inserted) {
+            failures.append("actual delivery incorrectly certified practice success")
+        }
+    case .couldNotReturn:
+        if receipt != nil || practice.hasDeliveredWords
+            || outcomes.first?.result != .failed(.couldNotReturn) {
+            failures.append("clipboard recovery was promoted to an insertion success")
+        }
+    case .superseded:
+        // The canceled delayed-insertion production case below owns this contract.
+        failures.append("unexpected superseded result in delivery fixture")
+    }
+
+    // Clearing is synchronous at accepted key-down, before mic/model awaits.
+    // No additional capture wait is introduced by the presentation observer.
+    let previousID = heldID
+    controller.startButtonRecording()
+    if controller.state.isActive { holdsStarted += 1 }
+    if controller.latestDelivery != nil || heldID == previousID {
+        failures.append("next accepted hold retained its predecessor's delivery")
+    }
+    controller.cancelDictation()
+    if controller.latestDelivery != nil {
+        failures.append("canceled next hold resurrected a delivery receipt")
+    }
+    controller.stopObservingHoldBeginnings(owner: owner)
+}
+
+// ALSO extend the EXISTING DelayedSelfTestInsert controller's regression without
+// changing its original inputs/assertions:
+// 1. At firstIsWaiting, assert delayed.latestDelivery == nil.
+// 2. After cancelDictation() and after delayedInsert.releaseFirst(), before the new
+//    hold finishes, assert delayed.latestDelivery == nil (late old insertion cannot
+//    create a receipt for the successor).
+// 3. After the second hold finishes, assert latestDelivery.id matches the second
+//    actual outcome's holdID and latestDelivery.text == delayedInbox.contents().last.
+// 4. Keep original state/listening/idle/count assertions and D-01b total unchanged.
+//
+// This tests actual controller/consumer values. Rendered FocusState, actual target
+// insertion/readback, switch-away grants and perceived latency remain live gates.

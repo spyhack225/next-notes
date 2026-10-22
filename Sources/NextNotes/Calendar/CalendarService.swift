@@ -3,6 +3,31 @@ import EventKit
 import Foundation
 import Observation
 
+/// One provider's calendar-fetch failure, at the granularity a person can act on and a
+/// log can hold: which account's calendar, and what kind of refusal — nothing else.
+///
+/// Kept beside the human sentence in `CalendarService.lastError`, and deliberately
+/// shaped from cases rather than text: a Google refusal reason can carry an address, a
+/// request URL can carry an event id, and this fact is read by diagnostics and printed
+/// (MR-06). At file scope, and not nested in the service, so constructing one needs no
+/// main actor.
+struct CalendarFetchFailure: Sendable, Equatable {
+    enum Stage: String, Sendable {
+        /// Sign-in or token: the account needs connecting again.
+        case auth
+        /// The network never answered.
+        case network
+        /// The provider answered and refused the request.
+        case api
+        /// The reply arrived but was not the shape this build understands.
+        case decode
+    }
+
+    var providerID: CalendarProviderID
+    var stage: Stage
+    var occurredAt: Date
+}
+
 /// Every enabled calendar, merged into one list of what is coming up.
 ///
 /// The scheduler and the UI both read `upcoming`, and neither knows or cares which account
@@ -20,6 +45,20 @@ final class CalendarService {
     private(set) var providerStates: [CalendarProviderID: CalendarAuthorizationState] = [:]
     private(set) var lastRefresh: Date?
     private(set) var lastError: String?
+    /// The most recent provider failure, reduced to facts safe to show and log anywhere.
+    ///
+    /// `lastError` keeps its human sentence for Settings; this is the machine-shaped
+    /// companion (MR-06): which provider, and what kind of failure — never a URL, an
+    /// address or an event title, because diagnostics read it and it is printed. The
+    /// first provider that failed during the latest refresh pass is the one kept; a pass
+    /// with no failures clears it.
+    private(set) var lastFetchFailure: CalendarFetchFailure?
+    /// The failures that cost part of an answer rather than all of it.
+    ///
+    /// One calendar that could not be read does not make the whole refresh a
+    /// failure — the other calendars answered, and the events are there. It is
+    /// still a failure, and the person is told which provider was short.
+    private(set) var lastPartialFetchFailures: [CalendarFetchFailure] = []
     private(set) var isRefreshing = false
     /// The Google calendars available to tick in Settings.
     private(set) var googleCalendars: [GoogleCalendarListEntry] = []
@@ -166,6 +205,9 @@ final class CalendarService {
         var collected: [MeetingEvent] = []
         var states: [CalendarProviderID: CalendarAuthorizationState] = [:]
         var failures: [String] = []
+        var fetchFailures: [CalendarFetchFailure] = []
+        var partialFetchFailures: [CalendarFetchFailure] = []
+        var partialFailures: [String] = []
 
         for provider in activeProviders() {
             let state = await provider.authorizationState()
@@ -173,9 +215,33 @@ final class CalendarService {
             guard state.isAuthorized else { continue }
             do {
                 collected.append(contentsOf: try await provider.events(from: from, to: to))
+                // A provider that answered in part still failed for part of the
+                // account, and that failure used to end in a log line nobody
+                // read. It is a fact now, one per failed calendar.
+                for failure in await provider.partialFetchFailures() {
+                    // The stage is the error's own stage, not a guess: a
+                    // revoked token and a network drop are different failures
+                    // and the fact has to say which.
+                    let fact = CalendarFetchFailure(
+                        providerID: provider.id,
+                        stage: Self.fetchFailureStage(for: failure.error),
+                        occurredAt: Date()
+                    )
+                    partialFetchFailures.append(fact)
+                    // The calendar's own display name, never its id: a Google
+                    // calendar's id is the account's address, and that does not
+                    // belong in a string the person reads.
+                    partialFailures.append(
+                        "\(provider.id.displayName): \(failure.name) could not be read")
+                }
             } catch {
                 states[provider.id] = .failed(error.localizedDescription)
                 failures.append("\(provider.id.displayName): \(error.localizedDescription)")
+                fetchFailures.append(CalendarFetchFailure(
+                    providerID: provider.id,
+                    stage: Self.fetchFailureStage(for: error),
+                    occurredAt: Date()
+                ))
             }
         }
 
@@ -188,7 +254,14 @@ final class CalendarService {
         providerStates = states
         upcoming = Self.deduplicated(collected)
         lastRefresh = Date()
+        // A failure that did not cost the whole answer is still a failure, and
+        // the person is told which provider could not be read.
+        if !partialFailures.isEmpty {
+            failures.append(contentsOf: partialFailures)
+        }
         lastError = failures.isEmpty ? nil : failures.joined(separator: "\n")
+        lastFetchFailure = fetchFailures.first
+        lastPartialFetchFailures = partialFetchFailures
 
         Log.calendar.info("""
             calendar refresh: \(self.upcoming.count, privacy: .public) upcoming event(s) \
@@ -235,6 +308,8 @@ final class CalendarService {
     }
 
     func refreshGoogleCalendars() async {
+        // Offscreen fixture lifecycle is not an account refresh. Other live tests retain it.
+        guard SelfTest.requested != "--selftest-settings-sheet" else { return }
         guard Settings.shared.calendarGoogleEnabled else { return }
         do {
             googleCalendars = try await google.calendars()
@@ -242,6 +317,29 @@ final class CalendarService {
             googleCalendars = []
             Log.calendar.error("couldn't list Google calendars: \(error.localizedDescription, privacy: .public)")
         }
+    }
+
+    // MARK: - Fetch failures
+
+    /// What kind of failure an error was, reading only its case — never its text, which
+    /// can carry a URL, an address or a Google refusal reason.
+    nonisolated static func fetchFailureStage(
+        for error: any Error
+    ) -> CalendarFetchFailure.Stage {
+        if error is DecodingError { return .decode }
+        if error is URLError { return .network }
+        if let google = error as? GoogleCalendarError {
+            switch google {
+            case .notSignedIn, .accessRevoked, .accessTokenRejected, .noRefreshToken,
+                 .tokenRequestFailed, .authorizationDenied, .stateMismatch,
+                 .authorizationTimedOut, .callbackListenerFailed, .noClientID,
+                 .badAuthorizationURL:
+                return .auth
+            case .requestFailed:
+                return .api
+            }
+        }
+        return .api
     }
 
     // MARK: - Internals

@@ -132,7 +132,8 @@ final class NotesService {
     func generate(
         for meeting: Meeting,
         segments: [TranscriptSegment],
-        preferring preferred: LLMProviderID? = nil
+        preferring preferred: LLMProviderID? = nil,
+        coverage: NotesCoverageDisclosure.Frozen? = nil
     ) async -> String? {
         let id = meeting.id
         guard !terminationRequested, !isRunning(id) else { return nil }
@@ -183,7 +184,9 @@ final class NotesService {
                 provider: provider,
                 fallbackReason: preferred == nil ? nil : .preferredOverride
             )
-            let result = try await generator.notes(for: meeting, segments: segments, brief: brief) { step in
+            let result = try await generator.notes(
+                for: meeting, segments: segments, brief: brief, coverage: coverage
+            ) { step in
                 Task { @MainActor [weak self] in
                     guard let self, !self.terminationRequested else { return }
                     self.noteProgress(id)
@@ -209,6 +212,7 @@ final class NotesService {
                 note: "mapReduce=\(result.usedMapReduce) chunks=\(result.chunks)"
                     + " collapsed=\(result.collapsedGroups) dropped=\(result.droppedFacts)"
                     + " incompleteFacts=\(result.incompleteFacts)"
+                    + " coverage=\(result.coverage?.disclosure.kind ?? "none")"
             )
             Log.llm.info("""
                 notes for "\(meeting.title, privacy: .public)" — \
@@ -367,7 +371,12 @@ final class NotesService {
             store.save(updated)
 
             let segments = store.transcript(for: id)
-            let model = await generate(for: updated, segments: segments, preferring: provider)
+            // Frozen from the same snapshot the notes are generated from: a meeting whose
+            // speakers are identified minutes later cannot change what the page already
+            // said about its own coverage.
+            let coverage = NotesCoverageDisclosure.freeze(meeting: updated, segments: segments)
+            let model = await generate(for: updated, segments: segments, preferring: provider,
+                                       coverage: coverage)
             guard !terminationRequested else { return }
             // A failed model cannot hide the person's notes. This also catches a line
             // saved after generate's snapshot while the panel was closing: the merge

@@ -1,0 +1,31 @@
+--- a/Sources/NextNotes/UI/Island/IslandState.swift
++++ b/Sources/NextNotes/UI/Island/IslandState.swift
+@@ -507,7 +507,7 @@
+     }
+ 
+     func showAgentReply(_ text: String) {
+-        push(.agentReply(text), for: DS.Motion.islandNotice)
++        push(.agentReply(text), for: DS.Motion.islandNoticeFor(text: text))
+     }
+ 
+     @ObservationIgnored var onHeadsUpAction: ((IslandHeadsUp.Action) -> Void)?
+@@ -621,7 +621,18 @@
+     /// Exposed for `--selftest-island`, which drives it against pushed notices to prove the
+     /// priority order without a microphone.
+     func refresh() {
+-        let next = notice?.kind ?? liveKind()
++        let next: Kind
++        // A passive heads-up cannot obscure a newly active dictation. Keep the
++        // notice and its deadline; ordinary actionable notices retain their priority.
++        if case .agentHeadsUp = notice?.kind,
++           let dictation, dictation.state.shouldShowHUD,
++           !dictation.commandModeOwnsHUD, headsUpHUDPlacement() == .notch {
++            next = Self.card(for: dictation.state, transcript: dictation.transcript,
++                level: dictation.level,
++                isCapturing: dictation.state == .listening || dictation.isCapturingAudio)
++        } else {
++            next = notice?.kind ?? liveKind()
++        }
+         let nextID = next.identity
+         if cardIdentity != nextID {
+             cardIdentity = nextID

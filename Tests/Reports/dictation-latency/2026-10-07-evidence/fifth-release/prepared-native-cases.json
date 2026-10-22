@@ -1,0 +1,162 @@
+{
+  "status": "PREPARED, NOT RUN; fifth compiler/native resource owned by meeting-performance-20261007",
+  "required": [
+    "Exact signed fifth app executable hash and source1171 freeze supplied by build owner",
+    "Explicit heavy handoff, claim, fresh max8GB swap/min6.5GB free gate; ordinary10GB disk floor not claimed",
+    "Every child joins before fresh gate and next launch; owner app unchanged; no physical capture interference"
+  ],
+  "inputs": {
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-bounded-pcm-20261008/quiet-final-clause.wav": {
+      "exists": true,
+      "sha256": "76c16c4ffd310a9e9b1b87841a8211a7ae738e92868b02b8141c578a1f726dc4"
+    },
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-bounded-pcm-20261008/quiet-final-whole-gold.txt": {
+      "exists": true,
+      "sha256": "0b7465741fe4a5fb780a941f78d946935acb6e84bbd26d9d74205af3d5a19e2b"
+    },
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-followup-20261007/short.wav": {
+      "exists": true,
+      "sha256": "c76b7a33697157bd5a6e12a4c94712a86b02ed582cf556c02f57e7a34c85d74a"
+    },
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-followup-20261007/long.wav": {
+      "exists": true,
+      "sha256": "3745a8213262bd047ebf85cf47123055c4c234e59cd8a01b64c9bd34f6c9da07"
+    },
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-latency-20261007/en-dialogue-double-gold.txt": {
+      "exists": true,
+      "sha256": "44e72543d9d157609e708c5e82cce8d6231531ad4e5361f6be4e4050225d71cc"
+    }
+  },
+  "cases": {
+    "phase-original": {
+      "launcher": "/Users/sergekadjo/Documents/Claude/Projects/speechify/Scripts/run-selftest.sh",
+      "env": {
+        "NEXTNOTES_APP": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-79499/Next Notes.app"
+      },
+      "argv": [
+        "--via-open",
+        "--out",
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-fifth-native-20261008/phase-original.log",
+        "--selftest-llm-prefix-cache",
+        "--native-parked-cancellation",
+        "--native-phase-observation",
+        "--selftest-timeout",
+        "240"
+      ],
+      "scope": "Unchanged production Runtime/Scheduler. Four missing diagnostics expected only as hypothesis; actual native verdict required. Old cancellation/prefix/control assertions unchanged. Real privateS1 CPU/native + actual schedulerASR reservation, not concurrent liveASR.",
+      "run": false
+    },
+    "quiet-complete": {
+      "launcher": "/Users/sergekadjo/Documents/Claude/Projects/speechify/Scripts/run-selftest.sh",
+      "env": {
+        "NEXTNOTES_APP": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-79499/Next Notes.app"
+      },
+      "argv": [
+        "--via-open",
+        "--out",
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-fifth-native-20261008/quiet-complete.log",
+        "--selftest-dictation-segments",
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-bounded-pcm-20261008/quiet-final-clause.wav",
+        "--dictation-complete-audio",
+        "--dictation-gold",
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-bounded-pcm-20261008/quiet-final-whole-gold.txt",
+        "--dictation-asr-output",
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-fifth-native-20261008/quiet-asr",
+        "--selftest-timeout",
+        "300"
+      ],
+      "scope": "Actual full-reference decode and two full-file real-time engine endings, retain exact reference/raw public words; functionalOK does not gradeaccuracy.",
+      "run": false
+    },
+    "quiet-polish": {
+      "launcher": "/Users/sergekadjo/Documents/Claude/Projects/speechify/Scripts/run-selftest.sh",
+      "env": {
+        "NEXTNOTES_APP": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-79499/Next Notes.app"
+      },
+      "argv": [
+        "--via-open",
+        "--out",
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-fifth-native-20261008/quiet-polish.log",
+        "--selftest-dictation-segments",
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-bounded-pcm-20261008/quiet-final-clause.wav",
+        "--dictation-polish",
+        "miniCPM",
+        "--dictation-polish-warm",
+        "--dictation-asr-output",
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-fifth-native-20261008/quiet-polish-raw",
+        "--dictation-polish-output",
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-fifth-native-20261008/quiet-polish-final",
+        "--selftest-timeout",
+        "300",
+        "--dictation-gold",
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-bounded-pcm-20261008/quiet-final-whole-gold.txt"
+      ],
+      "scope": "Actual Core finishing twice per process. Grammar/layout/semantic/dictionary retained; empty context and insertion/history isolation. Startup separate from first-word-after-start. Exact raw/final words and layout/head/publication/final timing retained. No physical mic/paint/AX proof.",
+      "run": false
+    },
+    "short-polish": {
+      "launcher": "/Users/sergekadjo/Documents/Claude/Projects/speechify/Scripts/run-selftest.sh",
+      "env": {
+        "NEXTNOTES_APP": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-79499/Next Notes.app"
+      },
+      "argv": [
+        "--via-open",
+        "--out",
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-fifth-native-20261008/short-polish.log",
+        "--selftest-dictation-segments",
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-followup-20261007/short.wav",
+        "--dictation-polish",
+        "miniCPM",
+        "--dictation-polish-warm",
+        "--dictation-asr-output",
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-fifth-native-20261008/short-polish-raw",
+        "--dictation-polish-output",
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-fifth-native-20261008/short-polish-final",
+        "--selftest-timeout",
+        "300"
+      ],
+      "scope": "Actual Core finishing twice per process. Grammar/layout/semantic/dictionary retained; empty context and insertion/history isolation. Startup separate from first-word-after-start. Exact raw/final words and layout/head/publication/final timing retained. No physical mic/paint/AX proof.",
+      "run": false
+    },
+    "long-polish": {
+      "launcher": "/Users/sergekadjo/Documents/Claude/Projects/speechify/Scripts/run-selftest.sh",
+      "env": {
+        "NEXTNOTES_APP": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-79499/Next Notes.app"
+      },
+      "argv": [
+        "--via-open",
+        "--out",
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-fifth-native-20261008/long-polish.log",
+        "--selftest-dictation-segments",
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-followup-20261007/long.wav",
+        "--dictation-polish",
+        "miniCPM",
+        "--dictation-polish-warm",
+        "--dictation-asr-output",
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-fifth-native-20261008/long-polish-raw",
+        "--dictation-polish-output",
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-fifth-native-20261008/long-polish-final",
+        "--selftest-timeout",
+        "420",
+        "--dictation-gold",
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-latency-20261007/en-dialogue-double-gold.txt"
+      ],
+      "scope": "Actual Core finishing twice per process. Grammar/layout/semantic/dictionary retained; empty context and insertion/history isolation. Startup separate from first-word-after-start. Exact raw/final words and layout/head/publication/final timing retained. No physical mic/paint/AX proof.",
+      "run": false
+    }
+  },
+  "candidate": {
+    "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-79499/Next Notes.app",
+    "executableSHA256": "7b3c734900a2535e1f22bc6068aeb560b25c23774bcc7780501f8328a49a91d2",
+    "sourcePins": 1171,
+    "owner": "meeting-performance-20261007",
+    "installed": false
+  },
+  "latestAdmission": {
+    "atUTC": "2026-10-08T04:13:22.485739+00:00",
+    "swapGB": 8.190546875,
+    "freeGB": 7.213512420654297,
+    "load": 4.6,
+    "nativeGate": "REFUSED max8GB swap; root retains heavy ownership; no inference launched"
+  }
+}

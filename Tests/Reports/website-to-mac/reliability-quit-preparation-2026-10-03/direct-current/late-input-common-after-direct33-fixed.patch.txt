@@ -1,0 +1,327 @@
+--- a/Sources/NextNotes/Transcription/ParakeetEngine.swift
++++ b/Sources/NextNotes/Transcription/ParakeetEngine.swift
+@@ -167,6 +167,7 @@
+     }
+ 
+     func feed(_ chunk: AudioChunk) async {
++        nativeFinishTraceForTesting?.inputReceived()
+         let buffer = chunk.buffer
+         guard buffer.frameLength > 0 else { return }
+ 
+@@ -212,6 +213,7 @@
+         partialTask?.cancel()
+         partialTask = nil
+         queuedPartial = nil
++        nativeFinishTraceForTesting?.partialCaptured(activePartial != nil)
+ 
+         // Do not begin the final model pass while a provisional pass still owns the manager.
+         // FluidAudio cancellation is cooperative, so the controller's finish deadline is
+@@ -336,6 +338,7 @@
+             await self?.runPartial(snapshot: snapshot, at: at, generation: generation)
+             await self?.partialDidFinish(generation: generation)
+         }
++        if let sameTask = partialTask { nativeFinishTraceForTesting?.partialCreated(sameTask) }
+     }
+ 
+     private func partialDidFinish(generation: Int) {
+--- a/Sources/NextNotes/Support/NativeStartupTerminationSelfTest.swift
++++ b/Sources/NextNotes/Support/NativeStartupTerminationSelfTest.swift
+@@ -25,7 +25,7 @@
+                "final-pass-active", "final-pass-cancel", "final-pass-closed",
+                "diarizer-active", "diarizer-cancel", "diarizer-closed", "diarizer-stall",
+                "diarizer-stall-cancel", "diarizer-stall-quit",
+-               "dictation-cancel-retired", "dictation-tail-retired"].contains(mode) else {
++               "dictation-cancel-retired", "dictation-tail-retired", "dictation-late-feed"].contains(mode) else {
+             throw CocoaError(.fileReadNoPermission)
+         }
+         let root = try (NativeDiarizationQuitSelfTest.modes.contains(mode)
+@@ -44,6 +44,7 @@
+     }
+ 
+     static func armIfRequested() async throws -> Bool {
++        if try await NativeParakeetLateFeedSelfTest.armIfRequested() { return true }
+         if try await NativeDirectDictationQuitSelfTest.armIfRequested() { return true }
+         if try await NativeDiarizationQuitSelfTest.armIfRequested() { return true }
+         if try await NativeFinalTranscriptQuitSelfTest.armIfRequested() { return true }
+--- a/Sources/NextNotes/Support/NativeDirectDictationQuitSelfTest.swift
++++ b/Sources/NextNotes/Support/NativeDirectDictationQuitSelfTest.swift
+@@ -12,7 +12,7 @@
+         let args = CommandLine.arguments
+         guard SelfTest.requested == "--selftest-native-termination",
+               let i = args.firstIndex(of: "--native-startup-case"), args.indices.contains(i + 1) else { return false }
+-        return modes.contains(args[i + 1])
++        return modes.contains(args[i + 1]) || NativeParakeetLateFeedSelfTest.isRequested
+     }
+     private static var conductor: DirectDictationConductor?
+     static func armIfRequested() async throws -> Bool {
+@@ -21,6 +21,7 @@
+         guard let i = args.firstIndex(of: "--native-startup-case"), args.indices.contains(i + 1),
+               let a = args.firstIndex(of: "--native-startup-assets"), args.indices.contains(a + 1),
+               let delegate = AppDelegate.current else { throw CocoaError(.fileReadNoPermission) }
++        guard modes.contains(args[i + 1]) else { return false }
+         let root = try NativeStartupTerminationSelfTest.validateAssets(URL(fileURLWithPath: args[a + 1]), pocket: false)
+         let input = root.appendingPathComponent("fr-dialogue.wav")
+         let metadata = try input.resourceValues(forKeys: [.isRegularFileKey, .isSymbolicLinkKey, .fileSizeKey])
+@@ -265,7 +266,21 @@
+     private let lock = NSLock()
+     private var value = Snapshot()
+     private let onEntry: @Sendable (Int) -> Void
+-    init(onEntry: @escaping @Sendable (Int) -> Void) { self.onEntry = onEntry }
++    private let onPartialCreated: (@Sendable (Task<Void, Never>) -> Void)?
++    private let onPartialCaptured: (@Sendable (Bool) -> Void)?
++    private let onInputReceived: (@Sendable (Snapshot, Bool) -> Void)?
++    init(onPartialCreated: (@Sendable (Task<Void, Never>) -> Void)? = nil,
++         onPartialCaptured: (@Sendable (Bool) -> Void)? = nil,
++         onInputReceived: (@Sendable (Snapshot, Bool) -> Void)? = nil,
++         onEntry: @escaping @Sendable (Int) -> Void) {
++        self.onEntry = onEntry
++        self.onPartialCreated = onPartialCreated
++        self.onPartialCaptured = onPartialCaptured
++        self.onInputReceived = onInputReceived
++    }
++    func inputReceived() { onInputReceived?(snapshot(), Task.isCancelled) }
++    func partialCreated(_ task: Task<Void, Never>) { onPartialCreated?(task) }
++    func partialCaptured(_ present: Bool) { onPartialCaptured?(present) }
+     func entered() {
+         lock.lock(); value.starts += 1; value.active += 1; let ordinal = value.starts; lock.unlock()
+         onEntry(ordinal)
+--- /dev/null
++++ b/Sources/NextNotes/Support/NativeParakeetLateFeedSelfTest.swift
+@@ -0,0 +1,237 @@
++import AppKit
++import AVFoundation
++import FluidAudio
++import Foundation
++
++/// Separate OFF-SOURCE draft. Prospective accepted direct finish-chain and
++/// canceled-final guards are COMMON prerequisites before both INPUT variants.
++@MainActor
++enum NativeParakeetLateFeedSelfTest {
++    nonisolated static var isRequested: Bool {
++        let a = CommandLine.arguments
++        guard SelfTest.requested == "--selftest-native-termination",
++              let i = a.firstIndex(of: "--native-startup-case"), a.indices.contains(i + 1) else { return false }
++        return a[i + 1] == "dictation-late-feed"
++    }
++    private static var conductor: ParakeetLateFeedConductor?
++    static func armIfRequested() async throws -> Bool {
++        guard isRequested else { return false }
++        let a = CommandLine.arguments
++        guard let i = a.firstIndex(of: "--native-startup-assets"), a.indices.contains(i + 1),
++              let delegate = AppDelegate.current else { throw CocoaError(.fileReadNoPermission) }
++        let root = try NativeStartupTerminationSelfTest.validateAssets(URL(fileURLWithPath: a[i + 1]), pocket: false)
++        let wav = root.appendingPathComponent("fr-dialogue.wav")
++        let metadata = try wav.resourceValues(forKeys: [.isRegularFileKey, .isSymbolicLinkKey, .fileSizeKey])
++        guard wav.standardizedFileURL.path == wav.resolvingSymlinksInPath().path,
++              metadata.isRegularFile == true, metadata.isSymbolicLink != true,
++              (metadata.fileSize ?? 0) > 1_000_000 else { throw CocoaError(.fileReadNoPermission) }
++        let samples = try AudioConversion.samples(fromFileAt: wav, sampleRate: 16_000, channel: nil)
++        guard samples.count > 800_000, ChunkedTranscriber.containsSpeech(samples) else { throw CocoaError(.fileReadCorruptFile) }
++        let temporary = FileManager.default.temporaryDirectory.standardizedFileURL.resolvingSymlinksInPath()
++        let usage = temporary.appendingPathComponent("NextNotesDictationNativeTest-" + UUID().uuidString, isDirectory: true)
++        guard usage.path == usage.resolvingSymlinksInPath().path, usage.deletingLastPathComponent().path == temporary.path,
++              !FileManager.default.fileExists(atPath: usage.path) else { throw CocoaError(.fileWriteNoPermission) }
++        ModelHub.offlineMode = true
++        let owner = try ParakeetLateFeedConductor(assets: root, samples: samples, usage: usage)
++        conductor = owner
++        try owner.configure(delegate)
++        try await owner.start()
++        return true
++    }
++}
++
++@MainActor
++private final class ParakeetLateFeedConductor {
++    let samples: [Float]
++    let usageRoot: URL
++    let models: ParakeetModels
++    let controller: DictationController
++    let outputs: LateFeedOutputs
++    let partials = LateFeedPartials()
++    private var native: DirectDictationNativeTrace!
++    private var subject: ParakeetEngine?
++    private var phase = 0
++    private var assigned = 0
++    private var ended = 0
++    private var firstFinish: Task<Void, Never>?
++    private var closedOwner: Task<Void, Never>?
++    private var feedOperation: Task<Void, Never>?
++    private var captureSeen = false
++    private var closedBeforeFeed = false
++    private var firstVerdict = false
++    private var checks = 0
++    private var failures = 0
++    private var invalid = false
++
++    init(assets: URL, samples: [Float], usage: URL) throws {
++        self.samples = samples
++        usageRoot = usage
++        models = try ParakeetModels(terminationFixtureRoot: assets, trace: StartupTerminationTrace(autoQuit: false))
++        let outputs = LateFeedOutputs()
++        self.outputs = outputs
++        controller = DictationController(formatter: RuleBasedFormatter(),
++            insert: { _, _ in outputs.inserts += 1; return .inserted }, record: { _ in outputs.records += 1 },
++            log: .selfTest, outcome: { _ in outputs.outcomes += 1 }, usage: UsageLog(directory: usage),
++            captureSelection: { nil }, requestMicrophone: { false })
++        let partials = self.partials
++        native = DirectDictationNativeTrace(
++            onPartialCreated: { partials.created($0) },
++            onPartialCaptured: { [weak self] hasPartial in
++                Task { @MainActor in self?.finishCaptured(hasPartial) }
++            }, onInputReceived: { observed, cancelled in
++                partials.inputReceived(activeNative: observed.active, callerCancelled: cancelled)
++            }, onEntry: { [weak self] ordinal in
++                Task { @MainActor in self?.nativeEntered(ordinal) }
++            })
++        controller.nativeFinishCreatedForTesting = { [weak self] task in
++            guard let self else { return }; assigned += 1
++            if assigned == 1 { firstFinish = task }
++        }
++        controller.nativeFinishEndedForTesting = { [weak self] in self?.ended += 1 }
++    }
++    private func check(_ label: String, _ condition: Bool) {
++        checks += 1
++        if !condition { failures += 1; SelfTest.failed = true; SelfTest.diagnostic("PARAKEET_LATE_INPUT_ASSERT_FAILED: \(label)") }
++    }
++    private func require(_ label: String, _ condition: Bool) -> Bool {
++        check(label, condition); if !condition { invalid = true }; return condition
++    }
++    func configure(_ delegate: AppDelegate) throws {
++        try delegate.configureStartupTerminationFixture(parakeet: models, pocket: nil, reply: { _ in }, willExit: {})
++        try delegate.configureDirectDictationTerminationFixture(controller: controller,
++            reply: { [weak self] value in self?.reply(value) },
++            finalReply: { [weak self] drained in self?.finalReply(drained) ?? false },
++            safetyDrain: { [weak self] in await self?.safetyDrain() },
++            willExit: { [weak self] in self?.willExit() })
++    }
++    func start() async throws {
++        check("I01 exact isolated copied input and explicit output sinks", SelfTest.isRunning && NativeParakeetLateFeedSelfTest.isRequested)
++        let prime = try ParakeetEngine(terminationFixtureModels: models, trace: native)
++        let stream = try await prime.start()
++        let consume = Task { do { for try await _ in stream {} } catch {} }
++        await prime.feed(try chunk(Array(samples.prefix(16_000))))
++        await prime.finish(); await consume.value
++        let qualified = native.snapshot()
++        guard require("C01 SAME real engine/native pass succeeds", qualified.starts == 1 && qualified.ends == 1 && qualified.successes == 1 && qualified.active == 0) else { throw CocoaError(.fileReadCorruptFile) }
++        let engine = try ParakeetEngine(terminationFixtureModels: models, trace: native)
++        subject = engine
++        let stream2 = try await engine.start()
++        try controller.installNativeTerminationEngineForTesting(engine, stream: stream2)
++        phase = 1
++        await engine.feed(try chunk(samples))
++    }
++    private func nativeEntered(_ ordinal: Int) {
++        guard phase == 1, ordinal == 2 else { return }
++        phase = 2
++        let pending = native.snapshot()
++        guard require("C02 real second native API pending before finish", pending.active == 1 && pending.ends == 1 && partials.snapshot().created == 1) else { safelyQuitInvalid(); return }
++        // Production cancel creates the SAME retained finish task; ordinary
++        // cancel remains immediate, then actual permanent close cancels it.
++        controller.cancelDictation()
++        check("C03 actual controller cancellation remains immediate", controller.state == .idle && firstFinish != nil)
++    }
++    private func finishCaptured(_ hasPartial: Bool) {
++        guard phase == 2, hasPartial else { return }
++        phase = 3
++        captureSeen = true
++        let captured = native.snapshot()
++        guard require("C04 actual finish captured its pending partial before late feed", captured.active == 1 && captured.ends == 1 && partials.snapshot().created == 1 && firstFinish != nil) else { safelyQuitInvalid(); return }
++        closedOwner = controller.beginTermination()
++        closedBeforeFeed = true
++        guard require("C05 accepted finish-chain prerequisite captured current owner", closedOwner != nil) else { safelyQuitInvalid(); return }
++        // This is an ACTUAL uncancelled feed operation, not a waiter task. Its
++        // own input is handled before any same-handle safety joins afterward.
++        feedOperation = Task { @MainActor [weak self] in
++            guard let self, let sameEngine = subject else { return }
++            do {
++                guard require("C06 uncancelled feed enters after actual partial capture while original pending", !Task.isCancelled && captureSeen && closedBeforeFeed && native.snapshot().active == 1) else { safelyQuitInvalid(); return }
++                await sameEngine.feed(try chunk(Array(samples.prefix(32_000))))
++                let afterFeed = partials.snapshot()
++                guard require("C10 actual uncancelled late feed reaches same actor while old native pending", afterFeed.inputCount == 3 && afterFeed.lastInputNativeActive == 1 && !afterFeed.lastInputCancelled) else { safelyQuitInvalid(); return }
++                check("F01 finish-closed input does not create a new partial Task", afterFeed.created == 1)
++                SelfTest.diagnostic("PARAKEET_LATE_INPUT_AFTER_FEED_TRACE captured=\(captureSeen) closed=\(closedBeforeFeed) callerCancelled=\(Task.isCancelled) partialTasks=\(afterFeed.created) nativeStarts=\(native.snapshot().starts) nativeActive=\(native.snapshot().active)")
++                // Retain and join SAME actually created late partial, even if the
++                // original finish/old callback erased its actor slot. No fake
++                // native output, extra model run or product registry.
++                await closedOwner?.value
++                await afterFeed.lateTask?.value
++                let completed = native.snapshot()
++                check("F02 cancelled finish plus closed input runs no third native API", completed.starts == 2)
++                check("C07 all actually entered native APIs returned", completed.starts == completed.ends && completed.active == 0)
++                check("C08 exact created late Task was not an artificially cancelled input", afterFeed.lateTask?.isCancelled != true)
++                check("C09 explicit output/history sinks unused", outputs.inserts == 0 && outputs.records == 0 && outputs.outcomes == 0)
++                SelfTest.diagnostic("PARAKEET_LATE_INPUT_SETTLED_TRACE starts=\(completed.starts) ends=\(completed.ends) successes=\(completed.successes) active=\(completed.active) partialTasks=\(afterFeed.created) extraNative=\(max(0, completed.starts - 2)) assigned=\(assigned) ended=\(ended)")
++                SelfTest.requestTermination()
++            } catch { invalid = true; safelyQuitInvalid() }
++        }
++    }
++    private func safelyQuitInvalid() {
++        invalid = true
++        // Accepted direct-chain prerequisite owns live engine even on invalid
++        // overlap. Delegate safety hook later joins same actual tasks if needed.
++        closedOwner = controller.beginTermination()
++        SelfTest.requestTermination()
++    }
++    private func reply(_ value: NSApplication.TerminateReply) {
++        if firstVerdict { return }
++        check("Q01 actual Cocoa quit uses later reply", value == .terminateLater)
++    }
++    private func finalReply(_ drained: Bool) -> Bool {
++        if firstVerdict { return drained }
++        firstVerdict = true
++        let observed = native.snapshot()
++        check("Q02 actual native work complete before positive quit", observed.active == 0 && observed.starts == observed.ends)
++        check("Q03 same finish chain complete before positive quit", assigned == ended)
++        return drained && observed.active == 0 && assigned == ended
++    }
++    private func safetyDrain() async {
++        await closedOwner?.value
++        await firstFinish?.value
++        await partials.snapshot().lateTask?.value
++        // A failed prerequisite inside feedOperation already returns after it
++        // schedules quit. Joining it uses same delegate shutdown Task only.
++        await feedOperation?.value
++    }
++    private func willExit() {
++        let observed = native.snapshot()
++        check("J01 real native API fully drained at actual process exit", observed.active == 0 && observed.starts == observed.ends)
++        check("J02 caller really fed after captured finish", captureSeen && closedBeforeFeed)
++        check("J03 no output/history calls", outputs.inserts == 0 && outputs.records == 0 && outputs.outcomes == 0)
++        SelfTest.diagnostic("PARAKEET_LATE_INPUT_EXIT_TRACE starts=\(observed.starts) ends=\(observed.ends) active=\(observed.active) partialTasks=\(partials.snapshot().created) checks=\(checks) failures=\(failures) invalid=\(invalid)")
++        SelfTest.diagnostic(invalid ? "PARAKEET_LATE_INPUT_INVALID: prerequisites" : failures == 0 ? "PARAKEET_LATE_INPUT_OK: \(checks) checks" : "PARAKEET_LATE_INPUT_FAILED: \(failures)/\(checks) assertions")
++        try? FileManager.default.removeItem(at: usageRoot)
++    }
++    private func chunk(_ values: [Float]) throws -> AudioChunk {
++        guard let format = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: 16_000, channels: 1, interleaved: false),
++              let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(values.count)),
++              let samples = buffer.floatChannelData?[0] else { throw CocoaError(.fileReadCorruptFile) }
++        buffer.frameLength = AVAudioFrameCount(values.count)
++        values.withUnsafeBufferPointer { samples.update(from: $0.baseAddress!, count: values.count) }
++        return AudioChunk(buffer: buffer)
++    }
++}
++
++private final class LateFeedPartials: @unchecked Sendable {
++    private let lock = NSLock()
++    private var createdCount = 0
++    private var late: Task<Void, Never>?
++    private var inputCount = 0
++    private var lastInputNativeActive = -1
++    private var lastInputCancelled = false
++    struct Snapshot: Sendable {
++        let created: Int; let lateTask: Task<Void, Never>?
++        let inputCount: Int; let lastInputNativeActive: Int; let lastInputCancelled: Bool
++    }
++    func inputReceived(activeNative: Int, callerCancelled: Bool) {
++        lock.lock(); defer { lock.unlock() }
++        inputCount += 1; lastInputNativeActive = activeNative; lastInputCancelled = callerCancelled
++    }
++    func created(_ sameTask: Task<Void, Never>) {
++        lock.lock(); defer { lock.unlock() }; createdCount += 1
++        if createdCount == 2 { late = sameTask }
++    }
++    func snapshot() -> Snapshot { lock.lock(); defer { lock.unlock() }; return Snapshot(created: createdCount, lateTask: late, inputCount: inputCount,
++            lastInputNativeActive: lastInputNativeActive, lastInputCancelled: lastInputCancelled) }
++}
++@MainActor
++private final class LateFeedOutputs { var inserts = 0; var records = 0; var outcomes = 0 }

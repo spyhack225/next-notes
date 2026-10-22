@@ -1,0 +1,14 @@
+--- a/Sources/NextNotes/Support/Settings.swift
++++ b/Sources/NextNotes/Support/Settings.swift
+@@ -1375,10 +1375,7 @@
+         // reserved for a person's own answer.
+         let diarizeChoice = defaults.object(forKey: Keys.meetingsDiarize) as? Bool
+         meetingsDiarizeChoice = diarizeChoice
+-        meetingsDiarize = Self.diarizationDefault(
+-            stored: diarizeChoice,
+-            modelsPresent: MeetingDiarizer.isDownloaded
+-        )
++        meetingsDiarize = diarizeChoice ?? MeetingDiarizer.isDownloaded
+         meetingsDiarizeOfferDismissed = defaults.object(forKey: Keys.meetingsDiarizeOfferDismissed)
+             as? Bool ?? false
+         meetingsFinalPass = defaults.object(forKey: Keys.meetingsFinalPass) as? Bool ?? true

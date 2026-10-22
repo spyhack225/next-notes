@@ -1,0 +1,7 @@
+--- a/Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift
++++ b/Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift
+@@ -90 +75,3 @@ struct FormattingSettingsTab: View {
+-            profileList
++                .selectionDisabled(true)
++                .listRowBackground(DS.Color.groupedFill)
++            profileRows

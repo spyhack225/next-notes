@@ -1,0 +1,12 @@
+--- a/Sources/NextNotes/UI/DesignSystem.swift
++++ b/Sources/NextNotes/UI/DesignSystem.swift
+@@ -57,4 +63,5 @@ enum DS {
+-        // Status text and badges
+-        static let success = SwiftUI.Color(nsColor: .systemGreen)
+-        static let warning = SwiftUI.Color(nsColor: .systemOrange)
+-        static let info = SwiftUI.Color.secondary
++        // Status text and badges. Words and icons carry the meaning; on the fixed
++        // light substrate the ink is dark rather than orange-on-white.
++        static let success = Theme.Palette.foreground
++        static let warning = Theme.Palette.foreground
++        static let info = Theme.Palette.foreground

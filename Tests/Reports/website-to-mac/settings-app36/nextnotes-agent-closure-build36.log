@@ -1,0 +1,47 @@
+swift build -c debug --scratch-path "/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch"
+warning: 'speechify': found 1 file(s) which are unhandled; explicitly declare them as resources or exclude from the target
+    /Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/IMessage/Database/TYPEDSTREAM-NOTES.md
+Building for debugging...
+[Using on-disk description]
+[1 / 2] NextNotes-product
+[2 / 5] NextNotes-product
+[8 / 15]
+[12 / 15] NextNotes-product
+[14 / 17] NextNotes-product
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Agent/Tasks/Durable/TaskWorkerAttemptSelfTest.swift:292:22: warning: result of call to function returning 'Bool?' is unused [#NoUsage]
+290 |             else { suspended.resume(throwing: AgentError.backendUnavailable("Late cancellation-ignoring backing")) }
+291 |             check(await reached { ended }, "late error did not causally unwind through Manager")
+292 |             context?.record(TaskJournalEventDraft(taskID: task.id, kind: .toolStarted,
+    |                      `- warning: result of call to function returning 'Bool?' is unused [#NoUsage]
+293 |                 detail: "filesystem.read", attempt: context?.attempt ?? 0))
+294 |             check(try sql.load() == cancelled
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Agent/Tasks/Durable/TaskWorkerAttemptSelfTest.swift:381:25: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+379 |                 "owner variant fresh manager did not hold actual saved work")
+380 |             guard let context = fresh.journalContext(taskID: saved.id) else { throw OwnerFixtureError() }
+381 |             let valid = await context.isStillValid?() ?? true
+    |                         `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+382 |             check(context.isStillValid != nil && !valid,
+383 |                 "recognized local attempt downgraded to unbound or gained live validity (\(name))")
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Formatting/AppleModelWarmth.swift:40:13: warning: 'nonisolated(unsafe)' is unnecessary for a constant with 'Sendable' type 'NSLock', consider removing it
+ 38 |     /// timeout closure without hopping to the main actor (D-07): the per-call ceiling
+ 39 |     /// is computed per chunked call, on whatever task asked for it.
+ 40 |     private nonisolated(unsafe) static let warmthLock = NSLock()
+    |             `- warning: 'nonisolated(unsafe)' is unnecessary for a constant with 'Sendable' type 'NSLock', consider removing it
+ 41 |     private nonisolated(unsafe) static var warmWindowStorage: Duration = .seconds(600)
+ 42 |     private nonisolated(unsafe) static var lastActivityStorage: Date?
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+[#UnnecessaryEffectMarker]: <https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker>
+[16 / 17] NextNotes-product
+[17 / 19] NextNotes-product
+[18 / 19] NextNotes-product
+Build complete! (23.67 sec)
+/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/install_name_tool: warning: changes being made to the file will invalidate the code signature in: /Users/sergekadjo/Library/Caches/NextNotesBuild/install-79742/Next Notes.app/Contents/MacOS/NextNotes
+/Users/sergekadjo/Library/Caches/NextNotesBuild/install-79742/Next Notes.app/Contents/Frameworks/llama.framework: replacing existing signature
+/Users/sergekadjo/Library/Caches/NextNotesBuild/install-79742/Next Notes.app/Contents/Frameworks/libwebrtc-audio-processing-2.1.dylib: replacing existing signature
+/Users/sergekadjo/Library/Caches/NextNotesBuild/install-79742/Next Notes.app/Contents/Frameworks/libNextNotesAEC.dylib: replacing existing signature
+/Users/sergekadjo/Library/Caches/NextNotesBuild/install-79742/Next Notes.app: replacing existing signature
+built /Users/sergekadjo/Library/Caches/NextNotesBuild/install-79742/Next Notes.app  [signed: Next Notes Local Signing]
+installed to /Applications/Next Notes.app

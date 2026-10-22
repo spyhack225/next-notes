@@ -1,0 +1,19 @@
+{
+  "status": "OFF_SOURCE_UNCOMPILED_NATIVE_UNRUN_HELD",
+  "sourcePreimage": {
+    "Sources/NextNotes/Support/NativeTerminationSelfTest.swift": "a1c1d30f8198e63758dde34abd8812b236c281a191cd9168383eff95a47aa4f5"
+  },
+  "artifacts": {
+    "NativeTerminationSelfTest.swift.proposed": "fc49cf3402c9fc9b5a61436217903d96d416d0e4704d5615d4216bcea55d621b",
+    "NativeNotesSettingsSelfTest.swift.proposed": "3fec2febf8bd28ae338dbf7866a976dc4beafbc44d579a572775e790c0498878",
+    "COMMON-native-termination.patch.txt": "ac3b9d312b173b50883905c494bd4869ee6e4395d4c2a44373b7e2d8f0ee1a5d",
+    "COMMON-notes-fixture.patch.txt": "7f2c23a3437b7741b98fdece128b2c9b730bdba6420737ccec902443b9156323",
+    "copy-only-replay.json": "1d715be8baf09430499fa94beaab15d16d0bf8f0b4a21886e6052a18df93a975",
+    "README.md": "1d3bc2e6f076aa66df19dddf5b800733db5624c0f378ed5c219f7a8f5dfbd1ec",
+    "audited-source-pins.json": "01d591a67d674532c3eb862e68d3bd351ab147ee4bfc1f6fb8392f202c7fdd81"
+  },
+  "dependencies": {
+    "settingsMetadataManifest": "cc8318cea51328b9ff96db364fda35e1da85760d0b84c736e0e8487abc42c270",
+    "parentAppCommon": "separate parent-owned patch"
+  }
+}

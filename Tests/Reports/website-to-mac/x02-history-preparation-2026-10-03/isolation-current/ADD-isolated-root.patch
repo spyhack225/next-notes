@@ -1,0 +1,29 @@
+--- a/Sources/NextNotes/UI/Agent/AgentConversationHistorySelfTest.swift
++++ b/Sources/NextNotes/UI/Agent/AgentConversationHistorySelfTest.swift
+@@ -17,13 +17,22 @@
+             func now() -> Date { current }
+         }
+         let clock = Clock()
+-        let root = FileManager.default.temporaryDirectory
+-            .appendingPathComponent("nextnotes-x02-history-\(UUID().uuidString)", isDirectory: true)
++        // Same isolated-root admission as the repo's task/knowledge self-tests: the
++        // parent is canonical, the UUID child does not exist, and no path is a symlink.
++        let temporary = FileManager.default.temporaryDirectory
++            .resolvingSymlinksInPath().standardizedFileURL
++        let root = temporary.appendingPathComponent(
++            "nextnotes-x02-history-\(UUID().uuidString)", isDirectory: true)
++        guard root.deletingLastPathComponent().path == temporary.path,
++              root.path == root.resolvingSymlinksInPath().standardizedFileURL.path,
++              !FileManager.default.fileExists(atPath: root.path) else {
++            return ["history: INVALID unsafe temporary root"]
++        }
+         let file = root.appendingPathComponent(AgentSession.fileName)
+         do {
+-            try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
++            try FileManager.default.createDirectory(at: root, withIntermediateDirectories: false)
+         } catch {
+-            return ["history: isolated temporary directory unavailable"]
++            return ["history: INVALID isolated temporary directory unavailable"]
+         }
+         defer { try? FileManager.default.removeItem(at: root) }
+         func open() -> AgentSession {

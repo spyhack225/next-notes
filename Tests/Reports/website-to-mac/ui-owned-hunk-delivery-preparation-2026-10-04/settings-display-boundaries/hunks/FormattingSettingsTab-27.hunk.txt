@@ -1,0 +1,18 @@
+--- a/Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift
++++ b/Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift
+@@ -247,0 +280,15 @@ struct FormattingSettingsTab: View {
++        ViewThatFits(in: .horizontal) {
++            HStack(spacing: DS.Space.s) {
++                addRemoveControls.fixedSize(horizontal: true, vertical: true)
++                Spacer(minLength: DS.Space.s)
++                addFrontmostButton.fixedSize(horizontal: true, vertical: true)
++            }
++            VStack(alignment: .leading, spacing: DS.Space.s) {
++                addRemoveControls
++                addFrontmostButton.fixedSize(horizontal: false, vertical: true)
++            }
++        }
++        .labelStyle(.iconOnly)
++    }
++
++    private var addRemoveControls: some View {

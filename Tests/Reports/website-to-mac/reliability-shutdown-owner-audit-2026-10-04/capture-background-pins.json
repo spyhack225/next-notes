@@ -1,0 +1,13 @@
+{
+  "status": "SOURCE_CONTRACT_AUDIT_NO_NATIVE_VERDICT",
+  "pins": {
+    "Sources/NextNotes/NextNotesApp.swift": "bc01a27f48478a297d07a1d35669c313615cc7c182c0c6d113b4899e792a1b61",
+    "Sources/NextNotes/Core/DictationController.swift": "971b783422d52841cf3115862943fc68fc5ff548fa717cd5a15744ee5f35fb6b",
+    "Sources/NextNotes/Transcription/ParakeetEngine.swift": "63d4cc5b03bf0e29d97ada2dcc0851a62d51cd911226e7e55797ab18fd7f693d",
+    "Sources/NextNotes/Activation/AgentCaptureController.swift": "5bd0ea27b5e610a668075d6e1521369eeec730a4ff779ae7796cc55629d98128",
+    "Sources/NextNotes/Agent/VoiceConversationCoordinator.swift": "123b55ca250ce1e7c84933c83c0a7e7b1bcb288ed7a374a4ddd9499f349e4d42",
+    "Sources/NextNotes/Agent/Tasks/AgentTaskManager.swift": "8ebcd688cfa4b19d62a592ca5c12081f7e1df34225b1a6f45db167522eb6221a",
+    "Sources/NextNotes/Agent/RealtimeAgent.swift": "89803d22cbaeb61b58c5503d7fc48b0729d6d5336e8375855a2fc7ede1df7cd2",
+    "Sources/NextNotes/Agent/Duplex/VoiceSession.swift": "36d2cfc07ea184f5954d34c7b0e5976ad3834b67db37ca242b7fdf97c9a58d59"
+  }
+}

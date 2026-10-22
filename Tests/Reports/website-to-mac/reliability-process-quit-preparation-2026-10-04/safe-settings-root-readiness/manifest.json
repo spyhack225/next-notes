@@ -1,0 +1,17 @@
+{
+  "status": "SOURCE_ONLY_REVIEW_CONTRACT_NOT_QUALIFIED",
+  "artifacts": [
+    {
+      "path": "README.md",
+      "sha256": "7c3144a31fe6fd3be1ff1798a125995690b6120f9a67a192899fb3c6cce6d589"
+    },
+    {
+      "path": "contract.md",
+      "sha256": "ba96a1ee71b68c0f9fa696fb17f8801a65bea065a4fc4f807a78f6cd56fab8f1"
+    },
+    {
+      "path": "source-pins.json",
+      "sha256": "48a5b539e34230122c5fd5f1c4c289a5d63daea02f2da3504f755f0c1db27c63"
+    }
+  ]
+}

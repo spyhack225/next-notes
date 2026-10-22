@@ -1,0 +1,82 @@
+{
+  "atUTC": "2026-10-08T06:15:28.855660+00:00",
+  "scope": "Read-only system compilation timing and public model-asset metadata; no owner transcript or cache deletion",
+  "nativeAttempt": "quiet-fixed-receipt.json",
+  "aneCompilerPID": 90047,
+  "compileStartLocal": "2026-10-08 02:02:16.472",
+  "compileEndLocal": "2026-10-08 02:02:30.857",
+  "networkCompilationSeconds": 14.385,
+  "source": "macOS unified log ANECompilerService; model name/path redacted by OS",
+  "inference": "Native compilation overlapped cold load and explains part of this attempt wall time; per-model attribution and warm owner cleanup are unproven",
+  "assets": [
+    {
+      "name": "Encoder.mlmodelc/weights/weight.bin",
+      "bytes": 445187200,
+      "minimumBytes": 400000000,
+      "passesInstalledProducerCheck": true,
+      "mtimeUTC": "2026-08-28T00:22:05.559486+00:00"
+    },
+    {
+      "name": "Decoder.mlmodelc/weights/weight.bin",
+      "bytes": 23604992,
+      "minimumBytes": 20000000,
+      "passesInstalledProducerCheck": true,
+      "mtimeUTC": "2026-08-28T00:18:21.046776+00:00"
+    },
+    {
+      "name": "JointDecisionv3.mlmodelc/weights/weight.bin",
+      "bytes": 12642764,
+      "minimumBytes": 10000000,
+      "passesInstalledProducerCheck": true,
+      "mtimeUTC": "2026-08-28T00:22:09.676979+00:00"
+    },
+    {
+      "name": "Preprocessor.mlmodelc/weights/weight.bin",
+      "bytes": 491072,
+      "minimumBytes": 400000,
+      "passesInstalledProducerCheck": true,
+      "mtimeUTC": "2026-08-28T00:22:14.087259+00:00"
+    },
+    {
+      "name": "parakeet_v3_vocab.json",
+      "bytes": 151122,
+      "minimumBytes": 100000,
+      "passesInstalledProducerCheck": true,
+      "mtimeUTC": "2026-08-28T00:22:19.382488+00:00"
+    }
+  ],
+  "downloadedAssetCheck": true,
+  "cacheWriteAttribution": "Unknown. Narrow metadata walks found no recent large changed FluidAudio model file, personal CoreML cache file, or readable system CoreML cache file. Several system/temp directories were unreadable. Free disk later recovered from6.8465 to7.3153GB without cleanup. This is not proof of a specific writer or deletion cause.",
+  "dependencySourceContract": "FluidAudio AsrModels.load awaits preprocessor/encoder specs, decoder, joint in sequence; ModelHub.loadModelsOnce synchronously constructs each MLModel. Parallel-load benefit, total compilation cache behavior and source mitigation remain unmeasured.",
+  "secondCompilation": {
+    "startLocal": "2026-10-08 02:18:24.060397",
+    "endLocal": "2026-10-08 02:18:39.439403",
+    "seconds": 15.379006,
+    "compilerPID": 90047,
+    "mappedFileSizes": [
+      18467356,
+      445187200
+    ],
+    "path": "OS-redacted",
+    "diskAllocationProof": false
+  },
+  "firstMappedFileSizes": [
+    18467356,
+    445187200
+  ],
+  "excludedAttributions": {
+    "No persisted cache on this platform": "libMobileGestalt, not CoreML or FluidAudio model cache",
+    "1/2/4 second connection retries": "AppIntents service; overlaps model load but serial blocking of ASR is unproven"
+  },
+  "readOnlyRootServiceMetadata": {
+    "rootUIDANEHelperPIDs": [
+      86183,
+      90047
+    ],
+    "directoriesScanned": 242,
+    "directoriesDenied": 94,
+    "readableRecentLargeFiles": 0,
+    "createdPathLifetimeKnown": false
+  },
+  "nextAttributionRequirement": "Observe metadata only in the exact owned per-run TMPDIR while load is active; existing joined-run cleanup makes historic file lifetimes unavailable. Separate app and root helper memory; no protected cache sweep/log privacy setting/model choice change."
+}

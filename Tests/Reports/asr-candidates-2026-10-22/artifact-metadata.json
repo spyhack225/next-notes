@@ -1,0 +1,280 @@
+{
+  "note": "Metadata only. No model files downloaded. Multiple variants listed; do not sum or download whole repositories.",
+  "models": [
+    {
+      "repo": "Cactus-Compute/whistle",
+      "revision": "741118687e1f008f06d1351a402a731274789790",
+      "large_files": [
+        {
+          "path": "checkpoints/whistle.safetensors",
+          "bytes": 220618620,
+          "sha256": "5fd58c246f522ecee2b568b306598a3befdc274c225e3a7376abce277ab3d107"
+        },
+        {
+          "path": "whistle.cact",
+          "bytes": 16919407,
+          "sha256": "b6e02f048568ac5d01a2042556c658061e699acbc0aa2a1439f52f3d461dffeb"
+        }
+      ],
+      "license": "apache-2.0"
+    },
+    {
+      "repo": "FermionResearch/Phonon-2",
+      "revision": "fb09063c9dc8e130d97b3a2191ed5aed6b71bb31",
+      "large_files": [
+        {
+          "path": "phonon-2.bps.tar.zst",
+          "bytes": 163515201,
+          "sha256": "98125795b6dda72f5c6eee9ba33d19815df65dcb18b50a357bf9f73c9935309e"
+        }
+      ],
+      "license": "cc-by-4.0"
+    },
+    {
+      "repo": "FermionResearch/Phonon-2-CoreML",
+      "revision": "1143812fd4236522232a8c33e3115f0577e3cd7d",
+      "large_files": [
+        {
+          "path": "Phonon-2.mlpackage/Data/com.apple.CoreML/weights/weight.bin",
+          "bytes": 329186560,
+          "sha256": "93aa991318a00ed492fdbb724e7bca4e6a69c6cf671ab4f14a14ef6101e7648b"
+        },
+        {
+          "path": "decoder.bin",
+          "bytes": 13301279,
+          "sha256": "36fa7202dda85c603af60d930ab88d7e9f0d2a619490aff46f5384db924cfa70"
+        }
+      ],
+      "license": "cc-by-4.0"
+    },
+    {
+      "repo": "moondream/parakeet-redux",
+      "revision": "2bf128600aac4b16946f7ed8372e56117fe5e23b",
+      "large_files": [
+        {
+          "path": "model.safetensors",
+          "bytes": 177774490,
+          "sha256": "78ec25733ee0d0c1586d1346fc86db9d0c2e436e3a8ab1d32a82d1bb8f848d21"
+        }
+      ],
+      "license": "cc-by-4.0"
+    },
+    {
+      "repo": "moondream/parakeet-ultra",
+      "revision": "73175eb7aeb0d82f1e2a6b53b3aabc10a90bcd0b",
+      "large_files": [
+        {
+          "path": "model.safetensors",
+          "bytes": 1255353386,
+          "sha256": "c9608f36d0ab956c14bfcc525479b0746b3b42a56f6949ec85c14eb7466717dc"
+        }
+      ],
+      "license": "cc-by-4.0"
+    },
+    {
+      "repo": "Qwen/Qwen3-ASR-0.6B",
+      "revision": "5eb144179a02acc5e5ba31e748d22b0cf3e303b0",
+      "large_files": [
+        {
+          "path": "model.safetensors",
+          "bytes": 1876091704,
+          "sha256": "79d6cbd4c98c7bbffe9db2edac07f56cd6637d0d5944b27f6c2b8353840323ea"
+        }
+      ],
+      "license": "apache-2.0"
+    },
+    {
+      "repo": "Qwen/Qwen3-ASR-1.7B",
+      "revision": "7278e1e70fe206f11671096ffdd38061171dd6e5",
+      "large_files": [
+        {
+          "path": "model-00001-of-00002.safetensors",
+          "bytes": 4220320824,
+          "sha256": "a4cd1f1a04d90b757dc7f7dd26254e69a013b19e80efe590a83c6a3bde8608d6"
+        },
+        {
+          "path": "model-00002-of-00002.safetensors",
+          "bytes": 478200688,
+          "sha256": "6e0b9d9e09e2e0238e7ef3cc8a484ab387e91b90f1900bedf88bc92d7929ccfc"
+        }
+      ],
+      "license": "apache-2.0"
+    },
+    {
+      "repo": "desert-ant-labs/voz",
+      "revision": "12802bf4e2b5e97e1289b723bc6283b6f1a1ace5",
+      "large_files": [
+        {
+          "path": "decoder.mlmodelc/weights/weight.bin",
+          "bytes": 12277132,
+          "sha256": "12ab4cbb83155dbaf3d9832f524c23b803e3e266863d9c6f3d58e1d88577e130"
+        },
+        {
+          "path": "decoder.tflite",
+          "bytes": 24503072,
+          "sha256": "429ff2b574455733b388f1667d05d6764ac6086417b94d4cc24edabd25d52591"
+        },
+        {
+          "path": "embedding.f16",
+          "bytes": 10487040,
+          "sha256": "07163e5f6f8a68f9ffeed7a8ff770c68098c2db216232321912188bd614b9a72"
+        },
+        {
+          "path": "encoder.mlmodelc/weights/weight.bin",
+          "bytes": 312039808,
+          "sha256": "72b6e867cb3176cea36fc1410622b7bfd50043e80eafbaab03ae0a53382908c2"
+        },
+        {
+          "path": "encoder.tflite",
+          "bytes": 1207525456,
+          "sha256": "1152abb5fce2cf50b57b1cd80a1bf70320c32b20656f835bfe08c7faa5c3f885"
+        },
+        {
+          "path": "onnx-fp16/decoder.onnx",
+          "bytes": 24461999,
+          "sha256": "6f8d42d997f0c99e2240013b475a94000567b840cfcc973c59583b2cf7984682"
+        },
+        {
+          "path": "onnx-fp16/embedding.f16",
+          "bytes": 10487040,
+          "sha256": "3173388aaf6b5b4ae292d8777940bb8fb5c7c02e30adf708b9dde4d909c2000f"
+        },
+        {
+          "path": "onnx-fp16/encoder.weights",
+          "bytes": 1186526720,
+          "sha256": "26cbe01c3e68bacfd525c14a8272c51d051c0b1da48281775eb75030552917c8"
+        },
+        {
+          "path": "web/decoder.onnx",
+          "bytes": 24472430,
+          "sha256": "9bf9cb1557f98ab2e5b3ff982fa605827354efc20f2b247c722cab9adf10bd4f"
+        },
+        {
+          "path": "web/decoder.webgpu.onnx",
+          "bytes": 24472430,
+          "sha256": "e80bef7b3b1984cb6f11fd057b2dc1f1af8db6aecadbce8c00a6e705ac349cad"
+        },
+        {
+          "path": "web/embedding.f16",
+          "bytes": 10487040,
+          "sha256": "07163e5f6f8a68f9ffeed7a8ff770c68098c2db216232321912188bd614b9a72"
+        },
+        {
+          "path": "web/encoder.onnx.data",
+          "bytes": 348981248,
+          "sha256": "3338df284d31ba23e94ef8f0c397e7fa69a36dc634b4569a4739f94d72a38228"
+        }
+      ],
+      "license": "other"
+    },
+    {
+      "repo": "FluidInference/parakeet-redux-coreml",
+      "revision": "8c5ef97a29cd120dc76b354b3f22b7fec3b486f9",
+      "large_files": [
+        {
+          "path": "Decoder.mlmodelc/weights/weight.bin",
+          "bytes": 23604992,
+          "sha256": "6c6c88c23ee5492a6b229e8cc636ddadb2b01ae0dd559d9cb63123bebf507d77"
+        },
+        {
+          "path": "Encoder.mlmodelc/weights/weight.bin",
+          "bytes": 182389312,
+          "sha256": "adbb5550dc6488717d3a1407b53122fbdb1af5e99c330ee20f8d8cfd9ec49252"
+        },
+        {
+          "path": "JointDecisionv3.mlmodelc/weights/weight.bin",
+          "bytes": 12642764,
+          "sha256": "73b0288acd115fc4c36038f66b6cbf49233182488febf5d8c787bea4009535f7"
+        }
+      ],
+      "license": "cc-by-4.0"
+    },
+    {
+      "repo": "FluidInference/parakeet-tdt-0.6b-v3-coreml",
+      "revision": "7dd20fe6b1797d35f5e3307e8b1732d9a178edfe",
+      "large_files": [
+        {
+          "path": "Decoder.mlmodelc/weights/weight.bin",
+          "bytes": 23604992,
+          "sha256": "48adf0f0d47c406c8253d4f7fef967436a39da14f5a65e66d5a4b407be355d41"
+        },
+        {
+          "path": "Encoder.mlmodelc/weights/weight.bin",
+          "bytes": 445187200,
+          "sha256": "e2020f323703477a5b21d7c2d282c403e371afb5962e79877e3033e73ba6f421"
+        },
+        {
+          "path": "EncoderInt4.mlmodelc/weights/weight.bin",
+          "bytes": 297912320,
+          "sha256": "6fcf5596562948c7482e116bdb3f364279bed970893b86737b67fe89f36367d9"
+        },
+        {
+          "path": "Encoder_v2.mlmodelc/weights/weight.bin",
+          "bytes": 594211328,
+          "sha256": "8d2c79e15a4545e08fe3a21fe741e42b8bf24329db81de8fdfacd92388ea5a66"
+        },
+        {
+          "path": "JointDecision.mlmodelc/weights/weight.bin",
+          "bytes": 12642764,
+          "sha256": "4e0e63d840032f7f07ddb1d64446051166281e5491bf22da8a945c41f6eedb3e"
+        },
+        {
+          "path": "JointDecisionv2.mlmodelc/weights/weight.bin",
+          "bytes": 12642764,
+          "sha256": "4e0e63d840032f7f07ddb1d64446051166281e5491bf22da8a945c41f6eedb3e"
+        },
+        {
+          "path": "JointDecisionv3.mlmodelc/weights/weight.bin",
+          "bytes": 12642764,
+          "sha256": "4e0e63d840032f7f07ddb1d64446051166281e5491bf22da8a945c41f6eedb3e"
+        },
+        {
+          "path": "JointDecisionv3.mlpackage/Data/com.apple.CoreML/weights/weight.bin",
+          "bytes": 12642764,
+          "sha256": "4e0e63d840032f7f07ddb1d64446051166281e5491bf22da8a945c41f6eedb3e"
+        },
+        {
+          "path": "MelEncoder.mlmodelc/weights/weight.bin",
+          "bytes": 595166912,
+          "sha256": "351c7a3bee2bf563472a5b09a2dde37b940d59aa23ef39a201c9885c7f010c61"
+        },
+        {
+          "path": "ParakeetDecoder.mlmodelc/weights/weight.bin",
+          "bytes": 36722432,
+          "sha256": "cae05619deee8995ff4532cb34a5ab63fbc14accf38f26479735933170159c9c"
+        },
+        {
+          "path": "ParakeetEncoder_15s.mlmodelc/weights/weight.bin",
+          "bytes": 445187200,
+          "sha256": "fcf39b6d2ff41c623e5ec8c21fdca06100fc390adbbc926fa767d9fbaf35866d"
+        },
+        {
+          "path": "RNNTJoint.mlmodelc/weights/weight.bin",
+          "bytes": 12642764,
+          "sha256": "4e0e63d840032f7f07ddb1d64446051166281e5491bf22da8a945c41f6eedb3e"
+        },
+        {
+          "path": "mlpackages/Decoder.mlpackage/Data/com.apple.CoreML/weights/weight.bin",
+          "bytes": 23604992,
+          "sha256": "48adf0f0d47c406c8253d4f7fef967436a39da14f5a65e66d5a4b407be355d41"
+        },
+        {
+          "path": "mlpackages/Encoder.mlpackage/Data/com.apple.CoreML/weights/weight.bin",
+          "bytes": 445187200,
+          "sha256": "e2020f323703477a5b21d7c2d282c403e371afb5962e79877e3033e73ba6f421"
+        },
+        {
+          "path": "mlpackages/JointDecision.mlpackage/Data/com.apple.CoreML/weights/weight.bin",
+          "bytes": 12642764,
+          "sha256": "4e0e63d840032f7f07ddb1d64446051166281e5491bf22da8a945c41f6eedb3e"
+        },
+        {
+          "path": "mlpackages/MelEncoder.mlpackage/Data/com.apple.CoreML/weights/weight.bin",
+          "bytes": 595166912,
+          "sha256": "351c7a3bee2bf563472a5b09a2dde37b940d59aa23ef39a201c9885c7f010c61"
+        }
+      ],
+      "license": "cc-by-4.0"
+    }
+  ]
+}

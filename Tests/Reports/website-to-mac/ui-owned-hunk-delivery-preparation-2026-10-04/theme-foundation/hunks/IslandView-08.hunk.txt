@@ -1,0 +1,7 @@
+--- a/Sources/NextNotes/UI/Island/IslandView.swift
++++ b/Sources/NextNotes/UI/Island/IslandView.swift
+@@ -591,2 +596,2 @@ struct IslandView: View {
+-    /// The island's substrate is the bezel, not the window, so its ink is fixed rather than
+-    /// semantic — `.primary` on a permanently black card resolves to black in light mode.
++    /// Both layouts consume fixed theme ink; the notch layout uses the same paired
++    /// background/foreground aliases as the shared palette.

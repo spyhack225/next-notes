@@ -1,0 +1,14 @@
+{
+  "status": "CACHE ONLY UNAPPLIED UNCOMPILED",
+  "originalSHA256": "be5f2cfb0b1f20a2f8455f5e17b3b2f8f87929b97a416748367964717f992570",
+  "candidateSHA256": "5cc54962d8b9c3359151d8da1bac754cc46802d7bbae7384d1c9703e1e1d7942",
+  "producer": "Existing actual-engine WAV replay consumer, optional independent WER gate",
+  "commandContract": "--dictation-max-wer 0 --dictation-complete-audio --dictation-gold exact-seven-word-gold.txt",
+  "scope": "Explicit independent WER ceiling gates both native raw replay and actual Core polished finishing fixture. Existing functional behavior retained with no ceiling. Uncompiled/unrun; original actual seven-word outputs already fail, new maintained gate not yet signed.",
+  "sourceWrites": false,
+  "modelPassAdded": false,
+  "coreOriginalSHA256": "32f9b4ea06d960a9734af2e950d4126d74b8dbe3c21008fcc7a7e4cd088358e1",
+  "coreQualityCandidateSHA256": "133f66cd73b9ef3e2b6d43d1c246b186e6c0c3c706f8766e40330eb386d69ad2",
+  "emptyGold": "Empty independent gold accepted only when an explicit word-error ceiling is supplied; lexical silence can then be asserted without fake words.",
+  "maintainedPauseCases": "Two same-predicate tone/zero assertions extend existing segmenter flag; original component verified real public PCM RED2, new maintained flag still uncompiled."
+}

@@ -1,0 +1,16 @@
+{
+  "sources": [
+    {
+      "path": "Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift",
+      "beforeSHA256": "c750e16bd51c4f8f40875d2122b3a89d57dfe3a02f40cd2a08ec7f0c4eb64d69",
+      "proposedSHA256": "4adcda9d869d71a2264e2cf5d4d1710e72bf204f0d13df38f232884af0ead2d1"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Settings/AgentSettingsTab.swift",
+      "beforeSHA256": "b31f0440dd9f45ccd8112f4aebb1c0ce8b2d1094fde8ba302d64c1d1db2ecf02",
+      "proposedSHA256": "e7432003a343b2e9a7901cae4676b78216098823bad4d142cb640f4f9e341f31"
+    }
+  ],
+  "patchSHA256": "79d056299889762607d06239a5e5f54429c6fc290057ab6c0e4fa471cb32df46",
+  "status": "off-source only; applicability checked, no compilation/native evidence"
+}

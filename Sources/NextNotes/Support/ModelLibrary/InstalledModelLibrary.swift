@@ -123,8 +123,12 @@ final class InstalledModelLibrary {
     private(set) static weak var sharedIfLoaded: InstalledModelLibrary?
     static let shared: InstalledModelLibrary = {
         let library = InstalledModelLibrary(
-            defaults: sharedDefaults,
-            runtimeAdopter: sharedRuntimeAdopter
+        manifestURL: SelfTest.requested == "--selftest-settings-sheet"
+            ? SelfTest.checkedSettingsFixturePath(FileManager.default.temporaryDirectory
+                .appendingPathComponent("NextNotesSelfTest-\(ProcessInfo.processInfo.processIdentifier)", isDirectory: true))
+                .appendingPathComponent("Models/library.json") : nil,
+        defaults: sharedDefaults,
+        runtimeAdopter: sharedRuntimeAdopter
         )
         sharedIfLoaded = library
         return library
@@ -242,11 +246,17 @@ final class InstalledModelLibrary {
             }
         }
         self.isolatesBuiltInForTerminationTesting = isolatesBuiltInForTerminationTesting
-        self.manifestURL = manifestURL
-            ?? ModelSpec.directory.appendingPathComponent("library.json")
-        self.defaults = defaults
-        self.runtimeAdopter = runtimeAdopter
-        self.activeAgentModelID = defaults.string(forKey: Self.activeDefaultsKey)
+        if SelfTest.requested == "--selftest-settings-sheet" {
+            let root = SelfTest.checkedSettingsFixturePath(FileManager.default.temporaryDirectory
+                .appendingPathComponent("NextNotesSelfTest-\(ProcessInfo.processInfo.processIdentifier)", isDirectory: true))
+            self.manifestURL = SelfTest.checkedSettingsFixturePath(manifestURL
+                ?? root.appendingPathComponent("Models/library.json"))
+        } else {
+            self.manifestURL = manifestURL ?? ModelSpec.directory.appendingPathComponent("library.json")
+        }
+        self.defaults = SelfTest.requested == "--selftest-settings-sheet" ? SelfTestHarnessDefaults.shared : defaults
+        self.runtimeAdopter = SelfTest.requested == "--selftest-settings-sheet" ? nil : runtimeAdopter
+        self.activeAgentModelID = self.defaults.string(forKey: Self.activeDefaultsKey)
             ?? Self.builtInID
         refresh()
     }
@@ -259,6 +269,18 @@ final class InstalledModelLibrary {
     }
 
     // MARK: - Reading
+
+    func settingsSheetIsolationFailures() -> [String] {
+        guard SelfTest.requested == "--selftest-settings-sheet" else { return ["Wrong model library fixture scope"] }
+        let expected = SelfTest.checkedSettingsFixturePath(FileManager.default.temporaryDirectory
+            .appendingPathComponent("NextNotesSelfTest-\(ProcessInfo.processInfo.processIdentifier)", isDirectory: true))
+            .appendingPathComponent("Models/library.json")
+        var failures: [String] = []
+        if manifestURL.standardizedFileURL.resolvingSymlinksInPath() != expected { failures.append("Model manifest escaped fixture root") }
+        if defaults !== SelfTestHarnessDefaults.shared || runtimeAdopter != nil { failures.append("Model library retained owner settings/runtime") }
+        if !models.isEmpty || activeAgentModelID != Self.builtInID { failures.append("Model library is not the empty placeholder") }
+        return failures
+    }
 
     /// The model the agent should load, or nil when only the built-in is wanted.
     var activeModel: InstalledLocalModel? {
@@ -453,6 +475,10 @@ final class InstalledModelLibrary {
     }
 
     private func reloadFromDisk() {
+        if SelfTest.requested == "--selftest-settings-sheet" {
+            models = loadManifest()
+            return
+        }
         var found: [InstalledLocalModel] = []
 
         if !isolatesBuiltInForTerminationTesting, NotesModels.isDownloaded {

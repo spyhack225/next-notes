@@ -1,0 +1,343 @@
+import AppKit
+import Darwin
+import Foundation
+
+enum NativeNotesSettingsMode: String, Sendable {
+    case storedOn = "stored-on"
+    case storedOff = "stored-off"
+    case automaticMissing = "automatic-missing"
+    case notesActiveOff = "notes-active-off"
+
+    var storedChoice: Bool? {
+        switch self {
+        case .storedOn: true
+        case .storedOff, .notesActiveOff: false
+        case .automaticMissing: nil
+        }
+    }
+}
+
+enum NativeNotesSettingsAdmissionFailure: Error, Sendable { case invalid }
+
+struct NativeNotesSettingsAdmission: Sendable {
+    let mode: NativeNotesSettingsMode
+    let modelFile: URL
+    let modelRoot: URL
+    let metadataRoot: URL
+    let meetingRoot: URL
+    let meetingID: UUID
+    let outputFile: URL?
+}
+
+/// The immutable admission value and the same lock-protected quit trace form one binding.
+struct NativeNotesSettingsBinding: Sendable {
+    let admission: NativeNotesSettingsAdmission
+    let trace: NativeQuitTrace
+}
+
+/// Exact, isolated Settings initializer and active Notes/Cocoa diagnostic.
+/// COMMON to the eager-original and lazy-Settings producer; no owner model selection.
+@MainActor
+enum NativeNotesSettingsSelfTest {
+    // Raw selector keeps the confined metadata branch active even for malformed
+    // launches; the exact native self-test is checked by admission before owners.
+    nonisolated static var isRequested: Bool {
+        CommandLine.arguments.contains("--native-notes-settings-case")
+    }
+
+    nonisolated static let binding: Result<NativeNotesSettingsBinding, NativeNotesSettingsAdmissionFailure> = {
+        do { return .success(NativeNotesSettingsBinding(admission: try validateArguments(), trace: NativeQuitTrace())) }
+        catch { return .failure(.invalid) }
+    }()
+
+    /// Called by the synchronous, nonisolated MeetingDiarizer availability getter.
+    /// Its exact-mode caller must never fall through to the ordinary modelsRoot on nil.
+    nonisolated static func metadataRootForGetter() -> URL? {
+        guard isRequested else { return nil }
+        guard case .success(let bound) = binding else { return nil }
+        guard (try? validateMetadataRoot(bound.admission)) != nil else {
+            bound.trace.recordSettingsAdmissionInvalid()
+            return nil
+        }
+        return bound.admission.metadataRoot
+    }
+
+    static var isProbeConfigurationAdmitted: Bool {
+        guard isRequested, case .success(let bound) = binding else { return false }
+        return bound.trace.isSettingsProbeConfigurationAdmitted
+    }
+
+    /// NativeTerminationSelfTest calls this before NSApplication.shared or AppDelegate().
+    /// Settings-only cases exit after the actual fresh singleton initializer.
+    static func prepareBeforeOwnersIfRequested() throws {
+        guard isRequested else { return }
+        guard case .success(let bound) = binding else { throw NativeNotesSettingsAdmissionFailure.invalid }
+        try Self.validateMetadataRoot(bound.admission)
+        guard !SelfTest.allowsSavedModelSelection else { throw NativeNotesSettingsAdmissionFailure.invalid }
+        let defaults = SelfTestHarnessDefaults.suite
+        let key = "meetingsDiarize" // Settings.Keys is private; assert actual singleton below.
+        guard defaults.object(forKey: key) == nil else { throw NativeNotesSettingsAdmissionFailure.invalid }
+        if let choice = bound.admission.mode.storedChoice {
+            defaults.set(choice, forKey: key)
+            guard defaults.object(forKey: key) as? Bool == choice else { throw NativeNotesSettingsAdmissionFailure.invalid }
+        }
+        bound.trace.admitSettingsProbeConfiguration()
+        defer { bound.trace.closeSettingsProbeConfiguration() }
+        try Settings.configureNativeNotesAvailabilityProbe { bound.trace.recordSettingsAvailabilityEntry() }
+        let settings = Settings.shared
+        let observed = bound.trace.notesSnapshot()
+        guard settings.usesHarnessPreferencesForTesting,
+              settings.meetingsDiarizeChoice == bound.admission.mode.storedChoice,
+              settings.meetingsDiarize == (bound.admission.mode.storedChoice ?? false),
+              !observed.settingsAdmissionInvalid else { throw NativeNotesSettingsAdmissionFailure.invalid }
+        let expectedEntries = bound.admission.mode.storedChoice == nil ? 1 : 0
+        if observed.settingsEntries != expectedEntries {
+            bound.trace.recordCheck(false) // ORIGINAL must fail this same producer assertion.
+            SelfTest.failed = true
+            SelfTest.diagnostic("NATIVE_NOTES_SETTINGS_ASSERT_FAILED: explicit choice entered model availability")
+        }
+        if bound.admission.mode != .notesActiveOff {
+            let current = bound.trace.notesSnapshot()
+            SelfTest.diagnostic(current.failures == 0
+                ? "NATIVE_NOTES_SETTINGS_OK: actual Settings initializer"
+                : "NATIVE_NOTES_SETTINGS_FAILED: actual Settings initializer")
+            exit(current.failures == 0 ? 0 : 1)
+        }
+    }
+
+    static func armIfRequested() async throws -> Bool {
+        guard isRequested else { return false }
+        guard case .success(let bound) = binding,
+              bound.admission.mode == .notesActiveOff,
+              !bound.trace.notesSnapshot().settingsAdmissionInvalid,
+              let delegate = AppDelegate.current else { throw NativeNotesSettingsAdmissionFailure.invalid }
+        try validateMetadataRoot(bound.admission)
+        let admission = bound.admission
+        let trace = bound.trace
+        // Do not reopen a directory which appeared after pre-owner admission.
+        // mkdir refuses EEXIST; only then may the existing isolated store use it.
+        guard admission.meetingRoot.path == admission.meetingRoot.resolvingSymlinksInPath().path,
+              admission.meetingRoot.deletingLastPathComponent()
+                == FileManager.default.temporaryDirectory.standardizedFileURL.resolvingSymlinksInPath(),
+              admission.meetingRoot.lastPathComponent == "NextNotesMeetingResumeTest-" + admission.meetingID.uuidString
+        else { throw NativeNotesSettingsAdmissionFailure.invalid }
+        let created = admission.meetingRoot.path.withCString { Darwin.mkdir($0, mode_t(0o700)) }
+        guard created == 0 else { throw NativeNotesSettingsAdmissionFailure.invalid }
+        let rootValues = try admission.meetingRoot.resourceValues(forKeys: [.isDirectoryKey, .isSymbolicLinkKey])
+        guard rootValues.isDirectory == true, rootValues.isSymbolicLink != true,
+              admission.meetingRoot.path == admission.meetingRoot.resolvingSymlinksInPath().path
+        else { throw NativeNotesSettingsAdmissionFailure.invalid }
+        let store = try MeetingStore.isolated(at: admission.meetingRoot)
+        let meeting = Meeting(id: admission.meetingID, title: "Synthetic Notes quit fixture",
+            start: Date(timeIntervalSince1970: 1_700_000_000))
+        let line = "The test team agreed to validate local shutdown. The next step is a synthetic checklist. "
+        let segments = [TranscriptSegment(start: 0, end: 60,
+            text: String(repeating: line, count: 64), source: .mic)]
+        guard store.save(meeting), store.saveTranscript(segments, for: meeting.id) else {
+            throw NativeNotesSettingsAdmissionFailure.invalid
+        }
+        let runtime = NotesModelRuntime(
+            spec: ModelSpec(displayName: "Copied public Notes fixture", fileName: "fixture.gguf",
+                url: admission.modelFile, expectedBytes: NotesModels.spec.expectedBytes,
+                expectedSHA256: NotesModels.spec.expectedSHA256),
+            gpuLayers: NotesModelRuntime.allGPULayers, openFailureSink: nil,
+            pressureSnapshot: { .init(level: .normal, generation: 0,
+                changedAt: Date(timeIntervalSince1970: 0)) })
+        var assembler = MeetingNotesContextAssembler()
+        assembler.memoryEnabled = { false }
+        assembler.recallMemory = { _, _ in ([], []) }
+        assembler.knowledge = { nil }
+        assembler.decisionThreads = { [] }
+        assembler.graphCloudConsent = { false }
+        assembler.relatedNodes = { _ in [] }
+        assembler.files = { EmptyFileRetrieval() }
+        assembler.filesCloudConsent = { false }
+        let service = NotesService(store: store,
+            providerResolver: { _ in LlamaLLMProvider(modelName: "Copied public Notes fixture", runtime: runtime) },
+            contextAssembler: assembler)
+        func check(_ accepted: Bool, _ label: String) {
+            trace.recordCheck(accepted)
+            if !accepted {
+                SelfTest.failed = true
+                SelfTest.diagnostic("NATIVE_NOTES_ASSERT_FAILED: " + label)
+            }
+        }
+        // Mount the private App shutdown owner before backend initialization or native work.
+        try delegate.configureNativeTerminationFixture(service: service, runtime: runtime,
+            finalReply: { drained in
+                let snap = trace.notesSnapshot()
+                check(drained && snap.inFlight == 0 && snap.starts == snap.ends,
+                    "first/second final proposal follows real native drain")
+                check(service.ownedTaskCountForTerminationTesting == 0,
+                    "the captured Notes task returned before final proposal")
+                check(store.meeting(id: meeting.id)?.status == .summarizing
+                    && store.notes(for: meeting.id) == nil,
+                    "cancelled private meeting remains resumable without published notes")
+                return trace.nextNotesFinalVetoResult(quiescent: drained && snap.inFlight == 0
+                    && snap.starts == snap.ends && service.ownedTaskCountForTerminationTesting == 0)
+            }, didVote: { realDrained, actualAllowExit in
+                trace.recordNotesVote(realDrained: realDrained, allowExit: actualAllowExit)
+            }, safetyDrain: {
+                let snap = trace.notesSnapshot()
+                check(snap.inFlight == 0 && snap.starts == snap.ends,
+                    "same-task safety recheck sees returned native bracket")
+                trace.recordNotesSafetyDrain()
+            }, reply: { reply in
+                let snap = trace.notesSnapshot()
+                let qualified: Bool
+                if snap.replyCount == 0 {
+                    qualified = reply == .terminateLater && snap.inFlight == 1
+                        && snap.successes > 0 && service.ownedTaskCountForTerminationTesting == 1
+                        && !snap.settingsAdmissionInvalid
+                } else {
+                    qualified = snap.replyCount == 1 && snap.voteCount == 1
+                        && snap.firstVoteWasVeto && snap.safetyDrained
+                        && reply == .terminateLater && snap.inFlight == 0
+                        && snap.starts == snap.ends && snap.successes > 0
+                        && service.ownedTaskCountForTerminationTesting == 0
+                        && !snap.settingsAdmissionInvalid
+                }
+                if !qualified { trace.recordNotesInputInvalid() }
+                check(qualified, "actual Cocoa entry has first overlap or drained second vote")
+                trace.recordNotesReply(reply == .terminateLater)
+            }, willExit: {
+                let snap = trace.notesSnapshot()
+                check(snap.inFlight == 0 && snap.starts == snap.ends && snap.successes > 0,
+                    "all entered native brackets returned")
+                check(service.ownedTaskCountForTerminationTesting == 0,
+                    "same Notes task returned at process exit callback")
+                check(snap.replyCount == 2 && snap.voteCount == 2 && snap.firstVoteWasVeto
+                    && snap.secondVoteAllowed && snap.safetyDrained,
+                    "first veto, same safety continuation and second Cocoa vote occurred")
+                check(store.meeting(id: meeting.id)?.status == .summarizing
+                    && store.notes(for: meeting.id) == nil,
+                    "private meeting remains resumable")
+                let final = trace.notesSnapshot()
+                SelfTest.diagnostic(final.settingsAdmissionInvalid || final.inputInvalid
+                    ? "NATIVE_NOTES_SETTINGS_INVALID: original input/overlap unavailable"
+                    : final.failures == 0 ? "NATIVE_NOTES_SETTINGS_OK: actual Notes/Cocoa owner"
+                    : "NATIVE_NOTES_SETTINGS_FAILED: actual Notes/Cocoa owner")
+            })
+        trace.markNotesPrivateMounted()
+        // Existing runtime override controls availability, full-weight open and metadata read.
+        try await runtime.configureTerminationNativeFixture(modelFile: admission.modelFile) { entered, status in
+            let scheduleQuit = trace.recordDecode(entered: entered, status: status)
+            guard scheduleQuit else { return }
+            RunLoop.main.perform(inModes: [.common]) {
+                MainActor.assumeIsolated { NSApp.terminate(nil) }
+            }
+        }
+        // Existing backend; no second model pass. The private App tuple is already mounted.
+        await LlamaBackend.shared.initialize()
+        service.summarize(meeting, using: .appLLM, announce: false)
+        trace.markNotesSubmitted()
+        SelfTest.diagnostic("NATIVE_NOTES_SETTINGS_INPUT_OK: private Notes task and copied GGUF admitted")
+        return true
+    }
+
+    /// App's exact-mode catch calls this instead of the generic shared-runtime quit fallback.
+    static func handleArmFailure() {
+        guard isRequested else { return }
+        SelfTest.failed = true
+        SelfTest.diagnostic("NATIVE_NOTES_SETTINGS_INVALID: private setup unavailable")
+        guard case .success(let bound) = binding, bound.trace.notesSnapshot().privateMounted else {
+            exit(1) // No backend/native operation was admitted before tuple mounting.
+        }
+        // The mounted private App tuple owns the real cancellation/join/drain path.
+        SelfTest.requestTermination()
+    }
+
+    nonisolated private static func validateArguments() throws -> NativeNotesSettingsAdmission {
+        guard isRequested, SelfTest.requested == "--selftest-native-termination" else {
+            throw NativeNotesSettingsAdmissionFailure.invalid
+        }
+        let args = Array(CommandLine.arguments.dropFirst())
+        let valueFlags: Set<String> = ["--native-notes-settings-case", "--native-termination-model",
+            SelfTest.outputFlag, SelfTest.timeoutFlag]
+        var values: [String: String] = [:]
+        var seen = Set<String>()
+        var offset = 0
+        while offset < args.count {
+            let flag = args[offset]
+            guard seen.insert(flag).inserted else { throw NativeNotesSettingsAdmissionFailure.invalid }
+            if flag == "--selftest-native-termination" { offset += 1; continue }
+            guard valueFlags.contains(flag), args.indices.contains(offset + 1),
+                  !args[offset + 1].hasPrefix("-") else { throw NativeNotesSettingsAdmissionFailure.invalid }
+            values[flag] = args[offset + 1]
+            offset += 2
+        }
+        guard seen.contains("--selftest-native-termination"),
+              let rawMode = values["--native-notes-settings-case"], let mode = NativeNotesSettingsMode(rawValue: rawMode),
+              let rawModel = values["--native-termination-model"] else { throw NativeNotesSettingsAdmissionFailure.invalid }
+        let modelFile = URL(fileURLWithPath: rawModel).standardizedFileURL
+        let modelRoot = modelFile.deletingLastPathComponent()
+        let temp = FileManager.default.temporaryDirectory.standardizedFileURL.resolvingSymlinksInPath()
+        let prefix = "NextNotesNativeTerminationTest-"
+        guard modelFile.path == rawModel, modelFile.lastPathComponent == "fixture.gguf",
+              modelRoot.deletingLastPathComponent().path == temp.path,
+              modelRoot.lastPathComponent.hasPrefix(prefix),
+              let id = UUID(uuidString: String(modelRoot.lastPathComponent.dropFirst(prefix.count))),
+              modelRoot.path == modelRoot.resolvingSymlinksInPath().path,
+              modelFile.path == modelFile.resolvingSymlinksInPath().path else { throw NativeNotesSettingsAdmissionFailure.invalid }
+        let rootValues = try modelRoot.resourceValues(forKeys: [.isDirectoryKey, .isSymbolicLinkKey])
+        let modelValues = try modelFile.resourceValues(forKeys: [.isRegularFileKey, .isSymbolicLinkKey, .fileSizeKey])
+        guard rootValues.isDirectory == true, rootValues.isSymbolicLink != true,
+              modelValues.isRegularFile == true, modelValues.isSymbolicLink != true,
+              modelValues.fileSize.map({ Int64($0) }) == NotesModels.spec.expectedBytes else {
+            throw NativeNotesSettingsAdmissionFailure.invalid
+        }
+        let metadataRoot = modelRoot.appendingPathComponent("settings-availability", isDirectory: true)
+        let meetingRoot = temp.appendingPathComponent("NextNotesMeetingResumeTest-" + id.uuidString,
+            isDirectory: true)
+        guard !FileManager.default.fileExists(atPath: meetingRoot.path),
+              (try? FileManager.default.attributesOfItem(atPath: meetingRoot.path)) == nil,
+              meetingRoot.path == meetingRoot.resolvingSymlinksInPath().path else {
+            throw NativeNotesSettingsAdmissionFailure.invalid
+        }
+        let outputFile: URL?
+        if let rawOutput = values[SelfTest.outputFlag] {
+            let expected = modelRoot.appendingPathComponent("notes-settings.log")
+            guard rawOutput == expected.path, expected.path == expected.resolvingSymlinksInPath().path else {
+                throw NativeNotesSettingsAdmissionFailure.invalid
+            }
+            if FileManager.default.fileExists(atPath: expected.path) {
+                let attributes = try expected.resourceValues(forKeys: [.isRegularFileKey, .isSymbolicLinkKey])
+                guard attributes.isRegularFile == true, attributes.isSymbolicLink != true else {
+                    throw NativeNotesSettingsAdmissionFailure.invalid
+                }
+            }
+            outputFile = expected
+        } else { outputFile = nil }
+        if let rawTimeout = values[SelfTest.timeoutFlag] {
+            guard let seconds = Double(rawTimeout), seconds.isFinite, seconds > 0, seconds <= 300 else {
+                throw NativeNotesSettingsAdmissionFailure.invalid
+            }
+        }
+        let admission = NativeNotesSettingsAdmission(mode: mode, modelFile: modelFile, modelRoot: modelRoot,
+            metadataRoot: metadataRoot, meetingRoot: meetingRoot, meetingID: id, outputFile: outputFile)
+        try validateMetadataRoot(admission)
+        return admission
+    }
+
+    nonisolated private static func validateMetadataRoot(_ admission: NativeNotesSettingsAdmission) throws {
+        let root = admission.metadataRoot
+        guard admission.modelRoot.deletingLastPathComponent().path
+                  == FileManager.default.temporaryDirectory.standardizedFileURL.resolvingSymlinksInPath().path,
+              admission.modelRoot.path == admission.modelRoot.resolvingSymlinksInPath().path,
+              admission.modelFile.deletingLastPathComponent() == admission.modelRoot,
+              admission.modelFile.path == admission.modelFile.resolvingSymlinksInPath().path,
+              root.deletingLastPathComponent() == admission.modelRoot,
+              root.lastPathComponent == "settings-availability",
+              root.path == root.resolvingSymlinksInPath().path else { throw NativeNotesSettingsAdmissionFailure.invalid }
+        let parent = try admission.modelRoot.resourceValues(forKeys: [.isDirectoryKey, .isSymbolicLinkKey])
+        let model = try admission.modelFile.resourceValues(forKeys: [.isRegularFileKey, .isSymbolicLinkKey, .fileSizeKey])
+        let values = try root.resourceValues(forKeys: [.isDirectoryKey, .isSymbolicLinkKey])
+        guard parent.isDirectory == true, parent.isSymbolicLink != true,
+              model.isRegularFile == true, model.isSymbolicLink != true,
+              model.fileSize.map({ Int64($0) }) == NotesModels.spec.expectedBytes,
+              values.isDirectory == true, values.isSymbolicLink != true,
+              try FileManager.default.contentsOfDirectory(atPath: root.path).isEmpty else {
+            throw NativeNotesSettingsAdmissionFailure.invalid
+        }
+    }
+}

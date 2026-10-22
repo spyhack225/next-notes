@@ -1,0 +1,5 @@
+--- a/Sources/NextNotes/UI/Island/IslandView.swift
++++ b/Sources/NextNotes/UI/Island/IslandView.swift
+@@ -80 +82 @@ struct IslandView: View {
+-    /// Black and opaque against the bezel, glass when it is floating over a window.
++    /// Fixed-light opaque surface beside the notch; theme glass over a window.

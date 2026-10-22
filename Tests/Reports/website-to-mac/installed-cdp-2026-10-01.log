@@ -1,0 +1,19 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-cdp --selftest-timeout 300 --selftest-out /tmp/nextnotes-agent-closure-browser-compat/selftest-cdp.out
+2026-10-01 20:47:09.060 NextNotes[46658:635937] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+CDP_OK: real Chromium debugger answered targets, snapshot, read_page, a waited URL and an honest timeout
+CU_AX_UNVERIFIED_ATTEMPTS: 1
+CU_ACTION_CHECK: the AX producer seam never replays an unverified press PASS
+CU_ACK_UNVERIFIED_COUNT: [1,0]
+CU_ACTION_CHECK: acknowledged unverified click fires exactly once PASS
+CU_ACTION_CHECK: unverified click says the result could not be confirmed PASS
+CU_ACTION_CHECK: one observed decision cannot be delivered again without a fresh snapshot PASS
+CU_ACTION_CHECK: a click never repeats on a reordered control PASS
+CU_ACTION_CHECK: duplicate labels cannot retarget a cached control PASS
+CU_ACTION_CHECK: a same-label replacement never inherits a captured node's identity PASS
+CU_ACTION_CHECK: CDP yields before a posted action PASS
+CU_ACTION_CHECK: CDP rechecks human input after async inspection PASS
+CU_STABLE_CLICK_MS: 6.32175
+CU_ACTION_CHECK: stable bound control receives one verified action PASS
+CU_LATENCY_MS: action samples=[3.772917, 3.793041, 4.107667, 4.431708, 4.65575, 4.767958, 4.9315, 5.077959, 5.118917, 6.749542] p50=4.767958 p95=6.749542
+CU_LATENCY_MS: snapshot_to_action samples=[6.892625, 6.984083, 7.494417, 7.590375, 8.278, 8.419625, 8.91375, 8.994833, 9.065875, 9.874] p50=8.419625 p95=9.874
+CU_ACTION_CHECK: fill cannot retarget a duplicate-label input PASS

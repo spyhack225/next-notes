@@ -1,0 +1,8 @@
+--- a/Sources/NextNotes/UI/DesignSystem.swift
++++ b/Sources/NextNotes/UI/DesignSystem.swift
+@@ -121 +133,4 @@ enum DS {
+-    /// System text styles only, so Dynamic Type and the user's font settings apply.
++    /// The site’s Inter family at existing native text-style sizes. Relative text
++    /// styles preserve semantic scaling; numeric counters/timestamps retain their
++    /// existing rounded/monospaced metrics. Computed aliases do not permanently
++    /// latch system fallback if evaluated before launch registers bundled fonts.

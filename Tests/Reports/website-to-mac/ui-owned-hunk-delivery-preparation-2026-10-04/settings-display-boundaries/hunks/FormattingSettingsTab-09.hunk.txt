@@ -1,0 +1,14 @@
+--- a/Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift
++++ b/Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift
+@@ -94,11 +85,0 @@ struct FormattingSettingsTab: View {
+-        } footer: {
+-            SettingsNote(
+-                text: "Dictated text is written to suit the app it is about to land in — a "
+-                    + "spoken list becomes bullets in Slack and numbered lines in Mail. "
+-                    + "These switches choose the marks an app is allowed, not whether you "
+-                    + "get structure: a list you actually spoke out loud stays a list "
+-                    + "everywhere, written as plain \u{201C}1.\u{201D} lines in an app that "
+-                    + "shows marks instead of drawing them. An app that isn't listed is "
+-                    + "given no marks at all, because a mark an app doesn't render is worse "
+-                    + "than none."
+-            )

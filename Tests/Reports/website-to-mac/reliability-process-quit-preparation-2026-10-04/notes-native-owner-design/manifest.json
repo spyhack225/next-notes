@@ -1,0 +1,17 @@
+{
+  "status": "PROPOSAL_HELD_SOURCE_ONLY",
+  "artifacts": [
+    {
+      "path": "README.md",
+      "sha256": "ad4e4532ebd7376bf02a6ccbb111d18b082a0300d7cd3bf84b7c336f9b17c411"
+    },
+    {
+      "path": "proposal.md",
+      "sha256": "c30c3d2b2ce256fe9e907bc508c76445654f58b251a99ebd356584e6426e703a"
+    },
+    {
+      "path": "source-pins.json",
+      "sha256": "6f3361b412246220a82de87477bae9ec574e45daa307809d630aebf01ab80654"
+    }
+  ]
+}

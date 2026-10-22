@@ -1,0 +1,10 @@
+warning: 'next-notes': found 1 file(s) which are unhandled; explicitly declare them as resources or exclude from the target
+    /Users/sergekadjo/Documents/Claude/Projects/next-notes/Sources/NextNotes/IMessage/Database/TYPEDSTREAM-NOTES.md
+Building for production...
+[Computing dependencies]
+[Constructing description]
+[Pre-planning 1 / 1165]
+[Planning deferred tasks]
+warning: duplicate output file '/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/out/Products/Release/include/module.modulemap' on task: ProcessXCFramework /Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/artifacts/xn-ptts/PhononCore/PhononCore.xcframework /Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/out/Products/Release/libptts_ffi.a macos
+error: Multiple commands produce '/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/out/Products/Release/include/module.modulemap'
+error: Build failed

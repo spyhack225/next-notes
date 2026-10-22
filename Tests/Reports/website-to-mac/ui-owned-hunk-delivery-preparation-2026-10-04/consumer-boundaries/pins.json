@@ -1,0 +1,141 @@
+{
+  "status": "READ_ONLY_POINT_IN_TIME_NOT_SOURCE_FREEZE",
+  "historicalIntegratedPatch": "MISSING:/tmp/nextnotes-ui-final-theme/integrated-owned.patch",
+  "historicalFrozenHashes": "MISSING:/tmp/nextnotes-ui-final-theme/integration-frozen-hashes.json",
+  "files": {
+    "Sources/NextNotes/UI/DesignSystem.swift": {
+      "currentSHA256": "4834688eb005804071731afa6a359aa68434cdc3fd99cd62f5ac444bf57c1fe4",
+      "ux11HandoffSHA256": "4834688eb005804071731afa6a359aa68434cdc3fd99cd62f5ac444bf57c1fe4",
+      "sameAsUX11Handoff": true,
+      "headAtUX11HandoffSHA256": "0554e3afe6c23c6739355fb30077ff01b3a782fa5fc3bf6b81e0a9ac9ca9ac8a"
+    },
+    "Sources/NextNotes/UI/ThemeFixed.swift": {
+      "currentSHA256": "4d6aaef3329387a33d8ef95a6e1c641ec8f3eb428abc7b0d3670e4554c3bdd06",
+      "ux11HandoffSHA256": "4d6aaef3329387a33d8ef95a6e1c641ec8f3eb428abc7b0d3670e4554c3bdd06",
+      "sameAsUX11Handoff": true,
+      "headAtUX11HandoffSHA256": null
+    },
+    "Sources/NextNotes/UI/Components/GlassSurface.swift": {
+      "currentSHA256": "c296b474b6868c13ef734f2ac54696620f3f3aa8584e393974e6cb1798b8b0e4",
+      "ux11HandoffSHA256": "c296b474b6868c13ef734f2ac54696620f3f3aa8584e393974e6cb1798b8b0e4",
+      "sameAsUX11Handoff": true,
+      "headAtUX11HandoffSHA256": "3b4c6293c72ba9979847eacd900019539ab849f4e6e7088095bfb58d40366434"
+    },
+    "Sources/NextNotes/UI/Components/SectionHeading.swift": {
+      "currentSHA256": "68f10152d8be83c8e912c8c297f821daa74cfecac32053dc6584889775e5f435",
+      "ux11HandoffSHA256": "68f10152d8be83c8e912c8c297f821daa74cfecac32053dc6584889775e5f435",
+      "sameAsUX11Handoff": true,
+      "headAtUX11HandoffSHA256": "a9d976649beff1c4daa3ed053e5f2364a4d8cf27e2c20dcb6a41b5fdea50fe55"
+    },
+    "Sources/NextNotes/UI/Components/Theme/ThemeHeadline.swift": {
+      "currentSHA256": "7e6706c5f839cd5aef673083f2ad4ee1d8c29803f79e2199c39ca3040e57a1fe",
+      "ux11HandoffSHA256": "7e6706c5f839cd5aef673083f2ad4ee1d8c29803f79e2199c39ca3040e57a1fe",
+      "sameAsUX11Handoff": true,
+      "headAtUX11HandoffSHA256": null
+    },
+    "Sources/NextNotes/UI/Components/Theme/ThemeGlass.swift": {
+      "currentSHA256": "43bf1deea72e9929ce2d1ad88d0538be4ba7f75f46e3e89548ec709f298a2619",
+      "ux11HandoffSHA256": "43bf1deea72e9929ce2d1ad88d0538be4ba7f75f46e3e89548ec709f298a2619",
+      "sameAsUX11Handoff": true,
+      "headAtUX11HandoffSHA256": null
+    },
+    "Sources/NextNotes/UI/Components/Theme/ThemeBorderBeam.swift": {
+      "currentSHA256": "07abde63ff092072216a55a6bfbdc269d5d739eb92dc0153b6ba1ab83c05db3d",
+      "ux11HandoffSHA256": "07abde63ff092072216a55a6bfbdc269d5d739eb92dc0153b6ba1ab83c05db3d",
+      "sameAsUX11Handoff": true,
+      "headAtUX11HandoffSHA256": null
+    },
+    "Sources/NextNotes/UI/Components/Theme/ThemeVoiceGlow.swift": {
+      "currentSHA256": "4d628c5596a5562d483ccc7aecdb739b51f2260e50e68a68f89be79ba4ee186a",
+      "ux11HandoffSHA256": "4d628c5596a5562d483ccc7aecdb739b51f2260e50e68a68f89be79ba4ee186a",
+      "sameAsUX11Handoff": true,
+      "headAtUX11HandoffSHA256": null
+    },
+    "Sources/NextNotes/UI/Agent/AgentView.swift": {
+      "currentSHA256": "dec7e55a9e50b4f27d16190193e7276b06c37a771285c3e5780cdec82af9b919",
+      "ux11HandoffSHA256": "7e7eed666368a2ea260548de5071b8bdae1243f1cc364c0b1fb6efbe2c29f7c2",
+      "sameAsUX11Handoff": false,
+      "headAtUX11HandoffSHA256": "32e5adcb7771739ca957a131fa3192fe183beecf64e54351f56f8c80a182200b"
+    },
+    "Sources/NextNotes/UI/Agent/AgentPaneLayout.swift": {
+      "currentSHA256": "15271f90abb694bdceb6a75579d147f8de584a18362c8ed36f98aebf4e41deb4",
+      "ux11HandoffSHA256": "15271f90abb694bdceb6a75579d147f8de584a18362c8ed36f98aebf4e41deb4",
+      "sameAsUX11Handoff": true,
+      "headAtUX11HandoffSHA256": "e1a682ae6dd87ae8f3cd35756f528e47bdc373d0429fa941f420cffed0a6e702"
+    },
+    "Sources/NextNotes/UI/Agent/AgentWorkingCard.swift": {
+      "currentSHA256": "c070708cb25be23e85d0185b0b39588bf64837e44143427b70664e1afc246108",
+      "ux11HandoffSHA256": "90130118f5d69acdded1e72d423cfa0877d740385bbe69119f17d0e8ae0dfb2d",
+      "sameAsUX11Handoff": false,
+      "headAtUX11HandoffSHA256": "755f1c4cf11225c50c6cb4b41cdeaf1cd9c6598339b27207a40733c786a2fed5"
+    },
+    "Sources/NextNotes/UI/Agent/ActivityView.swift": {
+      "currentSHA256": "2fc1b5ee0f8ef36d0b359e57d41d9552ace8f60b44650d68543728557ec005cc",
+      "ux11HandoffSHA256": "3b6785726fd7d8c0db5b19aa4624228c21bcaa9ae46bb3f0a17973afbbbd9477",
+      "sameAsUX11Handoff": false,
+      "headAtUX11HandoffSHA256": "ad96426ac59b786c1373a3c5e2157517f015ded13bd5009b420086ccf0587b24"
+    },
+    "Sources/NextNotes/UI/Settings/SettingsWindow.swift": {
+      "currentSHA256": "d9c854b3b6d9f0a80e310f525d3cc9f3c99f89be8af5a5e7cd480214a54d39f6",
+      "ux11HandoffSHA256": "d9c854b3b6d9f0a80e310f525d3cc9f3c99f89be8af5a5e7cd480214a54d39f6",
+      "sameAsUX11Handoff": true,
+      "headAtUX11HandoffSHA256": "59b5a13b898cac4389066264766109d44ae52cf5aab4c3b4c565424ae0178f8d"
+    },
+    "Sources/NextNotes/UI/Settings/SettingsChrome.swift": {
+      "currentSHA256": "a228a7e07670b2848b8984f4041bec525adfd6b88107f0005557ca42f20d71b4",
+      "ux11HandoffSHA256": "f4677c14514b8092b6aaf002ba1dfd6151ecee6f4eeb12a1a61220b40278e1ad",
+      "sameAsUX11Handoff": false,
+      "headAtUX11HandoffSHA256": "b89503d92cc98647ef22fee929cab1e43fd6115ef08b4ad8822aab0d7fc1f42a"
+    },
+    "Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift": {
+      "currentSHA256": "4fcad108cbb67cfbc5abfaefee6520f969b65904a7dad0e839dbc2355b3450a4",
+      "ux11HandoffSHA256": "4fcad108cbb67cfbc5abfaefee6520f969b65904a7dad0e839dbc2355b3450a4",
+      "sameAsUX11Handoff": true,
+      "headAtUX11HandoffSHA256": "c750e16bd51c4f8f40875d2122b3a89d57dfe3a02f40cd2a08ec7f0c4eb64d69"
+    },
+    "Sources/NextNotes/UI/Settings/ComputerBrowserReadiness.swift": {
+      "currentSHA256": "513e885becca8306b95a13bde2fea217106d0fddaa086f55766ac30ca1b6f5df",
+      "ux11HandoffSHA256": "513e885becca8306b95a13bde2fea217106d0fddaa086f55766ac30ca1b6f5df",
+      "sameAsUX11Handoff": true,
+      "headAtUX11HandoffSHA256": "5d49ce2ef6d0f34e8fa6508e236d91203d6357f0ebeba9f4dc49d964de73a23a"
+    },
+    "Sources/NextNotes/UI/Settings/AgentSettingsTab.swift": {
+      "currentSHA256": "e7432003a343b2e9a7901cae4676b78216098823bad4d142cb640f4f9e341f31",
+      "ux11HandoffSHA256": "e7432003a343b2e9a7901cae4676b78216098823bad4d142cb640f4f9e341f31",
+      "sameAsUX11Handoff": true,
+      "headAtUX11HandoffSHA256": "b31f0440dd9f45ccd8112f4aebb1c0ce8b2d1094fde8ba302d64c1d1db2ecf02"
+    },
+    "Sources/NextNotes/UI/Island/IslandView.swift": {
+      "currentSHA256": "4d53c60d50e954863ca330961b1bcf5f006899daffce1867d82d567f3aa1bf09",
+      "ux11HandoffSHA256": "4d53c60d50e954863ca330961b1bcf5f006899daffce1867d82d567f3aa1bf09",
+      "sameAsUX11Handoff": true,
+      "headAtUX11HandoffSHA256": "0355eb716f992afb95767f00ff4529ca0e15d981045c3f268589744dc8e46ab1"
+    },
+    "Sources/NextNotes/UI/HUDView.swift": {
+      "currentSHA256": "0f695e3f4da92e98dbdb7d4ed69ead9643db5e9b497e94278b18d7a8a1d94e13",
+      "ux11HandoffSHA256": "0f695e3f4da92e98dbdb7d4ed69ead9643db5e9b497e94278b18d7a8a1d94e13",
+      "sameAsUX11Handoff": true,
+      "headAtUX11HandoffSHA256": "4021b5fe8333c653501a07e2f0fc86c75d02ffc3abd8a4fd73f6615bbffc0058"
+    },
+    "Sources/NextNotes/UI/MainWindow.swift": {
+      "currentSHA256": "5f65aea558ea800d47f62d6deb5a9085a0b8fec4790485b6846578dccbc01150",
+      "ux11HandoffSHA256": "5f65aea558ea800d47f62d6deb5a9085a0b8fec4790485b6846578dccbc01150",
+      "sameAsUX11Handoff": true,
+      "headAtUX11HandoffSHA256": "19fe38311d9a86d59439eef095f088bf2049a9d4bc2ee0ae4a1bf9acdcf7214d"
+    },
+    "Sources/NextNotes/UI/Meetings/MeetingConsoleSheet.swift": {
+      "currentSHA256": "6645bac730b41d97de7ad180dd217b69851830cad28915301e44f82b8e1cd507",
+      "ux11HandoffSHA256": "6645bac730b41d97de7ad180dd217b69851830cad28915301e44f82b8e1cd507",
+      "sameAsUX11Handoff": true,
+      "headAtUX11HandoffSHA256": "c37410b0391ed81d93bc3ea2914fb0b3ce0e96d3446c16b3ed80adda1d00cbb7"
+    }
+  },
+  "reports": {
+    "Tests/Reports/website-to-mac/ux11-settings-coherent-dependency-handoff-2026-10-02.md": "10f0b215162c6db3084e8a9b8bc4a7510f55d85f4638ab12ede1c7481b7729be",
+    "Tests/Reports/website-to-mac/ux11-settings-coherent-dependency-handoff-2026-10-02.json": "581d641444db05c1721dd24404a4bca868939cb0ecb06e421bd55d191a147ec1",
+    "Tests/Reports/website-to-mac/ux11-final-adoption.md": "bdd48b5a47e6948914722370ac65bc5b03cd3eb4a51bc0bb5009b4374d87360d",
+    "Tests/Reports/website-to-mac/ux11-surface-audit.md": "192d88cc71477014d5546164aadfa6d1a1fc3619954ee8e254715589f8b324fb",
+    "Tests/Reports/website-to-mac/settings-app41/README.md": "6dae6df2064bedd4e89a10b88d0cc45e41559015431ee1aa31a0f60cd3984103",
+    "Tests/Reports/website-to-mac/ui-owned-hunk-delivery-preparation-2026-10-04/packaging-boundaries/manifest.json": "a8879a8e6b5767256494e6da975abf69f2b168cb5adb903dde4d423f523408ec"
+  }
+}

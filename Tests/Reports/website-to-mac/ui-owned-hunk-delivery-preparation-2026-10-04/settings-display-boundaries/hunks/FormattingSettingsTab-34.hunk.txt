@@ -1,0 +1,12 @@
+--- a/Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift
++++ b/Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift
+@@ -355 +434,8 @@ private struct OutputProfileRow: View {
+-            Image(systemName: profile.pathReference.systemImage)
++            if compact {
++                Text(profile.pathReference.displayName)
++                    .font(DS.Font.caption)
++                    .lineLimit(nil)
++                    .fixedSize(horizontal: false, vertical: true)
++            } else {
++                Image(systemName: profile.pathReference.systemImage)
++            }

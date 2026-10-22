@@ -1,0 +1,19 @@
+# Notes task return disposition — additive COMMON preparation
+
+**HELD: source-only, uncompiled, native UNRUN.** These three relative patches apply after the frozen Settings/native COMMON composition (manifest `89e81606…`), identically to its original and fixed Settings producer variants. No canonical Source, model, owner preferences, Cocoa process, or native operation was changed or run. Disposable copied-source `git apply` replay establishes only exact text applicability.
+
+## Why this producer signal is needed
+
+The existing active Notes fixture asks the real native decode callback to schedule Cocoa quit after a successful decode and a later entered bracket. If the Notes generation returns before that condition, no callback requests quit and the diagnostic can hang without an input verdict. The first missing signal is the actual `NotesService.summarize` Task returning. `NotesService.swift` already owns that Task and removes its map entry in its `defer`; the proposed observer fires once immediately after that existing cleanup. The optional observer is nil for every production service.
+
+`configureNativeNotesReturnObserver(meetingID:observer:)` is allowed only for the exact native Notes-settings mode, a successful typed private admission, the exact admitted meeting UUID and store root, an existing private meeting, a service other than the loaded shared service, no running Task, no closed termination admission, and no prior observer. It adds no Task, getter, map, timer, wait or model pass. The observer is installed only after the private AppDelegate quit tuple and runtime override are mounted, and before the existing `summarize` call.
+
+The SAME existing `NativeQuitTrace` gains one bounded `ownedReturned` Bool. Its atomic `recordNotesReturned()` records the actual Task-defer callback and returns whether the real native decode hook already scheduled quit. When true, the callback does nothing else. When false, it marks the input INVALID, sets the self-test failure status and requests Cocoa quit through the already mounted **private** App tuple. This is a disposition for missing native preparation, not an original Settings producer RED or a generic shared-owner fallback.
+
+The fixture checks `ownedReturned` at both final reply and `willExit`, after the existing App-owned task join on a qualified active path. The defer callback alone does **not** prove native cessation, successful model work, or that a captured App task was joined; those remain the existing captured `Task.value`, runtime `finishTermination`, real drained conjunction, actual first/second Cocoa votes and producer native brackets. A no-decode return is INPUT_INVALID even if private Cocoa exits safely. If the task returns between native scheduling and first Cocoa reply, the first-overlap assertion still rejects the positive path.
+
+## Exact source and verification limits
+
+- `NotesService.swift` preimage `c1577429843cd4f2a50bca738a8afe95ed574e7faea29153de38fe8264c79652` is the current source observed for this packet. It is @MainActor/@Observable; the new tuple is @ObservationIgnored and optional. `MeetingStore.directory(for:)` is a pure root-plus-UUID path, and the existing Task defer is the actual return point.
+- `NativeTerminationSelfTest.swift` base `fc49cf3402c9fc9b5a61436217903d96d416d0e4704d5615d4216bcea55d621b` is the composed COMMON trace. The root-selected fixture base is `281d7e56dd7d2ef1ef74ca48cca03dceae9a4112abd64c25d9e63e87ce17caa9`. All three additive patches must be applied to those exact bases as the SAME COMMON before both Settings producer variants.
+- Compiler/Swift 6 actor checking, original/fixed fresh-process Settings cases, actual no-decode return, copied public GGUF identity, physical native bracket, Cocoa first veto/second exit, related flags, and owner-store isolation are all UNRUN. Source inspection and copied-text replay do not promote the diagnostic or broader quit contract.

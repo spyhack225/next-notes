@@ -1,0 +1,83 @@
+{
+  "status": "PREPARED; SHARED SIXTH BUILD NOT YET AVAILABLE",
+  "atUTC": "2026-10-08T05:09:59.643821+00:00",
+  "sourceMutation": "../live-coverage/four-path-sixth-quiet-source-mutation.json",
+  "sourcePins": {
+    "Sources/NextNotes/Transcription/ParakeetEngine.swift": {
+      "beforeSHA256": "78ae4827c275b8d5e37cba2aac098a7d68dd6186a21ebcece68c9361176f1c73",
+      "candidateSHA256": "37e34792effe905fc50bf9d1a11fb7cf4dda842461e2bd44a4f6eebca3fc4edb"
+    },
+    "Sources/NextNotes/Transcription/DictationSegmenter.swift": {
+      "beforeSHA256": "215ef83b73014c1bffbcda9f8446798613e12c1f929593078f2c09fb9f4a5e3b",
+      "candidateSHA256": "b87b448013837a4c8e6a8286b7fcb97f084af1cccc9b6619c1fabfa5c7c125ad"
+    },
+    "Sources/NextNotes/Transcription/DictationSegmentsSelfTest.swift": {
+      "beforeSHA256": "be5f2cfb0b1f20a2f8455f5e17b3b2f8f87929b97a416748367964717f992570",
+      "candidateSHA256": "a008b588450a607b242a3f71f445eff9bcd520f3db01ebb9a54d42e5e77dd157"
+    },
+    "Sources/NextNotes/Core/DictationController.swift": {
+      "beforeSHA256": "defe71111c0a1ab8e447aec899abb0ec0a125f5226a1221e416f9e222225a89a",
+      "candidateSHA256": "48ea2657bd2e8094057415bed5082d51e6db0d2194f4feee8bbb57a9e082f0d0"
+    }
+  },
+  "quietSHA256": "409ee48c5033c947f45413d71ca2a162097b9f220995bb8e613579a23b315000",
+  "quietGoldSHA256": "107739e03bcd73a4f92760f69415abef6b674de4da8b18c4d6fc848e3fec4013",
+  "cases": [
+    {
+      "case": "phase-fixed",
+      "args": [
+        "--selftest-llm-prefix-cache",
+        "--native-parked-cancellation",
+        "--native-phase-observation",
+        "--selftest-timeout",
+        "240"
+      ],
+      "required": "Same actual native original RED4 fixture plus old cancellation/prefix/successor controls all green. No physical ASR claim."
+    },
+    {
+      "case": "quiet-exact-seven",
+      "args": [
+        "--selftest-dictation-segments",
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/action-intent-harness-90400946-c987-4404-80ad-4c6761ac7014/quiet-meeting/quiet-final-source-window.wav",
+        "--dictation-complete-audio",
+        "--dictation-gold",
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/action-intent-harness-90400946-c987-4404-80ad-4c6761ac7014/quiet-meeting/quiet-final-source-window-gold.txt",
+        "--dictation-max-wer",
+        "0",
+        "--dictation-asr-output",
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-sixth-native-20261008/quiet-exact-seven",
+        "--selftest-timeout",
+        "90"
+      ],
+      "required": "Independent exact final7words bothendingvariants; actualfirstnonempty partial and compute/duty numbers; no silent word truncation. ReferenceinputSHA fixed."
+    },
+    {
+      "case": "zero-dc-noise",
+      "required": "Reuse exact52566 samples from fifth native controls, verify every inputSHA. Empty independent gold with --dictation-max-wer0 must reject any live/final text. Same Engine/no default output scrubbing. Measure pass count/modelbusy; authored finite inputs are not ambientvoice soak."
+    },
+    {
+      "case": "short-long-full-features",
+      "required": "Existing8s/60s/121s public PCM via actualCore runPolishingReplay --dictation-polish mini --dictation-polish-warm, independentgold and explicitraw/final files. Parsing/grammar/layout/tagging remain enabled; log first/liveAtRelease/ASRfinal/publication/final/layout/cache counters and inspect new correlated nativephase. No claimphysicalpaint/externalinsertion."
+    },
+    {
+      "case": "related",
+      "args": [
+        "--selftest-dictation-segments",
+        "--selftest-dictation-cleanup-latency",
+        "--selftest-dictation",
+        "--selftest-dictation-hygiene",
+        "--selftest-cleanup-router",
+        "--selftest-scheduler",
+        "--selftest-contention",
+        "--selftest-duplex",
+        "--selftest-usage-log",
+        "--selftest-island",
+        "--selftest-store-isolation"
+      ],
+      "required": "Independent flags sequential; related existing checks, unchanged inherited failure disclosure and ownerfiles/defaults exactpins. Native shutdown/physicalASRvoice gates remain separate."
+    }
+  ],
+  "allHeavyWork": "Needs explicit handed machine slot, normalclaim, fresh max8GBswap/min6.5GBfree and no activeowner meeting/voice; no inference during compiler. No implicitexception. AppKit ownednative/drain onresourceguard, no signalkill.",
+  "openRisk": "Changed live cadence adds quiet/noise inference, might hallucinate short live snippets. First request is not first visible recognized word; no-empty-partial retry delay hypothesis remains until native observation.",
+  "ownerInstalled": false
+}

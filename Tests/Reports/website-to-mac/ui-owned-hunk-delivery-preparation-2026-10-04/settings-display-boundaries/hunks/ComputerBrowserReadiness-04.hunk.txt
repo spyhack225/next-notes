@@ -1,0 +1,26 @@
+--- a/Sources/NextNotes/UI/Settings/ComputerBrowserReadiness.swift
++++ b/Sources/NextNotes/UI/Settings/ComputerBrowserReadiness.swift
+@@ -283,0 +280,23 @@ private struct ReadinessRow: View {
++
++    private var titleLabel: some View {
++        Text(title)
++            .font(DS.Font.headline)
++    }
++
++    private var statusAndAction: some View {
++        HStack(spacing: DS.Space.s) {
++            if let busy {
++                ThinkingOrb(state: busy, size: DS.Size.orbBadge)
++                    .accessibilityHidden(true)
++            }
++            Text(status)
++                .font(DS.Font.callout)
++                .foregroundStyle(statusColor)
++                .fixedSize(horizontal: false, vertical: true)
++            if let actionTitle, let action {
++                Button(actionTitle, action: action)
++                    .font(DS.Font.caption)
++                    .fixedSize(horizontal: true, vertical: true)
++            }
++        }
++    }

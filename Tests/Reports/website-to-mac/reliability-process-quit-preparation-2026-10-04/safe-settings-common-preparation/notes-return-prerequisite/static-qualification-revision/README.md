@@ -1,0 +1,3 @@
+# NotesService static owner qualification — additive SAME COMMON
+
+**HELD, off-source and uncompiled.** Apply after immutable `notes-return-prerequisite` COMMON, before both Settings producer variants. The exact current declaration is `private(set) static weak var sharedIfLoaded: NotesService?`; the new instance configuration guard must read it as `Self.sharedIfLoaded`, not as an instance property. This one-token qualification retains the loaded-only private-service exclusion and changes no admission, task, defer, trace, Cocoa or runtime logic. Frozen base manifest `2f136393d8374c7c1b27f9152122bc6ffe6e5101d08f10ed4b8706fc49aee302` remains unchanged. Text replay only; Swift 6/typecheck/native/original/fixed UNRUN.

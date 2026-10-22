@@ -342,9 +342,9 @@ struct DictationSettingsTab: View {
             return "Apple's on-device transcriber. Streams text while you speak; no download."
         case .parakeet:
             switch models.parakeetState {
-            case .notDownloaded: return "Parakeet resolves on release. Selecting it downloads ~470 MB once."
+            case .notDownloaded: return "Parakeet shows text while you speak. Selecting it downloads ~470 MB once."
             case .preparing(let message): return message
-            case .ready: return "Parakeet is installed and ready. It resolves after key release."
+            case .ready: return "Parakeet shows text while you speak and finishes when you release the key."
             case .failed(let message): return "Parakeet failed: \(message) Retry from the Models tab."
             }
         }

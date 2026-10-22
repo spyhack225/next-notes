@@ -1,0 +1,3 @@
+DICTATION_SEGMENTS_INPUT: full file, 52566 samples; RMS ending is diagnostic only
+DICTATION_SEGMENTS_REPLAY_ABSENT: Parakeet unavailable — The operation couldn’t be completed. (Swift.CancellationError error 1.)
+DICTATION_SEGMENTS_FAILED: 0 pure failure(s), replay failed

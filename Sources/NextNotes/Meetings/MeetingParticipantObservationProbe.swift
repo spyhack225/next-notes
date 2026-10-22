@@ -23,6 +23,9 @@ enum MeetingParticipantObservationProbe {
         let observedURL: String?
         let rawEvidence: String?
         let evidenceWasClipped: Bool
+        let traversalCoverage: AccessibilitySnapshot.CaptureCoverage?
+        // A process/tab/room URL never proves joined-call or voice identity.
+        let callState = "unverified"
         // No platform parser is established. Raw labels never become claimed identities.
         let participantNames: [String] = []
         let activeSpeakerName: String? = nil
@@ -58,6 +61,7 @@ enum MeetingParticipantObservationProbe {
         let indices = targets.indices.filter {
             guard let url = URL(string: targets[$0].url) else { return false }
             return url.scheme?.lowercased() == "https" && url.host?.lowercased() == "meet.google.com"
+                && !url.path.isEmpty && url.path != "/"
         }
         guard let index = indices.first else { return .unavailable }
         guard indices.count == 1 else { return .ambiguous }
@@ -73,7 +77,7 @@ enum MeetingParticipantObservationProbe {
                               status: String) -> Observation {
         Observation(platform: platform, source: source, startedAt: began, endedAt: Date(),
             status: status, processID: nil, processLaunchedAt: nil, browserTargetID: nil,
-            observedURL: nil, rawEvidence: nil, evidenceWasClipped: false)
+            observedURL: nil, rawEvidence: nil, evidenceWasClipped: false, traversalCoverage: nil)
     }
 
     /// Uses existing permission only; never opens/focuses Zoom or requests AX access.
@@ -82,20 +86,23 @@ enum MeetingParticipantObservationProbe {
     static func zoom(processID: pid_t) -> Observation {
         let began = Date()
         func result(_ status: String, app: NSRunningApplication? = nil,
-                    raw: String? = nil) -> Observation {
+                    raw: String? = nil,
+                    coverage: AccessibilitySnapshot.CaptureCoverage? = nil) -> Observation {
             Observation(platform: "zoom", source: "focused-window-accessibility",
                 startedAt: began, endedAt: Date(), status: status,
                 processID: processID, processLaunchedAt: app?.launchDate,
                 browserTargetID: nil, observedURL: nil,
                 rawEvidence: raw.map { String($0.prefix(32_768)) },
-                evidenceWasClipped: raw.map { $0.count > 32_768 } ?? false)
+                evidenceWasClipped: raw.map { $0.count > 32_768 } ?? false,
+                traversalCoverage: coverage)
         }
         guard isRequested else { return result("diagnostic-not-authorized") }
         guard let app = NSRunningApplication(processIdentifier: processID),
               app.bundleIdentifier == "us.zoom.xos", !app.isTerminated,
               let launch = app.launchDate else { return result("zoom-process-unavailable") }
         guard AXIsProcessTrusted() else { return result("accessibility-unavailable", app: app) }
-        let raw = AccessibilitySnapshot.capture(processID: processID, limit: 120)
+        let captured = AccessibilitySnapshot.captureWithCoverage(processID: processID, limit: 120)
+        let raw = captured.snapshot
         guard let current = NSRunningApplication(processIdentifier: processID),
               current.bundleIdentifier == app.bundleIdentifier,
               current.launchDate == launch, !current.isTerminated else {
@@ -103,7 +110,7 @@ enum MeetingParticipantObservationProbe {
         }
         let stub = AccessibilitySnapshot.isStub(raw)
         return result(stub ? "no-observable-window" : "raw-evidence-only", app: app,
-            raw: stub ? nil : raw)
+            raw: stub ? nil : raw, coverage: captured.coverage)
     }
 
     @MainActor
@@ -118,7 +125,7 @@ enum MeetingParticipantObservationProbe {
             startedAt: began, endedAt: Date(), status: "raw-evidence-only",
             processID: nil, processLaunchedAt: nil, browserTargetID: targetID,
             observedURL: expectedURL, rawEvidence: String(raw.prefix(32_768)),
-            evidenceWasClipped: raw.count > 32_768)
+            evidenceWasClipped: raw.count > 32_768, traversalCoverage: nil)
     }
 
     /// Private evidence is separate from stdout, --selftest-out and the system log.
@@ -194,7 +201,7 @@ enum MeetingParticipantObservationProbe {
         do {
             let id = try savePrivate(observation)
             let verdict = observation.status == "raw-evidence-only" ? "OK" : "FAILED"
-            return "MEETING_PARTICIPANT_OBSERVATION_\(verdict): platform=\(observation.platform) status=\(observation.status) private-id=\(id.uuidString) names-unassigned"
+            return "MEETING_PARTICIPANT_OBSERVATION_\(verdict): platform=\(observation.platform) status=\(observation.status) private-id=\(id.uuidString) names-unassigned call-state-unverified"
         } catch { return "MEETING_PARTICIPANT_OBSERVATION_FAILED: private-write-unavailable" }
     }
 
@@ -224,19 +231,24 @@ enum MeetingParticipantObservationProbe {
         var other = target; other.url = "https://example.invalid/"
         var insecure = target; insecure.url = "http://meet.google.com/abc-defg-hij"
         var lookalike = target; lookalike.url = "https://meet.google.com.example.invalid/abc-defg-hij"
+        var landing = target; landing.url = "https://meet.google.com"
+        var rootLanding = target; rootLanding.url = "https://meet.google.com/"
         var missingID = target; missingID.id = ""
         var invalidSocket = target; invalidSocket.webSocketDebuggerURL = "https://example.invalid/"
         expect(meetSelection([]) == .unavailable)
         expect(meetSelection([other, insecure, lookalike]) == .unavailable)
         expect(meetSelection([other, target]) == .selected(1))
         expect(meetSelection([target, target]) == .ambiguous)
+        expect(meetSelection([landing]) == .unavailable)
+        expect(meetSelection([rootLanding]) == .unavailable)
         expect(meetSelection([missingID]) == .unavailable)
         expect(meetSelection([invalidSocket]) == .unavailable)
         let observation = Observation(platform: "zoom", source: "focused-window-accessibility", startedAt: launch,
             endedAt: launch.addingTimeInterval(0.25), status: "raw-evidence-only", processID: 10,
             processLaunchedAt: launch, browserTargetID: nil, observedURL: nil, rawEvidence: "generic unknown label",
-            evidenceWasClipped: false)
+            evidenceWasClipped: false, traversalCoverage: nil)
         expect(observation.participantNames.isEmpty && observation.activeSpeakerName == nil)
+        expect(observation.callState == "unverified" && observation.traversalCoverage == nil)
         expect(observation.processID == live.processID && observation.processLaunchedAt == launch)
         expect(observation.startedAt == launch && observation.endedAt == launch.addingTimeInterval(0.25))
         return failures == 0 ? "MEETING_PARTICIPANT_OBSERVATION_OK: contracts checks=\(checks) physical-observation-unverified"

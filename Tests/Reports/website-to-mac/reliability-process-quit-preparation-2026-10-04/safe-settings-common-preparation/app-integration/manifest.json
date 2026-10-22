@@ -1,0 +1,21 @@
+{
+  "status": "OFF_SOURCE_COMMON_FRAGMENT_UNCOMPILED",
+  "artifacts": [
+    {
+      "path": "COMMON-app-integration.patch.txt",
+      "sha256": "5609f68df42c5609184aba269dca0dff1ac7de047cba456130b8028bace6330c"
+    },
+    {
+      "path": "README.md",
+      "sha256": "8e20554783c64f5e841e2b73bd80946828828c179ef7f466aefd6e1e7359f49d"
+    },
+    {
+      "path": "replay.json",
+      "sha256": "e16272f92c4df3798f4708bad2ae50aaae84bdcd0af9c7da379972e5a9b124ce"
+    },
+    {
+      "path": "source-pins.json",
+      "sha256": "9a1d3c316ded36b873684e43f187a9917825fee6b463446f11533519332a8575"
+    }
+  ]
+}

@@ -44,6 +44,10 @@ struct NotesGenerator: Sendable {
         /// A map/collapse response stopped at its limit. Retained facts are useful,
         /// but a completed reduce cannot establish that the whole meeting was covered.
         var incompleteFacts = false
+        /// What the notes input could not cover, frozen before the model was asked. The
+        /// caller stamps it into the meeting's existing notes metrics row; nil on a
+        /// caller that never froze one.
+        var coverage: NotesCoverageDisclosure.Frozen? = nil
 
         var tokensPerSecond: Double {
             duration > 0 ? Double(generatedTokens) / duration : 0
@@ -124,10 +128,14 @@ struct NotesGenerator: Sendable {
         self.sourceIndices = SelfTest.isRunning && sourceIndices
     }
 
+    /// `coverage` is what the notes input could not cover, frozen from the same
+    /// transcript snapshot. It is disclosed above the document and never changes how the
+    /// model is asked for the notes themselves — a limitation is reported, not repaired.
     func notes(
         for meeting: Meeting,
         segments: [TranscriptSegment],
         brief: MeetingNotesBrief = .empty,
+        coverage: NotesCoverageDisclosure.Frozen? = nil,
         progress: @escaping ProgressHandler = { _ in }
     ) async throws -> Result {
         let transcript = segments.plainText(speakerNames: meeting.speakerNames)
@@ -184,6 +192,7 @@ struct NotesGenerator: Sendable {
                     budget: budget,
                     overheadTokens: overhead,
                     began: began,
+                    coverage: coverage,
                     progress: progress,
                     chunkFactor: Self.retryChunkFactor,
                     allowRetry: false
@@ -202,14 +211,15 @@ struct NotesGenerator: Sendable {
             }
             guard !NotesFormatter.isBlank(markdown) else { throw NotesError.emptyNotes }
             return Result(
-                markdown: markdown,
+                markdown: Self.notices(incompleteFacts: false, disclosure: coverage) + markdown,
                 providerID: provider.id,
                 generatedTokens: answer.tokens,
                 duration: Date().timeIntervalSince(began),
                 usedMapReduce: false,
                 chunks: 1,
                 collapsedGroups: 0,
-                droppedFacts: 0
+                droppedFacts: 0,
+                coverage: coverage
             )
         }
 
@@ -223,6 +233,7 @@ struct NotesGenerator: Sendable {
             budget: budget,
             overheadTokens: overhead,
             began: began,
+            coverage: coverage,
             progress: progress,
             chunkFactor: 1.0,
             allowRetry: true
@@ -247,6 +258,7 @@ struct NotesGenerator: Sendable {
         budget: Int,
         overheadTokens: Int,
         began: Date,
+        coverage: NotesCoverageDisclosure.Frozen?,
         progress: @escaping ProgressHandler,
         chunkFactor: Double,
         allowRetry: Bool
@@ -262,6 +274,7 @@ struct NotesGenerator: Sendable {
                 budget: budget,
                 overheadTokens: overheadTokens,
                 began: began,
+                coverage: coverage,
                 progress: progress,
                 chunkFactor: chunkFactor
             )
@@ -277,6 +290,7 @@ struct NotesGenerator: Sendable {
                     budget: budget,
                     overheadTokens: overheadTokens,
                     began: began,
+                    coverage: coverage,
                     progress: progress,
                     chunkFactor: Self.retryChunkFactor
                 )
@@ -298,17 +312,22 @@ struct NotesGenerator: Sendable {
         budget: Int,
         overheadTokens: Int,
         began: Date,
+        coverage: NotesCoverageDisclosure.Frozen?,
         progress: @escaping ProgressHandler,
         chunkFactor: Double
     ) async throws -> Result {
         // The chunk size derived from the reader's window (M-12), scaled by the
         // caller's factor on a retry.
         let mapSystem = sourceIndices ? NotesPrompts.mapSelectionSystem : NotesPrompts.mapSystem
+        // An uncertain clock reaches the map prompt only: the map step is the pass that
+        // reads speech in order, so it is the one that can be told the order may be wrong.
+        let uncertainChronology = coverage?.disclosure.uncertainChronology ?? false
         let chunkSize = Self.chunkSize(
             contextTokens: provider.contextTokens,
             mapOverheadTokens: try await countedOverhead(
                 system: mapSystem,
-                user: NotesPrompts.mapUser(meeting: meeting, part: 1, of: 1, transcript: "")))
+                user: NotesPrompts.mapUser(meeting: meeting, part: 1, of: 1, transcript: "",
+                    uncertainChronology: uncertainChronology)))
         let mapTarget = max(1, min(
             Int((Double(chunkSize) * chunkFactor).rounded(.down)), budget))
         let chunks: [NotesEvidence.Batch]
@@ -356,7 +375,8 @@ struct NotesGenerator: Sendable {
                     of: chunks.count,
                     transcript: chunk.text,
                     wordLimit: factBudget * 3 / 4,
-                    sourceIndices: sourceIndices
+                    sourceIndices: sourceIndices,
+                    uncertainChronology: uncertainChronology
                 ),
                 maxTokens: factBudget,
                 grammar: sourceIndices ? NotesEvidence.selectionGrammar(sources: chunk.sources) : nil
@@ -495,13 +515,14 @@ struct NotesGenerator: Sendable {
         let body = brief.isEmpty
             ? NotesFormatter.emptySection(NotesPrompts.relatedHeading, in: markdown)
             : markdown
-        // Carry the extraction producer's limit through the actual notes result.
-        // No new generation/retry: this reports a coverage limitation, not recovery.
-        let coverage = incompleteFacts ? Self.incompleteFactsNotice + "\n\n" : ""
+        // Carry the extraction producer's limit through the actual notes result, above
+        // the coverage disclosure. No new generation/retry: both report a limitation of
+        // the input, and neither recovers what it describes.
         return Result(
-            markdown: coverage + (dropped > 0
-                ? body + "\n\n" + NotesPrompts.truncatedLine(dropped: dropped, of: totalParts) + "\n"
-                : body),
+            markdown: Self.notices(incompleteFacts: incompleteFacts, disclosure: coverage)
+                + (dropped > 0
+                    ? body + "\n\n" + NotesPrompts.truncatedLine(dropped: dropped, of: totalParts) + "\n"
+                    : body),
             providerID: provider.id,
             generatedTokens: generated,
             duration: Date().timeIntervalSince(began),
@@ -509,8 +530,26 @@ struct NotesGenerator: Sendable {
             chunks: chunks.count,
             collapsedGroups: collapsedGroups,
             droppedFacts: dropped,
-            incompleteFacts: incompleteFacts
+            incompleteFacts: incompleteFacts,
+            coverage: coverage
         )
+    }
+
+    /// The lines that belong above the document, in the order the reader needs them:
+    /// the extraction limitation first — the existing marker has to stay the document's
+    /// first line — then the input's own coverage disclosure. Empty when there is
+    /// nothing to say, which is what keeps an intact meeting's notes unchanged.
+    private static func notices(
+        incompleteFacts: Bool,
+        disclosure: NotesCoverageDisclosure.Frozen?
+    ) -> String {
+        var parts: [String] = []
+        if incompleteFacts { parts.append(incompleteFactsNotice) }
+        if let prefix = disclosure?.disclosure.markdownPrefix, !prefix.isEmpty {
+            parts.append(prefix)
+        }
+        guard !parts.isEmpty else { return "" }
+        return parts.joined(separator: "\n\n") + "\n\n"
     }
 
     static let incompleteFactsNotice =

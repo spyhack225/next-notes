@@ -1,0 +1,56 @@
+{
+  "activeMachineClaims": [
+    {
+      "ageMs": 333752,
+      "agentId": "asr-candidates-20261022",
+      "claimedAt": "2026-10-22T13:47:25.773Z",
+      "lastSeenAgeMs": 690,
+      "project": "/Users/sergekadjo/Documents/Claude/Projects/next-notes",
+      "resource": "asr-model-benchmark",
+      "scope": "machine",
+      "stale": false
+    }
+  ],
+  "assessed": "pass",
+  "coverage": {
+    "disk": "measured",
+    "load": "measured",
+    "swap": "measured"
+  },
+  "freeGb": 5.706489562988281,
+  "kind": "preflight",
+  "load": 8.08,
+  "measurements": {
+    "freeGb": {
+      "error": null,
+      "source": "df -Pk Tests/Reports/tts-2026-10-22/preflight",
+      "timestamp": "2026-10-22T13:52:59.455Z",
+      "value": 5.706489562988281
+    },
+    "load": {
+      "error": null,
+      "source": "sysctl vm.loadavg",
+      "timestamp": "2026-10-22T13:52:59.452Z",
+      "value": 8.08
+    },
+    "swapGb": {
+      "error": null,
+      "source": "sysctl vm.swapusage",
+      "timestamp": "2026-10-22T13:52:59.450Z",
+      "value": 5.943115234375
+    }
+  },
+  "mode": "permissive",
+  "ok": false,
+  "path": "Tests/Reports/tts-2026-10-22/preflight",
+  "reasons": [
+    "Another agent owns the machine benchmark window."
+  ],
+  "require": [
+    "swap",
+    "load",
+    "disk"
+  ],
+  "swapGb": 5.943115234375,
+  "unknown": []
+}

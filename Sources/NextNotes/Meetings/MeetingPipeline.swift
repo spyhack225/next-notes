@@ -90,6 +90,20 @@ enum MeetingPipeline {
             return finish(meeting, store: store)
         }
         guard shouldDiarize(meeting, store: store) else {
+            // The manual paths write the same words into the banner; the automatic
+            // path used to skip silently and leave "Others" unexplained. Only the
+            // incomplete case is surfaced: a live-only meeting without audio is a
+            // normal configuration, not an anomaly worth a banner on every recording.
+            if Settings.shared.meetingsDiarize {
+                let eligibility = DiarizationEligibility.decision(
+                    for: .system,
+                    captureIntegrity: meeting.captureIntegrity,
+                    hasAudio: store.audioURL(for: meeting) != nil
+                )
+                if eligibility == .refuseIncompleteRemoteAudio {
+                    DiarizationService.shared.noteRefusal(meeting.id, decision: eligibility)
+                }
+            }
             return afterDiarizing(meeting, store: store, notesService: notesService)
         }
 
@@ -168,11 +182,32 @@ enum MeetingPipeline {
 
     /// Whether this meeting's speakers are worth telling apart, and can be.
     ///
-    /// The audio is the hard requirement: a meeting recorded before the setting was turned
-    /// on, or one whose writer failed, has nothing left to cluster.
-    private static func shouldDiarize(_ meeting: Meeting, store: MeetingStore = .shared) -> Bool {
-        guard meeting.captureIntegrity?.hasKnownSavedAudioLoss(on: .system) != true else { return false }
-        return Settings.shared.meetingsDiarize && store.audioURL(for: meeting) != nil
+    /// The same eligibility the manual paths run (`DiarizationEligibility`), so a
+    /// meeting whose remote audio was known lost is refused on both — plus the
+    /// setting, which is the person's own choice and not an eligibility fact.
+    static func shouldDiarize(_ meeting: Meeting, store: MeetingStore = .shared) -> Bool {
+        shouldDiarize(
+            meeting,
+            hasAudio: store.audioURL(for: meeting) != nil,
+            recordingSeconds: meeting.captureIntegrity?.recordedSeconds)
+    }
+    /// The setting is a parameter, not a global read, so the decision can be
+    /// driven for both answers — a check that depends on whether the owner has
+    /// the speaker models on disk is a check that proves nothing on the
+    /// machine it happens to run on.
+    static func shouldDiarize(
+        _ meeting: Meeting,
+        hasAudio: Bool,
+        recordingSeconds: TimeInterval? = nil,
+        enabled: Bool = Settings.shared.meetingsDiarize
+    ) -> Bool {
+        guard DiarizationEligibility.decision(
+            for: .system,
+            captureIntegrity: meeting.captureIntegrity,
+            hasAudio: hasAudio,
+            recordingSeconds: recordingSeconds ?? meeting.captureIntegrity?.recordedSeconds
+        ) == .run else { return false }
+        return enabled
     }
 }
 

@@ -1,0 +1,12 @@
+START notes-context
+{"case": "notes-context", "exit": 0, "seconds": 2.762, "markers": ["NOTES_CONTEXT_OK: assembly, consent gates, window accounting, map purity and index safety hold"]}
+START meeting-context
+{"case": "meeting-context", "exit": 0, "seconds": 0.641, "markers": ["MEETING_CONTEXT_OK: extraction and the authority split hold"]}
+START meeting-resume
+{"case": "meeting-resume", "exit": 0, "seconds": 14.394, "markers": ["MEETING_RESUME_OK: 4/4 resumable meetings reached .done with notes; no temp audio released early; 4 write(s) for 100 segments, flushed to 100; a trailing write inside the interval, cancelled by the exit"]}
+START store-isolation
+{"case": "store-isolation", "exit": 0, "seconds": 40.122, "markers": ["STORE_ISOLATION_OK: 21 files and 31 defaults unchanged"]}
+START onboarding
+{"case": "onboarding", "exit": 0, "seconds": 1.586, "markers": ["ONBOARDING_OK"]}
+START onboarding-sheet
+{"case": "onboarding-sheet", "exit": 0, "seconds": 5.074, "markers": ["ONBOARDING_SHEET_OK: 28 full setup shell images; /tmp/sheets/setup-app12"]}

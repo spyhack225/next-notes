@@ -1,0 +1,37 @@
+--- a/Sources/NextNotes/Support/NativeNotesSettingsSelfTest.swift
++++ b/Sources/NextNotes/Support/NativeNotesSettingsSelfTest.swift
+@@ -168,7 +168,7 @@
+                 let snap = trace.notesSnapshot()
+                 check(drained && snap.inFlight == 0 && snap.starts == snap.ends,
+                     "first/second final proposal follows real native drain")
+-                check(service.ownedTaskCountForTerminationTesting == 0,
++                check(service.ownedTaskCountForTerminationTesting == 0 && snap.ownedReturned,
+                     "the captured Notes task returned before final proposal")
+                 check(store.meeting(id: meeting.id)?.status == .summarizing
+                     && store.notes(for: meeting.id) == nil,
+@@ -204,7 +204,7 @@
+                 let snap = trace.notesSnapshot()
+                 check(snap.inFlight == 0 && snap.starts == snap.ends && snap.successes > 0,
+                     "all entered native brackets returned")
+-                check(service.ownedTaskCountForTerminationTesting == 0,
++                check(service.ownedTaskCountForTerminationTesting == 0 && snap.ownedReturned,
+                     "same Notes task returned at process exit callback")
+                 check(snap.replyCount == 2 && snap.voteCount == 2 && snap.firstVoteWasVeto
+                     && snap.secondVoteAllowed && snap.safetyDrained,
+@@ -227,6 +227,16 @@
+                 MainActor.assumeIsolated { NSApp.terminate(nil) }
+             }
+         }
++        // Same existing Notes Task return point: missing native preparation must
++        // finish via the mounted private Cocoa route, never a generic shared owner.
++        try service.configureNativeNotesReturnObserver(meetingID: meeting.id) {
++            let nativeQuitScheduled = trace.recordNotesReturned()
++            guard !nativeQuitScheduled else { return }
++            trace.recordNotesInputInvalid()
++            SelfTest.failed = true
++            SelfTest.diagnostic("NATIVE_NOTES_SETTINGS_INVALID: native decode never scheduled quit")
++            SelfTest.requestTermination()
++        }
+         // Existing backend; no second model pass. The private App tuple is already mounted.
+         await LlamaBackend.shared.initialize()
+         service.summarize(meeting, using: .appLLM, announce: false)

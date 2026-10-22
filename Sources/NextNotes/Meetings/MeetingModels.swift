@@ -199,6 +199,46 @@ enum MeetingCaptureInterruptionReason: String, Codable, Sendable {
     case audioWriteFailure
 }
 
+/// A coverage fact that was true at least once for this meeting, persisted so a
+/// later-arriving frame stream can never present itself as whole-meeting saved
+/// coverage. The kinds are a closed set on purpose: a future build writes rows
+/// today's binaries must keep reading, and an unknown kind is skipped by the
+/// decoder rather than failing the meeting.
+enum MeetingCoverageWarningKind: String, Codable, Sendable {
+    /// The system channel is zero from this saved sample onward; the other
+    /// speakers are not in the recording after it.
+    case systemSilent
+    /// Delivered system samples fell behind the saved-file cursor.
+    case systemTrimmed
+    case micTrimmed
+    /// Frame delivery on the system track stopped while the microphone continued.
+    case systemStalled
+    /// Frame delivery on the microphone stopped while the other track continued.
+    case micStalled
+
+    /// The kind describes a saved file that is short on this track.
+    var isSavedLoss: Bool {
+        switch self {
+        case .systemSilent, .systemTrimmed, .micTrimmed: true
+        case .systemStalled, .micStalled: false
+        }
+    }
+
+    /// The kind describes frames that never arrived.
+    var isDeliveryLoss: Bool {
+        self == .systemStalled || self == .micStalled
+    }
+}
+
+/// One persisted coverage warning: which track, what happened, and the
+/// saved-sample index on the recording clock where it began — a boundary,
+/// never a count.
+struct MeetingCaptureCoverageWarning: Codable, Sendable, Equatable {
+    var track: AudioSource
+    var kind: MeetingCoverageWarningKind
+    var atSample: Int64
+}
+
 struct MeetingCaptureIntegrity: Codable, Sendable, Equatable {
     /// Audio progress established by the producer, or persisted transcript evidence
     /// for an older recording. Never a file's modification time.
@@ -214,15 +254,154 @@ struct MeetingCaptureIntegrity: Codable, Sendable, Equatable {
     /// Optional for records written before this measurement existed.
     var missingSavedMicFrames: Int64?
     var missingSavedSystemFrames: Int64?
+    /// The saved-sample index after which the system channel is known silent,
+    /// from writer evidence. Optional: rows written before the measurement and
+    /// meetings whose writer reported no silence stay nil — "unknown", never "ok".
+    var systemSilentAfterSample: Int64?
+    /// Persisted coverage warnings. Decoded element by element: an entry whose
+    /// kind this build does not know is skipped, and a malformed entry never
+    /// fails the surrounding meeting.
+    var coverageWarnings: [MeetingCaptureCoverageWarning]?
+    /// How long the recording actually was, in seconds, from the frames the
+    /// writer saved.
+    ///
+    /// The calendar's span is not this: an armed meeting's end is the time the
+    /// calendar said, and a meeting that was recorded for ten minutes of a
+    /// thirty-minute slot is ten minutes long. A fraction of a loss has to be a
+    /// fraction of the thing that was recorded.
+    var recordedSeconds: Double?
+    /// Whether the saved-coverage measurement ran at all for this recording.
+    /// Nil means it never ran — which is "unknown", never "complete". A row
+    /// written before this measurement existed stays nil, and reads as unknown
+    /// rather than as a whole-meeting recording.
+    var savedCoverageMeasured: Bool?
 
+    /// Memberwise initializer kept by hand (defining `init(from:)` suppresses
+    /// the synthesized one) so every existing `MeetingCaptureIntegrity(...)`
+    /// call site keeps compiling, and new fields arrive with defaults.
+    init(
+        lastCapturedAt: Date? = nil,
+        normalEndAt: Date? = nil,
+        interruptedAt: Date? = nil,
+        interruptionReason: MeetingCaptureInterruptionReason? = nil,
+        captureGap: Bool = false,
+        missingCaptureFrames: Int64 = 0,
+        audioWriteFailed: Bool = false,
+        missingSavedMicFrames: Int64? = nil,
+        missingSavedSystemFrames: Int64? = nil,
+        systemSilentAfterSample: Int64? = nil,
+        coverageWarnings: [MeetingCaptureCoverageWarning]? = nil,
+        savedCoverageMeasured: Bool? = nil,
+        recordedSeconds: Double? = nil
+    ) {
+        self.lastCapturedAt = lastCapturedAt
+        self.normalEndAt = normalEndAt
+        self.interruptedAt = interruptedAt
+        self.interruptionReason = interruptionReason
+        self.captureGap = captureGap
+        self.missingCaptureFrames = missingCaptureFrames
+        self.audioWriteFailed = audioWriteFailed
+        self.missingSavedMicFrames = missingSavedMicFrames
+        self.missingSavedSystemFrames = missingSavedSystemFrames
+        self.systemSilentAfterSample = systemSilentAfterSample
+        self.coverageWarnings = coverageWarnings
+        self.savedCoverageMeasured = savedCoverageMeasured
+        self.recordedSeconds = recordedSeconds
+    }
+
+    /// Decoded by hand for one reason: a synthesized `init(from:)` would fail the
+    /// whole meeting on one coverage-warning entry a future build wrote with a
+    /// kind this one does not know. Every field is `decodeIfPresent`, so a row
+    /// written before any of them existed still decodes — an old meeting that
+    /// fails to decode is a meeting that has silently vanished from the list.
+    init(from decoder: any Decoder) throws {
+        struct RawWarning: Decodable {
+            var track: String?
+            var kind: String?
+            var atSample: Int64?
+        }
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        lastCapturedAt = try container.decodeIfPresent(Date.self, forKey: .lastCapturedAt)
+        normalEndAt = try container.decodeIfPresent(Date.self, forKey: .normalEndAt)
+        interruptedAt = try container.decodeIfPresent(Date.self, forKey: .interruptedAt)
+        interruptionReason = try container.decodeIfPresent(
+            MeetingCaptureInterruptionReason.self, forKey: .interruptionReason)
+        captureGap = try container.decodeIfPresent(Bool.self, forKey: .captureGap) ?? false
+        missingCaptureFrames = try container.decodeIfPresent(
+            Int64.self, forKey: .missingCaptureFrames) ?? 0
+        audioWriteFailed = try container.decodeIfPresent(Bool.self, forKey: .audioWriteFailed) ?? false
+        missingSavedMicFrames = try container.decodeIfPresent(Int64.self, forKey: .missingSavedMicFrames)
+        missingSavedSystemFrames = try container.decodeIfPresent(Int64.self, forKey: .missingSavedSystemFrames)
+        systemSilentAfterSample = try container.decodeIfPresent(Int64.self, forKey: .systemSilentAfterSample)
+        if let raw = try? container.decode([RawWarning?].self, forKey: .coverageWarnings) {
+            let mapped = raw.compactMap { entry -> MeetingCaptureCoverageWarning? in
+                guard let entry,
+                      let track = entry.track.flatMap(AudioSource.init(rawValue:)),
+                      let kind = entry.kind.flatMap(MeetingCoverageWarningKind.init(rawValue:)),
+                      let atSample = entry.atSample
+                else { return nil }
+                return MeetingCaptureCoverageWarning(track: track, kind: kind, atSample: atSample)
+            }
+            coverageWarnings = mapped.isEmpty ? nil : mapped
+        } else {
+            coverageWarnings = nil
+        }
+        savedCoverageMeasured = try container.decodeIfPresent(Bool.self, forKey: .savedCoverageMeasured)
+        recordedSeconds = try container.decodeIfPresent(Double.self, forKey: .recordedSeconds)
+    }
+
+    func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encodeIfPresent(lastCapturedAt, forKey: .lastCapturedAt)
+        try container.encodeIfPresent(normalEndAt, forKey: .normalEndAt)
+        try container.encodeIfPresent(interruptedAt, forKey: .interruptedAt)
+        try container.encodeIfPresent(interruptionReason, forKey: .interruptionReason)
+        try container.encode(captureGap, forKey: .captureGap)
+        try container.encode(missingCaptureFrames, forKey: .missingCaptureFrames)
+        try container.encode(audioWriteFailed, forKey: .audioWriteFailed)
+        try container.encodeIfPresent(missingSavedMicFrames, forKey: .missingSavedMicFrames)
+        try container.encodeIfPresent(missingSavedSystemFrames, forKey: .missingSavedSystemFrames)
+        try container.encodeIfPresent(systemSilentAfterSample, forKey: .systemSilentAfterSample)
+        try container.encodeIfPresent(coverageWarnings, forKey: .coverageWarnings)
+        try container.encodeIfPresent(savedCoverageMeasured, forKey: .savedCoverageMeasured)
+        try container.encodeIfPresent(recordedSeconds, forKey: .recordedSeconds)
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case lastCapturedAt, normalEndAt, interruptedAt, interruptionReason
+        case captureGap, missingCaptureFrames, audioWriteFailed
+        case missingSavedMicFrames, missingSavedSystemFrames
+        case systemSilentAfterSample, coverageWarnings, savedCoverageMeasured, recordedSeconds
+    }
+
+    /// The saved file is known to be short on this track.
+    ///
+    /// A delivery warning — a track that stopped delivering — is not this: the
+    /// frames that did arrive are all in the file. Mixing the two would make
+    /// the final pass skip a good track and the diarizer refuse a track whose
+    /// audio is fine.
     func hasKnownSavedAudioLoss(on source: AudioSource) -> Bool {
         audioWriteFailed || (source == .mic ? missingSavedMicFrames ?? 0
             : missingSavedSystemFrames ?? 0) > 0
+            || (source == .system && systemSilentAfterSample != nil)
+            || (coverageWarnings?.contains {
+                $0.track == source && $0.kind.isSavedLoss
+            } ?? false)
+    }
+
+    /// The track is known to have stopped delivering, whether or not the file
+    /// is short. A delivery fact, never a saved-audio fact.
+    func hasKnownDeliveryLoss(on source: AudioSource) -> Bool {
+        coverageWarnings?.contains {
+            $0.track == source && $0.kind.isDeliveryLoss
+        } ?? false
     }
 
     var hasPartialCapture: Bool {
         interruptedAt != nil || captureGap || missingCaptureFrames > 0 || audioWriteFailed
             || (missingSavedMicFrames ?? 0) > 0 || (missingSavedSystemFrames ?? 0) > 0
+            || systemSilentAfterSample != nil
+            || (coverageWarnings?.isEmpty == false)
     }
 
     mutating func recordCaptured(until date: Date) {
@@ -250,6 +429,69 @@ struct MeetingCaptureIntegrity: Codable, Sendable, Equatable {
 
     mutating func markAudioWriteFailure() { audioWriteFailed = true }
 
+    /// Records what the writer measured about the saved file.
+    ///
+    /// One implementation, read by the session and by the self-test alike: the
+    /// mapping from a writer's counters to a meeting's durable facts is the
+    /// part that must not drift, and a second copy of it in a test would prove
+    /// nothing about the first.
+    mutating func recordSavedCoverage(_ saved: MeetingAudioWriter.ResourceSnapshot) {
+        savedCoverageMeasured = true
+        // Both counts are set every time, zero included: "measured, nothing
+        // lost" is a fact, and a missing value is "never measured", which is a
+        // different answer.
+        missingSavedMicFrames = max(missingSavedMicFrames ?? 0,
+            Int64(saved.missingSavedMicFrames))
+        missingSavedSystemFrames = max(missingSavedSystemFrames ?? 0,
+            Int64(saved.missingSavedSystemFrames))
+        // The boundary the writer measured: the frame from which a channel
+        // carries only the silence the writer had to invent, because that track
+        // had nothing left to save. A position on the recording clock, not a
+        // count — and the fact the notes disclosure reads.
+        //
+        // A boundary of ZERO is a channel that never carried real audio at all.
+        // That is not a loss on its own: a microphone-only meeting is a normal
+        // configuration, and a meeting whose other speakers never arrived is the
+        // coverage verdict's business, not this counter's. Only a boundary the
+        // track passed — audio that stopped — is a saved loss.
+        if let silent = saved.systemSilentAfterSample, silent > 0 {
+            systemSilentAfterSample = systemSilentAfterSample.map { min($0, silent) } ?? silent
+            addCoverageWarning(
+                MeetingCaptureCoverageWarning(
+                    track: .system, kind: .systemSilent, atSample: silent))
+        }
+        if let silent = saved.micSilentAfterSample, silent > 0 {
+            addCoverageWarning(
+                MeetingCaptureCoverageWarning(
+                    track: .mic, kind: .micTrimmed, atSample: silent))
+        }
+    }
+
+    /// Records a coverage warning once.
+    ///
+    /// Sticky by construction: the same warning at the same boundary is not
+    /// recorded twice, and a later reading of the same fact at a later boundary
+    /// does not replace the earlier one — the earliest boundary is the one that
+    /// says where the loss began.
+    mutating func addCoverageWarning(_ warning: MeetingCaptureCoverageWarning) {
+        var existing = coverageWarnings ?? []
+        if existing.contains(where: {
+            $0.track == warning.track && $0.kind == warning.kind && $0.atSample == warning.atSample
+        }) {
+            coverageWarnings = existing
+            return
+        }
+        existing.append(warning)
+        // Bounded: a meeting has two tracks and a closed set of kinds, so a
+        // list longer than that is a fact that has already been recorded.
+        if existing.count > 8 { existing.removeLast(existing.count - 8) }
+        coverageWarnings = existing.sorted {
+            $0.atSample == $1.atSample
+                ? $0.track.rawValue < $1.track.rawValue
+                : $0.atSample < $1.atSample
+        }
+    }
+
     /// Multiple existing producers save whole Meeting values. Facts cannot be
     /// erased by an older pipeline value, regeneration, or a later normal Stop.
     /// Counts are cumulative snapshots, so merging takes max rather than adding.
@@ -272,7 +514,40 @@ struct MeetingCaptureIntegrity: Codable, Sendable, Equatable {
         if missingSavedSystemFrames != nil || stored.missingSavedSystemFrames != nil {
             result.missingSavedSystemFrames = max(missingSavedSystemFrames ?? 0, stored.missingSavedSystemFrames ?? 0)
         }
+        // Sticky coverage facts: silence is a boundary, so the earliest known one
+        // is the truthful one, and warnings union so a later empty snapshot can
+        // never erase a fact an earlier one established.
+        if let storedSilent = stored.systemSilentAfterSample {
+            result.systemSilentAfterSample = min(result.systemSilentAfterSample ?? storedSilent, storedSilent)
+        }
+        result.coverageWarnings = Self.mergedWarnings(stored.coverageWarnings, coverageWarnings)
+        // The measurement flag is a fact like the others: a save whose copy
+        // lacks it must not erase the fact that the coverage was measured, or a
+        // healthy meeting starts reading as unconfirmed.
+        if stored.savedCoverageMeasured == true { result.savedCoverageMeasured = true }
+        if let storedSeconds = stored.recordedSeconds {
+            result.recordedSeconds = max(result.recordedSeconds ?? 0, storedSeconds)
+        }
         return result
+    }
+
+    /// Union of both warning lists keyed by `(track, kind)`, keeping the earliest
+    /// `atSample`; nil when neither side carries any. The key set is closed
+    /// (2 tracks × 4 kinds), so the result is bounded without a separate guard.
+    private static func mergedWarnings(
+        _ first: [MeetingCaptureCoverageWarning]?,
+        _ second: [MeetingCaptureCoverageWarning]?
+    ) -> [MeetingCaptureCoverageWarning]? {
+        guard !(first ?? []).isEmpty || !(second ?? []).isEmpty else { return nil }
+        var earliest: [MeetingCaptureCoverageWarning] = []
+        for warning in (first ?? []) + (second ?? []) {
+            if let index = earliest.firstIndex(where: { $0.track == warning.track && $0.kind == warning.kind }) {
+                if warning.atSample < earliest[index].atSample { earliest[index] = warning }
+            } else {
+                earliest.append(warning)
+            }
+        }
+        return earliest.isEmpty ? nil : earliest
     }
 }
 
@@ -335,6 +610,15 @@ struct Meeting: Codable, Sendable, Identifiable, Equatable {
     /// `"live-only:failed"` when it did not, for that reason. Nil for meetings written
     /// before the pass existed — read as "unknown", never as a claim.
     var transcriptPass: String?
+    /// The tracks whose content in the saved transcript came from the live tier
+    /// rather than from the recording, because the recording was known to be
+    /// short on them.
+    ///
+    /// The pass name alone cannot say this: a meeting with one short track and
+    /// one good one is "live-only:rejected", and the notes for the short track
+    /// came from the live tier — which is exactly the case the coverage
+    /// disclosure exists for.
+    var transcriptRejectedTracks: [AudioSource]?
     /// Which model wrote the notes, once Phase 4 writes any.
     var notesModel: String?
     /// Bounded recording observations survive the global metrics ring aging out.
@@ -410,9 +694,10 @@ struct Meeting: Codable, Sendable, Identifiable, Equatable {
     var captureSummary: String? {
         guard hasPartialCapture else { return nil }
         if captureIntegrity?.interruptedAt != nil {
-            return status == .done
-                ? "Recording interrupted — saved portion recovered"
-                : "Recording interrupted"
+            guard status == .done else { return "Recording interrupted" }
+            return notesModel != nil
+                ? "Recording interrupted — partial notes recovered"
+                : "Recording interrupted — saved portion recovered"
         }
         return "Some audio was missed — this meeting is incomplete"
     }
@@ -435,6 +720,7 @@ struct Meeting: Codable, Sendable, Identifiable, Equatable {
         audioIsTemporary: Bool? = nil,
         audioReleaseAfter: Date? = nil,
         transcriptPass: String? = nil,
+        transcriptRejectedTracks: [AudioSource]? = nil,
         notesModel: String? = nil,
         performanceSummary: MeetingPerformanceSummary? = nil,
         speakerNames: [String: String] = [:],
@@ -457,6 +743,7 @@ struct Meeting: Codable, Sendable, Identifiable, Equatable {
         self.audioIsTemporary = audioIsTemporary
         self.audioReleaseAfter = audioReleaseAfter
         self.transcriptPass = transcriptPass
+        self.transcriptRejectedTracks = transcriptRejectedTracks
         self.notesModel = notesModel
         self.performanceSummary = performanceSummary
         self.speakerNames = speakerNames
@@ -490,6 +777,8 @@ struct Meeting: Codable, Sendable, Identifiable, Equatable {
         audioIsTemporary = try container.decodeIfPresent(Bool.self, forKey: .audioIsTemporary)
         audioReleaseAfter = try container.decodeIfPresent(Date.self, forKey: .audioReleaseAfter)
         transcriptPass = try container.decodeIfPresent(String.self, forKey: .transcriptPass)
+        transcriptRejectedTracks = try container.decodeIfPresent(
+            [AudioSource].self, forKey: .transcriptRejectedTracks)
         notesModel = try container.decodeIfPresent(String.self, forKey: .notesModel)
         performanceSummary = try container.decodeIfPresent(MeetingPerformanceSummary.self, forKey: .performanceSummary)
         speakerNames = try container.decodeIfPresent([String: String].self, forKey: .speakerNames) ?? [:]

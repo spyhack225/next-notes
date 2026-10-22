@@ -1,0 +1,224 @@
+--- a/Sources/NextNotes/Formatting/S1MiniFormatter.swift
++++ b/Sources/NextNotes/Formatting/S1MiniFormatter.swift
+@@ -12,6 +12,8 @@
+     /// Per-run record, so a fallback here is visible afterwards instead of looking like a
+     /// model that decided to change nothing. Nil outside the live dictation path.
+     private let trace: CleanupTrace?
++    private let runtimeForTesting: S1MiniRuntime?
++    private let refusedFixtureBinding: Bool
+ 
+     /// A ceiling on the model, not a target — and one that now moves with the input.
+     ///
+@@ -29,15 +31,20 @@
+         return .seconds(min(15.0, 4.0 + Double(max(0, words - 20)) / 20.0))
+     }
+ 
+-    init(preferences: CleanupPreferences, trace: CleanupTrace? = nil) {
++    init(preferences: CleanupPreferences, trace: CleanupTrace? = nil,
++         runtimeForTesting: S1MiniRuntime? = nil) {
+         self.preferences = preferences
+         self.trace = trace
++        let acceptsFixture = NativeS1FormatterCancellationSelfTest.isRequested
++        self.runtimeForTesting = acceptsFixture ? runtimeForTesting : nil
++        self.refusedFixtureBinding = runtimeForTesting != nil && !acceptsFixture
+     }
+ 
+     func format(_ raw: String) async -> String {
++        guard !refusedFixtureBinding else { return "" }
+         let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+         guard !trimmed.isEmpty else { return trimmed }
+-        guard S1MiniModels.isDownloaded else {
++        guard runtimeForTesting != nil || S1MiniModels.isDownloaded else {
+             Log.speech.info("S1-mini model unavailable — using rule-based cleanup")
+             trace?.noteModelFailed(reason: "the cleanup model is not downloaded yet", seconds: 0)
+             return await fallback.format(trimmed)
+@@ -46,9 +53,10 @@
+         let began = Date()
+         do {
+             let budget = Self.timeout(for: trimmed)
++            let runtime = runtimeForTesting ?? S1MiniRuntime.shared
+             let result = try await withThrowingTaskGroup(of: String.self) { group in
+                 group.addTask {
+-                    try await S1MiniRuntime.shared.normalize(trimmed, preferences: preferences)
++                    try await runtime.normalize(trimmed, preferences: preferences)
+                 }
+                 group.addTask {
+                     try await Task.sleep(for: budget)
+@@ -116,6 +124,16 @@
+     private var terminationRequested = false
+     private var terminationModelURLForTesting: URL?
+     private var terminationTraceForTesting: OtherLlamaTerminationTrace?
++    private var nativeReturnForTesting: (@Sendable (Bool) -> Void)?
++
++    func configureFormatterCancellationCheckpoint(_ observer: (@Sendable (Bool) -> Void)?) throws {
++        guard NativeS1FormatterCancellationSelfTest.isRequested,
++              terminationModelURLForTesting != nil else { throw CocoaError(.fileReadNoPermission) }
++        nativeReturnForTesting = observer
++    }
++    // COMMON missing stop-request scaffold; FIXED closes the SAME owned admission
++    // synchronously, before waiting for its actor/native work to return.
++    nonisolated func beginTermination() {}
+ 
+     func configureTerminationFixture(modelURL: URL, trace: OtherLlamaTerminationTrace) throws {
+         guard model == nil, context == nil, terminationTraceForTesting == nil else { throw CocoaError(.fileReadNoPermission) }
+@@ -204,6 +222,7 @@
+         terminationTraceForTesting?.nativeEntered()
+         let prefillStatus = llama_decode(context, promptBatch)
+         terminationTraceForTesting?.nativeReturned(succeeded: prefillStatus == 0)
++        nativeReturnForTesting?(prefillStatus == 0)
+         guard prefillStatus == 0 else { throw RuntimeError.decodeFailed }
+ 
+         guard let sampler = llama_sampler_init_greedy() else { throw RuntimeError.samplerFailed }
+@@ -222,6 +241,7 @@
+             terminationTraceForTesting?.nativeEntered()
+             let result = llama_decode(context, tokenBatch)
+             terminationTraceForTesting?.nativeReturned(succeeded: result == 0)
++            nativeReturnForTesting?(result == 0)
+             llama_batch_free(tokenBatch)
+             guard result == 0 else { throw RuntimeError.decodeFailed }
+             position += 1
+--- a/Sources/NextNotes/Support/NativeOtherLlamaQuitSelfTest.swift
++++ b/Sources/NextNotes/Support/NativeOtherLlamaQuitSelfTest.swift
+@@ -13,7 +13,8 @@
+     private static var ownedOperation: Task<Void, Never>?
+     nonisolated static let modes = ["s1-active", "s1-closed", "embedding-active", "embedding-closed",
+                                    "vocab-active", "vocab-closed", "library-closed",
+-                                   "trial-parent-closed", "trial-parent-return"]
++                                   "trial-parent-closed", "trial-parent-return",
++                                   "s1-cancel-format", "s1-stop-format", "s1-error-fallback"]
+ 
+     nonisolated static var isTrialParentCase: Bool {
+         guard isRequested,
+@@ -102,6 +103,9 @@
+         }
+         let mode = CommandLine.arguments[caseIndex + 1]
+         let modelFile = try validateModel(URL(fileURLWithPath: CommandLine.arguments[modelIndex + 1]), expected: spec(for: mode))
++        if NativeS1FormatterCancellationSelfTest.isRequested {
++            return try await NativeS1FormatterCancellationSelfTest.arm(mode: mode, modelFile: modelFile, delegate: delegate)
++        }
+         if isTrialParentCase {
+             return try await NativeModelTrialCallerSelfTest.arm(mode: mode, modelFile: modelFile, delegate: delegate)
+         }
+--- /dev/null
++++ b/Sources/NextNotes/Support/NativeS1FormatterCancellationSelfTest.swift
+@@ -0,0 +1,120 @@
++import AppKit
++import Foundation
++
++/// Actual S1 formatter -> private source-pinned native runtime -> returned String.
++/// No fabricated decoder, owner transcript, model text recording, or keyboard effect.
++@MainActor
++enum NativeS1FormatterCancellationSelfTest {
++    nonisolated static var isRequested: Bool {
++        guard NativeOtherLlamaQuitSelfTest.isRequested,
++              let index = CommandLine.arguments.firstIndex(of: "--native-llama-owner-case"),
++              CommandLine.arguments.indices.contains(index + 1) else { return false }
++        return ["s1-cancel-format", "s1-stop-format", "s1-error-fallback"].contains(CommandLine.arguments[index + 1])
++    }
++    /// The SAME formatter operation is assigned on MainActor before its body starts.
++    private final class Operation: @unchecked Sendable {
++        private let lock = NSLock()
++        private var task: Task<String, Never>?
++        private var triggered = false
++        private var endedAtTrigger = 0
++        func assign(_ task: Task<String, Never>) { lock.withLock { self.task = task } }
++        func trigger(ends: Int, cancel: Bool, runtime: S1MiniRuntime) {
++            let current: Task<String, Never>? = lock.withLock {
++                guard !triggered, let task else { return nil }
++                triggered = true; endedAtTrigger = ends
++                return task
++            }
++            guard let current else { return }
++            if cancel { current.cancel() } else { runtime.beginTermination() }
++        }
++        func snapshot() -> (triggered: Bool, ends: Int, cancelled: Bool) {
++            lock.withLock { (triggered, endedAtTrigger, task?.isCancelled == true) }
++        }
++        func clear() { lock.withLock { task = nil } }
++    }
++    private final class Verdict {
++        var checks = 0; var failures = 0; var invalid = false
++        func check(_ label: String, _ accepted: Bool, input: Bool = false) {
++            checks += 1
++            if !accepted {
++                failures += 1; if input { invalid = true }
++                SelfTest.diagnostic("S1_FORMATTER_ASSERT_FAILED: \(label)")
++            }
++        }
++    }
++    static func arm(mode: String, modelFile: URL, delegate: AppDelegate) async throws -> Bool {
++        guard isRequested else { throw CocoaError(.fileReadNoPermission) }
++        _ = try NativeOtherLlamaQuitSelfTest.validateModel(modelFile, expected: S1MiniModels.spec)
++        let runtime = S1MiniRuntime()
++        let native = OtherLlamaTerminationTrace(autoQuit: false)
++        try await runtime.configureTerminationFixture(modelURL: modelFile, trace: native)
++        // Actual loader, no generation pass or fake native readiness.
++        try await runtime.prepare()
++        let verdict = Verdict()
++        verdict.check("C01 actual private S1 model/context loaded", await runtime.terminationResidentForTesting == true, input: true)
++        let emptyEmbedding = EmbeddingRuntime(modelURL: modelFile.deletingLastPathComponent().appendingPathComponent("empty-unused.gguf"),
++            displayName: "Empty S1 diagnostic owner", tag: "empty-s1-diagnostic", notesModelBusy: { false }, mayLoad: { _ in false })
++        try delegate.configureOtherLlamaTerminationFixture(s1: runtime, embedding: emptyEmbedding, library: nil,
++            reply: { _ in }, willExit: {
++                let ended = native.snapshot()
++                verdict.check("C09 actual exit has no active native call", ended.active == 0 && ended.starts == ended.ends, input: true)
++                if verdict.failures > 0 { SelfTest.failed = true }
++                let marker = verdict.invalid ? "S1_FORMATTER_CANCELLATION_INVALID" : (verdict.failures == 0 ? "S1_FORMATTER_CANCELLATION_OK" : "S1_FORMATTER_CANCELLATION_FAILED")
++                SelfTest.diagnostic("\(marker): \(verdict.checks) checks; \(verdict.failures) failed; mode=\(mode)")
++            })
++        let cleanup = CleanupTrace()
++        let preferences = CleanupPreferences(tone: .balanced, formatsLists: false, context: .general)
++        let formatter = S1MiniFormatter(preferences: preferences, trace: cleanup, runtimeForTesting: runtime)
++        if mode == "s1-error-fallback" {
++            // The actual tokenizer/input ceiling rejects this authored input before decode.
++            let input = String(repeating: "owned synthetic cleanup words ", count: 900)
++            let result = await formatter.format(input)
++            let expected = await RuleBasedFormatter().format(input)
++            let record = cleanup.snapshot
++            verdict.check("C02 actual input-limit error reaches formatter", record.fallbackReason == "The transcript is too long for S1-mini.", input: true)
++            verdict.check("C03 rejected oversized input enters no decode", native.snapshot().starts == 0, input: true)
++            verdict.check("F01 genuine error keeps the existing rule fallback", !result.isEmpty && result == expected)
++            verdict.check("C04 ordinary failed-model trace remains truthful", record.guardVerdict == "not reached" && record.modelRan == false)
++            verdict.check("C05 ordinary formatter caller remains uncancelled", !Task.isCancelled, input: true)
++            await runtime.finishTermination()
++            verdict.check("C06 same runtime actor close releases native objects", await runtime.terminationResidentForTesting == false, input: true)
++        } else {
++            let operation = Operation()
++            try await runtime.configureFormatterCancellationCheckpoint { succeeded in
++                let observed = native.snapshot()
++                // Exact callback after TWO returned successful real decodes; no held C
++                // or fabricated event. This is a cooperative loop boundary, not proof
++                // of interrupting an entered kernel.
++                if succeeded, observed.successes == 2, observed.ends == 2 {
++                    operation.trigger(ends: observed.ends, cancel: mode == "s1-cancel-format", runtime: runtime)
++                }
++            }
++            let input = String(repeating: "the synthetic team agreed to review the schedule and document the next decision ", count: 24)
++            let task = Task { @MainActor in await formatter.format(input) }
++            operation.assign(task)
++            let result = await task.value
++            let observed = native.snapshot(); let boundary = operation.snapshot()
++            verdict.check("C02 actual successful native return triggered SAME operation", boundary.triggered && boundary.ends == 2 && observed.successes >= 2, input: true)
++            verdict.check("C03 joined formatter has balanced native calls", observed.active == 0 && observed.starts == observed.ends, input: true)
++            verdict.check("C04 only cancellation mode cancels the outer caller", boundary.cancelled == (mode == "s1-cancel-format"), input: true)
++            verdict.check("F01 no later decode after cancellation/owned close", observed.ends == boundary.ends)
++            verdict.check("F02 actual formatter returns no stale text", result.isEmpty)
++            verdict.check("F03 cancellation/close is silent, not model acceptance/fallback", cleanup.snapshot.guardVerdict == nil && cleanup.snapshot.fallbackReason == nil)
++            try await runtime.configureFormatterCancellationCheckpoint(nil)
++            operation.clear()
++            await runtime.finishTermination()
++            verdict.check("C05 SAME actor close releases native objects", await runtime.terminationResidentForTesting == false, input: true)
++            let beforeLate = native.snapshot().starts
++            let lateTrace = CleanupTrace()
++            let late = await S1MiniFormatter(preferences: preferences, trace: lateTrace, runtimeForTesting: runtime).format(input)
++            verdict.check("F04 closed formatter stays silent before native entry", late.isEmpty && native.snapshot().starts == beforeLate
++                && lateTrace.snapshot.guardVerdict == nil && lateTrace.snapshot.fallbackReason == nil)
++            verdict.check("C06 fixture conductor itself stays uncancelled", !Task.isCancelled, input: true)
++            SelfTest.diagnostic("S1_FORMATTER_TRACE mode=\(mode) atTrigger=\(boundary.ends) actualStarts=\(observed.starts) actualEnds=\(observed.ends) active=\(observed.active) cancelled=\(boundary.cancelled) outputEmpty=\(result.isEmpty)")
++        }
++        // The actual native operation has already returned and owner close joined it.
++        // Cocoa run-loop quit avoids running terminate inside a Swift MainActor job.
++        SelfTest.requestTermination()
++        return true
++    }
++}

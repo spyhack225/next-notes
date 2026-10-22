@@ -1,0 +1,17 @@
+{
+  "status": "OFF_SOURCE_SOURCE_ONLY_UNCOMPILED_UNRUN",
+  "baseManifestSHA256": "a6c03bb917929e87324f4c11b539bfcf18452e2a56737e6aa9304a5903d19dcf",
+  "baseFixturePreimageSHA256": "d939e63459d6fedf9381600998481439ba5a726aa3a1a449b18af667ab633bbc",
+  "postimageSHA256": "200363cef0ac59205f1981543bb7e63eb06ad1431bb1a24e8b445298434acdb2",
+  "additivePatchSHA256": "ed71ed592c501fc229c0cfa5b8fc22759be66d8198af24a9acc8d87533a60239",
+  "excluded": [
+    "parent COMMON/FIXED bytes",
+    "all canonical Sources",
+    "X02 search/jump producer"
+  ],
+  "documents": {
+    "README.md": "214ab05591158e1d4f0119d807e5e8eb08a8a02c59e71bf689ef775dd7ab0f1f",
+    "source-only-replay.json": "683f8be4c7d1ba90775fcbf199ffbb91a8dd39242dff337990486eb6c301d50f",
+    "AgentConversationHistorySelfTest.swift.proposed": "200363cef0ac59205f1981543bb7e63eb06ad1431bb1a24e8b445298434acdb2"
+  }
+}

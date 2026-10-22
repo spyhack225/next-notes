@@ -2,18 +2,23 @@ import Foundation
 
 /// IM-08a — what a remote message **is**, as a pure function.
 ///
-/// One function, four inputs, and the parameter list is the design:
+/// One function, five inputs, and the parameter list is the design:
 ///
 /// ```swift
 /// IMessageClassifier.classify(body: MessageBody, isFromMe: Bool,
-///                              sender: ResolvedSender, echo: EchoVerdict)
+///                              sender: ResolvedSender, echo: EchoVerdict,
+///                              associatedMessageGUID: String? = nil)
 /// ```
 ///
 /// **Why `IMessageEnvelope` is deliberately not among them, and why that is the load-bearing
 /// decision of this task.** Everything a class needs is the body, the column, the row's
-/// resolved sender and the ledger's answer. So `rowID`, `guid`, `date`, `service`, `source`,
-/// a future `attachments`, and every field a later task adds to the envelope **cannot change a
-/// class**, because there is nowhere to pass them. The output has no slot for them either:
+/// resolved sender, the ledger's answer, and whether the row answers another row. So `rowID`,
+/// `guid`, `date`, `service`, `source`, a future `attachments`, and every field a later task adds
+/// to the envelope **cannot change a class**, because there is nowhere to pass them. The fifth
+/// input is the one exception and it is not envelope identity: `associated_message_guid` is a
+/// row-shape fact in the same category as the body — *"this row answers another row"* — and it
+/// is what keeps a text-balloon reaction (`Liked "…"`, IM-01's 214-byte row of 2026-09-27)
+/// from classifying as the user's command. The output has no slot for them either:
 /// `IMessageClassification` is a class, a `Bool` and a closed enum, so a field added to the
 /// envelope has nothing to land in. That is the same enforcement as `MessageBody` having no
 /// empty-string case and as `OutputToken`'s initializer being `fileprivate` to its file — a
@@ -69,12 +74,13 @@ import Foundation
 /// |---|---|---|
 /// | the ledger says echo, the column says `false` | **the ledger** | the two copies of one self-message carry opposite values, so the column cannot veto anything |
 /// | two pending rows match one row | **it is a command** | losing a real request silently is worse than counting our own echo, and this default only ever moves a row *toward* the user |
+/// | a `.text` row answers another row in reaction prose | **the target link** | `Liked "…"` is prose Messages composed, not words the user typed; the guid gate keeps ordinary and edited sentences commands |
 /// | `MessageBodySource` vs `MessageBody` | **the body** | the source is not a parameter — the voice note's whole answer |
 /// | the column says `true`, the resolved handle says somebody else | **the column** | a row this Mac dates from this Mac came from this Mac, and the handle on an outgoing row is a *recipient* |
 ///
 /// ## What this file is not, and will not grow into
 ///
-/// - **No store, no ledger, no clock, no task, no model, no grant, no pairing.** Four values in,
+/// - **No store, no ledger, no clock, no task, no model, no grant, no pairing.** Five values in,
 ///   one value out. A need for anything else is a finding about the seam, not a parameter to
 ///   add here.
 /// - **No authority.** A class is not an authority: `AgentRisk` grades a *tool*, and the class
@@ -95,7 +101,7 @@ enum IMessageClassifier {
 
     // MARK: - The one function
 
-    /// What a remote row is. Four values in, one value out, and the order below is the design.
+    /// What a remote row is. Five values in, one value out, and the order below is the design.
     ///
     /// - Parameters:
     ///   - body: the one stored fact about the message, from `MessagesDecoder`. Never the
@@ -108,10 +114,17 @@ enum IMessageClassifier {
     ///     `.thisMac` **with** `isFromMe == false` is a disagreement rather than a fact, and it
     ///     fails closed below.
     ///   - echo: the ledger's answer, and the only thing that can make a row ours.
+    ///   - associatedMessageGUID: `message.associated_message_guid` — the row this one answers,
+    ///     or `nil` when the row answers nothing. Defaulted so every existing four-argument
+    ///     caller keeps compiling unchanged; a caller that cannot read the column passes `nil`
+    ///     and gets the pre-reaction table exactly. Only consulted for a `.text` body in
+    ///     reaction prose (`isReaction`); an edit's replacement sentence and every ordinary
+    ///     sentence pass through untouched.
     static func classify(body: MessageBody,
                          isFromMe: Bool,
                          sender: ResolvedSender,
-                         echo: EchoVerdict) -> IMessageClassification {
+                         echo: EchoVerdict,
+                         associatedMessageGUID: String? = nil) -> IMessageClassification {
         // 1. **The ledger, first and alone.** A matched, unambiguous echo is `.ownEcho`
         //    whatever the body is and whatever the column says: our own photo coming back is
         //    not text, and our own text landing with `is_from_me = 0` is a fact the two-row
@@ -140,13 +153,26 @@ enum IMessageClassifier {
                                           carriesLink: false,
                                           directionEvidence: .notConsulted)
         case .text(let text, _):
-            // 3. **The direction, for a row that has words in it** — and `.text` whose string
+            // 3. **A reaction, before the direction.** A text balloon that answers another
+            //    row in reaction prose (`Liked "…"`, the 214-byte row IM-01 measured
+            //    2026-09-27) is system-composed, not typed — so it is `.fromSomebodyElse`
+            //    with the real direction carried, never `.userCommand`. Silence on the
+            //    phone, one deduplicated card on the Mac, no turn and no memory (§1.4).
+            //    The guid gate is what makes this safe: an ordinary or edited sentence
+            //    carries no `associated_message_guid` (an edit carries one but not in
+            //    reaction prose), so neither can land here.
+            let evidence = direction(isFromMe: isFromMe, sender: sender)
+            if isReaction(text, associatedMessageGUID: associatedMessageGUID) {
+                return IMessageClassification(messageClass: .fromSomebodyElse,
+                                              carriesLink: false,
+                                              directionEvidence: evidence)
+            }
+            // 4. **The direction, for a row that has words in it** — and `.text` whose string
             //    is empty is a row with no words, not a command. Unreachable from
             //    `MessagesDecoder` (`:371` maps a decoded zero-length stream to `.absent` and
             //    `:278` refuses an empty column), and the branch is here anyway: the decoder
             //    should not have to be re-proved by every caller, and "there is a sentence"
             //    is the question, not "the body case is `.text`".
-            let evidence = direction(isFromMe: isFromMe, sender: sender)
             let messageClass: IMessageClass
             if !evidence.isTheUser {
                 messageClass = .fromSomebodyElse
@@ -157,7 +183,7 @@ enum IMessageClassifier {
                                           carriesLink: carriesLink(body),
                                           directionEvidence: evidence)
         case .notText:
-            // 4. **A balloon with no sentence in it, in whichever direction it came.** The
+            // 5. **A balloon with no sentence in it, in whichever direction it came.** The
             //    refusal is the same either way; only the direction differs, and the direction
             //    is the only thing that changes what happens. `bundleID` is deliberately not
             //    read: it is a `com.apple.*` identifier that is `nil` on every measured row,
@@ -189,6 +215,44 @@ enum IMessageClassifier {
         case .foreignNumber: return .foreignNumber
         case .unresolved: return .unresolved
         }
+    }
+
+    // MARK: - The reaction
+
+    /// The system-composed verbs Messages writes into a reaction balloon, in the row's own
+    /// language on this Mac's capture. `Laughed at` is the device's spelling of `Laughed`;
+    /// both `Emphasized` spellings are accepted because the capture is American and the
+    /// report British. Case-sensitive on purpose: the system capitalises, and a lowercase
+    /// verb is somebody's typing, not the system's. `Questioned`, other verbs and other
+    /// locales are open — a reaction outside this list still classifies as a command, which
+    /// is the residual gap, not a claim of completeness.
+    static let reactionVerbs = ["Laughed at", "Emphasized", "Emphasised", "Disliked",
+                                "Liked", "Loved", "Laughed"]
+
+    /// Whether this `.text` string is a reaction balloon answering another row: a
+    /// non-empty `associated_message_guid` **and** `<Verb> "<quoted original>"` prose.
+    ///
+    /// **Both halves are required, and each one guards the other's failure.** The guid
+    /// alone would also catch an edit's replacement sentence (which carries a guid via
+    /// `date_edited` but is the user's own words and must stay a command); the prose
+    /// alone would catch a user who typed `Loved "Dune"` (which carries no guid, because
+    /// ordinary rows answer nothing). `associated_message_type` is deliberately not read:
+    /// the query layer does not project it (`MessageRow` carries only the guid), and a
+    /// classifier that required a column the database layer cannot answer would be a
+    /// second opinion about a row it never saw.
+    static func isReaction(_ text: String, associatedMessageGUID: String?) -> Bool {
+        guard let guid = associatedMessageGUID, !guid.isEmpty else { return false }
+        for verb in reactionVerbs where text.hasPrefix(verb) {
+            var rest = text.dropFirst(verb.count)
+            // The verb and the quote are separated by at least one space on every
+            // measured row; without it this is a longer word that happens to start
+            // with a verb (`Likedx …`), not a reaction.
+            guard let first = rest.first, first.isWhitespace else { continue }
+            while let head = rest.first, head.isWhitespace { rest = rest.dropFirst() }
+            guard rest.first == "\"", rest.last == "\"", rest.count >= 3 else { continue }
+            return true
+        }
+        return false
     }
 
     // MARK: - The link
@@ -319,7 +383,9 @@ enum IMessageClass: String, CaseIterable, Equatable, Sendable {
     /// In the paired conversation, not from the user, and not from us. **Silence on the phone**
     /// and one card on the Mac: a reply to a row we could not identify who wrote is a message
     /// to a stranger that reveals there is an assistant on this number, and "I couldn't read
-    /// your message" is worse still, because it tells them to try again.
+    /// your message" is worse still, because it tells them to try again. System-composed
+    /// reaction prose (`Liked "…"`) lands here too: the user did not type those words, so
+    /// "not the user's" is the truthful cell, and the card it draws is IM-08d's to suppress.
     case fromSomebodyElse
     /// This Mac could not read the body. **No new sentence**: IM-17's canary owns the one
     /// sentence that exists for it, and a second one saying the same thing in different words is
@@ -352,7 +418,7 @@ struct IMessageClassification: Equatable, Sendable {
     var directionEvidence: DirectionEvidence
 }
 
-// MARK: - The four inputs
+// MARK: - The five inputs
 
 /// Which of the four produced the direction. A closed vocabulary on purpose: this is the field
 /// a report counts over, and a free string here would be a sentence somebody could write a

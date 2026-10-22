@@ -1,0 +1,77 @@
+{
+  "kind": "finite artifact/source pins only",
+  "checks": [
+    {
+      "path": "Tests/Reports/website-to-mac/reliability-process-quit-preparation-2026-10-04/settings-producer-remedy-review/FIXED-from-current.patch.txt",
+      "expected": "fffec19c923b7ae64586764799f66c4c53b9e8f34d926111947eedd57b4dbaee",
+      "actual": "fffec19c923b7ae64586764799f66c4c53b9e8f34d926111947eedd57b4dbaee",
+      "matches": true
+    },
+    {
+      "path": "Tests/Reports/website-to-mac/reliability-process-quit-preparation-2026-10-04/settings-producer-remedy-review/README.md",
+      "expected": "078d0ac3cd9738c58c850f84ea1945f4a42dc934cdfe08ebdf3169b719845b13",
+      "actual": "078d0ac3cd9738c58c850f84ea1945f4a42dc934cdfe08ebdf3169b719845b13",
+      "matches": true
+    },
+    {
+      "path": "Tests/Reports/website-to-mac/reliability-process-quit-preparation-2026-10-04/settings-producer-remedy-review/source-only-replay.json",
+      "expected": "fb631ce254756b7fd6ae1ba18d3f7067c2999927894d21a8dc27e86852871291",
+      "actual": "fb631ce254756b7fd6ae1ba18d3f7067c2999927894d21a8dc27e86852871291",
+      "matches": true
+    },
+    {
+      "path": "Tests/Reports/website-to-mac/reliability-process-quit-preparation-2026-10-04/settings-producer-remedy-review/source-pins.json",
+      "expected": "2cc0278225b494b514f5c3a693aa596b9dc1034397e80b1d1a59dc8614db5f6e",
+      "actual": "2cc0278225b494b514f5c3a693aa596b9dc1034397e80b1d1a59dc8614db5f6e",
+      "matches": true
+    },
+    {
+      "path": "Sources/NextNotes/Support/Settings.swift",
+      "expected": "884f7a297f68d588a7ae2de962432049682c478d4f53464dba6c92e0a01ee3c4",
+      "actual": "884f7a297f68d588a7ae2de962432049682c478d4f53464dba6c92e0a01ee3c4",
+      "matches": true
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/MeetingDiarizer.swift",
+      "expected": "bee04c83e4c23c91126482360e891c800f4e27200b930a00cf9dd89cd8cb3f13",
+      "actual": "bee04c83e4c23c91126482360e891c800f4e27200b930a00cf9dd89cd8cb3f13",
+      "matches": true
+    },
+    {
+      "path": "Sources/NextNotes/Support/SelfTestStoreGuard.swift",
+      "expected": "dc2733998fbb09ce1128d2f5dfeb9ce782e821ec2ef752330dab5c5a2de63eed",
+      "actual": "dc2733998fbb09ce1128d2f5dfeb9ce782e821ec2ef752330dab5c5a2de63eed",
+      "matches": true
+    },
+    {
+      "path": "Sources/NextNotes/Support/NativeTerminationSelfTest.swift",
+      "expected": "a1c1d30f8198e63758dde34abd8812b236c281a191cd9168383eff95a47aa4f5",
+      "actual": "a1c1d30f8198e63758dde34abd8812b236c281a191cd9168383eff95a47aa4f5",
+      "matches": true
+    },
+    {
+      "path": "Sources/NextNotes/Formatting/LLM/LlamaBackend.swift",
+      "expected": "a5093f80bcd746a37e5f5aaaa437eb9607cd218711d8221668e436c4dc20f95d",
+      "actual": "a5093f80bcd746a37e5f5aaaa437eb9607cd218711d8221668e436c4dc20f95d",
+      "matches": true
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/NotesService.swift",
+      "expected": "c1577429843cd4f2a50bca738a8afe95ed574e7faea29153de38fe8264c79652",
+      "actual": "c1577429843cd4f2a50bca738a8afe95ed574e7faea29153de38fe8264c79652",
+      "matches": true
+    },
+    {
+      "path": "Sources/NextNotes/UI/Onboarding/OnboardingSelfTest.swift",
+      "expected": "7de35b6649bdd5fdcd22ccc426d7bac86944fbf1876bd51f28dc62705cefdddc",
+      "actual": "7de35b6649bdd5fdcd22ccc426d7bac86944fbf1876bd51f28dc62705cefdddc",
+      "matches": true
+    },
+    {
+      "path": "Sources/NextNotes/NextNotesApp.swift",
+      "expected": "bc01a27f48478a297d07a1d35669c313615cc7c182c0c6d113b4899e792a1b61",
+      "actual": "bc01a27f48478a297d07a1d35669c313615cc7c182c0c6d113b4899e792a1b61",
+      "matches": true
+    }
+  ]
+}

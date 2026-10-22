@@ -1,28 +1,21 @@
-import { Github } from "lucide-react";
 import { DOWNLOAD_URL, REPO_URL } from "../lib/motion";
 
 export default function Footer() {
   return (
-    <footer className="py-12 px-8 md:px-28 border-t border-border/30">
-      <div className="flex items-center justify-between gap-6 flex-wrap">
+    <footer className="py-10 px-6 sm:px-8 md:px-28 border-t border-border/30">
+      <div className="flex items-center justify-between gap-x-6 gap-y-3 flex-wrap">
         <p className="text-muted-foreground text-sm">
-          &copy; 2026 Next Notes. It stays with you, on your Mac.
+          &copy; 2026 Next Notes. Your assistant, on your Mac.
         </p>
-        <div className="flex items-center gap-4">
-          <a
-            href={DOWNLOAD_URL}
-            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
+        <div className="flex items-center gap-5 text-sm text-muted-foreground">
+          <a href="?page=benchmarks" className="hover:text-foreground transition-colors">
+            Benchmarks
+          </a>
+          <a href={DOWNLOAD_URL} className="hidden md:inline hover:text-foreground transition-colors">
             Download
           </a>
-          <a
-            href={REPO_URL}
-            target="_blank"
-            rel="noreferrer"
-            aria-label="Next Notes on GitHub"
-            className="liquid-glass w-10 h-10 rounded-full flex items-center justify-center text-foreground/80 hover:text-foreground transition-colors"
-          >
-            <Github className="w-4.5 h-4.5" strokeWidth={1.6} />
+          <a href={REPO_URL} target="_blank" rel="noreferrer" className="hover:text-foreground transition-colors">
+            Check how it&apos;s built
           </a>
         </div>
       </div>

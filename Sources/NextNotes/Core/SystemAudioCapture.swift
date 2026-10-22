@@ -1,5 +1,6 @@
 import AVFoundation
 import CoreAudio
+import Darwin
 import Foundation
 
 /// Captures everything the Mac is playing — the other half of a meeting.
@@ -78,7 +79,8 @@ final class SystemAudioCapture: @unchecked Sendable {
     /// self-test can drive a `MeetingSession` with a capture that throws and then
     /// yields audio without a microphone or a real tap. Like the two seams above it
     /// is set by a test and cleared after; production reads nil and takes the
-    /// Core Audio path.
+    /// Core Audio path. Callbacks escape just as they do in the real start contract:
+    /// injected capture can deliver subsequent buffers after start returns.
     nonisolated(unsafe) static var startCallOverrideForTesting:
         (@Sendable (AVAudioFormat, @escaping @Sendable (AudioChunk) -> Void,
                     @escaping @Sendable (Float) -> Void) async throws -> Void)?
@@ -90,10 +92,35 @@ final class SystemAudioCapture: @unchecked Sendable {
     }
 
     private nonisolated(unsafe) var tapFormat: AVAudioFormat?
-    private nonisolated(unsafe) var converter: AVAudioConverter?
+    private nonisolated(unsafe) var converter: AudioConversionStream?
     private nonisolated(unsafe) var outputFormat: AVAudioFormat?
     private nonisolated(unsafe) var onBuffer: (@Sendable (AudioChunk) -> Void)?
     private nonisolated(unsafe) var onLevel: (@Sendable (Float) -> Void)?
+
+    /// What the tap has actually delivered, measured against the wall clock
+    /// (MR-01). The audit found a live system track whose timestamps ended near
+    /// half the meeting's wall duration while the drop counters read zero, so
+    /// the count of what arrived — not the count of what was expected — is the
+    /// fact the meeting's other numbers are built on.
+    /// The frames this tap has delivered, and how they compare with the clock.
+    var frameSnapshot: MeetingFrameShape {
+        frameShape.snapshot(nowHostTime: mach_absolute_time())
+    }
+
+    /// How many times the tap's converter asked for input it was not given.
+    /// The audit's "starved converter" counter, on the path that can starve it.
+    var converterStarvation: Int { converter?.starvationCount ?? 0 }
+
+    /// Frame-shape facts from the tap's own conversion path: per-buffer host
+    /// time, ABL shape, converter outcomes. Teardown deliberately keeps them, so
+    /// a Stop can still read what the tap did while it ran.
+    private let frameShape = MeetingFrameShapeAccumulator()
+
+    /// This track's frame/clock facts as of now — the same shape as the session's
+    /// per-track snapshot, readable synchronously from any thread.
+    func frameShapeSnapshot() -> MeetingFrameShape {
+        frameShape.snapshot(nowHostTime: mach_absolute_time())
+    }
 
     /// The format the tap produces, once started. Reported by the self-test.
     var currentTapFormat: AVAudioFormat? { tapFormat }
@@ -151,6 +178,7 @@ final class SystemAudioCapture: @unchecked Sendable {
 
         switch outcome {
         case .started:
+            frameShape.recordCaptureStarted(mach_absolute_time())
             let rate = tapFormat?.sampleRate ?? 0
             Log.systemAudio.info("system audio started — tap \(rate)Hz → engine \(outputFormat.sampleRate)Hz")
         case .failed(let error):
@@ -251,7 +279,7 @@ final class SystemAudioCapture: @unchecked Sendable {
         self.tapFormat = tapFormat
 
         if let outputFormat, tapFormat != outputFormat {
-            converter = AVAudioConverter(from: tapFormat, to: outputFormat)
+            converter = AudioConversionStream(from: tapFormat, to: outputFormat)
         }
     }
 
@@ -334,26 +362,115 @@ final class SystemAudioCapture: @unchecked Sendable {
               let buffer = AVAudioPCMBuffer(pcmFormat: tapFormat, bufferListNoCopy: inputData)
         else { return }
 
+        // The frame count the buffer list really carries, measured from its byte
+        // sizes, next to the count the buffer's own `frameLength` reports. A
+        // non-interleaved list counted with the interleaved rule reads half, and
+        // that is the shape the audit measured: a track whose clock runs at half
+        // speed while every counter says nothing was lost.
+        let layout = Self.layout(of: inputData, format: tapFormat)
+        let contents = AudioFrameLayout.contents(of: layout.buffers, shape: layout.shape)
+        let signature = MeetingFrameASBDSignature(
+            tapFormat, numberBuffers: inputData.pointee.mNumberBuffers)
+
         let level = AudioConversion.level(of: buffer)
         // Without the grant every sample is zero, so any level at all is proof of it.
         if level > 0 { Permissions.noteSystemAudioHeard() }
         onLevel?(level)
 
-        guard let outputFormat else { return }
+        guard let outputFormat else {
+            frameShape.recordBuffer(
+                hostTime: captureHostTime, signature: signature,
+                inputSamples: contents.frames, convertedSamples: 0, outcome: .error,
+                naiveSamples: Int(buffer.frameLength))
+            return
+        }
 
         // `bufferListNoCopy` borrows Core Audio's storage, which is recycled the moment
         // this callback returns — so nothing downstream may ever see this buffer directly.
         guard let converter else {
             if let copy = AudioConversion.copy(buffer) {
+                frameShape.recordBuffer(
+                    hostTime: captureHostTime, signature: signature,
+                    inputSamples: contents.frames, convertedSamples: Int(copy.frameLength),
+                    outcome: .passthrough, naiveSamples: Int(buffer.frameLength))
                 onBuffer?(AudioChunk(buffer: copy, captureHostTime: captureHostTime))
+            } else {
+                frameShape.recordBuffer(
+                    hostTime: captureHostTime, signature: signature,
+                    inputSamples: contents.frames, convertedSamples: 0, outcome: .error,
+                naiveSamples: Int(buffer.frameLength))
             }
             return
         }
 
-        guard let converted = AudioConversion.convert(buffer, to: outputFormat, using: converter) else {
+        let output: AVAudioPCMBuffer
+        switch converter.convert(buffer) {
+        case .output(let converted):
+            output = converted
+        case .holding:
+            // The converter is holding a frame or two of lookahead and will emit
+            // them with the next buffer. Nothing is lost, and the track's frame
+            // count is measured, not assumed.
+            frameShape.recordBuffer(
+                hostTime: captureHostTime, signature: signature,
+                inputSamples: contents.frames, convertedSamples: 0, outcome: .incomplete)
+            return
+        case .failed:
+            frameShape.recordBuffer(
+                hostTime: captureHostTime, signature: signature,
+                inputSamples: contents.frames, convertedSamples: 0, outcome: .error,
+                naiveSamples: Int(buffer.frameLength))
             return
         }
-        onBuffer?(AudioChunk(buffer: converted, captureHostTime: captureHostTime))
+        let expected: Int
+        if tapFormat.sampleRate > 0 {
+            expected = Int((Double(contents.frames) * outputFormat.sampleRate
+                / tapFormat.sampleRate).rounded(.up))
+        } else {
+            expected = contents.frames
+        }
+        frameShape.recordBuffer(
+            hostTime: captureHostTime, signature: signature,
+            inputSamples: contents.frames, convertedSamples: Int(output.frameLength),
+            outcome: Int(output.frameLength) < expected * 9 / 10 ? .incomplete : .success,
+            naiveSamples: Int(buffer.frameLength))
+        onBuffer?(AudioChunk(buffer: output, captureHostTime: captureHostTime))
+    }
+
+    /// The shape and per-buffer byte sizes of a buffer list, read once per
+    /// callback. Content-free: byte counts, no samples.
+    private static func layout(
+        of inputData: UnsafePointer<AudioBufferList>,
+        format: AVAudioFormat
+    ) -> (shape: AudioFrameLayout.Shape, buffers: [AudioFrameLayout.Buffer]) {
+        let description = format.streamDescription.pointee
+        let channels = Int(format.channelCount)
+        let interleaved = format.isInterleaved
+        let bytesPerChannelFrame = interleaved
+            ? max(1, Int(description.mBytesPerFrame) / max(1, channels))
+            : max(1, Int(description.mBytesPerFrame))
+        let shape = AudioFrameLayout.Shape(
+            sampleRate: format.sampleRate,
+            channels: channels,
+            bytesPerChannelFrame: bytesPerChannelFrame,
+            isInterleaved: interleaved,
+            framesPerBuffer: description.mFramesPerPacket > 0
+                ? Int(description.mFramesPerPacket) : nil)
+        // The list is read from the ORIGINAL pointer, never from a copy:
+        // `AudioBufferList` is a variable-length struct, and copying it brings
+        // only the first `AudioBuffer` along while `mNumberBuffers` still
+        // counts the rest. Reading the copy would take the second channel's
+        // byte size from whatever happened to follow it in memory.
+        let count = Int(inputData.pointee.mNumberBuffers)
+        var buffers: [AudioFrameLayout.Buffer] = []
+        buffers.reserveCapacity(count)
+        let audioBuffers = UnsafeMutableAudioBufferListPointer(
+            UnsafeMutableRawPointer(mutating: inputData)
+                .assumingMemoryBound(to: AudioBufferList.self))
+        for index in 0..<min(count, audioBuffers.count) {
+            buffers.append(AudioFrameLayout.Buffer(byteSize: Int(audioBuffers[index].mDataByteSize)))
+        }
+        return (shape, buffers)
     }
 
     // MARK: - Core Audio lookups

@@ -21,6 +21,8 @@ struct MainWindow: View {
                 .frame(minWidth: DS.Size.detailMin)
         }
         .navigationSplitViewStyle(.balanced)
+        .tint(DS.Color.accent)
+        .font(DS.Font.body)
         .frame(
             minWidth: DS.Size.windowMin.width,
             minHeight: DS.Size.windowMin.height

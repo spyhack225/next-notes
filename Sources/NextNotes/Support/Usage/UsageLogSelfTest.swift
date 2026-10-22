@@ -31,8 +31,8 @@ import Foundation
 /// `dictationRows` writes rows and E3 fails until the guard knows the file, so the red run
 /// is the missing dictation seam plus the missing guard entry.
 enum UsageLogSelfTest {
-    /// How many cases a green run reports: U1–U7, M1–M7, D1–D3, IM, R1–R3 and E1–E4.
-    private static let caseCount = 26
+    /// Existing 26 case groups plus P6-07 T1 (36 task attribution/projection assertions).
+    private static let caseCount = 27
 
     /// `run()` is async so E1 can await the real main-actor agent path: the old synchronous
     /// runner blocked the main actor on a semaphore while its cases ran, which no
@@ -68,6 +68,7 @@ enum UsageLogSelfTest {
             failures += labelled("U5", checkU5(root: root))
             failures += labelled("U6", checkU6())
             failures += labelled("U7", checkU7())
+            failures += labelled("T1", await TaskUsageProjectionSelfTest.problems(root: root))
 
             let e1 = await checkE1()
             failures += labelled("E1", e1.problems)
@@ -1470,7 +1471,7 @@ enum UsageLogSelfTest {
         "truncated", "toolsProposed", "toolsExecuted", "errorClass", "errorMessage",
         "audioSeconds", "realtimeFactor", "stages", "counts",
         "turnID", "conversationID", "workID", "revision", "meetingID",
-        "dictationRunID", "scheduleID",
+        "dictationRunID", "scheduleID", "taskID",
     ]
 
     /// P1-29. The join, over a synthetic pair, in the order the reader is asked for it: the
@@ -1575,7 +1576,8 @@ enum UsageLogSelfTest {
             revision: 3,
             meetingID: UUID(),
             dictationRunID: UUID(),
-            scheduleID: UUID()
+            scheduleID: UUID(),
+            taskID: UUID().uuidString
         )
     }
 

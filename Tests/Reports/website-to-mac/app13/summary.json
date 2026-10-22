@@ -1,0 +1,42 @@
+[
+  {
+    "name": "onboarding",
+    "exit": 0,
+    "seconds": 1.281
+  },
+  {
+    "name": "ui-strings",
+    "exit": 0,
+    "seconds": 2.587
+  },
+  {
+    "name": "settings",
+    "exit": 0,
+    "seconds": 4.825
+  },
+  {
+    "name": "agent-panes",
+    "exit": 0,
+    "seconds": 0.836
+  },
+  {
+    "name": "agent-presentation",
+    "exit": 0,
+    "seconds": 0.751
+  },
+  {
+    "name": "onboarding-sheet",
+    "exit": 1,
+    "seconds": 4.127
+  },
+  {
+    "name": "experience-sheet",
+    "exit": 0,
+    "seconds": 2.925
+  },
+  {
+    "name": "settings-sheet",
+    "exit": 0,
+    "seconds": 189.398
+  }
+]

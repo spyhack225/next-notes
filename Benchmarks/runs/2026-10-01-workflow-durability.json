@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "id": "2026-10-01-workflow-durability",
+  "title": "Durable tasks and workflow checks",
+  "date": "2026-10-01",
+  "category": "workflows",
+  "status": "partial",
+  "scope": "Task storage, authority, continuation and worker evidence",
+  "summary": "Bounded regression evidence exists; broad recovery, retry and remote authority remain separate contracts.",
+  "environment": {
+    "hardware": "Not fully recorded; consult original evidence"
+  },
+  "provenance": {
+    "kind": "historical evidence import",
+    "build": "See original evidence; not re-run by hub"
+  },
+  "metrics": [],
+  "limitations": [
+    "Functional assertions are not workflow speed or autonomous completion measurements.",
+    "Later current acceptance is recorded in linked task reports and AGENTS; this entry does not supersede it."
+  ],
+  "sources": [
+    "Tests/Reports/durable-tasks/2026-10-01-p6-04a-authority-migration.md",
+    "AGENTS.md"
+  ],
+  "publication": {
+    "approved": true,
+    "reviewed_by": "benchmark-hub-20261022",
+    "reviewed_on": "2026-10-22"
+  }
+}

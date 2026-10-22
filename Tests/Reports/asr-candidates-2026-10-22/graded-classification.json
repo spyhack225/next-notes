@@ -1,0 +1,274 @@
+{
+  "scope": "Preliminary authored-fixture runtime probes, warm medians of two runs per language, not app acceptance or broad corpus quality",
+  "rows": [
+    {
+      "id": "parakeet-v3-runtime",
+      "model": "Parakeet v3 (cached FluidAudio)",
+      "model_bytes": 483257242,
+      "languages": {
+        "en": {
+          "warm_trials": 2,
+          "median_warm_seconds": 0.2456510066986084,
+          "median_warm_rtfx": 247.09336965330783,
+          "wer": 0.04411764705882353,
+          "reference_words": 136,
+          "edits": 6,
+          "speed_grade": "A",
+          "accuracy_grade": "A"
+        },
+        "fr": {
+          "warm_trials": 2,
+          "median_warm_seconds": 0.27787649631500244,
+          "median_warm_rtfx": 210.70262406955464,
+          "wer": 0.09933774834437085,
+          "reference_words": 151,
+          "edits": 15,
+          "speed_grade": "A",
+          "accuracy_grade": "B"
+        }
+      },
+      "source": "parakeet-v3-runtime.json",
+      "load_ms": 20193.957924842834,
+      "peak_rss_bytes": 489062400,
+      "storage_grade": "B"
+    },
+    {
+      "id": "whistle",
+      "model": "Whistle",
+      "model_bytes": 16919407,
+      "languages": {
+        "en": {
+          "warm_trials": 2,
+          "median_warm_seconds": 0.4034278965264093,
+          "median_warm_rtfx": 150.2442627497606,
+          "wer": 0.051470588235294115,
+          "reference_words": 136,
+          "edits": 7,
+          "speed_grade": "B",
+          "accuracy_grade": "B"
+        },
+        "fr": {
+          "warm_trials": 2,
+          "median_warm_seconds": 0.5329014789895155,
+          "median_warm_rtfx": 109.60201830774795,
+          "wer": 0.1986754966887417,
+          "reference_words": 151,
+          "edits": 30,
+          "speed_grade": "B",
+          "accuracy_grade": "D"
+        }
+      },
+      "source": "whistle.json",
+      "load_ms": 5.040624993853271,
+      "peak_rss_bytes": 166510592,
+      "storage_grade": "A+"
+    },
+    {
+      "id": "redux",
+      "model": "Parakeet Redux (CoreML)",
+      "model_bytes": 220304193,
+      "languages": {
+        "en": {
+          "warm_trials": 2,
+          "median_warm_seconds": 0.5938544869422913,
+          "median_warm_rtfx": 102.04144609707654,
+          "wer": 0.051470588235294115,
+          "reference_words": 136,
+          "edits": 7,
+          "speed_grade": "B",
+          "accuracy_grade": "B"
+        },
+        "fr": {
+          "warm_trials": 2,
+          "median_warm_seconds": 0.6774675250053406,
+          "median_warm_rtfx": 86.22008034777264,
+          "wer": 0.12582781456953643,
+          "reference_words": 151,
+          "edits": 19,
+          "speed_grade": "C",
+          "accuracy_grade": "C"
+        }
+      },
+      "source": "redux.json",
+      "load_ms": 6102.475047111511,
+      "peak_rss_bytes": 1631371264,
+      "storage_grade": "A"
+    },
+    {
+      "id": "ultra",
+      "model": "Parakeet Ultra (CoreML)",
+      "model_bytes": 632162964,
+      "languages": {
+        "en": {
+          "warm_trials": 2,
+          "median_warm_seconds": 0.2365739345550537,
+          "median_warm_rtfx": 256.0991480075504,
+          "wer": 0.04411764705882353,
+          "reference_words": 136,
+          "edits": 6,
+          "speed_grade": "A",
+          "accuracy_grade": "A"
+        },
+        "fr": {
+          "warm_trials": 2,
+          "median_warm_seconds": 0.28613150119781494,
+          "median_warm_rtfx": 204.1923276108781,
+          "wer": 0.09933774834437085,
+          "reference_words": 151,
+          "edits": 15,
+          "speed_grade": "A",
+          "accuracy_grade": "B"
+        }
+      },
+      "source": "ultra.json",
+      "load_ms": 11608.299970626831,
+      "peak_rss_bytes": 668319744,
+      "storage_grade": "B"
+    },
+    {
+      "id": "phonon",
+      "model": "Phonon-2 (CoreML)",
+      "model_bytes": 344990366,
+      "languages": {
+        "en": {
+          "warm_trials": 2,
+          "median_warm_seconds": 0.13001149892807007,
+          "median_warm_rtfx": 466.0053794034932,
+          "wer": 0.007352941176470588,
+          "reference_words": 136,
+          "edits": 1,
+          "speed_grade": "A+",
+          "accuracy_grade": "A+"
+        }
+      },
+      "source": "phonon.json",
+      "load_ms": 63755.2649974823,
+      "peak_rss_bytes": 573734912,
+      "storage_grade": "A"
+    },
+    {
+      "id": "qwen-06b",
+      "model": "Qwen3-ASR 0.6B (4-bit MLX)",
+      "model_bytes": 712778752,
+      "languages": {
+        "en": {
+          "warm_trials": 2,
+          "median_warm_seconds": 1.914738250488881,
+          "median_warm_rtfx": 31.642334931782266,
+          "wer": 0.007352941176470588,
+          "reference_words": 136,
+          "edits": 1,
+          "speed_grade": "C",
+          "accuracy_grade": "A+"
+        },
+        "fr": {
+          "warm_trials": 2,
+          "median_warm_seconds": 2.3737063334847335,
+          "median_warm_rtfx": 24.614859308653763,
+          "wer": 0.09271523178807947,
+          "reference_words": 151,
+          "edits": 14,
+          "speed_grade": "D",
+          "accuracy_grade": "B"
+        }
+      },
+      "source": "qwen-06b.json",
+      "load_ms": 1870.0303749646991,
+      "peak_rss_bytes": 933527552,
+      "storage_grade": "C"
+    },
+    {
+      "id": "qwen-17b",
+      "model": "Qwen3-ASR 1.7B (4-bit MLX)",
+      "model_bytes": 1607630579,
+      "languages": {
+        "en": {
+          "warm_trials": 2,
+          "median_warm_seconds": 4.238923166965833,
+          "median_warm_rtfx": 14.293155591781431,
+          "wer": 0.03676470588235294,
+          "reference_words": 136,
+          "edits": 5,
+          "speed_grade": "D",
+          "accuracy_grade": "A"
+        },
+        "fr": {
+          "warm_trials": 2,
+          "median_warm_seconds": 4.889175979013089,
+          "median_warm_rtfx": 11.946305681873334,
+          "wer": 0.039735099337748346,
+          "reference_words": 151,
+          "edits": 6,
+          "speed_grade": "D",
+          "accuracy_grade": "A"
+        }
+      },
+      "source": "qwen-17b.json",
+      "load_ms": 2146.3162080035545,
+      "peak_rss_bytes": 1035288576,
+      "storage_grade": "D"
+    },
+    {
+      "id": "voz",
+      "model": "Voz (CoreML CLI)",
+      "model_bytes": 336667603,
+      "languages": {
+        "en": {
+          "warm_trials": 2,
+          "median_warm_seconds": 0.1614234447479248,
+          "median_warm_rtfx": 375.3496913678133,
+          "wer": 0.03676470588235294,
+          "reference_words": 136,
+          "edits": 5,
+          "speed_grade": "A+",
+          "accuracy_grade": "A"
+        },
+        "fr": {
+          "warm_trials": 2,
+          "median_warm_seconds": 0.17525750398635864,
+          "median_warm_rtfx": 334.16938331533777,
+          "wer": 0.11920529801324503,
+          "reference_words": 151,
+          "edits": 18,
+          "speed_grade": "A+",
+          "accuracy_grade": "C"
+        }
+      },
+      "source": "voz.json",
+      "load_ms": null,
+      "peak_rss_bytes": null,
+      "storage_grade": "A"
+    }
+  ],
+  "grading_rubric": {
+    "speed_rtfx": {
+      "A+": ">=300",
+      "A": ">=200",
+      "B": ">=100",
+      "C": ">=30",
+      "D": "<30"
+    },
+    "word_error_percent": {
+      "A+": "<=1",
+      "A": "<=5",
+      "B": "<=10",
+      "C": "<=15",
+      "D": "<=20",
+      "F": ">20"
+    },
+    "storage_MB": {
+      "A+": "<=50",
+      "A": "<=350",
+      "B": "<=700",
+      "C": "<=1000",
+      "D": ">1000"
+    },
+    "scope": "Explicit display rubric, not a validated quality certification or weighted overall score."
+  },
+  "not_measured": [
+    "First visible text across models",
+    "Live release-to-final latency",
+    "Languages beyond English and French",
+    "Apple SpeechAnalyzer comparison"
+  ]
+}

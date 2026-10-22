@@ -1,0 +1,9 @@
+{
+  "utc": "2026-10-02T08:18:52.379165+00:00",
+  "authorizedScope": "Sources/NextNotes/UI/Settings/SettingsSheet.swift ONLY",
+  "beforeSHA256": "5f0088724bde7c88789eb3632ac32fc305273e2e851fe1ec735ed7b6eb1c3b40",
+  "afterSHA256": "2f85f3911ec7fa0cbf867ad8eb03b257a79656e52ebd02515a7e739af402af39",
+  "patchSHA256": "fbee297a951d2dbb1db0df70cb40b3f04f01664dce0fc80572642d9f6c0efe40",
+  "status": "applied directly and refrozen; no Git staging/build/install/model/native; packaged proof awaits root app32",
+  "guardContract": "only exact Settings diagnostic Formatting path; observation after two existing checkpoints; no product List/layout/capture flow mutation"
+}

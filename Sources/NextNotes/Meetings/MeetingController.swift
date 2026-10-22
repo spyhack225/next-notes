@@ -115,8 +115,24 @@ final class MeetingController {
     /// M1-a: the store copy already flipped to `.user`; `MeetingStore.save` keeps a stored
     /// `.user` when a live session later saves the same title with an older source, so the
     /// rename survives Stop without touching the session.
-    func syncTitle(of id: UUID, to title: String) {
-        session?.applyTitle(title, ifID: id)
+    /// Carries a title into the running session, with the source it came from.
+    ///
+    /// The source matters: the session saves the meeting again on its own
+    /// schedule, and a copy of the meeting without a source is a copy whose
+    /// title the store has to guess the origin of. A matched calendar title is
+    /// `.auto` — a name the app found, not one the person chose — and it must
+    /// not become `.user` on the way through, or the app starts learning it as
+    /// a name.
+    func syncTitle(
+        of id: UUID,
+        to title: String,
+        source: MeetingTitleSource,
+        attendees: [String]? = nil,
+        calendarName: String? = nil
+    ) {
+        session?.applyTitle(
+            title, source: source, attendees: attendees,
+            calendarName: calendarName, ifID: id)
     }
 
     /// "Meeting · 14:30" — enough to tell two ad-hoc recordings apart in a list.

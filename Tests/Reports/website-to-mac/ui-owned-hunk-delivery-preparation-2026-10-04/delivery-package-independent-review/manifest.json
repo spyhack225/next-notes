@@ -1,0 +1,11 @@
+{
+  "status": "FINAL_ASSEMBLY_CONDITIONAL_SOURCE_REVIEW_NO_RELEASE",
+  "deliveryManifestSHA256": "1968bb47d4a8c773bd1fb6711701f2802224903b4b1f42274b60b3fa3124e3c5",
+  "artifacts": {
+    "README.md": "04923c0f1a8d565edd1bdf43cf5b252fdcb425c8f87707ad1b59d5b849879e50",
+    "pins.json": "7df292aa9cb90412f0acce3798754fff800bcb199061984027928c6940ad19fa"
+  },
+  "sourceReads": 0,
+  "runtimeOrCompilerRuns": 0,
+  "priorPacketEdits": 0
+}

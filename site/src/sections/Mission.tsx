@@ -3,12 +3,12 @@ import { motion, useReducedMotion, useScroll, useTransform, type MotionValue } f
 import Orb from "../components/Orb";
 
 const PARAGRAPH_ONE =
-  "Be there for pickup. Be in the meeting. Be the person who follows through.";
+  "The pickup. The dinner. The meeting where you actually listened.";
 
 const PARAGRAPH_TWO =
-  "One familiar companion on your Mac carries the details so you can give more of yourself to the life you are building.";
+  "That's what it's for. It's being built to carry the rest.";
 
-const HIGHLIGHTS = new Set(["pickup", "meeting", "follows", "through"]);
+const HIGHLIGHTS = new Set(["pickup", "dinner", "listened"]);
 
 const strip = (word: string) => word.replace(/[^A-Za-z-]/g, "").toLowerCase();
 
@@ -77,13 +77,13 @@ export default function Mission() {
   });
 
   return (
-    <section ref={ref} className="pt-16 md:pt-24 pb-32 md:pb-44 px-6 sm:px-8 md:px-16 lg:px-28 relative overflow-hidden border-t border-border/40">
+    <section ref={ref} className="pt-8 md:pt-10 pb-12 md:pb-16 px-6 sm:px-8 md:px-16 lg:px-28 relative overflow-hidden border-t border-border/40">
       <div
         className="flex justify-center pointer-events-none select-none"
         aria-hidden="true"
       >
         <div className="scale-75 sm:scale-90 md:scale-100">
-          <Orb state="breathing" size={300} />
+          <Orb state="breathing" size={200} />
         </div>
       </div>
 

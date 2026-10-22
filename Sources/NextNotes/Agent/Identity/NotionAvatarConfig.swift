@@ -104,6 +104,39 @@ struct NotionAvatarConfig: Codable, Equatable, Sendable, Hashable {
         }
     }
 
+    /// Deterministic face from a name: same name, same face, every launch.
+    /// Stable fold (never `hashValue`, which is seeded per process) over the same
+    /// shape as `random()`, minus the coin flips — optional layers appear for some
+    /// names (every fourth gets glasses, every sixth a beard) rather than at random.
+    /// Empty names fall back to `.default`; the caller decides when a typed name
+    /// earns a face, never this function.
+    static func forName(_ name: String) -> NotionAvatarConfig {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return .default }
+        var fold = 0
+        for scalar in trimmed.lowercased().unicodeScalars {
+            fold = (fold &* 31 &+ Int(scalar.value)) % 1_000_003
+        }
+        func pick(_ max: Int, _ salt: Int) -> Int {
+            (fold &* (salt &* 2_654_435_761 &+ 1)) % 1_000_003 % (max + 1)
+        }
+        var config = NotionAvatarConfig(
+            face: pick(Part.face.maxIndex, 1),
+            eyes: pick(Part.eyes.maxIndex, 2),
+            eyebrows: pick(Part.eyebrows.maxIndex, 3),
+            glasses: 0,
+            hair: pick(Part.hair.maxIndex, 4),
+            mouth: pick(Part.mouth.maxIndex, 5),
+            nose: pick(Part.nose.maxIndex, 6),
+            accessories: 0,
+            beard: 0,
+            details: 0
+        )
+        if fold % 4 == 0 { config.glasses = pick(Part.glasses.maxIndex, 7) }
+        if fold % 6 == 0 { config.beard = pick(Part.beard.maxIndex, 8) }
+        return config
+    }
+
     /// Random face with optional layers cleared (same bias as react-notion-avatar’s
     /// `getRandomConfig`).
     static func random() -> NotionAvatarConfig {

@@ -1,0 +1,108 @@
+{
+  "at": "2026-10-08T04:48:08.595664+00:00",
+  "scope": "public authored noise directParakeet control plus explicit complete-file Engine end variants; not meetingcandidate/session/nativeambient/ASRvoice workload acceptance",
+  "cases": [
+    {
+      "case": "digital-zero",
+      "inputSHA256": "a62a61c81510c24108d64deb0fc4f7e4641c7fcc40450325008c403d0f3e4867",
+      "sampleCount": 52566,
+      "seconds": 3.285375,
+      "outputs": [
+        {
+          "case": "reference",
+          "present": true,
+          "lexicalWordCount": 0,
+          "rawSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "case": "complete-file+300ms",
+          "present": true,
+          "lexicalWordCount": 2,
+          "rawSHA256": "8569efc4ed5a6273140c2b6ec0ab8d99f4398210808fbb7c0cbbae4fbcc21350"
+        },
+        {
+          "case": "complete-file",
+          "present": true,
+          "lexicalWordCount": 2,
+          "rawSHA256": "8569efc4ed5a6273140c2b6ec0ab8d99f4398210808fbb7c0cbbae4fbcc21350"
+        }
+      ],
+      "directNoiseWordsZero": true,
+      "engineCompleteAudioNoiseWordsZero": false,
+      "wallSeconds": 29.49352812500001,
+      "guardReason": null,
+      "sampledFootprintBytes": 200345064,
+      "candidateSHA": "7b3c734900a2535e1f22bc6068aeb560b25c23774bcc7780501f8328a49a91d2"
+    },
+    {
+      "case": "dc",
+      "inputSHA256": "54235a22e144fd98ad22d53a821b844bffb29976b5eac8a75bbb814f1b0e1e3f",
+      "sampleCount": 52566,
+      "seconds": 3.285375,
+      "outputs": [
+        {
+          "case": "reference",
+          "present": true,
+          "lexicalWordCount": 0,
+          "rawSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "case": "complete-file+300ms",
+          "present": true,
+          "lexicalWordCount": 0,
+          "rawSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "case": "complete-file",
+          "present": true,
+          "lexicalWordCount": 0,
+          "rawSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "directNoiseWordsZero": true,
+      "engineCompleteAudioNoiseWordsZero": true,
+      "wallSeconds": 8.498805417002586,
+      "guardReason": null,
+      "sampledFootprintBytes": 176325856,
+      "candidateSHA": "7b3c734900a2535e1f22bc6068aeb560b25c23774bcc7780501f8328a49a91d2"
+    },
+    {
+      "case": "seeded",
+      "inputSHA256": "c59ef2d48381671ba0ce0ca285ee179cc1758237b9afadbd8d57bd136082df9c",
+      "sampleCount": 52566,
+      "seconds": 3.285375,
+      "outputs": [
+        {
+          "case": "reference",
+          "present": true,
+          "lexicalWordCount": 0,
+          "rawSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "case": "complete-file+300ms",
+          "present": true,
+          "lexicalWordCount": 0,
+          "rawSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "case": "complete-file",
+          "present": true,
+          "lexicalWordCount": 0,
+          "rawSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "directNoiseWordsZero": true,
+      "engineCompleteAudioNoiseWordsZero": true,
+      "wallSeconds": 8.6051744159995,
+      "guardReason": null,
+      "sampledFootprintBytes": 178914576,
+      "candidateSHA": "7b3c734900a2535e1f22bc6068aeb560b25c23774bcc7780501f8328a49a91d2"
+    }
+  ],
+  "directAllNoiseWordsZero": true,
+  "engineAllNoiseWordsZero": false,
+  "candidateMeetingAdopted": false,
+  "nativeActualMeetingNoiseCostVerified": false,
+  "fullSessionAccepted": false,
+  "memoryScope": "2second exactprocess sampledvalues, notcontinuouspeak"
+}

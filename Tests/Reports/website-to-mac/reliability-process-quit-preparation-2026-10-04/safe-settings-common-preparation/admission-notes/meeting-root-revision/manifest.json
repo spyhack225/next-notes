@@ -1,0 +1,11 @@
+{
+  "status": "ADDITIVE_SAME_COMMON_HELD_UNCOMPILED",
+  "baseManifestSHA256": "fac058eb7d457b238b4dc7b8c764289105f260595a600e938225e30ed9577bb7",
+  "baseFixtureSHA256": "24633ea451ba21caff6de79b68dd1e63ed87e3f808a23f6f3e7fc06184797756",
+  "artifacts": {
+    "NativeNotesSettingsSelfTest.swift.revised": "819a93c8f4611b4bfbfa6b87bdde8085f9d22c54977892b44c7942e02134b2b7",
+    "COMMON-exclusive-meeting-root-from-selector.patch.txt": "e8a9b0dda6aa90bb282797ef898f98567e4bbd8c801d9f7e09f62b8f7a398a2a",
+    "copy-only-replay.json": "fa316d9395e2726ab53f6a2ebd864efd7766083bc4d7c7ec9618ae00d0f6bbd1",
+    "README.md": "e00fc4f7c6067f9bc544d7a57eaa868bd895af2fe1df78031d14b22895633caf"
+  }
+}

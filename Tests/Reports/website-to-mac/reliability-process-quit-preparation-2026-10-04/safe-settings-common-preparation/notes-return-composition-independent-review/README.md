@@ -1,0 +1,11 @@
+# Independent Notes-return composition review
+
+CONDITIONAL SOURCE ACCEPTANCE ONLY. Frozen composition manifest `48dcc262ba774852268152bfc4618f17b4ce639fdb4611458b95ee1aa0e31ec8`, COMMON `9652a496c924ee81b8dd2d7ae96d0ba719dfa8dc5bd790538fd305f50ff8e4b7`.
+
+Independently hashed all seven composition artifacts, twelve component patches and five current canonical preimages: zero mismatches. New diagnostic canonical source remains absent. The return and static-qualification manifest pins agree with the frozen reviewed inputs. No earlier packet or review was edited.
+
+A finite independent replay used only five copied Swift text preimages in a disposable directory. Eleven sequential COMMON stages and the single combined COMMON patch each produced the same six declared postimages. Applying the identical sole FIXED stage afterward gave six exact FIXED postimages through both routes. This is text applicability/equality proof; no parser, compiler, diagnostic, native, model or preference operation ran.
+
+The actual replayed NotesService guard uses Self.sharedIfLoaded; the prior unqualified instance reference is absent. Actual fixture retains the SAME returned/quitScheduled trace controls and private return observer. There is exactly one Darwin.mkdir call in the fixture. Root-selected bootstrap/root correction occurs after selector; the excluded ea437 alternative does not occur in component order and is not double-applied. Notes return correction follows its base hunk. ALL admission/assertions/return/guards are COMMON before both producer variants; only Settings.swift differs under FIXED, at the actual eager-versus-lazy constructor RHS.
+
+No source composition collision or new material blocker was found. This does not release canonical work or claim original RED/fixed PASS, native cessation, valid copied model identity or healthy process quit. Required ordinary Swift compilation, public digest/copy admission, identical-input fresh-process Settings cases, actual no-native INVALID disposition and genuine Notes/Cocoa overlap, captured Task.value/native drain, veto/safety continuation/second vote, owner isolation and related regressions remain HELD/UNRUN. Existing independent reviews and their boundaries remain unchanged.

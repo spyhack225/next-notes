@@ -1,0 +1,25 @@
+--- a/Sources/NextNotes/Agent/Tasks/AgentTaskManager.swift
++++ b/Sources/NextNotes/Agent/Tasks/AgentTaskManager.swift
+@@ -1250,6 +1250,22 @@
+ 
+     private func isTypedOwner(_ task: AgentTask) -> Bool {
+         ["user", "text", "selftest"].contains(task.source) && task.scheduleID == nil
++    }
++
++    struct BackgroundQuitSnapshot: Equatable {
++        let closed: Bool
++        let runningIDs: [String]
++        let approvedIDs: [String]
++        let compatibilityIDs: [String]
++        let backendStarts: Int
++    }
++    /// Read-only SAME map/tokens. Exact native fixture + admitted private store only.
++    func backgroundQuitSnapshotForTesting(admission: NativeBackgroundQuitSelfTest.Admission) -> BackgroundQuitSnapshot? {
++        guard NativeBackgroundQuitSelfTest.isAdmitted(admission),
++              store.allowsHarnessPersistence, store.storageURL == admission.taskFile else { return nil }
++        return BackgroundQuitSnapshot(closed: processTerminationRequested,
++            runningIDs: running.keys.sorted(), approvedIDs: approvedTaskIDs.sorted(),
++            compatibilityIDs: approvedCompatibilityTaskIDs.sorted(), backendStarts: backendStartsForTesting)
+     }
+ 
+     /// Consumed by the local backend immediately before the exact approved retry fires.

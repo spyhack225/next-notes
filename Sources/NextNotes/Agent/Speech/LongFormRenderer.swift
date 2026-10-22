@@ -432,6 +432,12 @@ enum LongFormSynthesisFactory {
             switch selected {
             case "pocket":
                 return try await pocket(request)
+            case "qwen", "phonon":
+                let voice = selected == "qwen" ? NativeAgentVoice.qwen : NativeAgentVoice.phonon
+                await voice.prepare()
+                var samples: [Float] = []
+                try await voice.synthesize(request.text) { samples.append(contentsOf: $0) }
+                return LongFormRenderer.Audio(samples: samples, sampleRate: voice.sampleRate)
             case "kokoro" where KokoroAgentVoice.isSupportedOS:
                 return try await kokoro(request)
             default:

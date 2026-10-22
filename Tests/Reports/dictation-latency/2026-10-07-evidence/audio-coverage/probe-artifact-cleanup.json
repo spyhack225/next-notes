@@ -1,0 +1,21 @@
+{
+  "atUTC": "2026-10-08T04:09:59.029331+00:00",
+  "paths": [
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-audio-coverage-20261008/original-probe",
+      "sha256": "461a58ffb332b4705f24b5c8b5901fe6da18a7f9ca5f046b60f7064831aed143",
+      "allocatedBytes": 294912,
+      "reason": "Completed original/fixed component binaries; sources, fixture, exact compile flags, verdict and mutation evidence retained; native fifth remains required"
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-audio-coverage-20261008/candidate-probe",
+      "sha256": "71b854e8db5dc28d1cf48c2cbf1f2550924676dc811359d40025280d31cd9ec6",
+      "allocatedBytes": 294912,
+      "reason": "Completed original/fixed component binaries; sources, fixture, exact compile flags, verdict and mutation evidence retained; native fifth remains required"
+    }
+  ],
+  "reclaimedAllocatedBytes": 589824,
+  "activeOwnProbeProcess": false,
+  "kept": "source/fixtures/compile flags/logs/manifest; native public WAVs and original/fourth/fifth app bundles unchanged",
+  "scope": "Only two exact owned cache executables, no shared build cache/model/store/recording cleanup"
+}

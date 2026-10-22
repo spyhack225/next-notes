@@ -1,0 +1,25 @@
+{
+  "removed_owned_build_and_bytecode": [
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesASRBench/runtime-probe",
+      "bytes": 18256912,
+      "sha256": "9bbd5f641c4d1f24c94bcdbbf6d6bfe96900da0666e8317f006883760e16afa0"
+    },
+    {
+      "path": "/Users/sergekadjo/Documents/Claude/Projects/next-notes/Tools/__pycache__/asr_benchmark.cpython-314.pyc",
+      "bytes": 15877
+    }
+  ],
+  "reclaimed_owned_bytes": 18272789,
+  "retained_cache_files": [
+    "/Users/sergekadjo/Library/Caches/NextNotesASRBench/serial.lock"
+  ],
+  "installed_v3_asset_hashes_unchanged": true,
+  "all_candidate_models_removed": true,
+  "disk_after": {
+    "total": 245075738624,
+    "used": 239091228672,
+    "free": 5984509952
+  },
+  "note": "Candidate model/environment/source/build deletion receipts are in individual reports; only the reusable zero-byte diagnostic lock is retained. OS specialization caches not swept. Other agents artifacts/processes and owner models/recordings retained."
+}

@@ -121,6 +121,12 @@ final class AgentSpeechSynthesizer {
     private let pocketBacking = PocketSpeechBacking()
     private let pocketSourceBacking = PocketSourceSpeechBacking()
     private let kokoroBacking = KokoroSpeechBacking()
+    private let qwenBacking = PocketSourceSpeechBacking(synthesis: { text, consume in
+        try await NativeAgentVoice.qwen.synthesize(text, consume: consume)
+    })
+    private let phononBacking = PocketSourceSpeechBacking(synthesis: { text, consume in
+        try await NativeAgentVoice.phonon.synthesize(text, consume: consume)
+    })
     private var testingBacking = false
     /// A probe may keep one source graph alive for several clauses. This is
     /// selected only by the explicit self-test lifecycle below.
@@ -254,6 +260,20 @@ final class AgentSpeechSynthesizer {
         kokoroBacking.onFailure = { [weak self] text, volume, token in
             self?.fallbackCurrentClause(text: text, token: token)
         }
+        for optional in [qwenBacking, phononBacking] {
+            optional.onUtteranceStarted = { [weak self] token in self?.didBeginAudio(token: token) }
+            optional.onUtteranceFinished = { [weak self] token in self?.didFinishAudio(token: token) }
+            optional.onFailure = { [weak self] text, _, token in
+                self?.fallbackCurrentClause(text: text, token: token)
+            }
+        }
+        if !SelfTest.isRunning {
+            switch Settings.shared.agentVoiceEngine {
+            case "qwen": Task { await NativeAgentVoice.qwen.prepare() }
+            case "phonon": Task { await NativeAgentVoice.phonon.prepare() }
+            default: break
+            }
+        }
         // Scripted speech tests install their backing after construction. Real audio
         // probes explicitly prepare their engine; startup must not load models here.
         if !SelfTest.isRunning, Settings.shared.agentVoiceEngine == "pocket" {
@@ -311,6 +331,10 @@ final class AgentSpeechSynthesizer {
             backing.stop()
         }
         if !testingBacking {
+            // Release a previously selected source graph before another output
+            // owns the speaker/reference. Keep it alive across the same engine's clauses.
+            if Self.selectedEngine != "qwen" || !NativeAgentVoice.qwen.isReady { qwenBacking.endSession() }
+            if Self.selectedEngine != "phonon" || !NativeAgentVoice.phonon.isReady { phononBacking.endSession() }
             if let persistentPlaybackBacking {
                 backing = persistentPlaybackBacking
                 Log.agent.info(
@@ -320,6 +344,10 @@ final class AgentSpeechSynthesizer {
                 switch Self.selectedEngine {
                 case "pocket" where pocketIsReady:
                     backing = pocketBacking
+                case "qwen" where NativeAgentVoice.qwen.isReady:
+                    backing = qwenBacking
+                case "phonon" where NativeAgentVoice.phonon.isReady:
+                    backing = phononBacking
                 case "kokoro" where KokoroAgentVoice.isSupportedOS:
                     backing = kokoroBacking
                 default:
@@ -509,6 +537,8 @@ final class AgentSpeechSynthesizer {
     /// owner is stopped but not otherwise dismantled; its owner retains the
     /// `prepare/endTest` lifecycle used by the acoustic probe.
     func endPersistentPocketPlayback() {
+        qwenBacking.endSession()
+        phononBacking.endSession()
         persistentPlaybackBacking?.stop()
         if persistentPlaybackUsesPocketSource {
             pocketSourceBacking.endSession()
@@ -632,6 +662,8 @@ final class AgentSpeechSynthesizer {
               let currentClause, !currentClause.isEmpty,
               currentClause == text || (replyOpen && text.isEmpty) else { return }
         usingSystemFallbackForReply = true
+        if (backing as AnyObject) === qwenBacking { qwenBacking.endSession() }
+        if (backing as AnyObject) === phononBacking { phononBacking.endSession() }
         let partialReply = replyOpen && currentClauseRendered
         replyTokens.removeAll()
         replyOpen = false

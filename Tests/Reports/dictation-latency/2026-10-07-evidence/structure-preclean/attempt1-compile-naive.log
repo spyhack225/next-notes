@@ -1,0 +1,47 @@
+SentenceChunker.production.swift:189:16: error: cannot find type 'CleanupTrace' in scope
+187 |     /// Written with the number of groups, so the per-run record says whether a dictation was
+188 |     /// chunked at all.
+189 |     var trace: CleanupTrace?
+    |                `- error: cannot find type 'CleanupTrace' in scope
+190 |     /// The whole pass's budget, not one call's.
+191 |     ///
+
+SentenceChunker.production.swift:212:60: error: cannot find 'S1MiniFormatter' in scope
+210 |     /// Apple's 12 s), so an unwired caller errs towards stopping early rather than towards
+211 |     /// overshooting.
+212 |     var perCallTimeout: @Sendable (String) -> Duration = { S1MiniFormatter.timeout(for: $0) }
+    |                                                            `- error: cannot find 'S1MiniFormatter' in scope
+213 | 
+214 |     /// The ceiling for calls from the second wave on. From wave 2 the first wave's calls
+
+SentenceChunker.production.swift:262:9: error: cannot find 'Log' in scope
+260 |             return await inner.format(raw)
+261 |         }
+262 |         Log.speech.info("cleanup · \(groups.count, privacy: .public) sentence group(s)")
+    |         `- error: cannot find 'Log' in scope
+263 |         let began = ContinuousClock.now
+264 |         var pieces = [String?](repeating: nil, count: groups.count)
+
+SentenceChunker.production.swift:262:63: error: extra argument 'privacy' in call
+260 |             return await inner.format(raw)
+261 |         }
+262 |         Log.speech.info("cleanup · \(groups.count, privacy: .public) sentence group(s)")
+    |                                                              `- error: extra argument 'privacy' in call
+263 |         let began = ContinuousClock.now
+264 |         var pieces = [String?](repeating: nil, count: groups.count)
+
+SentenceChunker.production.swift:262:63: error: cannot infer contextual base in reference to member 'public'
+260 |             return await inner.format(raw)
+261 |         }
+262 |         Log.speech.info("cleanup · \(groups.count, privacy: .public) sentence group(s)")
+    |                                                              `- error: cannot infer contextual base in reference to member 'public'
+263 |         let began = ContinuousClock.now
+264 |         var pieces = [String?](repeating: nil, count: groups.count)
+
+SentenceChunker.production.swift:297:21: error: cannot find 'Log' in scope
+295 |                         reason: "that dictation was long, so the end of it was left as spoken"
+296 |                     )
+297 |                     Log.speech.error("cleanup · out of budget; remaining groups left as spoken")
+    |                     `- error: cannot find 'Log' in scope
+298 |                 }
+299 |                 for index in wave { pieces[index] = groups[index] }

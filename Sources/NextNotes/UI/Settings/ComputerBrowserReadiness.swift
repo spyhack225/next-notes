@@ -211,6 +211,7 @@ struct ComputerBrowserReadiness: View {
     }
 
     private func refresh() {
+        guard SelfTest.requested != "--selftest-settings-sheet" else { return }
         hasAccessibility = Permissions.hasAccessibility
         runningBrowsers = Self.runningBrowsers()
         refreshCDPState()
@@ -257,20 +258,15 @@ private struct ReadinessRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: DS.Space.xs) {
-            HStack(spacing: DS.Space.s) {
-                Text(title)
-                    .font(DS.Font.headline)
-                Spacer()
-                if let busy {
-                    ThinkingOrb(state: busy, size: DS.Size.orbBadge)
-                        .accessibilityHidden(true)
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: DS.Space.s) {
+                    titleLabel.fixedSize(horizontal: true, vertical: true)
+                    Spacer()
+                    statusAndAction.fixedSize(horizontal: true, vertical: true)
                 }
-                Text(status)
-                    .font(DS.Font.callout)
-                    .foregroundStyle(statusColor)
-                if let actionTitle, let action {
-                    Button(actionTitle, action: action)
-                        .font(DS.Font.caption)
+                VStack(alignment: .leading, spacing: DS.Space.xs) {
+                    titleLabel.fixedSize(horizontal: false, vertical: true)
+                    statusAndAction
                 }
             }
             if let detail {
@@ -278,6 +274,29 @@ private struct ReadinessRow: View {
                     .font(DS.Font.caption)
                     .foregroundStyle(DS.Color.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
+    private var titleLabel: some View {
+        Text(title)
+            .font(DS.Font.headline)
+    }
+
+    private var statusAndAction: some View {
+        HStack(spacing: DS.Space.s) {
+            if let busy {
+                ThinkingOrb(state: busy, size: DS.Size.orbBadge)
+                    .accessibilityHidden(true)
+            }
+            Text(status)
+                .font(DS.Font.callout)
+                .foregroundStyle(statusColor)
+                .fixedSize(horizontal: false, vertical: true)
+            if let actionTitle, let action {
+                Button(actionTitle, action: action)
+                    .font(DS.Font.caption)
+                    .fixedSize(horizontal: true, vertical: true)
             }
         }
     }

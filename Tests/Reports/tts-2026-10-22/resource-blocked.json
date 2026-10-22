@@ -1,0 +1,32 @@
+{
+  "status": "blocked",
+  "reason": "Native executable unavailable and insufficient disk headroom; no timing accepted.",
+  "engines": [
+    {
+      "engine": "apple",
+      "status": "not-run",
+      "firstPCMms": null
+    },
+    {
+      "engine": "pocket",
+      "status": "not-run",
+      "firstPCMms": null
+    },
+    {
+      "engine": "kokoro",
+      "status": "not-run",
+      "firstPCMms": null
+    },
+    {
+      "engine": "phonon",
+      "status": "not-run",
+      "firstPCMms": null
+    },
+    {
+      "engine": "qwen",
+      "status": "not-run",
+      "firstPCMms": null
+    }
+  ],
+  "environment": "Filesystem        Size    Used   Avail Capacity iused ifree %iused  Mounted on\n/dev/disk3s1s1   228Gi    13Gi   528Mi    97%    486k  5.4M    8%   /\nvm.swapusage: total = 10752.00M  used = 9609.50M  free = 1142.50M  (encrypted)\n"
+}

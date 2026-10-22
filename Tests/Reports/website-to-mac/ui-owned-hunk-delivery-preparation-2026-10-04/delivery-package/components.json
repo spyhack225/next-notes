@@ -1,0 +1,52 @@
+{
+  "components": [
+    {
+      "unit": "theme-foundation",
+      "manifest": "../theme-foundation/manifest.json",
+      "manifest_sha256": "56e0e2bd29c2c9c7867ebf4658b112480413abd150829a2b0ce2b12b09caefa7",
+      "status": "OWNED_HUNK_REVIEW_PREPARATION_NOT_SOURCE_RELEASE"
+    },
+    {
+      "unit": "consumer-boundaries",
+      "manifest": "../consumer-boundaries/manifest.json",
+      "manifest_sha256": "2952b3273447fb1cdfeb26f5adb9d8f76e7c9b931beca6890b43571c7730b6c0",
+      "status": "SOURCE_ONLY_REVIEWED_CONSUMER_BOUNDARIES_NO_APPLICATION"
+    },
+    {
+      "unit": "settings-display-boundaries",
+      "manifest": "../settings-display-boundaries/manifest.json",
+      "manifest_sha256": "4fc90cf4af442d2b2137862b0a9cd804de484334f282b0fc77c0512203f2c5e1",
+      "status": "BOUNDED_DISPLAY_SOURCE_REVIEW_ACCEPTED_ROOT_RECONCILIATION_HELD"
+    },
+    {
+      "unit": "packaging-boundaries",
+      "manifest": "../packaging-boundaries/manifest.json",
+      "manifest_sha256": "a8879a8e6b5767256494e6da975abf69f2b168cb5adb903dde4d423f523408ec",
+      "status": "SOURCE_ONLY_EXPLICIT_FONT_HUNKS_REVIEWED_ROOT_RECONCILIATION_HELD"
+    },
+    {
+      "unit": "prerequisite-boundaries",
+      "manifest": "../prerequisite-boundaries/manifest.json",
+      "manifest_sha256": "5de2762bad32cd9bd823c9b36ccce3c0b4d04f44556e1cf6004ef67081020cfb",
+      "status": "HISTORICAL_PREREQUISITE_AND_FOREIGN_BOUNDARY_MAP_ONLY"
+    },
+    {
+      "unit": "foundation-independent-review",
+      "manifest": "../foundation-independent-review/manifest.json",
+      "manifest_sha256": "90e6d85d41e3f66e940113608637ef96a28a84e828d5ada222ec4ded15b5823c",
+      "status": "SOURCE_ONLY_CONDITIONAL_REVIEW"
+    },
+    {
+      "unit": "settings-display-independent-review",
+      "manifest": "../settings-display-independent-review/manifest.json",
+      "manifest_sha256": "f6fa55c1d89a8f426fe3dfe4a42a7f4881ca6c43de6462c61e0dc76c4dd678a8",
+      "status": "STATIC_CONDITIONAL_ACCEPTANCE_NO_SOURCE_OR_NATIVE_LEASE"
+    },
+    {
+      "unit": "parent-boundary-independent-review",
+      "manifest": "../parent-boundary-independent-review/manifest.json",
+      "manifest_sha256": "2acb3f509925b300056de867cc7e819fbc88d14afc528cbb2277746eba819e50",
+      "status": "SOURCE_ONLY_PARENT_BOUNDARY_REVIEW_NO_SOURCE_OR_STAGING_LEASE"
+    }
+  ]
+}

@@ -1,0 +1,59 @@
+{
+  "status": "OFF_SOURCE_SOURCE_ONLY_UNCOMPILED_UNRUN",
+  "sourcePreimages": {
+    "Sources/NextNotes/Formatting/S1MiniFormatter.swift": "88347151289217ef343fec9cd1692b0931457a61b7d13f2da2d53125acb429f2",
+    "Sources/NextNotes/Support/NativeOtherLlamaQuitSelfTest.swift": "c413fae2d882e334634030b8601a7719dbc3ee476cc1c130c5eae83100d16704",
+    "Sources/NextNotes/NextNotesApp.swift": "bc01a27f48478a297d07a1d35669c313615cc7c182c0c6d113b4899e792a1b61",
+    "Sources/NextNotes/Transcription/ParakeetEngine.swift": "63d4cc5b03bf0e29d97ada2dcc0851a62d51cd911226e7e55797ab18fd7f693d",
+    "Sources/NextNotes/Core/DictationController.swift": "881bff421bc879a2d96b6f8051a0410d1a5eb32b0863648df6166349d8e76a4b",
+    "Sources/NextNotes/Support/NativeStartupTerminationSelfTest.swift": "08efb6837d52bd8f216ec3d21ee7d1367d9791472c65f2e162c52bcbc77b73c2",
+    "Sources/NextNotes/Agent/Speech/PocketAgentVoice.swift": "9b0c5a9404e5e8ea68f96659cd2ce70e5efabe69db28f1292d4d75a8fa5acf7d",
+    "Sources/NextNotes/Agent/Speech/PocketSourceSpeechBacking.swift": "0334fa3ad9708e99c1e9088867b3ad19e863433c3fbd1f95915a7e3931698ecd",
+    "Sources/NextNotes/Agent/Speech/KokoroAgentVoice.swift": "66bf1d77947a768a6cc18334c07a6d9a9c7b65cba66f2adcf30f4f2f3ca50630",
+    "Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift": "871e02fa01dbf36e46f3e437495640f4fc8b4104f9af2ecf931e930f41b7930f",
+    "Sources/NextNotes/Agent/Speech/LongFormRenderer.swift": "5928d8f6d3aec10d1003ab41300d68cbce423a214186c6899bdbb8ad96061150"
+  },
+  "frozenS1Packet": "/Users/sergekadjo/Library/Caches/NextNotesBuild/AgentOverhaulWorktrees/run-04a3f48d3dea/reliability/.agent-overhaul-reliability/s1-formatter-cancellation",
+  "frozenS1ManifestSHA256": "7bc3cbd6b07ef299fba5c0ca79f9a6243e988e9f39cba6b4dc564f96f48be779",
+  "patches": {
+    "s1-common.patch.txt": "cc8226b22daa41e7f72de7f845251e0013337f6b9169a231f1e86a51d76f2098",
+    "s1-producer.patch.txt": "1be4b06a6390c48e9921689b713cbfa9546e276f63a42f92443ce95786d9d315",
+    "s1-app-quit-entry-candidate.patch.txt": "88b41a317e3df0c57379d78079a223a3df603c7f33a019a22657a20950eb4704"
+  },
+  "s1Checks": "30 proposed (11 cancel, 11 stop, 8 genuine error); no native verdict",
+  "appQuitEntryCandidate": "separate unqualified integration hunk; existing standalone S1 modes do not exercise this Cocoa entry",
+  "heldPackets": {
+    "direct33": {
+      "path": "Tests/Reports/agent-overhaul-closure/native-termination-crash-review/2026-10-02-pid41058/direct-capture-owner-preparation/rebased151/manifest.json",
+      "sha256": "3eb9336c31eb7bca91b1fa138674c517b9e557f968d4acd171585b1b227bb550"
+    },
+    "directLateInput": {
+      "path": "Tests/Reports/agent-overhaul-closure/native-termination-crash-review/2026-10-02-pid41058/direct-capture-owner-preparation/late-input-admission-preparation/draft-manifest.json",
+      "sha256": "32c973d995355af62b35911ed4f96aacc70e127252e8cf0cc254afb2a98a13e1"
+    },
+    "pocketCoherence": {
+      "path": "Tests/Reports/agent-overhaul-closure/native-termination-crash-review/2026-10-02-pid41058/active-playback-ownership-review/app-producer-preparation/rebased146/ordinary-build-coherence-amendment/manifest.json",
+      "sha256": "890d6ef5db1365f852ef01f0ae2ffa7b02d91b4f56ecc016fc66380cf0fa88ce"
+    },
+    "kokoroBacking": {
+      "path": "Tests/Reports/agent-overhaul-closure/native-termination-crash-review/2026-10-02-pid41058/active-playback-ownership-review/kokoro-owner-preparation/manifest.json",
+      "sha256": "6072c479a81b4a3c9b5064f25a6b3ef44a219bc241dc7f0c9ae742c54bbf3f9f"
+    }
+  },
+  "s1CocoaCandidate": {
+    "mode": "s1-cocoa-format",
+    "commonAfterFrozenSHA256": "be56ee34de63299751713336c0794f68db03cde956f866354efcd3c4dddee2df",
+    "fixedAfterCommonSHA256": "ed395939636a88a43d04c56693fb27c79f2b08c067221ee6d1de768e5317112a",
+    "fixtureSHA256": "0ec39ca90a5c6b9921f4d53864cde62f245b690291570df5835bf4208fe1d917",
+    "sourcePreimages": {
+      "commonOtherLlama": "b8fbf72d8704aa5425b0ca9a2d209ff2a3f7a556046d8c5f867ee55de0d72777",
+      "commonS1Fixture": "d3e69d5a637e1bf2f6825c24cd412451c746c04f8d14a7bf91ce148a5cc4e9f5",
+      "currentApp": "bc01a27f48478a297d07a1d35669c313615cc7c182c0c6d113b4899e792a1b61"
+    },
+    "verdict": "UNCOMPILED_UNRUN_NOT_RELEASED",
+    "publicModelGuard": "existing NativeOtherLlamaQuitSelfTest.validateArgumentsBeforeOwners and validateModel(S1MiniModels.spec); root digest before/after still required",
+    "qualification": "two actual successful returned decodes; fixture-only bounded NSCondition gate at return; actual AppDelegate reply releases; no entered-C hold",
+    "sourceOnlyReplaySHA256": "bbacca5ae32b50a4b29cb46de5ccffdc6ea15ad57fc569824af2bb1b9a2c901c",
+    "sourceOnlyReplay": "three relative patches checked/applied to disposable copied source only; no compiler or native execution"
+  }
+}

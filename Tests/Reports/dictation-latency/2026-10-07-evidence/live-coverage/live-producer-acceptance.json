@@ -1,0 +1,75 @@
+{
+  "atUTC": "2026-10-08T05:05:20.747230+00:00",
+  "status": "ACTUAL ACTOR PRODUCER ORIGINAL RED9, CANDIDATE PASS5 CASES",
+  "compileSeconds": 8.84,
+  "compileMaxRSSBytes": 245760000,
+  "firstCompile": "4.11s fixture Sendable closure rejected, corrected only closure contract; original failed log retained",
+  "sourceApplied": false,
+  "nativeFixedWordsVerified": false,
+  "nativeFixedNoiseVerified": false,
+  "sourcePins": {
+    "Engine.original-probe.swift": "6b7b32f9b72e500e667c57cc177d56586dc5dabd44e5d9c90f6dc2cd9f8961d4",
+    "Engine.zero-guard-probe.swift": "a4774e314bad0239c96e1e8c73fc1f2f8a74a5be677a88dd976ed824fdd67dd9",
+    "DictationSegmenter.original.swift": "215ef83b73014c1bffbcda9f8446798613e12c1f929593078f2c09fb9f4a5e3b",
+    "DictationSegmenter.candidate.swift": "b87b448013837a4c8e6a8286b7fcb97f084af1cccc9b6619c1fabfa5c7c125ad",
+    "ParakeetEngine.original.swift": "78ae4827c275b8d5e37cba2aac098a7d68dd6186a21ebcece68c9361176f1c73",
+    "ParakeetEngine.zero-guard-candidate.swift": "37e34792effe905fc50bf9d1a11fb7cf4dda842461e2bd44a4f6eebca3fc4edb",
+    "AudioConversion.swift": "444fc94b8fdd4e908071e165bfe8a86e0ae4d93dcadbecf1574a7d21b81b9fc1",
+    "TranscriptionEngine.swift": "78291e26cf280bf400eb5e54f0f18e4c617e7391db8a60d9cfc6172c6305949d",
+    "ParakeetInput.swift": "9bf9a41e99d92a0b496d955d0d464d004136884c62509fb2373ec74068995e7c",
+    "EngineBoundaryTypes.swift": "1168b39c694a75771985c0e6d50b6d33875275cd691520f568a9e53a6f92ff1f",
+    "LiveCoverageCheck.swift": "4b572a3cc1befbc909dcbef5fda01e4fa053b9f70ed5d4e3cef261709f9d117f",
+    "LiveMakefile": "1f22ae2cbb9f27d5390f38e58d4c8dcd83a0a982eec8ac03ae9125c4fd077f7b",
+    "live-compile-first-failed.log": "5b98ee31a103a987b05a2f2c5d85ba399c69582f2909809340a2f6dfad3c7dbd",
+    "live-compile-corrected.log": "807b72e38712281f26d049b4cc16d54895d4d1fe41f05268f37f2f9792230551",
+    "live-original.log": "bb4ff7bd7d0516e0348461139c145a81b31582ab4dc438d6328f2ecbc91c725d",
+    "live-original-resource.log": "1ea725281b4abbd9ea49490ea9725d636bd395f8904c714f9f7989cf3bd53c83",
+    "live-zero-candidate.log": "cd038d64bbad98c5f4c53317b4bd7c63a032d02de090435b4fd30fa0477b02a0",
+    "live-zero-candidate-resource.log": "0d391d33c6de6be7663b9902812e4415979adb1e96ae5c0e1f44260f5d925397",
+    "live-zero-coverage-review-only.patch": "b493d5bff004bf931089d565c002b015b8b6478625133e18e8c9c9717ec95086",
+    "quiet-cut-review-only.patch": "96d48fa347aea4b2edc9b1732937737a6e985d08f357433a296954dd6a552ea7",
+    "zero-guard-manifest.json": "0770b2fe581577c6459359a5576d20cffcc355fdc655fb869093afcbdb4b8395"
+  },
+  "inputSHA256": "409ee48c5033c947f45413d71ca2a162097b9f220995bb8e613579a23b315000",
+  "quietFirstRequestSamples": {
+    "original": 48000,
+    "candidate": 8000
+  },
+  "quietModelInputCounts": {
+    "original": [
+      24000,
+      28566
+    ],
+    "candidate": [
+      8000,
+      24000,
+      40000,
+      52566
+    ]
+  },
+  "heldFinalCompleteInputSamples": {
+    "original": 28566,
+    "candidate": 52566
+  },
+  "zeroModelCalls": {
+    "original": [
+      1,
+      1,
+      2
+    ],
+    "candidate": [
+      0,
+      0,
+      0
+    ]
+  },
+  "fixtureBoundary": "Actual actor/real public WAV/AV buffers/RMS/segmenter; native recognizer/converter/scheduler/registry substituted. Returned diagnostic marker is not recognized speech. All retained same worker, final and consumer tasks joined; this does not prove native WER/first words/duty/duplex.",
+  "allChildrenJoined": true,
+  "resourceAdmission": {
+    "normalMaxSwapGB": 8,
+    "minFreeGB": 6.5,
+    "swapGB": 7.54205078125,
+    "freeGB": 7.367938995361328,
+    "load": 3.21
+  }
+}

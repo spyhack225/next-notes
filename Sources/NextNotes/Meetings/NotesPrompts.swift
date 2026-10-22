@@ -203,13 +203,25 @@ enum NotesPrompts {
         At most 24 IDs, in source order. Return [] only if there is no substantive speech.
         """
 
+    /// Appended to a map part when the transcript's own clock cannot be trusted: the map
+    /// step is the only pass that reads speech in order, so it is the only one that can
+    /// be told the order may be wrong. The notes page carries the same fact to the person
+    /// through `NotesCoverageDisclosure`; this line is for the model, and it never
+    /// reaches an intact meeting's prompt.
+    static let mapUncertainChronologyLine =
+        "Some parts of this conversation may be missing, and the segments may not be in the "
+        + "order they happened. Order your bullets by the timestamps shown in the transcript. "
+        + "Report only what each segment actually says, and do not infer events, decisions or "
+        + "commitments that no segment states."
+
     static func mapUser(
         meeting: Meeting,
         part: Int,
         of total: Int,
         transcript: String,
         wordLimit: Int? = nil,
-        sourceIndices: Bool = false
+        sourceIndices: Bool = false,
+        uncertainChronology: Bool = false
     ) -> String {
         var prompt = """
         \(context(for: meeting))
@@ -217,6 +229,9 @@ enum NotesPrompts {
         Part \(part) of \(total) of the transcript:
         \(transcript)
         """
+        if uncertainChronology {
+            prompt += "\n\n\(mapUncertainChronologyLine)"
+        }
         if let wordLimit {
             prompt += sourceIndices
                 ? "\n\nThe retained original utterances should total under about \(wordLimit) words. Use this allowance for the distinct substantive content throughout the part; it is an upper budget, not a reason to keep only an opening example."

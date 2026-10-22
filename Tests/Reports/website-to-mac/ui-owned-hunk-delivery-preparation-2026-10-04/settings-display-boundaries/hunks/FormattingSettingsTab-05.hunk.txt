@@ -1,0 +1,16 @@
+--- a/Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift
++++ b/Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift
+@@ -58,5 +40,8 @@ struct FormattingSettingsTab: View {
+-            // The pane now has one scroll surface — the responsive form's — see
+-            // `SettingsFormStyle`; a selection made by arrow key or Page Down still has
+-            // to ask it to scroll explicitly, because `List` no longer has a scroll view
+-            // of its own to do that automatically. Only fires for a single fresh
+-            // selection: a shift/cmd range extension has no one row to centre on.
++            .listStyle(.inset)
++            .alternatingRowBackgrounds()
++            .scrollContentBackground(.hidden)
++            .background(DS.Color.window)
++            .frame(maxWidth: .infinity, maxHeight: .infinity)
++            // Keep single-row selection visible; a shift/cmd range extension has
++            // no one row to centre on. This targets the same native List that
++            // owns the profile rows, not an outer competing scroll surface.

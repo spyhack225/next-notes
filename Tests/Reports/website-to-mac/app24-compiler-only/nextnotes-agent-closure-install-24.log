@@ -1,0 +1,679 @@
+/tmp/nextnotes-agent-closure-serial.mk:3: warning: overriding commands for target `build'
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Makefile:114: warning: ignoring old commands for target `build'
+/tmp/nextnotes-agent-closure-serial.mk:6: warning: overriding commands for target `test'
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Makefile:123: warning: ignoring old commands for target `test'
+swift build -c debug --scratch-path "/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch" --jobs 1
+warning: 'speechify': found 1 file(s) which are unhandled; explicitly declare them as resources or exclude from the target
+    /Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/IMessage/Database/TYPEDSTREAM-NOTES.md
+Building for debugging...
+[Using on-disk description]
+[1 / 2] SpeexEcho
+[2 / 7] NextNotes-product
+[3 / 22]
+[5 / 22]
+[8 / 22]
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Agent/Tasks/Durable/TaskWorkerAttemptSelfTest.swift:289:22: warning: result of call to function returning 'Bool?' is unused [#NoUsage]
+287 |             else { suspended.resume(throwing: AgentError.backendUnavailable("Late cancellation-ignoring backing")) }
+288 |             check(await reached { ended }, "late error did not causally unwind through Manager")
+289 |             context?.record(TaskJournalEventDraft(taskID: task.id, kind: .toolStarted,
+    |                      `- warning: result of call to function returning 'Bool?' is unused [#NoUsage]
+290 |                 detail: "filesystem.read", attempt: context?.attempt ?? 0))
+291 |             check(try sql.load() == cancelled
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Formatting/AppleModelWarmth.swift:40:13: warning: 'nonisolated(unsafe)' is unnecessary for a constant with 'Sendable' type 'NSLock', consider removing it
+ 38 |     /// timeout closure without hopping to the main actor (D-07): the per-call ceiling
+ 39 |     /// is computed per chunked call, on whatever task asked for it.
+ 40 |     private nonisolated(unsafe) static let warmthLock = NSLock()
+    |            [9 / 22] NextNotes-product
+ `- warning: 'nonisolated(unsafe)' is unnecessary for a constant with 'Sendable' type 'NSLock', consider removing it
+ 41 |     private nonisolated(unsafe) static var warmWindowStorage: Duration = .seconds(600)
+ 42 |     private nonisolated(unsafe) static var lastActivityStorage: Date?
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+error: SwiftCompile normal arm64 /Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/UI/Settings/SettingsSheet.swift failed with a nonzero exit code. Command line:     cd /Users/sergekadjo/Documents/Claude/Projects
+    builtin-SwiftPerFileCompile SettingsSheet.swift
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/UI/Settings/SettingsSheet.swift:292:60: error: main actor-isolated static property 'shared' can not be referenced from a nonisolated context
+290 |                 RunStore.shared.reload()
+291 |                 func actualFixtureInputsMatch() -> Bool {
+292 |                     let profilesStore = OutputProfileStore.shared
+    |                                                            `- error: main actor-isolated static property 'shared' can not be referenced from a nonisolated context
+293 |                     let effects = profilesStore.settingsSheetIsolationFailures()
+294 |                     let folderEffects = IndexedFoldersStore.shared.settingsSheetIsolationFailures()
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Formatting/Targets/OutputProfileStore.swift:43:16: note: static property declared here
+ 41 | @Observable
+ 42 | final class OutputProfileStore {
+ 43 |     static let shared = OutputProfileStore()
+    |                `- note: static property declared here
+ 44 | 
+ 45 |     private(set) var profiles: [OutputProfile] = []
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/UI/Settings/SettingsSheet.swift:293:49: error: call to main actor-isolated instance method 'settingsSheetIsolationFailures()' in a synchronous nonisolated context [#ActorIsolatedCall]
+291 |                 func actualFixtureInputsMatch() -> Bool {
+292 |                     let profilesStore = OutputProfileStore.shared
+293 |                     let effects = profilesStore.settingsSheetIsolationFailures()
+    |                                                 `- error: call to main actor-isolated instance method 'settingsSheetIsolationFailures()' in a synchronous nonisolated context [#ActorIsolatedCall]
+294 |                     let folderEffects = IndexedFoldersStore.shared.settingsSheetIsolationFailures()
+295 |                     let constructorEffects = AgentHarnessRouter.shared.settingsSheetIsolationFailures()
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Formatting/Targets/OutputProfileStore.swift:95:10: note: calls to instance method 'settingsSheetIsolationFailures()' from outside of its actor context are implicitly asynchronous
+ 93 |     /// The real producer's effect state, exposed only to the fixture capture gate.
+ 94 |     /// Checks installed observers rather than asserting the guard's spelling.
+ 95 |     func settingsSheetIsolationFailures() -> [String] {
+    |          `- note: calls to instance method 'settingsSheetIsolationFailures()' from outside of its actor context are implicitly asynchronous
+ 96 |         guard SelfTest.requested == "--selftest-settings-sheet" else {
+ 97 |             return ["Output-profile fixture check requires the settings-sheet self-test"]
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/UI/Settings/SettingsSheet.swift:294:68: error: call to main actor-isolated instance method 'settingsSheetIsolationFailures()' in a synchronous nonisolated context [#ActorIsolatedCall]
+292 |                     let profilesStore = OutputProfileStore.shared
+293 |                     let effects = profilesStore.settingsSheetIsolationFailures()
+294 |                     let folderEffects = IndexedFoldersStore.shared.settingsSheetIsolationFailures()
+    |                                                                    `- error: call to main actor-isolated instance method 'settingsSheetIsolationFailures()' in a synchronous nonisolated context [#ActorIsolatedCall]
+295 |                     let constructorEffects = AgentHarnessRouter.shared.settingsSheetIsolationFailures()
+296 |                         + LocalRuntimeCatalog.shared.settingsSheetIsolationFailures()
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Knowledge/Files/IndexedFoldersStore.swift:132:10: note: calls to instance method 'settingsSheetIsolationFailures()' from outside of its actor context are implicitly asynchronous
+130 |     }
+131 | 
+132 |     func settingsSheetIsolationFailures() -> [String] {
+    |          `- note: calls to instance method 'settingsSheetIsolationFailures()' from outside of its actor context are implicitly asynchronous
+133 |         guard SelfTest.requested == "--selftest-settings-sheet" else {
+134 |             return ["Folder fixture check requires the settings-sheet self-test"]
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/UI/Settings/SettingsSheet.swift:294:61: error: main actor-isolated static property 'shared' can not be referenced from a nonisolated context
+292 |                     let profilesStore = OutputProfileStore.shared
+293 |                     let effects = profilesStore.settingsSheetIsolationFailures()
+294 |                     let folderEffects = IndexedFoldersStore.shared.settingsSheetIsolationFailures()
+    |                                                             `- error: main actor-isolated static property 'shared' can not be referenced from a nonisolated context
+295 |                     let constructorEffects = AgentHarnessRouter.shared.settingsSheetIsolationFailures()
+296 |                         + LocalRuntimeCatalog.shared.settingsSheetIsolationFailures()
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Knowledge/Files/IndexedFoldersStore.swift:20:16: note: static property declared here
+ 18 | @Observable
+ 19 | final class IndexedFoldersStore {
+ 20 |     static let shared = IndexedFoldersStore()
+    |                `- note: static property declared here
+ 21 | 
+ 22 |     static let fileName = "indexed-folders.json"
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/UI/Settings/SettingsSheet.swift:295:72: error: call to main actor-isolated instance method 'settingsSheetIsolationFailures()' in a synchronous nonisolated context [#ActorIsolatedCall]
+293 |                     let effects = profilesStore.settingsSheetIsolationFailures()
+294 |                     let folderEffects = IndexedFoldersStore.shared.settingsSheetIsolationFailures()
+295 |                     let constructorEffects = AgentHarnessRouter.shared.settingsSheetIsolationFailures()
+    |                                                                        `- error: call to main actor-isolated instance method 'settingsSheetIsolationFailures()' in a synchronous nonisolated context [#ActorIsolatedCall]
+296 |                         + LocalRuntimeCatalog.shared.settingsSheetIsolationFailures()
+297 |                         + ModelRoleStore.shared.settingsSheetIsolationFailures()
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Agent/Backend/AgentHarnessRouter.swift:260:10: note: calls to instance method 'settingsSheetIsolationFailures()' from outside of its actor context are implicitly asynchronous
+258 | 
+259 |     /// Exact diagnostic ownership/state proof; no history snippets or paths are logged.
+260 |     func settingsSheetIsolationFailures() -> [String] {
+    |          `- note: calls to instance method 'settingsSheetIsolationFailures()' from outside of its actor context are implicitly asynchronous
+261 |         guard SelfTest.requested == "--selftest-settings-sheet" else { return ["Wrong harness fixture scope"] }
+262 |         let expected = SelfTest.checkedSettingsFixturePath(FileManager.default.temporaryDirectory
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/UI/Settings/SettingsSheet.swift:295:65: error: main actor-isolated static property 'shared' can not be referenced from a nonisolated context
+293 |                     let effects = profilesStore.settingsSheetIsolationFailures()
+294 |                     let folderEffects = IndexedFoldersStore.shared.settingsSheetIsolationFailures()
+295 |                     let constructorEffects = AgentHarnessRouter.shared.settingsSheetIsolationFailures()
+    |                                                                 `- error: main actor-isolated static property 'shared' can not be referenced from a nonisolated context
+296 |                         + LocalRuntimeCatalog.shared.settingsSheetIsolationFailures()
+297 |                         + ModelRoleStore.shared.settingsSheetIsolationFailures()
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Agent/Backend/AgentHarnessRouter.swift:95:16: note: static property declared here
+ 93 | @Observable
+ 94 | final class AgentHarnessRouter {
+ 95 |     static let shared = AgentHarnessRouter()
+    |                `- note: static property declared here
+ 96 | 
+ 97 |     private(set) var lastChoice: AgentHarnessChoice?
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/UI/Settings/SettingsSheet.swift:296:54: error: call to main actor-isolated instance method 'settingsSheetIsolationFailures()' in a synchronous nonisolated context [#ActorIsolatedCall]
+294 |                     let folderEffects = IndexedFoldersStore.shared.settingsSheetIsolationFailures()
+295 |                     let constructorEffects = AgentHarnessRouter.shared.settingsSheetIsolationFailures()
+296 |                         + LocalRuntimeCatalog.shared.settingsSheetIsolationFailures()
+    |                                                      `- error: call to main actor-isolated instance method 'settingsSheetIsolationFailures()' in a synchronous nonisolated context [#ActorIsolatedCall]
+297 |                         + ModelRoleStore.shared.settingsSheetIsolationFailures()
+298 |                         + InstalledModelLibrary.shared.settingsSheetIsolationFailures()
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Support/ModelRoles/LocalRuntimeDiscovery.swift:360:10: note: calls to instance method 'settingsSheetIsolationFailures()' from outside of its actor context are implicitly asynchronous
+358 |     }
+359 | 
+360 |     func settingsSheetIsolationFailures() -> [String] {
+    |          `- note: calls to instance method 'settingsSheetIsolationFailures()' from outside of its actor context are implicitly asynchronous
+361 |         guard SelfTest.requested == "--selftest-settings-sheet" else { return ["Wrong local runtime fixture scope"] }
+362 |         var failures: [String] = []
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/UI/Settings/SettingsSheet.swift:296:47: error: main actor-isolated static property 'shared' can not be referenced from a nonisolated context
+294 |                     let folderEffects = IndexedFoldersStore.shared.settingsSheetIsolationFailures()
+295 |                     let constructorEffects = AgentHarnessRouter.shared.settingsSheetIsolationFailures()
+296 |                         + LocalRuntimeCatalog.shared.settingsSheetIsolationFailures()
+    |                                               `- error: main actor-isolated static property 'shared' can not be referenced from a nonisolated context
+297 |                         + ModelRoleStore.shared.settingsSheetIsolationFailures()
+298 |                         + InstalledModelLibrary.shared.settingsSheetIsolationFailures()
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Support/ModelRoles/LocalRuntimeDiscovery.swift:268:16: note: static property declared here
+266 | @Observable
+267 | final class LocalRuntimeCatalog {
+268 |     static let shared = LocalRuntimeCatalog()
+    |                `- note: static property declared here
+269 | 
+270 |     private static let customDefaultsKey = "modelRoles.customLocalServers"
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/UI/Settings/SettingsSheet.swift:297:49: error: call to main actor-isolated instance method 'settingsSheetIsolationFailures()' in a synchronous nonisolated context [#ActorIsolatedCall]
+295 |                     let constructorEffects = AgentHarnessRouter.shared.settingsSheetIsolationFailures()
+296 |                         + LocalRuntimeCatalog.shared.settingsSheetIsolationFailures()
+297 |                         + ModelRoleStore.shared.settingsSheetIsolationFailures()
+    |                                                 `- error: call to main actor-isolated instance method 'settingsSheetIsolationFailures()' in a synchronous nonisolated context [#ActorIsolatedCall]
+298 |                         + InstalledModelLibrary.shared.settingsSheetIsolationFailures()
+299 |                         + LocalModelStore.shared.settingsSheetIsolationFailures()
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Support/ModelRoles/ModelRoleStore.swift:914:10: note: calls to instance method 'settingsSheetIsolationFailures()' from outside of its actor context are implicitly asynchronous
+ 912 |     }
+ 913 | 
+ 914 |     func settingsSheetIsolationFailures() -> [String] {
+     |          `- note: calls to instance method 'settingsSheetIsolationFailures()' from outside of its actor context are implicitly asynchronous
+ 915 |         guard SelfTest.requested == "--selftest-settings-sheet" else { return ["Wrong role fixture scope"] }
+ 916 |         var failures: [String] = []
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/UI/Settings/SettingsSheet.swift:297:42: error: main actor-isolated static property 'shared' can not be referenced from a nonisolated context
+295 |                     let constructorEffects = AgentHarnessRouter.shared.settingsSheetIsolationFailures()
+296 |                         + LocalRuntimeCatalog.shared.settingsSheetIsolationFailures()
+297 |                         + ModelRoleStore.shared.settingsSheetIsolationFailures()
+    |                                          `- error: main actor-isolated static property 'shared' can not be referenced from a nonisolated context
+298 |                         + InstalledModelLibrary.shared.settingsSheetIsolationFailures()
+299 |                         + LocalModelStore.shared.settingsSheetIsolationFailures()
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Support/ModelRoles/ModelRoleStore.swift:261:16: note: static property declared here
+ 259 | @Observable
+ 260 | final class ModelRoleStore {
+ 261 |     static let shared = ModelRoleStore(defaults: sharedDefaults)
+     |                `- note: static property declared here
+ 262 | 
+ 263 |     /// The defaults `.shared` reads and writes.
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/UI/Settings/SettingsSheet.swift:298:56: error: call to main actor-isolated instance method 'settingsSheetIsolationFailures()' in a synchronous nonisolated context [#ActorIsolatedCall]
+296 |                         + LocalRuntimeCatalog.shared.settingsSheetIsolationFailures()
+297 |                         + ModelRoleStore.shared.settingsSheetIsolationFailures()
+298 |                         + InstalledModelLibrary.shared.settingsSheetIsolationFailures()
+    |                                                        `- error: call to main actor-isolated instance method 'settingsSheetIsolationFailures()' in a synchronous nonisolated context [#ActorIsolatedCall]
+299 |                         + LocalModelStore.shared.settingsSheetIsolationFailures()
+300 |                     // The producer sorts loaded files; an early absent-file seed can
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Support/ModelLibrary/InstalledModelLibrary.swift:251:10: note: calls to instance method 'settingsSheetIsolationFailures()' from outside of its actor context are implicitly asynchronous
+249 |     // MARK: - Reading
+250 | 
+251 |     func settingsSheetIsolationFailures() -> [String] {
+    |          `- note: calls to instance method 'settingsSheetIsolationFailures()' from outside of its actor context are implicitly asynchronous
+252 |         guard SelfTest.requested == "--selftest-settings-sheet" else { return ["Wrong model library fixture scope"] }
+253 |         let expected = SelfTest.checkedSettingsFixturePath(FileManager.default.temporaryDirectory
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/UI/Settings/SettingsSheet.swift:298:49: error: main actor-isolated static property 'shared' can not be referenced from a nonisolated context
+296 |                         + LocalRuntimeCatalog.shared.settingsSheetIsolationFailures()
+297 |                         + ModelRoleStore.shared.settingsSheetIsolationFailures()
+298 |                         + InstalledModelLibrary.shared.settingsSheetIsolationFailures()
+    |                                                 `- error: main actor-isolated static property 'shared' can not be referenced from a nonisolated context
+299 |                         + LocalModelStore.shared.settingsSheetIsolationFailures()
+300 |                     // The producer sorts loaded files; an early absent-file seed can
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Support/ModelLibrary/InstalledModelLibrary.swift:123:16: note: static property declared here
+121 |     /// `--selftest-agent-answers` and `--selftest-llm-metal` are the two flags that read
+122 |     /// the real selection on purpose (read-only).
+123 |     static let shared = InstalledModelLibrary(
+    |                `- note: static property declared here
+124 |         manifestURL: SelfTest.requested == "--selftest-settings-sheet"
+125 |             ? SelfTest.checkedSettingsFixturePath(FileManager.default.temporaryDirectory
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/UI/Settings/SettingsSheet.swift:299:50: error: call to main actor-isolated instance method 'settingsSheetIsolationFailures()' in a synchronous nonisolated context [#ActorIsolatedCall]
+297 |                         + ModelRoleStore.shared.settingsSheetIsolationFailures()
+298 |                         + InstalledModelLibrary.shared.settingsSheetIsolationFailures()
+299 |                         + LocalModelStore.shared.settingsSheetIsolationFailures()
+    |                                                  `- error: call to main actor-isolated instance method 'settingsSheetIsolationFailures()' in a synchronous nonisolated context [#ActorIsolatedCall]
+300 |                     // The producer sorts loaded files; an early absent-file seed can
+301 |                     // retain default order. Compare the exact content canonically.
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Support/LocalModelStore.swift:57:10: note: calls to instance method 'settingsSheetIsolationFailures()' from outside of its actor context are implicitly asynchronous
+ 55 |     }
+ 56 | 
+ 57 |     func settingsSheetIsolationFailures() -> [String] {
+    |          `- note: calls to instance method 'settingsSheetIsolationFailures()' from outside of its actor context are implicitly asynchronous
+ 58 |         guard SelfTest.requested == "--selftest-settings-sheet" else { return ["Wrong local model fixture scope"] }
+ 59 |         let states = [parakeetState, s1MiniState, notesModelState, diarizerState, wakeWordState, embeddingModelState]
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/UI/Settings/SettingsSheet.swift:299:43: error: main actor-isolated static property 'shared' can not be referenced from a nonisolated context
+297 |                         + ModelRoleStore.shared.settingsSheetIsolationFailures()
+298 |                         + InstalledModelLibrary.shared.settingsSheetIsolationFailures()
+299 |                         + LocalModelStore.shared.settingsSheetIsolationFailures()
+    |                                           `- error: main actor-isolated static property 'shared' can not be referenced from a nonisolated context
+300 |                     // The producer sorts loaded files; an early absent-file seed can
+301 |                     // retain default order. Compare the exact content canonically.
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Support/LocalModelStore.swift:8:16: note: static property declared here
+  6 | @Observable
+  7 | final class LocalModelStore {
+  8 |     static let shared = LocalModelStore()
+    |                `- note: static property declared here
+  9 | 
+ 10 |     enum State: Equatable {
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/UI/Settings/SettingsSheet.swift:302:63: error: call to main actor-isolated static method 'parse' in a synchronous nonisolated context [#ActorIsolatedCall]
+300 |                     // The producer sorts loaded files; an early absent-file seed can
+301 |                     // retain default order. Compare the exact content canonically.
+302 |                     let expectedProfiles = OutputProfileStore.parse(OutputProfileStore.serialize(profiles))
+    |                                                               `- error: call to main actor-isolated static method 'parse' in a synchronous nonisolated context [#ActorIsolatedCall]
+303 |                         .sorted { $0.displayName.localizedStandardCompare($1.displayName) == .orderedAscending }
+304 |                     let actualProfiles = profilesStore.profiles
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Formatting/Targets/OutputProfileStore.swift:275:17: note: calls to static method 'parse' from outside of its actor context are implicitly asynchronous
+273 |     }
+274 | 
+275 |     static func parse(_ text: String) -> [OutputProfile] {
+    |                 `- note: calls to static method 'parse' from outside of its actor context are implicitly asynchronous
+276 |         var result: [OutputProfile] = []
+277 | 
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/UI/Settings/SettingsSheet.swift:302:88: error: call to main actor-isolated static method 'serialize' in a synchronous nonisolated context [#ActorIsolatedCall]
+300 |                     // The producer sorts loaded files; an early absent-file seed can
+301 |                     // retain default order. Compare the exact content canonically.
+302 |                     let expectedProfiles = OutputProfileStore.parse(OutputProfileStore.serialize(profiles))
+    |                                                                                        `- error: call to main actor-isolated static method 'serialize' in a synchronous nonisolated context [#ActorIsolatedCall]
+303 |                         .sorted { $0.displayName.localizedStandardCompare($1.displayName) == .orderedAscending }
+304 |                     let actualProfiles = profilesStore.profiles
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Formatting/Targets/OutputProfileStore.swift:363:17: note: calls to static method 'serialize' from outside of its actor context are implicitly asynchronous
+361 |     /// Separate from `save()` so `parse(serialize(x)) == x` can be checked without writing
+362 |     /// over the user's real table — which is what `--selftest-formatting` does.
+363 |     static func serialize(_ profiles: [OutputProfile]) -> String {
+    |                 `- note: calls to static method 'serialize' from outside of its actor context are implicitly asynchronous
+364 |         // Pad the first three columns so the file stays a readable table by hand. Cheap, and
+365 |         // it is the difference between a file someone will edit and one they won't. The
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/UI/Settings/SettingsSheet.swift:304:56: error: main actor-isolated property 'profiles' can not be referenced from a nonisolated context
+302 |                     let expectedProfiles = OutputProfileStore.parse(OutputProfileStore.serialize(profiles))
+303 |                         .sorted { $0.displayName.localizedStandardCompare($1.displayName) == .orderedAscending }
+304 |                     let actualProfiles = profilesStore.profiles
+    |                                                        `- error: main actor-isolated property 'profiles' can not be referenced from a nonisolated context
+305 |                         .sorted { $0.displayName.localizedStandardCompare($1.displayName) == .orderedAscending }
+306 |                     guard effects.isEmpty,
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Formatting/Targets/OutputProfileStore.swift:45:22: note: property declared here
+ 43 |     static let shared = OutputProfileStore()
+ 44 | 
+ 45 |     private(set) var profiles: [OutputProfile] = []
+    |                      `- note: property declared here
+ 46 | 
+ 47 |     /// The app that was frontmost when recording started. Nil until something calls
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/UI/Settings/SettingsSheet.swift:310:49: error: main actor-isolated property 'servers' can not be referenced from a nonisolated context
+308 |                           constructorEffects.isEmpty,
+309 |                           actualProfiles == expectedProfiles,
+310 |                           MCPClientStore.shared.servers.isEmpty,
+    |                                                 `- error: main actor-isolated property 'servers' can not be referenced from a nonisolated context
+311 |                           IndexedFoldersStore.shared.folders.isEmpty,
+312 |                           !IndexedFoldersStore.shared.isEnabled,
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Integrations/MCP/MCPClient.swift:81:22: note: property declared here
+ 79 |     static let shared = MCPClientStore()
+ 80 | 
+ 81 |     private(set) var servers: [MCPServerConfig] = []
+    |                      `- note: property declared here
+ 82 |     private var discovered: [String: (server: MCPServerConfig, tool: AgentTool)] = [:]
+ 83 |     private var sessions: [String: MCPSession] = [:]
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/UI/Settings/SettingsSheet.swift:310:42: error: main actor-isolated static property 'shared' can not be referenced from a nonisolated context
+308 |                           constructorEffects.isEmpty,
+309 |                           actualProfiles == expectedProfiles,
+310 |                           MCPClientStore.shared.servers.isEmpty,
+    |                                          `- error: main actor-isolated static property 'shared' can not be referenced from a nonisolated context
+311 |                           IndexedFoldersStore.shared.folders.isEmpty,
+312 |                           !IndexedFoldersStore.shared.isEnabled,
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Integrations/MCP/MCPClient.swift:79:16: note: static property declared here
+ 77 | @MainActor
+ 78 | final class MCPClientStore {
+ 79 |     static let shared = MCPClientStore()
+    |                `- note: static property declared here
+ 80 | 
+ 81 |     private(set) var servers: [MCPServerConfig] = []
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/UI/Settings/SettingsSheet.swift:311:54: error: main actor-isolated property 'folders' can not be referenced from a nonisolated context
+309 |                           actualProfiles == expectedProfiles,
+310 |                           MCPClientStore.shared.servers.isEmpty,
+311 |                           IndexedFoldersStore.shared.folders.isEmpty,
+    |                                                      `- error: main actor-isolated property 'folders' can not be referenced from a nonisolated context
+312 |                           !IndexedFoldersStore.shared.isEnabled,
+313 |                           !IndexedFoldersStore.shared.cloudConsent,
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Knowledge/Files/IndexedFoldersStore.swift:27:22: note: property declared here
+ 25 | 
+ 26 |     /// The folders, in the order they were added, deduplicated by standardised path.
+ 27 |     private(set) var folders: [URL] = []
+    |                      `- note: property declared here
+ 28 | 
+ 29 |     /// Desktop, Documents and Downloads — the three the onboarding sheet and Settings offer
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/UI/Settings/SettingsSheet.swift:311:47: error: main actor-isolated static property 'shared' can not be referenced from a nonisolated context
+309 |                           actualProfiles == expectedProfiles,
+310 |                           MCPClientStore.shared.servers.isEmpty,
+311 |                           IndexedFoldersStore.shared.folders.isEmpty,
+    |                                               `- error: main actor-isolated static property 'shared' can not be referenced from a nonisolated context
+312 |                           !IndexedFoldersStore.shared.isEnabled,
+313 |                           !IndexedFoldersStore.shared.cloudConsent,
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Knowledge/Files/IndexedFoldersStore.swift:20:16: note: static property declared here
+ 18 | @Observable
+ 19 | final class IndexedFoldersStore {
+ 20 |     static let shared = IndexedFoldersStore()
+    |                `- note: static property declared here
+ 21 | 
+ 22 |     static let fileName = "indexed-folders.json"
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/UI/Settings/SettingsSheet.swift:312:55: error: main actor-isolated property 'isEnabled' can not be referenced from a nonisolated context
+310 |                           MCPClientStore.shared.servers.isEmpty,
+311 |                           IndexedFoldersStore.shared.folders.isEmpty,
+312 |                           !IndexedFoldersStore.shared.isEnabled,
+    |                                                       `- error: main actor-isolated property 'isEnabled' can not be referenced from a nonisolated context
+313 |                           !IndexedFoldersStore.shared.cloudConsent,
+314 |                           RunStore.shared.runs.map(\.id) == runs.map(\.id),
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Knowledge/Files/IndexedFoldersStore.swift:48:9: note: property declared here
+ 46 | 
+ 47 |     /// The master switch. Off by default: nothing on the Mac is looked at until someone asks.
+ 48 |     var isEnabled: Bool {
+    |         `- note: property declared here
+ 49 |         didSet {
+ 50 |             guard isEnabled != oldValue else { return }
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/UI/Settings/SettingsSheet.swift:312:48: error: main actor-isolated static property 'shared' can not be referenced from a nonisolated context
+310 |                           MCPClientStore.shared.servers.isEmpty,
+311 |                           IndexedFoldersStore.shared.folders.isEmpty,
+312 |                           !IndexedFoldersStore.shared.isEnabled,
+    |                                                `- error: main actor-isolated static property 'shared' can not be referenced from a nonisolated context
+313 |                           !IndexedFoldersStore.shared.cloudConsent,
+314 |                           RunStore.shared.runs.map(\.id) == runs.map(\.id),
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Knowledge/Files/IndexedFoldersStore.swift:20:16: note: static property declared here
+ 18 | @Observable
+ 19 | final class IndexedFoldersStore {
+ 20 |     static let shared = IndexedFoldersStore()
+    |                `- note: static property declared here
+ 21 | 
+ 22 |     static let fileName = "indexed-folders.json"
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/UI/Settings/SettingsSheet.swift:313:55: error: main actor-isolated property 'cloudConsent' can not be referenced from a nonisolated context
+311 |                           IndexedFoldersStore.shared.folders.isEmpty,
+312 |                           !IndexedFoldersStore.shared.isEnabled,
+313 |                           !IndexedFoldersStore.shared.cloudConsent,
+    |                                                       `- error: main actor-isolated property 'cloudConsent' can not be referenced from a nonisolated context
+314 |                           RunStore.shared.runs.map(\.id) == runs.map(\.id),
+315 |                           RunStore.shared.runs.map(\.text) == runs.map(\.text) else {
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Knowledge/Files/IndexedFoldersStore.swift:76:9: note: property declared here
+ 74 |     /// they are working on this week. `FileIndexScope` is what reads this; when it says no, the
+ 75 |     /// prompt carries no folder sentence and the two tools decline.
+ 76 |     var cloudConsent: Bool {
+    |         `- note: property declared here
+ 77 |         didSet {
+ 78 |             guard cloudConsent != oldValue else { return }
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/UI/Settings/SettingsSheet.swift:313:48: error: main actor-isolated static property 'shared' can not be referenced from a nonisolated context
+311 |                           IndexedFoldersStore.shared.folders.isEmpty,
+312 |                           !IndexedFoldersStore.shared.isEnabled,
+313 |                           !IndexedFoldersStore.shared.cloudConsent,
+    |                                                `- error: main actor-isolated static property 'shared' can not be referenced from a nonisolated context
+314 |                           RunStore.shared.runs.map(\.id) == runs.map(\.id),
+315 |                           RunStore.shared.runs.map(\.text) == runs.map(\.text) else {
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Knowledge/Files/IndexedFoldersStore.swift:20:16: note: static property declared here
+ 18 | @Observable
+ 19 | final class IndexedFoldersStore {
+ 20 |     static let shared = IndexedFoldersStore()
+    |                `- note: static property declared here
+ 21 | 
+ 22 |     static let fileName = "indexed-folders.json"
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/UI/Settings/SettingsSheet.swift:314:43: error: main actor-isolated property 'runs' can not be referenced from a nonisolated context
+312 |                           !IndexedFoldersStore.shared.isEnabled,
+313 |                           !IndexedFoldersStore.shared.cloudConsent,
+314 |                           RunStore.shared.runs.map(\.id) == runs.map(\.id),
+    |                                           `- error: main actor-isolated property 'runs' can not be referenced from a nonisolated context
+315 |                           RunStore.shared.runs.map(\.text) == runs.map(\.text) else {
+316 |                         // Static names only; never print a loaded row or a credential.
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Support/RunStore.swift:17:22: note: property declared here
+15 |     static let shared = RunStore()
+16 | 
+17 |     private(set) var runs: [DictationRun] = []
+   |                      `- note: property declared here
+18 | 
+19 |     /// How many times this store has re-read the file.
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/UI/Settings/SettingsSheet.swift:314:36: error: main actor-isolated static property 'shared' can not be referenced from a nonisolated context
+312 |                           !IndexedFoldersStore.shared.isEnabled,
+313 |                           !IndexedFoldersStore.shared.cloudConsent,
+314 |                           RunStore.shared.runs.map(\.id) == runs.map(\.id),
+    |                                    `- error: main actor-isolated static property 'shared' can not be referenced from a nonisolated context
+315 |                           RunStore.shared.runs.map(\.text) == runs.map(\.text) else {
+316 |                         // Static names only; never print a loaded row or a credential.
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Support/RunStore.swift:15:16: note: static property declared here
+13 | @Observable
+14 | final class RunStore {
+15 |     static let shared = RunStore()
+   |                `- note: static property declared here
+16 | 
+17 |     private(set) var runs: [DictationRun] = []
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/UI/Settings/SettingsSheet.swift:315:43: error: main actor-isolated property 'runs' can not be referenced from a nonisolated context
+313 |                           !IndexedFoldersStore.shared.cloudConsent,
+314 |                           RunStore.shared.runs.map(\.id) == runs.map(\.id),
+315 |                           RunStore.shared.runs.map(\.text) == runs.map(\.text) else {
+    |                                           `- error: main actor-isolated property 'runs' can not be referenced from a nonisolated context
+316 |                         // Static names only; never print a loaded row or a credential.
+317 |                         SelfTest.diagnostic("SETTINGS_SHEET_FIXTURE_FAILED: actual input consumer or formatting effects differ from fixture")
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Support/RunStore.swift:17:22: note: property declared here
+15 |     static let shared = RunStore()
+16 | 
+17 |     private(set) var runs: [DictationRun] = []
+   |                      `- note: property declared here
+18 | 
+19 |     /// How many times this store has re-read the file.
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/UI/Settings/SettingsSheet.swift:315:36: error: main actor-isolated static property 'shared' can not be referenced from a nonisolated context
+313 |                           !IndexedFoldersStore.shared.cloudConsent,
+314 |                           RunStore.shared.runs.map(\.id) == runs.map(\.id),
+315 |                           RunStore.shared.runs.map(\.text) == runs.map(\.text) else {
+    |                                    `- error: main actor-isolated static property 'shared' can not be referenced from a nonisolated context
+316 |                         // Static names only; never print a loaded row or a credential.
+317 |                         SelfTest.diagnostic("SETTINGS_SHEET_FIXTURE_FAILED: actual input consumer or formatting effects differ from fixture")
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Support/RunStore.swift:15:16: note: static property declared here
+13 | @Observable
+14 | final class RunStore {
+15 |     static let shared = RunStore()
+   |                `- note: static property declared here
+16 | 
+17 |     private(set) var runs: [DictationRun] = []
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/UI/Settings/SettingsSheet.swift:317:34: error: call to main actor-isolated static method 'diagnostic' in a synchronous nonisolated context [#ActorIsolatedCall]
+315 |                           RunStore.shared.runs.map(\.text) == runs.map(\.text) else {
+316 |                         // Static names only; never print a loaded row or a credential.
+317 |                         SelfTest.diagnostic("SETTINGS_SHEET_FIXTURE_FAILED: actual input consumer or formatting effects differ from fixture")
+    |                                  `- error: call to main actor-isolated static method 'diagnostic' in a synchronous nonisolated context [#ActorIsolatedCall]
+318 |                         return false
+319 |                     }
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/NextNotesApp.swift:129:28: note: calls to static method 'diagnostic' from outside of its actor context are implicitly asynchronous
+ 127 | 
+ 128 |     /// Preserve model/audio probe detail when LaunchServices has no stdout.
+ 129 |     @MainActor static func diagnostic(_ line: String) {
+     |                            `- note: calls to static method 'diagnostic' from outside of its actor context are implicitly asynchronous
+ 130 |         print(line)
+ 131 |         guard isRunning, let path = outputPath else { return }
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/UI/Settings/SettingsSheet.swift:320:90: warning: main actor-isolated static property 'identityDirectory' can not be referenced from a nonisolated context
+318 |                         return false
+319 |                     }
+320 |                     let pairing = RemoteIdentityStore(directory: IMessageSettingsSection.identityDirectory).configuration
+    |                                                                                          `- warning: main actor-isolated static property 'identityDirectory' can not be referenced from a nonisolated context
+321 |                     guard !pairing.isPaired, pairing.canaryUnreadable == 0 else {
+322 |                         SelfTest.diagnostic("SETTINGS_SHEET_FIXTURE_FAILED: pairing consumer differs from empty fixture")
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/UI/Settings/IMessageSettingsSection.swift:82:16: note: static property declared here
+ 80 |     }
+ 81 | 
+ 82 |     static var identityDirectory: URL {
+    |                `- note: static property declared here
+ 83 |         if SelfTest.requested == "--selftest-settings-sheet" {
+ 84 |             let root = SelfTest.checkedSettingsFixturePath(FileManager.default.temporaryDirectory
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/UI/Settings/SettingsSheet.swift:322:34: error: call to main actor-isolated static method 'diagnostic' in a synchronous nonisolated context [#ActorIsolatedCall]
+320 |                     let pairing = RemoteIdentityStore(directory: IMessageSettingsSection.identityDirectory).configuration
+321 |                     guard !pairing.isPaired, pairing.canaryUnreadable == 0 else {
+322 |                         SelfTest.diagnostic("SETTINGS_SHEET_FIXTURE_FAILED: pairing consumer differs from empty fixture")
+    |                                  `- error: call to main actor-isolated static method 'diagnostic' in a synchronous nonisolated context [#ActorIsolatedCall]
+323 |                         return false
+324 |                     }
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/NextNotesApp.swift:129:28: note: calls to static method 'diagnostic' from outside of its actor context are implicitly asynchronous
+ 127 | 
+ 128 |     /// Preserve model/audio probe detail when LaunchServices has no stdout.
+ 129 |     @MainActor static func diagnostic(_ line: String) {
+     |                            `- note: calls to static method 'diagnostic' from outside of its actor context are implicitly asynchronous
+ 130 |         print(line)
+ 131 |         guard isRunning, let path = outputPath else { return }
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/UI/Settings/SettingsSheet.swift:326:31: error: call to main actor-isolated local function 'same' in a synchronous nonisolated context [#ActorIsolatedCall]
+245 |             try FileManager.default.createDirectory(at: gws, withIntermediateDirectories: true)
+246 |             setenv("GOOGLE_WORKSPACE_CLI_CONFIG_DIR", gws.path, 1)
+247 |             func same(_ left: URL, _ right: URL) -> Bool {
+    |                  |- note: calls to local function 'same' from outside of its actor context are implicitly asynchronous
+    |                  `- note: main actor isolation inferred from enclosing context
+248 |                 left.standardizedFileURL.resolvingSymlinksInPath()
+249 |                     == right.standardizedFileURL.resolvingSymlinksInPath()
+    :
+324 |                     }
+325 |                     return RunLog.$directoryOverride.withValue(fixtureRoot.appendingPathComponent("ignored-override")) {
+326 |                         guard same(RunLog.directory, fixtureRoot) else { return false }
+    |                               `- error: call to main actor-isolated local function 'same' in a synchronous nonisolated context [#ActorIsolatedCall]
+327 |                         RunStore.shared.reload()
+328 |                         return RunStore.shared.runs.map(\.id) == runs.map(\.id)
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/UI/Settings/SettingsSheet.swift:326:43: error: main actor-isolated static property 'directory' can not be referenced from a nonisolated context
+324 |                     }
+325 |                     return RunLog.$directoryOverride.withValue(fixtureRoot.appendingPathComponent("ignored-override")) {
+326 |                         guard same(RunLog.directory, fixtureRoot) else { return false }
+    |                                           `- error: main actor-isolated static property 'directory' can not be referenced from a nonisolated context
+327 |                         RunStore.shared.reload()
+328 |                         return RunStore.shared.runs.map(\.id) == runs.map(\.id)
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Support/RunLog.swift:118:16: note: static property declared here
+116 |     @TaskLocal static var directoryOverride: URL?
+117 | 
+118 |     static var directory: URL {
+    |                `- note: static property declared here
+119 |         if SelfTest.requested == "--selftest-settings-sheet" {
+120 |             // SwiftUI callbacks need not inherit the render task's TaskLocal.
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/UI/Settings/SettingsSheet.swift:327:41: error: call to main actor-isolated instance method 'reload()' in a synchronous nonisolated context [#ActorIsolatedCall]
+325 |                     return RunLog.$directoryOverride.withValue(fixtureRoot.appendingPathComponent("ignored-override")) {
+326 |                         guard same(RunLog.directory, fixtureRoot) else { return false }
+327 |                         RunStore.shared.reload()
+    |                                         `- error: call to main actor-isolated instance method 'reload()' in a synchronous nonisolated context [#ActorIsolatedCall]
+328 |                         return RunStore.shared.runs.map(\.id) == runs.map(\.id)
+329 |                             && RunStore.shared.runs.map(\.text) == runs.map(\.text)
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Support/RunStore.swift:29:10: note: calls to instance method 'reload()' from outside of its actor context are implicitly asynchronous
+27 |     private init() { reload() }
+28 | 
+29 |     func reload() {
+   |          `- note: calls to instance method 'reload()' from outside of its actor context are implicitly asynchronous
+30 |         reloadCount += 1
+31 |         runs = RunLog.load()
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/UI/Settings/SettingsSheet.swift:327:34: error: main actor-isolated static property 'shared' can not be referenced from a nonisolated context
+325 |                     return RunLog.$directoryOverride.withValue(fixtureRoot.appendingPathComponent("ignored-override")) {
+326 |                         guard same(RunLog.directory, fixtureRoot) else { return false }
+327 |                         RunStore.shared.reload()
+    |                                  `- error: main actor-isolated static property 'shared' can not be referenced from a nonisolated context
+328 |                         return RunStore.shared.runs.map(\.id) == runs.map(\.id)
+329 |                             && RunStore.shared.runs.map(\.text) == runs.map(\.text)
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Support/RunStore.swift:15:16: note: static property declared here
+13 | @Observable
+14 | final class RunStore {
+15 |     static let shared = RunStore()
+   |                `- note: static property declared here
+16 | 
+17 |     private(set) var runs: [DictationRun] = []
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/UI/Settings/SettingsSheet.swift:328:48: error: main actor-isolated property 'runs' can not be referenced from a nonisolated context
+326 |                         guard same(RunLog.directory, fixtureRoot) else { return false }
+327 |                         RunStore.shared.reload()
+328 |                         return RunStore.shared.runs.map(\.id) == runs.map(\.id)
+    |                                                `- error: main actor-isolated property 'runs' can not be referenced from a nonisolated context
+329 |                             && RunStore.shared.runs.map(\.text) == runs.map(\.text)
+330 |                     }
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Support/RunStore.swift:17:22: note: property declared here
+15 |     static let shared = RunStore()
+16 | 
+17 |     private(set) var runs: [DictationRun] = []
+   |                      `- note: property declared here
+18 | 
+19 |     /// How many times this store has re-read the file.
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/UI/Settings/SettingsSheet.swift:328:41: error: main actor-isolated static property 'shared' can not be referenced from a nonisolated context
+326 |                         guard same(RunLog.directory, fixtureRoot) else { return false }
+327 |                         RunStore.shared.reload()
+328 |                         return RunStore.shared.runs.map(\.id) == runs.map(\.id)
+    |                                         `- error: main actor-isolated static property 'shared' can not be referenced from a nonisolated context
+329 |                             && RunStore.shared.runs.map(\.text) == runs.map(\.text)
+330 |                     }
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Support/RunStore.swift:15:16: note: static property declared here
+13 | @Observable
+14 | final class RunStore {
+15 |     static let shared = RunStore()
+   |                `- note: static property declared here
+16 | 
+17 |     private(set) var runs: [DictationRun] = []
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/UI/Settings/SettingsSheet.swift:329:48: error: main actor-isolated property 'runs' can not be referenced from a nonisolated autoclosure
+327 |                         RunStore.shared.reload()
+328 |                         return RunStore.shared.runs.map(\.id) == runs.map(\.id)
+329 |                             && RunStore.shared.runs.map(\.text) == runs.map(\.text)
+    |                                                `- error: main actor-isolated property 'runs' can not be referenced from a nonisolated autoclosure
+330 |                     }
+331 |                 }
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Support/RunStore.swift:17:22: note: property declared here
+15 |     static let shared = RunStore()
+16 | 
+17 |     private(set) var runs: [DictationRun] = []
+   |                      `- note: property declared here
+18 | 
+19 |     /// How many times this store has re-read the file.
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/UI/Settings/SettingsSheet.swift:329:41: error: main actor-isolated static property 'shared' can not be referenced from a nonisolated autoclosure
+327 |                         RunStore.shared.reload()
+328 |                         return RunStore.shared.runs.map(\.id) == runs.map(\.id)
+329 |                             && RunStore.shared.runs.map(\.text) == runs.map(\.text)
+    |                                         `- error: main actor-isolated static property 'shared' can not be referenced from a nonisolated autoclosure
+330 |                     }
+331 |                 }
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Support/RunStore.swift:15:16: note: static property declared here
+13 | @Observable
+14 | final class RunStore {
+15 |     static let shared = RunStore()
+   |                `- note: static property declared here
+16 | 
+17 |     private(set) var runs: [DictationRun] = []
+
+[#ActorIsolatedCall]: <https://docs.swift.org/compiler/documentation/diagnostics/actor-isolated-call>
+Failed frontend command:
+/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swift-frontend -frontend -c -filelist /Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/out/Intermediates.noindex/NextNotes.build/Debug/NextNotes-p.build/Objects-normal/arm64/sources-1 -primary-file /Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/UI/Settings/KnowledgeSection.swift -primary-file /Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/UI/Settings/MessagesAccessSection.swift -primary-file /Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/UI/Settings/ModelsSettingsTab.swift -primary-file /Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/UI/Settings/SettingsSheet.swift -supplementary-output-file-map /Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/out/Intermediates.noindex/NextNotes.build/Debug/NextNotes-p.build/Objects-normal/arm64/supplementaryOutputs-8 -target arm64-apple-macos26.0 -module-can-import-version FoundationModels 2.0.68.1 0 -module-can-import-version ScreenCaptureKit 740.62.1 1.0.0 -disable-cross-import-overlay-search -swift-module-cross-import Darwin /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/Darwin.swiftcrossimport/xlocale.swiftoverlay -swift-module-cross-import FoundationModels /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk/System/Library/Frameworks/FoundationModels.framework/Modules/FoundationModels.swiftcrossimport/AppKit.swiftoverlay -swift-module-cross-import FoundationModels /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk/System/Library/Frameworks/FoundationModels.framework/Modules/FoundationModels.swiftcrossimport/SwiftUI.swiftoverlay -swift-module-cross-import LocalAuthentication /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks/LocalAuthentication.framework/Modules/LocalAuthentication.swiftcrossimport/SwiftUI.swiftoverlay -swift-module-cross-import LocalAuthentication /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk/System/Library/Frameworks/LocalAuthentication.framework/Modules/LocalAuthentication.swiftcrossimport/SwiftUI.swiftoverlay -swift-module-cross-import ScreenCaptureKit /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks/ScreenCaptureKit.framework/Modules/ScreenCaptureKit.swiftcrossimport/SwiftUI.swiftoverlay -swift-module-cross-import ScreenCaptureKit /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk/System/Library/Frameworks/ScreenCaptureKit.framework/Modules/ScreenCaptureKit.swiftcrossimport/SwiftUI.swiftoverlay -swift-module-cross-import UserNotifications /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks/UserNotifications.framework/Modules/UserNotifications.swiftcrossimport/AppIntents.swiftoverlay -swift-module-cross-import WebKit /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Cryptexes/OS/System/Library/Frameworks/WebKit.framework/Modules/WebKit.swiftcrossimport/SwiftUI.swiftoverlay -swift-module-cross-import WebKit /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk/System/Library/Frameworks/WebKit.framework/Modules/WebKit.swiftcrossimport/SwiftUI.swiftoverlay -load-resolved-plugin /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib/swift/host/plugins/libFoundationMacros.dylib\#/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/bin/swift-plugin-server\#FoundationMacros -load-resolved-plugin /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib/swift/host/plugins/libFoundationModelsMacros.dylib\#/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/bin/swift-plugin-server\#FoundationModelsMacros -load-resolved-plugin /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib/swift/host/plugins/libObservationMacros.dylib\#/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/bin/swift-plugin-server\#ObservationMacros -load-resolved-plugin /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib/swift/host/plugins/libPreviewsMacros.dylib\#/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/bin/swift-plugin-server\#PreviewsMacros -load-resolved-plugin /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib/swift/host/plugins/libSwiftMacros.dylib\#/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/bin/swift-plugin-server\#SwiftMacros -load-resolved-plugin /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib/swift/host/plugins/libSwiftUIMacros.dylib\#/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/bin/swift-plugin-server\#SwiftUIMacros -disable-implicit-swift-modules -Xcc -fno-implicit-modules -Xcc -fno-implicit-module-maps -explicit-swift-module-map-file /Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/out/Intermediates.noindex/NextNotes.build/Debug/NextNotes-p.build/Objects-normal/arm64/NextNotes-dependencies-1.json -Xllvm -aarch64-use-tbi -enable-objc-interop -stack-check -sdk /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk -I /Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/out/Products/Debug -Isystem /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib -F /Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/out/Products/Debug/PackageFrameworks -F /Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/out/Products/Debug -F /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks -module-cache-path /Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/out/Intermediates.noindex/SwiftExplicitPrecompiledModules -no-color-diagnostics -Xcc -fno-color-diagnostics -enable-testing -g -debug-info-format\=dwarf -dwarf-version\=5 -swift-version 6 -Onone -D SWIFT_PACKAGE -D DEBUG -D Xcode -serialize-debugging-options -enable-experimental-feature DebugDescriptionMacro -empty-abi-descriptor -validate-clang-modules-once -clang-build-session-file /Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/out/ModuleCache.noindex/Session.modulevalidation -Xcc -working-directory -Xcc /Users/sergekadjo/Documents/Claude/Projects -enable-anonymous-context-mangled-names -file-compilation-dir /Users/sergekadjo/Documents/Claude/Projects -Xcc -fmodule-map-file\=/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/checkouts/FluidAudio/Sources/MachTaskSelfWrapper/include/module.modulemap -Xcc -fmodule-map-file\=/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/checkouts/FluidAudio/Sources/FastClusterWrapper/include/module.modulemap -Xcc -fmodule-map-file\=/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/SpeexEcho/include/module.modulemap -Xcc -fmodule-map-file\=/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/out/Intermediates.noindex/GeneratedModuleMaps/SherpaOnnxKWS.modulemap -Xcc -D_LIBCPP_HARDENING_MODE\=_LIBCPP_HARDENING_MODE_DEBUG -Xcc -ivfsstatcache -Xcc /Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/out/SDKStatCaches.noindex/macosx27.0-26A425-a0facfad118c1a7a18f0aad9463f65497231f6df4def33e022ae2eb8f782df1a.sdkstatcache -Xcc -fmodules-prune-interval\=86400 -Xcc -fmodules-prune-after\=345600 -Xcc -I/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/checkouts/FluidAudio/Sources/MachTaskSelfWrapper/include -Xcc -I/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/checkouts/FluidAudio/Sources/FastClusterWrapper/include -Xcc -I/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/SpeexEcho/include -Xcc -I/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/SherpaOnnxKWS/include -Xcc -I/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/out/Products/Debug/include -Xcc -I/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/out/Intermediates.noindex/NextNotes.build/Debug/NextNotes-p.build/DerivedSources-normal/arm64 -Xcc -I/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/out/Intermediates.noindex/NextNotes.build/Debug/NextNotes-p.build/DerivedSources/arm64 -Xcc -I/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/out/Intermediates.noindex/NextNotes.build/Debug/NextNotes-p.build/DerivedSources -Xcc -DSWIFT_PACKAGE -Xcc -DDEBUG\=1 -no-auto-bridging-header-chaining -module-name NextNotes -package-name speechify -const-gather-protocols-file /Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/out/Intermediates.noindex/NextNotes.build/Debug/NextNotes-p.build/Objects-normal/arm64/NextNotes_const_extract_protocols.json -disable-clang-spi -clang-target arm64-apple-macos27.0 -target-sdk-version 27.0 -target-sdk-name macosx27.0 -in-process-plugin-server-path /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/libSwiftInProcPluginServer.dylib -parse-as-library -o /Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/out/Intermediates.noindex/NextNotes.build/Debug/NextNotes-p.build/Objects-normal/arm64/KnowledgeSection.o -o /Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/out/Intermediates.noindex/NextNotes.build/Debug/NextNotes-p.build/Objects-normal/arm64/MessagesAccessSection.o -o /Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/out/Intermediates.noindex/NextNotes.build/Debug/NextNotes-p.build/Objects-normal/arm64/ModelsSettingsTab.o -o /Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/out/Intermediates.noindex/NextNotes.build/Debug/NextNotes-p.build/Objects-normal/arm64/SettingsSheet.o -debug-module-path /Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/out/Intermediates.noindex/NextNotes.build/Debug/NextNotes-p.build/Objects-normal/arm64/NextNotes.swiftmodule -index-unit-output-path /NextNotes.build/Debug/NextNotes-p.build/Objects-normal/arm64/KnowledgeSection.o -index-unit-output-path /NextNotes.build/Debug/NextNotes-p.build/Objects-normal/arm64/MessagesAccessSection.o -index-unit-output-path /NextNotes.build/Debug/NextNotes-p.build/Objects-normal/arm64/ModelsSettingsTab.o -index-unit-output-path /NextNotes.build/Debug/NextNotes-p.build/Objects-normal/arm64/SettingsSheet.o -index-store-path /Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/out -index-system-modules
+error: Build failed
+make: *** [build] Error 1

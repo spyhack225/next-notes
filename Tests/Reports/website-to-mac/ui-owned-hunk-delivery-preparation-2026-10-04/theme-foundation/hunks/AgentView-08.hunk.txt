@@ -1,0 +1,7 @@
+--- a/Sources/NextNotes/UI/Agent/AgentView.swift
++++ b/Sources/NextNotes/UI/Agent/AgentView.swift
+@@ -250,2 +242,2 @@ struct AgentView: View {
+-                            Text("What can I help with?")
+-                                .font(DS.Font.title)
++                            ThemeHeadline(lead: "What can I", accent: "help with?", level: .pane)
++                                .fixedSize(horizontal: false, vertical: true)

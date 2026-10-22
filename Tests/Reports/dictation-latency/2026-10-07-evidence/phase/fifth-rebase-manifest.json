@@ -1,0 +1,22 @@
+{
+  "status": "CACHE ONLY UNAPPLIED UNCOMPILED, unchanged actual native original phase baseline must run first",
+  "rebasedCore": "preserves exact fifth raw-output diagnostic and all mixed Core contents; two targeted correlation hunks only",
+  "paths": {
+    "Sources/NextNotes/Formatting/LLM/NotesModelRuntime.swift": {
+      "beforeSHA256": "210a4ae7ac7e975219fdbe1da038b3caa7a88a3895b05c74c81cd46c9f13f334",
+      "candidateSHA256": "9d872a3db9928018875c0e1141a70baad6d1df25e6a628ac64b08cf4d3095607"
+    },
+    "Sources/NextNotes/Core/Compute/ComputeScheduler.swift": {
+      "beforeSHA256": "ba4edfbc487b0a6a19bf3e2ee9b2fe80f26a56a7eaffd14837c049b2d878bfd0",
+      "candidateSHA256": "029d064485194aaa262b22666454ff289bd428516abfbc86b6cbeb34cfb2e09d"
+    },
+    "Sources/NextNotes/Core/DictationController.swift": {
+      "beforeSHA256": "32f9b4ea06d960a9734af2e950d4126d74b8dbe3c21008fcc7a7e4cd088358e1",
+      "candidateSHA256": "defe71111c0a1ab8e447aec899abb0ec0a125f5226a1221e416f9e222225a89a"
+    }
+  },
+  "sourceWrites": false,
+  "modelPassAdded": false,
+  "queuesStoresSavesAdded": false,
+  "ownerWarmStallFixed": false
+}

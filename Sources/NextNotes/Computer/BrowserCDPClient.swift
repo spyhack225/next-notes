@@ -169,6 +169,13 @@ enum BrowserCDPClient {
         switch tool.name {
         case "navigate", "download":
             let url = arguments["url"] ?? ""
+            // Target resolution above awaits live browser answers. A person can take
+            // the Mac inside that inspection, so recheck at this final command
+            // boundary before navigating — the same rule `act` keeps before its own
+            // mutating call. Reads below stay exempt; a navigation changes the tab.
+            guard await HumanInputWatch.mayPostAnotherEvent() else {
+                return await HumanInputWatch.pauseResult()
+            }
             let reply = try await command(
                 "Page.navigate",
                 params: ["url": url],

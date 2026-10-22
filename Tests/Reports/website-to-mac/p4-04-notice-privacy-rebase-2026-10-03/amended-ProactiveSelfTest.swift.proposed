@@ -1,0 +1,321 @@
+import Foundation
+import UserNotifications
+
+/// Actual existing publisher -> brief assembler -> new host -> Island/session/request.
+/// No notification center, model, microphone, owner conversation or calendar account.
+@MainActor
+enum ProactiveSelfTest {
+    private final class Environment: ScheduleEnvironment {
+        var isUserPresent = true
+        var isRecording = false
+        var isDictating = false
+        var isCallActive = false
+        var isAgentBusy = false
+    }
+    private final class Interaction {
+        var pending: (IslandProposal, Int)?
+    }
+    private final class Sink: ProactiveSink {
+        let interaction: Interaction
+        var canShowHeadsUp: Bool { island.canShowHeadsUp }
+        let island: IslandState
+        let session: AgentSession
+        var cards: [IslandHeadsUp] = []
+        var requests: [UNNotificationRequest] = []
+        var recorded: [String] = []
+        init(store: MeetingStore, interaction: Interaction = Interaction()) {
+            self.interaction = interaction
+            island = IslandState(meetings: MeetingController(store: store),
+                notes: NotesService(store: store), diarization: DiarizationService(store: store),
+                pendingApproval: { interaction.pending })
+            // Pause the EXISTING notice expiry before any push. No countdown Task is
+            // created and no clear/refresh reads unrelated live singleton owners.
+            island.isHovered = true
+            session = AgentSession(fileURL: nil, beginMemorySession: {})
+        }
+        func show(_ card: IslandHeadsUp) { cards.append(card); island.showHeadsUp(card) }
+        func notify(_ card: IslandHeadsUp) async throws { requests.append(Notifications.headsUpRequest(card)) }
+        func record(_ text: String, kind: ProactiveKind) {
+            recorded.append(text); session.recordAssistant(text, contextKind: "proactive")
+        }
+    }
+    static func run() async -> String {
+        guard SelfTest.isRunning, CommandLine.arguments.contains("--selftest-proactive") else {
+            return "PROACTIVE_INVALID: exact diagnostic entry required"
+        }
+        let root = FileManager.default.temporaryDirectory.standardizedFileURL.resolvingSymlinksInPath()
+            .appendingPathComponent("NextNotesProactiveTest-" + UUID().uuidString, isDirectory: true)
+        let meetingRoot = FileManager.default.temporaryDirectory.standardizedFileURL.resolvingSymlinksInPath()
+            .appendingPathComponent("NextNotesMeetingResumeTest-" + UUID().uuidString, isDirectory: true)
+        var count = 0; var failures: [String] = []
+        func check(_ ok: Bool, _ label: String) { count += 1; if !ok { failures.append(label) } }
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let zone = TimeZone(secondsFromGMT: 0)!
+        let standard = ScheduleSettingsSnapshot(enabled: true, quietStart: nil, quietEnd: nil, speech: .never)
+        do {
+            try FileManager.default.createDirectory(at: root, withIntermediateDirectories: false)
+            let store = try MeetingStore.isolated(at: meetingRoot)
+            defer { try? FileManager.default.removeItem(at: root); try? FileManager.default.removeItem(at: meetingRoot) }
+            for mode in ["accepted", "lateEligible", "future", "late", "solo", "empty", "quiet", "off", "dictating", "recording", "test", "dailyCap", "closedDuringAssembly", "listening", "pending", "listeningDuringAssembly", "pendingDuringAssembly"] {
+                let directory = root.appendingPathComponent(mode, isDirectory: true)
+                let ledger = ProactiveLedger(directory: directory)
+                let sink = Sink(store: store)
+                let environment = Environment()
+                let ownPending = IslandProposal(id: "owned-approval", title: "Owned approval", detail: "Owned detail", meetingID: nil)
+                func occupyInteraction() {
+                    if mode.hasPrefix("listening") { sink.island.showAgentListening(transcript: "OWNED_LISTENING") }
+                    else if mode.hasPrefix("pending") {
+                        sink.interaction.pending = (ownPending, 1)
+                        sink.island.apply(.pendingApproval(ownPending, waiting: 1))
+                    }
+                }
+                if ["listening", "pending"].contains(mode) { occupyInteraction() }
+                var settings = ProactiveSettingsSnapshot(meetingBriefs: mode == "off" ? "off" : "show", schedule: standard, zone: zone)
+                if mode == "quiet" {
+                    var calendar = Calendar(identifier: .gregorian); calendar.timeZone = zone
+                    let hour = calendar.component(.hour, from: now)
+                    settings.schedule.quietStart = ScheduleLocalTime(hour: hour, minute: 0)
+                    settings.schedule.quietEnd = ScheduleLocalTime(hour: (hour + 1) % 24, minute: 0)
+                }
+                environment.isRecording = mode == "recording"
+                environment.isDictating = mode == "dictating"
+                var reads = 0; var fileReads = 0
+                var query = ""; var reader: LLMProviderID?
+                var onFiles: (() -> Void)?
+                var assembler = MeetingNotesContextAssembler()
+                assembler.memoryEnabled = { mode != "empty" }
+                assembler.recallMemory = { value, owner in
+                    reads += 1; query = value; reader = owner
+                    return ([MemoryEntry(kind: .profile, text: "Ana prefers a short agenda.", source: .manual,
+                        createdAt: now)], [])
+                }
+                assembler.knowledge = { nil }; assembler.decisionThreads = { [] }
+                assembler.graphCloudConsent = { false }; assembler.relatedNodes = { _ in [] }
+                assembler.files = { fileReads += 1; onFiles?(); return EmptyFileRetrieval() }
+                assembler.filesCloudConsent = { false }; assembler.now = { now }
+                let events = AgentTriggerEvents()
+                var opened: [String] = []; var dismissed: [String] = []; var disabled = 0
+                let service = ProactiveService(sink: sink, ledger: ledger, environment: environment,
+                    settings: { settings }, assembler: assembler, events: events, now: { now },
+                    openMeeting: { opened.append($0) }, dismiss: { dismissed.append($0) }, turnOff: { disabled += 1 })
+                if mode == "closedDuringAssembly" { onFiles = { [weak service] in service?.beginTermination() } }
+                if ["listeningDuringAssembly", "pendingDuringAssembly"].contains(mode) { onFiles = { occupyInteraction() } }
+                defer { service.beginTermination(); onFiles = nil }
+                if mode == "dailyCap" {
+                    for n in 0..<8 { guard ledger.record("seed-\(n)", kind: .meetingBrief, outcome: "shown", at: now) else { throw CocoaError(.fileWriteUnknown) } }
+                }
+                let lead: TimeInterval = mode == "future" ? 360 : (mode == "late" ? 60 : (mode == "lateEligible" ? 90 : 240))
+                let event = MeetingEvent(id: mode, providerID: .fake, title: "Pricing\nreview",
+                    start: now.addingTimeInterval(lead), end: now.addingTimeInterval(lead + 600),
+                    attendees: mode == "solo" ? [] : ["Ana Ruiz"], isOrganizerOrSelfAccepted: true,
+                    conferenceURL: mode == "empty" ? nil : URL(string: "https://example.invalid/meeting"),
+                    calendarName: "Owned fixture", isAllDay: false)
+                let occurrence = ScheduleTriggerOccurrence.meetingStarting(event, at: now)
+                check(occurrence.key == "starting:" + event.identityKey, "C01 \(mode) actual occurrence identity")
+                check(!occurrence.context(zone: zone).contains("https://example.invalid"), "C02 \(mode) URL is not an instruction prompt")
+                service.start(); service.start()
+                let started = DispatchTime.now().uptimeNanoseconds
+                if mode == "test" {
+                    var synthetic = occurrence; synthetic.isTest = true; events.publish([synthetic])
+                } else { events.meetingsUpcoming([event], now: now) }
+                await service.finishTermination()
+                let elapsed = DispatchTime.now().uptimeNanoseconds - started
+                print("TRACE proactive mode=\(mode) actualPublisherHostNanoseconds=\(elapsed) cards=\(sink.cards.count) requests=\(sink.requests.count)")
+                let expected = ["accepted", "lateEligible", "recording"].contains(mode)
+                check(sink.cards.count == (expected ? 1 : 0), "F01 \(mode) exact actual host delivery")
+                check(sink.requests.count == sink.cards.count && sink.recorded.count == sink.cards.count,
+                    "C03 \(mode) request/conversation accompany actual card")
+                if expected, let card = sink.cards.first {
+                    check(card.title.count <= 140 && card.lines.count <= 2 && card.lines.allSatisfy { $0.count <= 140 && !$0.contains("\n") }
+                        && !card.title.contains("\n"), "F14 \(mode) actual bounded data-only card")
+                    check(query == "Pricing\nreview Ana Ruiz" && reader == .appLLM && reads == 1 && fileReads == 1,
+                        "F15 \(mode) actual brief query and reader no duplicate assembly")
+                    check(card.lines.contains(where: { $0.contains("Ana prefers a short agenda.") }) && card.offersTurnOff,
+                        "F02 \(mode) retrieved fact and first opt-out reach consumer")
+                    check(sink.island.kind == .agentHeadsUp(card) && sink.island.cardTitle == card.title
+                        && sink.island.avatarState == .done, "F16 \(mode) actual Island state consumes exact card")
+                    let request = sink.requests[0]
+                    check(request.identifier == "headsup-" + card.id && request.content.categoryIdentifier == Notifications.Category.agentHeadsUp
+                        && request.content.title == card.title && request.content.body == card.lines.joined(separator: "\n")
+                        && request.content.userInfo[Notifications.UserInfoKey.headsUpID] as? String == card.id,
+                        "F17 \(mode) actual native request content and stable identity")
+                    check(sink.session.messages.count == 1 && sink.session.messages[0].text == card.text
+                        && sink.session.messages[0].contextKind == "proactive" && sink.session.fileURL == nil,
+                        "F18 \(mode) exact isolated conversation context")
+                    var clicked: IslandHeadsUp.Action?
+                    sink.island.onHeadsUpAction = { clicked = $0 }
+                    sink.island.answerHeadsUp(.notNow(card.id))
+                    check(clicked == .notNow(card.id), "F19 \(mode) actual Island callback is data not an automatic effect")
+                    service.handleAction(.openMeeting(card.id)); service.handleAction(.notNow(card.id)); service.handleAction(.turnOff(.meetingBrief))
+                    check(opened == [card.id] && dismissed == [card.id, card.id] && disabled == 1,
+                        "F20 \(mode) one explicit action per actual callback")
+                } else if expected {
+                    // The missing host is a feature RED, not invalid fixture input. Keep
+                    // these same eight consumer predicates counted before/after repair.
+                    for label in ["F14", "F15", "F02", "F16", "F17", "F18", "F19", "F20"] {
+                        check(false, "\(label) \(mode) actual delivered consumer missing")
+                    }
+                }
+                if expected {
+                    events.meetingsUpcoming([event], now: now); await service.finishTermination()
+                    check(sink.cards.count == 1 && reads == 1 && ProactiveLedger(directory: directory).hasHandled(occurrence.key),
+                        "F03 \(mode) durable once-per-key no repeated assembler")
+                } else {
+                    let shouldRead = ["empty", "closedDuringAssembly", "listeningDuringAssembly", "pendingDuringAssembly"].contains(mode)
+                    check(reads == (shouldRead && mode != "empty" ? 1 : 0), "\(mode == "closedDuringAssembly" || mode.hasSuffix("DuringAssembly") ? "F21" : "C11") \(mode) eligibility precedes memory read")
+                }
+                if mode.hasPrefix("listening") || mode.hasPrefix("pending") {
+                    check(!ledger.hasHandled(occurrence.key), "C19 \(mode) interaction defer keeps occurrence eligible")
+                    let preserved: Bool
+                    if mode.hasPrefix("listening") {
+                        preserved = sink.island.kind == .agentListening(transcript: "OWNED_LISTENING", level: 0)
+                    } else { preserved = sink.interaction.pending?.0 == ownPending
+                        && sink.island.kind == .pendingApproval(ownPending, waiting: 1) }
+                    // During-assembly original missing-host never reaches the occupation;
+                    // that is a feature prerequisite, not a guaranteed-original input control.
+                    check(preserved, "\(mode.hasSuffix("DuringAssembly") ? "F23" : "C20") \(mode) actual listening or approval remains visible")
+                    sink.interaction.pending = nil; sink.island.apply(.hidden); onFiles = nil
+                    events.meetingsUpcoming([event], now: now); await service.finishTermination()
+                    let expectedReads = mode.hasSuffix("DuringAssembly") ? 2 : 1
+                    check(sink.cards.count == 1 && reads == expectedReads && sink.requests.count == 1
+                        && ledger.hasHandled(occurrence.key), "F24 \(mode) next existing tick delivers once after release")
+                }
+                if mode == "dictating" {
+                    check(!ledger.hasHandled(occurrence.key), "C12 dictating not claimed before microphone release")
+                    environment.isDictating = false
+                    events.meetingsUpcoming([event], now: now); await service.finishTermination()
+                    check(sink.cards.count == 1 && reads == 1, "F04 dictating next existing tick delivers once")
+                }
+                if ["late", "solo", "empty", "quiet", "dailyCap"].contains(mode) {
+                    check(ledger.hasHandled(occurrence.key), "F05 \(mode) skipped occurrence is durably recorded")
+                }
+                service.beginTermination(); await service.finishTermination()
+                let before = sink.cards.count
+                events.meetingsUpcoming([event], now: now); await service.finishTermination()
+                check(sink.cards.count == before, "C13 \(mode) closed subscriber refuses late event")
+            }
+            // An event whose only useful fact is a conference URL used to lose that fact
+            // in meetingStarting. The COMMON consumer makes that original loss visible.
+            let urlEvent = MeetingEvent(id: "url", providerID: .fake, title: "URL only", start: now.addingTimeInterval(240),
+                end: now.addingTimeInterval(840), attendees: ["Ana"], isOrganizerOrSelfAccepted: true,
+                conferenceURL: URL(string: "https://example.invalid/url"), calendarName: "Owned", isAllDay: false)
+            let urlOccurrence = ScheduleTriggerOccurrence.meetingStarting(urlEvent, at: now)
+            check(urlOccurrence.conferenceURL == urlEvent.conferenceURL
+                && ProactiveBrief.build(urlOccurrence, brief: .empty, now: now) != nil, "F06 existing event producer retains URL-only eligibility")
+            var longEvent = urlOccurrence
+            longEvent.title = String(repeating: "OWNED_LONG_TITLE ", count: 20)
+            // Independent builder input: do not let original URL loss mask title truncation.
+            longEvent.conferenceURL = urlEvent.conferenceURL
+            let longCard = ProactiveBrief.build(longEvent, brief: .empty, now: now)
+            check(longCard.map { $0.title.count <= 140 && $0.title.contains("in 4 minutes") && $0.title.contains("Ana") } == true,
+                "F25 existing brief producer retains time and people after long title")
+            let privateCard = IslandHeadsUp(id: "OWNED_PRIVATE_ID", title: "OWNED_PRIVATE_TITLE",
+                lines: ["OWNED_PRIVATE_MEMORY", "OWNED_PRIVATE_ATTENDEE"], primary: nil, secondary: nil)
+            let headsUpLog = IslandState.noticeLogLabel(for: .agentHeadsUp(privateCard))
+            check(headsUpLog == "agentHeadsUp", "F26 exact notice log operand excludes associated private data")
+            let replyLog = IslandState.noticeLogLabel(for: .agentReply("OWNED_PRIVATE_REPLY"))
+            check(replyLog == "agentReply", "F27 exact reply notice log operand remains metadata only")
+            let encoded = try JSONEncoder().encode(urlOccurrence)
+            var old = try JSONSerialization.jsonObject(with: encoded) as! [String: Any]; old.removeValue(forKey: "conferenceURL")
+            let legacy = try JSONDecoder().decode(ScheduleTriggerOccurrence.self, from: JSONSerialization.data(withJSONObject: old))
+            check(legacy.conferenceURL == nil && legacy.key == urlOccurrence.key && legacy.context(zone: zone) == urlOccurrence.context(zone: zone),
+                "C14 legacy occurrence codec and model context unchanged")
+            check(Notifications.headsUpResponse(id: "owned", actionIdentifier: Notifications.ActionID.headsUpOpen) == .headsUp(id: "owned", action: "open")
+                && Notifications.headsUpResponse(id: "owned", actionIdentifier: Notifications.ActionID.headsUpNotNow) == .headsUp(id: "owned", action: "notNow")
+                && Notifications.headsUpResponse(id: "owned", actionIdentifier: "unoffered") == nil,
+                "C15 actual notification action parser no inferred approval")
+            let text = String(repeating: "x", count: 300)
+            let island = Sink(store: store).island
+            let before = Date(); island.showAgentReply(text); let after = Date()
+            let expiration = island.noticeExpirationForTesting
+            check(expiration.map { $0 >= before.addingTimeInterval(23) && $0 <= after.addingTimeInterval(23) } == true,
+                "F07 actual Agent reply owns reading duration")
+            check(DS.Motion.islandNoticeFor(text: "") == 8 && DS.Motion.islandNoticeFor(text: String(repeating: "x", count: 1000)) == 30,
+                "F08 reading-time lower/upper bounds")
+            let session = AgentSession(fileURL: nil, now: { now }, beginMemorySession: {})
+            var offers = 0; session.routineOfferProvider = { _ in offers += 1; return "Owned routine offer" }
+            session.recordAssistant("Owned brief", contextKind: "proactive")
+            check(offers == 0 && session.messages.count == 1, "F09 proactive announcement doesn't manufacture a routine offer")
+            let normalSession = AgentSession(fileURL: nil, now: { now }, beginMemorySession: {})
+            var normalOffers = 0; normalSession.routineOfferProvider = { _ in normalOffers += 1; return "Owned normal offer" }
+            normalSession.recordAssistant("Normal answer")
+            check(normalOffers == 1 && normalSession.messages.count == 2
+                && normalSession.messages.last?.contextKind == AgentSession.routineSuggestionContextKind,
+                "C16 normal answer still offers existing suggestion once")
+            // Real isolated controller.state -> existing Island.refresh. No start,
+            // key-down, microphone, Settings lookup or global Island observation.
+            let usage = UsageLog(directory: root.appendingPathComponent("dictation-usage"))
+            defer { usage.flush() }
+            var externalCalls = 0
+            let controller = DictationController(
+                makeEngine: { externalCalls += 1; preconditionFailure("Presentation diagnostic must not create an engine") },
+                record: { _ in externalCalls += 1 }, log: .selfTest,
+                outcome: { _ in externalCalls += 1 }, usage: usage,
+                captureSelection: { externalCalls += 1; return nil },
+                requestMicrophone: { externalCalls += 1; return false })
+            var placement: HUDPlacement = .notch
+            let presentation = IslandState(meetings: MeetingController(store: store),
+                notes: NotesService(store: store), diarization: DiarizationService(store: store),
+                pendingApproval: { nil }, dictation: controller, headsUpHUDPlacement: { placement })
+            presentation.isHovered = true
+            guard controller.setPresentationStateForTesting(.idle, fixtureRoot: root) else {
+                throw CocoaError(.fileReadNoPermission)
+            }
+            check(controller.state == .idle && externalCalls == 0, "C19 actual isolated presentation admission")
+            let shown = IslandHeadsUp(id: "owned-dictation-priority", title: "Owned brief",
+                lines: ["Owned context"], primary: nil, secondary: nil)
+            presentation.showHeadsUp(shown)
+            let shownExpiration = presentation.noticeExpirationForTesting
+            check(presentation.kind == .agentHeadsUp(shown), "C20 actual heads-up shown before dictation")
+            guard controller.setPresentationStateForTesting(.starting, fixtureRoot: root) else { throw CocoaError(.fileReadNoPermission) }
+            presentation.refresh()
+            check(presentation.kind == .dictating(transcript: "", level: 0, isCapturing: false),
+                "F17 shown heads-up yields to actual starting controller state")
+            guard controller.setPresentationStateForTesting(.listening, fixtureRoot: root) else { throw CocoaError(.fileReadNoPermission) }
+            presentation.refresh()
+            check(presentation.kind == .dictating(transcript: "", level: 0, isCapturing: true),
+                "F18 shown heads-up yields to actual listening controller state")
+            guard controller.setPresentationStateForTesting(.finishing, fixtureRoot: root) else { throw CocoaError(.fileReadNoPermission) }
+            presentation.refresh()
+            check(presentation.kind == .dictating(transcript: "", level: 0, isCapturing: false),
+                "F19 shown heads-up yields to actual finishing controller state")
+            guard controller.setPresentationStateForTesting(.error("Owned error"), fixtureRoot: root) else { throw CocoaError(.fileReadNoPermission) }
+            presentation.refresh()
+            check(presentation.kind == .problem("Owned error"), "F20 shown heads-up yields to actual error controller state")
+            guard controller.setPresentationStateForTesting(.idle, fixtureRoot: root) else { throw CocoaError(.fileReadNoPermission) }
+            presentation.refresh()
+            check(presentation.kind == .agentHeadsUp(shown) && presentation.noticeExpirationForTesting == shownExpiration,
+                "C21 retained heads-up resumes without resetting notice deadline")
+            placement = .bottom
+            guard controller.setPresentationStateForTesting(.starting, fixtureRoot: root) else { throw CocoaError(.fileReadNoPermission) }
+            presentation.refresh()
+            check(presentation.kind == .agentHeadsUp(shown), "C22 bottom HUD retains existing notice priority")
+            placement = .notch
+            presentation.showAgentReply("Owned normal reply"); presentation.refresh()
+            check(presentation.kind == .agentReply("Owned normal reply"), "C23 non-heads-up notices retain existing priority")
+            let refused = controller.setPresentationStateForTesting(.idle, fixtureRoot: root.appendingPathComponent("wrong-root"))
+            check(!refused && controller.state == .starting, "C24 foreign presentation root refuses mutation")
+            check(externalCalls == 0 && !controller.isCapturingAudio && controller.transcript.isEmpty,
+                "C25 state projection performs no capture, engine, selection, outcome or record callbacks")
+            usage.flush()
+            check(!FileManager.default.fileExists(atPath: usage.fileURL.path), "C26 isolated presentation creates no usage row")
+            let corrupt = root.appendingPathComponent("corrupt", isDirectory: true)
+            try FileManager.default.createDirectory(at: corrupt, withIntermediateDirectories: false)
+            let bytes = Data("{broken".utf8); let file = corrupt.appendingPathComponent(ProactiveLedger.fileName)
+            try bytes.write(to: file)
+            let damaged = ProactiveLedger(directory: corrupt)
+            let refusal = damaged.record("owned", kind: .meetingBrief, outcome: "shown", at: now)
+            let retained = try Data(contentsOf: file)
+            check(damaged.problem != nil && !refusal && retained == bytes, "C17 corrupt ledger cannot be overwritten")
+            let prune = ProactiveLedger(directory: root.appendingPathComponent("prune"))
+            _ = prune.record("old", kind: .meetingBrief, outcome: "shown", at: now.addingTimeInterval(-31 * 86400))
+            _ = prune.record("today", kind: .meetingBrief, outcome: "shown", at: now)
+            check(prune.entries.map(\.key) == ["today"] && ProactiveLedger(directory: prune.fileURL.deletingLastPathComponent()).entries.map(\.key) == ["today"],
+                "C18 prescribed ledger prunes only old policy history and restarts")
+        } catch { return "PROACTIVE_INVALID: owned fixture setup failed: \(type(of: error))" }
+        if !failures.isEmpty { SelfTest.failed = true }
+        print("TRACE proactive checks=\(count) failures=\(failures.count) mode=deterministic nativeNotificationPost=notRequested")
+        for failure in failures { print(failure) }
+        return failures.isEmpty ? "PROACTIVE_OK: \(count) checks" : "PROACTIVE_FAILED: \(failures.count)/\(count) — " + failures.joined(separator: "; ")
+    }
+}

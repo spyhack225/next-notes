@@ -1,0 +1,34 @@
+[
+  {
+    "width": 320,
+    "checks": {
+      "eightTableRecords": true,
+      "tableRows15": true,
+      "visibleRows0": true,
+      "materializedRows0": true,
+      "eightListClipRecords": true,
+      "clipHeight0": true,
+      "storeCount15": true
+    },
+    "tableContentHeightPoints": 380,
+    "listClipHeightPoints": 0,
+    "observationsPerWidth": 8,
+    "meaning": "original native table has rows but enclosing List viewport collapses; not a fixed-product verdict"
+  },
+  {
+    "width": 560,
+    "checks": {
+      "eightTableRecords": true,
+      "tableRows15": true,
+      "visibleRows0": true,
+      "materializedRows0": true,
+      "eightListClipRecords": true,
+      "clipHeight0": true,
+      "storeCount15": true
+    },
+    "tableContentHeightPoints": 380,
+    "listClipHeightPoints": 0,
+    "observationsPerWidth": 8,
+    "meaning": "original native table has rows but enclosing List viewport collapses; not a fixed-product verdict"
+  }
+]

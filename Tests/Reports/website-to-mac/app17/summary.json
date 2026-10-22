@@ -1,0 +1,27 @@
+[
+  {
+    "name": "worker-attempt-original",
+    "exit": 1,
+    "seconds": 2.252
+  },
+  {
+    "name": "dictation-current",
+    "exit": 0,
+    "seconds": 53.091
+  },
+  {
+    "name": "onboarding-trace",
+    "exit": 1,
+    "seconds": 7.133
+  },
+  {
+    "name": "usage-log",
+    "exit": 0,
+    "seconds": 1.275
+  },
+  {
+    "name": "store-isolation",
+    "exit": 0,
+    "seconds": 33.993
+  }
+]

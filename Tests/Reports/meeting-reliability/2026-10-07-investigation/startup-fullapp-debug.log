@@ -1,0 +1,29 @@
+2026-10-07 12:43:16.838 NextNotes[15872:147493] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+NEEDLE_STARTUP_OK: failed=16/16 warm_settled=16/16 launches=3/6 child=none
+FUNCTION_CALLS_CATALOGUE: send_email, create_event, draft_email, create_doc, schedule.create, append_doc, memory.remember, reply_email
+FUNCTION_CALLS_LATENCY: needle address said out loud 1708ms 1 call(s) → send_email
+FUNCTION_CALLS_LATENCY: needle no address anywhere 209ms 0 call(s)
+FUNCTION_CALLS_RAW: no address anywhere confidence=0.3025 calls=["send_email[\"subject\": \"Updated pricing sheet\", \"to\": \"Marcus\", \"body\": \"Updated pricing sheet.\"]"] ungrounded=[]
+FUNCTION_CALLS_LATENCY: needle address said a minute earlier 259ms 1 call(s) → send_email
+FUNCTION_CALLS_LATENCY: needle ordinary conversation 1ms 0 call(s)
+FUNCTION_CALLS_LATENCY: needle browser-command-never-append-doc 0ms 0 call(s)
+FUNCTION_CALLS_LATENCY: needle browser command, as a person would say it 0ms 0 call(s)
+FUNCTION_CALLS_LATENCY: needle a folder on this Mac 0ms 0 call(s)
+FUNCTION_CALLS_LATENCY: needle media control 0ms 0 call(s)
+FUNCTION_CALLS_LATENCY: needle a question about the diary 0ms 0 call(s)
+FUNCTION_CALLS_LATENCY: needle a search somebody asked for out loud 0ms 0 call(s)
+FUNCTION_CALLS_SERVER: 4 resident turn(s) (pid 15900, start 1487 ms), 0 spawned
+FUNCTION_CALLS_WARM: pid 15902, start 1030 ms, 0 counted turn(s)
+FUNCTION_CALLS_LATENCY: localModel address said out loud 53848ms 1 call(s) → send_email
+FUNCTION_CALLS_LATENCY: localModel no address anywhere 14412ms 1 call(s) → send_email
+FUNCTION_CALLS_LATENCY: localModel address said a minute earlier 24329ms 1 call(s) → send_email
+FUNCTION_CALLS_LATENCY: localModel ordinary conversation 2ms 0 call(s)
+FUNCTION_CALLS_LATENCY: localModel browser-command-never-append-doc 0ms 0 call(s)
+FUNCTION_CALLS_LATENCY: localModel browser command, as a person would say it 0ms 0 call(s)
+FUNCTION_CALLS_LATENCY: localModel a folder on this Mac 0ms 0 call(s)
+FUNCTION_CALLS_LATENCY: localModel media control 0ms 0 call(s)
+FUNCTION_CALLS_LATENCY: localModel a question about the diary 0ms 0 call(s)
+FUNCTION_CALLS_LATENCY: localModel a search somebody asked for out loud 0ms 0 call(s)
+FUNCTION_CALLS_COUNTS: model=5 scripted=5
+FUNCTION_CALLS_WRONG: needle did not propose send_email for “no address anywhere” (nothing at all)
+FUNCTION_CALLS_FAILED

@@ -1,0 +1,5 @@
+--- a/Sources/NextNotes/UI/Settings/SettingsWindow.swift
++++ b/Sources/NextNotes/UI/Settings/SettingsWindow.swift
+@@ -41,0 +42,2 @@ struct SettingsWindow: View {
++        .tint(DS.Color.accent)
++        .font(DS.Font.body)

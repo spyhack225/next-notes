@@ -1,0 +1,230 @@
+import AVFoundation
+import CryptoKit
+import FluidAudio
+import Foundation
+
+/// Authored CAF -> original whole-array vs bounded real-reader/real-final producer.
+/// Injected ASR proves PCM/cuts/consumer transport only, never words or speaker quality.
+@MainActor
+enum MeetingBoundedAudioSelfTest {
+    private struct Case {
+        var id: String
+        var count: Int
+        var pause: Range<Int>?
+        var max: Double = 14.5
+        var gain: Float = 1
+        var minimum: Double = 10
+    }
+    static func run(write: (String) -> Void) async -> Bool {
+        guard SelfTest.isRunning, SelfTest.requested == "--selftest-meeting-bounded-audio",
+              Settings.shared.usesHarnessPreferencesForTesting else {
+            write("MEETING_BOUNDED_AUDIO_FAILED: isolated self-test settings required"); return false
+        }
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(
+            "NextNotesMeetingBoundedAudio-\(UUID().uuidString)", isDirectory: true)
+        do { try FileManager.default.createDirectory(at: root, withIntermediateDirectories: false) }
+        catch { write("MEETING_BOUNDED_AUDIO_FAILED: isolated directory unavailable"); return false }
+        defer { try? FileManager.default.removeItem(at: root) }
+        var failures = 0, checks = 0
+        func check(_ id: String, _ label: String, _ value: Bool) {
+            checks += 1; if !value { failures += 1 }
+            write("MEETING_BOUNDED_AUDIO_CHECK case=\(id) check=\(label) pass=\(value)")
+        }
+        let cases: [Case] = [
+            Case(id: "empty", count: 0), Case(id: "one", count: 1),
+            Case(id: "frame-minus-one", count: 319), Case(id: "frame", count: 320),
+            Case(id: "frame-plus-one", count: 321), Case(id: "padded", count: 1_690),
+            Case(id: "minimum-minus-one", count: 159_999), Case(id: "minimum", count: 160_000),
+            Case(id: "minimum-plus-one", count: 160_001),
+            Case(id: "hard-minus-one", count: 231_999), Case(id: "hard", count: 232_000),
+            Case(id: "hard-plus-one", count: 232_001),
+            Case(id: "pause-at-min", count: 497_919, pause: 150_400..<160_000),
+            Case(id: "pause-at-hard", count: 497_919, pause: 222_400..<232_000),
+            Case(id: "fractional-hard-grid", count: 498_137, max: 14.5001),
+            Case(id: "fractional-minimum-grid", count: 497_919, pause: 150_400..<160_000,
+                 max: 14.5001, minimum: 10.0001),
+            Case(id: "full-minute", count: 960_000),
+            Case(id: "silence", count: 497_919, pause: 0..<497_919),
+            Case(id: "quiet-floor", count: 497_919, gain: 0.03),
+        ]
+        for fixture in cases {
+            let url = root.appendingPathComponent(fixture.id + ".caf")
+            do {
+                try authorCAF(url: url, count: fixture.count, pause: fixture.pause, gain: fixture.gain)
+                for (channel, source) in [(0, AudioSource.mic), (1, AudioSource.system)] {
+                    let baseline = try AudioConversion.samples(fromFileAt: url, sampleRate: 16_000, channel: channel)
+                    let native = try AudioConversion.meetingSampleSource(fromFileAt: url, channel: channel)
+                    check(fixture.id, "channel-\(channel)-sample-count", native.sampleCount == baseline.count)
+                    var exactPCM = true
+                    var verified = 0
+                    while verified < baseline.count {
+                        let count = min(16_384, baseline.count - verified)
+                        let actual = try read(native, offset: verified, count: count)
+                        exactPCM = exactPCM && digest(actual) == digest(Array(baseline[verified..<(verified + count)]))
+                        verified += count
+                    }
+                    check(fixture.id, "channel-\(channel)-whole-PCM-bit-parity", exactPCM && verified == baseline.count)
+                    let oracle = ArrayAudioSampleSource(samples: baseline)
+                    for offset in [-321, -1, 0, max(0, baseline.count - 1), baseline.count, baseline.count + 1] {
+                        for requested in [-1, 0, 321] {
+                            var expected = [Float](repeating: 123, count: 338)
+                            var actual = expected
+                            try expected.withUnsafeMutableBufferPointer {
+                                try oracle.copySamples(into: $0.baseAddress!, offset: offset, count: requested)
+                            }
+                            try actual.withUnsafeMutableBufferPointer {
+                                try native.copySamples(into: $0.baseAddress!, offset: offset, count: requested)
+                            }
+                            check(fixture.id, "channel-\(channel)-protocol-offset-\(offset)-count-\(requested)", digest(actual) == digest(expected))
+                        }
+                    }
+                    // Exact selected-channel PCM, including unaligned source ranges and
+                    // untouched destination padding. Never mix the tracks to mono.
+                    for start in [0, 1, 319, max(0, fixture.count - 321)] where start <= baseline.count {
+                        let available = min(1_027, max(0, baseline.count - start))
+                        var read = [Float](repeating: 123, count: available + 17)
+                        try read.withUnsafeMutableBufferPointer { pointer in
+                            try native.copySamples(into: pointer.baseAddress!, offset: start, count: available + 17)
+                        }
+                        // Protocol may copy up to count where data remains, so the sentinel
+                        // assertion is applicable only to an actual end-of-source request.
+                        let copied = min(available + 17, max(0, baseline.count - start))
+                        check(fixture.id, "channel-\(channel)-range-\(start)",
+                              digest(Array(read.prefix(copied))) == digest(Array(baseline[start..<(start + copied)])))
+                        if start + copied == baseline.count {
+                            check(fixture.id, "channel-\(channel)-tail-padding-\(start)", read.dropFirst(copied).allSatisfy { $0 == 123 })
+                        }
+                    }
+                    let config = ChunkedTranscriber.WindowConfig(minWindowSeconds: fixture.minimum,
+                        maxWindowSeconds: fixture.max, overlapSeconds: 0, emitsProvisionals: false)
+                    let oldCalls = Calls(), newCalls = Calls()
+                    let original = try await MeetingFinalPass.transcribeTrack(baseline, source: source, config: config) {
+                        await oldCalls.transcribe($0)
+                    }
+                    let observed = ObservedSource(source: native)
+                    let bounded = try await MeetingFinalPass.transcribeTrack(audioSource: observed, source: source, config: config,
+                        onWindowCutForTesting: { observed.noteCut($0) }) {
+                        await newCalls.transcribe($0)
+                    }
+                    let oldRows = await oldCalls.rows(), newRows = await newCalls.rows()
+                    check(fixture.id, "channel-\(channel)-exact-padded-ASR-calls", oldRows == newRows)
+                    check(fixture.id, "channel-\(channel)-exact-windows", original.windows == bounded.windows)
+                    check(fixture.id, "channel-\(channel)-exact-consumer-segments", projection(original.segments) == projection(bounded.segments))
+                    let requests = observed.requests()
+                    check(fixture.id, "channel-\(channel)-bounded-read-domain", requests.allSatisfy {
+                        $0.offset >= 0 && $0.count > 0 && $0.offset + $0.count <= baseline.count
+                            && $0.count <= ChunkedTranscriber.maximumCutSamples(config: config)
+                    })
+                    let oldCutOffsets = ChunkedTranscriber.cutPoints(in: baseline, config: config)
+                    check(fixture.id, "channel-\(channel)-all-raw-cut-offsets", observed.cuts() == oldCutOffsets)
+                    write("MEETING_BOUNDED_AUDIO_TRANSPORT case=\(fixture.id) channel=\(channel) totalSamples=\(baseline.count) originalWholeFloatBytes=\(baseline.count * 4) highestReadSamples=\(requests.map(\.count).max() ?? 0) oldCutOffsets=\(oldCutOffsets) modelCalls=\(oldRows.count) nativeASR=false")
+                }
+            } catch {
+                failures += 1; write("MEETING_BOUNDED_AUDIO_WRONG case=\(fixture.id) actual_source_boundary_unavailable")
+            }
+        }
+        do {
+            let fallback = root.appendingPathComponent("legacy-8k.caf")
+            try authorCAF(url: fallback, count: 18_337, pause: nil, rate: 8_000)
+            let original = try AudioConversion.samples(fromFileAt: fallback, sampleRate: 16_000, channel: 1)
+            let source = try AudioConversion.meetingSampleSource(fromFileAt: fallback, channel: 1)
+            check("legacy-8k", "existing-resampling-count", source.sampleCount == original.count)
+            check("legacy-8k", "existing-resampling-PCM", digest(try read(source, offset: 0, count: source.sampleCount)) == digest(original))
+
+            let floatCAF = root.appendingPathComponent("legacy-float-16k.caf")
+            try authorCAF(url: floatCAF, count: 18_337, pause: nil, diskFloat: true)
+            for channel in [0, 1, -1, 2] {
+                let original = try AudioConversion.samples(fromFileAt: floatCAF, sampleRate: 16_000, channel: channel)
+                let source = try AudioConversion.meetingSampleSource(fromFileAt: floatCAF, channel: channel)
+                let actual = try read(source, offset: 0, count: source.sampleCount)
+                check("legacy-float-16k", "channel-\(channel)-original-reader-fallback", source is ArrayAudioSampleSource)
+                check("legacy-float-16k", "channel-\(channel)-original-PCM", source.sampleCount == original.count
+                    && digest(actual) == digest(original))
+            }
+
+            let exact = root.appendingPathComponent("failure.caf")
+            try authorCAF(url: exact, count: 320_321, pause: nil)
+            let snapshot = try AudioConversion.meetingSampleSource(fromFileAt: exact, channel: 1)
+            try FileManager.default.removeItem(at: exact)
+            check("deleted", "range-reader-refuses-missing-source", refuses { _ = try read(snapshot, offset: 0, count: 321) })
+            try authorCAF(url: exact, count: 320_321, pause: nil)
+            check("replaced", "range-reader-refuses-new-file", refuses { _ = try read(snapshot, offset: 0, count: 321) })
+
+            let failing = FailingSource(sampleCount: 320_321)
+            let calls = Calls()
+            var readRefused = false
+            do { _ = try await MeetingFinalPass.transcribeTrack(audioSource: failing, source: .system) { await calls.transcribe($0) } }
+            catch { readRefused = true }
+            check("read-error", "producer-propagates-read-failure", readRefused)
+            check("read-error", "no-ASR-on-unread-input", await calls.rows().isEmpty)
+            let cancelCalls = Calls()
+            let cancelled = Task { @MainActor in
+                try await MeetingFinalPass.transcribeTrack(audioSource: failing, source: .system) { await cancelCalls.transcribe($0) }
+            }
+            cancelled.cancel()
+            var wasCancelled = false
+            do { _ = try await cancelled.value } catch is CancellationError { wasCancelled = true } catch { }
+            check("cancelled", "original-task-cancellation-propagates", wasCancelled)
+            check("cancelled", "no-ASR-on-cancelled-input", await cancelCalls.rows().isEmpty)
+        } catch { failures += 1; write("MEETING_BOUNDED_AUDIO_WRONG failure_boundaries_unavailable") }
+        write("MEETING_BOUNDED_AUDIO_SCOPE nativeCAF=true substitutedASR=true originalWholeArrayBaseline=true nativeWords=false nativeDiarization=false allocationFootprintMeasured=false actualSavedSession=false")
+        write("MEETING_BOUNDED_AUDIO_\(failures == 0 ? "OK" : "FAILED"): \(failures)/\(checks) checks failed")
+        return failures == 0
+    }
+    private nonisolated static func authorCAF(url: URL, count: Int, pause: Range<Int>?, rate: Double = 16_000, gain: Float = 1, diskFloat: Bool = false) throws {
+        guard let format = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: rate, channels: 2, interleaved: false),
+              let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(max(1, count))),
+              let channels = buffer.floatChannelData else { throw CocoaError(.fileWriteUnknown) }
+        buffer.frameLength = AVAudioFrameCount(count)
+        for i in 0..<count {
+            let silent = pause?.contains(i) == true
+            channels[0][i] = silent ? 0 : gain * (i % 2 == 0 ? 0.125 : -0.0625)
+            channels[1][i] = silent ? 0 : gain * (i % 3 == 0 ? -0.25 : 0.0625)
+        }
+        let settings: [String: Any] = [AVFormatIDKey: kAudioFormatLinearPCM, AVSampleRateKey: rate,
+            AVNumberOfChannelsKey: 2, AVLinearPCMBitDepthKey: diskFloat ? 32 : 16, AVLinearPCMIsFloatKey: diskFloat, AVLinearPCMIsBigEndianKey: false]
+        let file = try AVAudioFile(forWriting: url, settings: settings, commonFormat: .pcmFormatFloat32, interleaved: false)
+        if count > 0 { try file.write(from: buffer) }
+    }
+    private nonisolated static func read(_ source: any AudioSampleSource, offset: Int, count: Int) throws -> [Float] {
+        var samples = [Float](repeating: 0, count: count)
+        if count > 0 { try samples.withUnsafeMutableBufferPointer { try source.copySamples(into: $0.baseAddress!, offset: offset, count: count) } }
+        return samples
+    }
+    private nonisolated static func digest(_ samples: [Float]) -> String {
+        samples.withUnsafeBytes { SHA256.hash(data: Data($0)).map { String(format: "%02x", $0) }.joined() }
+    }
+    private nonisolated static func projection(_ segments: [TranscriptSegment]) -> [String] {
+        segments.map { "\($0.source.rawValue)|\($0.start)|\($0.end)|\(($0.kind ?? .speech).rawValue)|\($0.text)" }
+    }
+    private nonisolated static func refuses(_ work: () throws -> Void) -> Bool { do { try work(); return false } catch { return true } }
+    private actor Calls {
+        private var calls: [String] = []
+        func transcribe(_ samples: [Float]) -> ASRResult {
+            calls.append("\(samples.count):\(digest(samples))")
+            return ASRResult(text: "Transport fixture.", confidence: 1, duration: Double(samples.count) / 16_000,
+                             processingTime: 0, tokenTimings: nil)
+        }
+        func rows() -> [String] { calls }
+    }
+    private struct FailingSource: AudioSampleSource {
+        var sampleCount: Int
+        func copySamples(into: UnsafeMutablePointer<Float>, offset: Int, count: Int) throws { throw CocoaError(.fileReadCorruptFile) }
+    }
+    private final class ObservedSource: AudioSampleSource, @unchecked Sendable {
+        struct Request: Sendable { var offset: Int; var count: Int }
+        private let source: any AudioSampleSource
+        private let lock = NSLock()
+        private var copied: [Request] = []
+        private var rawCuts: [Int] = []
+        var sampleCount: Int { source.sampleCount }
+        init(source: any AudioSampleSource) { self.source = source }
+        func copySamples(into destination: UnsafeMutablePointer<Float>, offset: Int, count: Int) throws {
+            lock.lock(); copied.append(Request(offset: offset, count: count)); lock.unlock()
+            try source.copySamples(into: destination, offset: offset, count: count)
+        }
+        func requests() -> [Request] { lock.lock(); defer { lock.unlock() }; return copied }
+        func noteCut(_ offset: Int) { lock.lock(); rawCuts.append(offset); lock.unlock() }
+        func cuts() -> [Int] { lock.lock(); defer { lock.unlock() }; return rawCuts }
+    }
+}

@@ -1,0 +1,170 @@
+--- a/Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift
++++ b/Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift
+@@ -78,22 +78,27 @@
+             controls
+                 .selectionDisabled(true)
+                 .listRowBackground(DS.Color.groupedFill)
++            appsNote
++                .selectionDisabled(true)
++                .listRowBackground(DS.Color.window)
+         } header: {
+             Text("Apps")
+-        } footer: {
+-            SettingsNote(
+-                text: "Dictated text is written to suit the app it is about to land in — a "
+-                    + "spoken list becomes bullets in Slack and numbered lines in Mail. "
+-                    + "These switches choose the marks an app is allowed, not whether you "
+-                    + "get structure: a list you actually spoke out loud stays a list "
+-                    + "everywhere, written as plain \u{201C}1.\u{201D} lines in an app that "
+-                    + "shows marks instead of drawing them. An app that isn't listed is "
+-                    + "given no marks at all, because a mark an app doesn't render is worse "
+-                    + "than none."
+-            )
+-            .lineLimit(nil)
+-            .fixedSize(horizontal: false, vertical: true)
+-        }
++        }
++    }
++
++    private var appsNote: some View {
++        SettingsNote(
++            text: "Dictated text is written to suit the app it is about to land in — a "
++                + "spoken list becomes bullets in Slack and numbered lines in Mail. "
++                + "These switches choose the marks an app is allowed, not whether you "
++                + "get structure: a list you actually spoke out loud stays a list "
++                + "everywhere, written as plain \u{201C}1.\u{201D} lines in an app that "
++                + "shows marks instead of drawing them. An app that isn't listed is "
++                + "given no marks at all, because a mark an app doesn't render is worse "
++                + "than none."
++        )
++        .lineLimit(nil)
++        .fixedSize(horizontal: false, vertical: true)
+     }
+ 
+     private var file: some View {
+@@ -110,10 +115,17 @@
+                 }
+             }
+             .listRowBackground(DS.Color.groupedFill)
+-        } footer: {
+-            SettingsNote(text: "The table is a plain text file. Edit it in any editor and "
+-                         + "the app picks up the change immediately.")
+-        }
++            fileNote
++                .selectionDisabled(true)
++                .listRowBackground(DS.Color.window)
++        }
++    }
++
++    private var fileNote: some View {
++        SettingsNote(text: "The table is a plain text file. Edit it in any editor and "
++                     + "the app picks up the change immediately.")
++        .lineLimit(nil)
++        .fixedSize(horizontal: false, vertical: true)
+     }
+ 
+     private var addDefaultsButton: some View {
+@@ -167,27 +179,32 @@
+                 }
+                 .listRowBackground(DS.Color.groupedFill)
+             }
++            screenNamesNotes
++                .selectionDisabled(true)
++                .listRowBackground(DS.Color.window)
+         } header: {
+             Text("Screen names")
+-        } footer: {
+-            VStack(alignment: .leading, spacing: DS.Space.s) {
+-                SettingsNote(
+-                    text: "While you hold the dictation key, Next Notes reads the names of open "
+-                        + "tabs, files and folders in the app you are dictating into, and uses "
+-                        + "them to recognise a file you say out loud. Nothing is stored, nothing "
+-                        + "leaves your Mac, and no page or document text is read — only names. "
+-                        + "Password fields, number-only fields and browser address bars are "
+-                        + "skipped, and banking and finance apps are never read at all."
+-                )
+-                SettingsNote(
+-                    text: "Needs cleanup set to fix grammar as well as punctuation: the "
+-                        + "punctuation-only model takes no instructions, so it has nowhere to be "
+-                        + "told which names are on screen."
+-                )
+-            }
+-            .lineLimit(nil)
+-            .fixedSize(horizontal: false, vertical: true)
+-        }
++        }
++    }
++
++    private var screenNamesNotes: some View {
++        VStack(alignment: .leading, spacing: DS.Space.s) {
++            SettingsNote(
++                text: "While you hold the dictation key, Next Notes reads the names of open "
++                    + "tabs, files and folders in the app you are dictating into, and uses "
++                    + "them to recognise a file you say out loud. Nothing is stored, nothing "
++                    + "leaves your Mac, and no page or document text is read — only names. "
++                    + "Password fields, number-only fields and browser address bars are "
++                    + "skipped, and banking and finance apps are never read at all."
++            )
++            SettingsNote(
++                text: "Needs cleanup set to fix grammar as well as punctuation: the "
++                    + "punctuation-only model takes no instructions, so it has nowhere to be "
++                    + "told which names are on screen."
++            )
++        }
++        .lineLimit(nil)
++        .fixedSize(horizontal: false, vertical: true)
+     }
+ 
+     // MARK: - The table
+@@ -196,6 +213,7 @@
+         ViewThatFits(in: .horizontal) {
+             HStack(spacing: DS.Space.xs) {
+                 appHeader.fixedSize(horizontal: true, vertical: true)
++                    .frame(minWidth: DS.Size.formatAppLabelMinimum, alignment: .leading)
+                 Spacer(minLength: DS.Space.xs)
+                 capabilityHeader.fixedSize(horizontal: true, vertical: true)
+             }
+@@ -333,6 +351,7 @@
+         ViewThatFits(in: .horizontal) {
+             HStack(spacing: DS.Space.xs) {
+                 appLabel.fixedSize(horizontal: true, vertical: true)
++                    .frame(minWidth: DS.Size.formatAppLabelMinimum, alignment: .leading)
+                 Spacer()
+                 HStack(spacing: DS.Space.xs) {
+                     ForEach(OutputCapability.allCases, id: \.self) { capability in
+@@ -358,8 +377,13 @@
+                             .fixedSize(horizontal: false, vertical: true)
+                             .frame(maxWidth: .infinity, alignment: .leading)
+                     }
+-                    pathReferenceMenu(compact: true)
+-                        .frame(maxWidth: .infinity, alignment: .leading)
++                    VStack(alignment: .leading, spacing: DS.Space.xxs) {
++                        Text("File references")
++                            .font(DS.Font.caption)
++                            .foregroundStyle(DS.Color.textSecondary)
++                        pathReferenceMenu(compact: true)
++                    }
++                    .frame(maxWidth: .infinity, alignment: .leading)
+                 }
+             }
+         }
+@@ -408,15 +432,10 @@
+             .labelsHidden()
+         } label: {
+             if compact {
+-                VStack(alignment: .leading, spacing: DS.Space.xxs) {
+-                    Text("File references")
+-                        .font(DS.Font.caption)
+-                    Text(profile.pathReference.displayName)
+-                        .font(DS.Font.caption2)
+-                        .foregroundStyle(DS.Color.textSecondary)
+-                }
+-                .lineLimit(nil)
+-                .fixedSize(horizontal: false, vertical: true)
++                Text(profile.pathReference.displayName)
++                    .font(DS.Font.caption)
++                    .lineLimit(nil)
++                    .fixedSize(horizontal: false, vertical: true)
+             } else {
+                 Image(systemName: profile.pathReference.systemImage)
+             }

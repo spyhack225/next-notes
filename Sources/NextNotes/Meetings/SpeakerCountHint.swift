@@ -39,10 +39,10 @@ struct SpeakerCountHint: Equatable, Sendable {
     /// browser call, an unknown app, a hand-started recording — clusters blind.
     static func `for`(_ meeting: Meeting) -> SpeakerCountHint? {
         if meeting.isDetectedCall {
-            // `CallDetector.event(for:)` mints these with an empty attendee list; a
-            // meeting that somehow carries attendees is not that shape, and the
-            // attendee branch below is the more informed bound.
-            guard meeting.attendees.isEmpty else { return nil }
+            // A detected call is a call, whatever the row now carries: the
+            // evidence copied onto it (the people a calendar event invited)
+            // says nothing about how many voices were on the call, and losing
+            // the bound is how a two-person call gets split into six.
             guard let bundle = detectedCallBundleID(of: meeting),
                   messagingBundleIDs.contains(bundle) else { return nil }
             return SpeakerCountHint(maxSpeakers: 2)

@@ -121,6 +121,23 @@ struct MeetingDetailView: View {
                     diarization.clearProblem(for: meeting.id)
                 }
             }
+            if let refusal = refusalToShow {
+                // A refusal is not a failure: there is nothing to retry, and
+                // nothing is being held because of it.
+                ProblemBanner(
+                    message: refusal,
+                    retryTitle: nil,
+                    retry: nil
+                ) {
+                    // A derived refusal is recomputed from the meeting's own
+                    // facts on every render, so dismissing it has to remember
+                    // that it was dismissed.
+                    if diarization.refusal(for: meeting.id) != nil {
+                        diarization.clearRefusal(for: meeting.id)
+                    }
+                    dismissedRefusal = true
+                }
+            }
             if let problem = agent.problem(for: meeting.id) {
                 ProblemBanner(
                     message: problem,
@@ -458,8 +475,25 @@ struct MeetingDetailView: View {
                     message: transcriptPlaceholder
                 )
             } else {
-                TranscriptView(segments: segments, speakerNames: meeting.speakerNames, focus: transcriptFocus,
-                               onFocusHandled: { navigation.transcriptFocus = nil })
+                VStack(spacing: 0) {
+                    // The finals verification in the final pass's own words. `transcriptPass`
+                    // is what `FinalTranscriptService` recorded after Stop: whether the
+                    // transcript was checked again against the recording, or the live tier
+                    // was kept and why. Nil (older meetings) is unknown, so the slot stays
+                    // empty rather than claiming either.
+                    if let verification = transcriptVerification {
+                        Text(verification)
+                            .font(DS.Font.caption)
+                            .foregroundStyle(DS.Color.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, DS.Space.l)
+                            .padding(.vertical, DS.Space.s)
+                        Divider()
+                    }
+                    TranscriptView(segments: segments, speakerNames: meeting.speakerNames, focus: transcriptFocus,
+                                   onFocusHandled: { navigation.transcriptFocus = nil })
+                }
             }
         case .actions:
             MeetingActionsView(meeting: meeting)
@@ -577,10 +611,42 @@ struct MeetingDetailView: View {
 
     /// Speakers can only be identified while the recording still exists — the transcript
     /// alone has nothing to cluster.
+    /// A refusal the person has dismissed, and the derived refusal it silences.
+    @State private var dismissedRefusal = false
+
+    /// What to show as the refusal: the service's own, or the one the meeting's
+    /// facts imply — unless the person has dismissed it.
+    private var refusalToShow: String? {
+        if dismissedRefusal { return nil }
+        return diarization.refusal(for: meeting.id) ?? derivedRefusal
+    }
+
+    /// The refusal the meeting's own facts imply, when the service has none in
+    /// memory — a refusal recorded in a previous session is still true.
+    private var derivedRefusal: String? {
+        guard meeting.status != .recording else { return nil }
+        let decision = DiarizationEligibility.decision(
+            for: .system,
+            captureIntegrity: meeting.captureIntegrity,
+            hasAudio: store.audioURL(for: meeting) != nil,
+            recordingSeconds: meeting.captureIntegrity?.recordedSeconds)
+        // Only the incomplete-remote-audio refusal is worth a banner. A meeting
+        // whose recording was released is a normal configuration — keep-audio is
+        // off by default — and a banner on every finished meeting is a banner
+        // nobody reads.
+        guard decision == .refuseIncompleteRemoteAudio else { return nil }
+        return decision.problem
+    }
+
     private var canIdentifySpeakers: Bool {
         !diarization.isRunning(meeting.id)
             && !segments.isEmpty
             && store.audioURL(for: meeting) != nil
+            && DiarizationEligibility.decision(
+                captureIntegrity: meeting.captureIntegrity,
+                hasAudio: true,
+                recordingSeconds: meeting.captureIntegrity?.recordedSeconds)
+                != .refuseIncompleteRemoteAudio
     }
 
     /// The key `.task` watches: model writes, plus the finishing status change that puts
@@ -632,6 +698,37 @@ struct MeetingDetailView: View {
         case .diarizing: "Telling the speakers apart…"
         case .failed(let reason): reason
         default: "Nothing was recognised in this recording."
+        }
+    }
+
+    /// Whether the finished transcript was checked again after the meeting, in plain
+    /// words. Read off the store rather than the captured copy — the final pass saves
+    /// while this pane may be open — and nil whenever the pass has not reported, so an
+    /// in-flight or pre-pass meeting shows no claim at all. The `live-only:` values are
+    /// the pass's own documented reasons; "audio-incomplete" already has its header
+    /// warning and is not repeated here.
+    private var transcriptVerification: String? {
+        let pass = store.meeting(id: meeting.id)?.transcriptPass ?? meeting.transcriptPass
+        switch pass {
+        case "long-window":
+            return "Checked again against the recording after the meeting."
+        case "live-only:rejected":
+            return "Checked again after the meeting, but the live transcript was kept for "
+                + "the part of the recording that was incomplete."
+        case "live-only:failed":
+            return "The re-check could not finish, so the live transcript was kept."
+        case "live-only:no-audio":
+            return "No recording was kept to check against — this is the live transcript."
+        case "live-only:audio-incomplete":
+            // The recording stopped saving; the live transcript was kept and
+            // never checked again, which is its own sentence.
+            return "The recording stopped saving, so the live transcript was kept and not "
+                + "checked again."
+        default:
+            if let pass, pass.hasPrefix("live-only:") {
+                return "This is the live transcript; it was not checked again."
+            }
+            return nil
         }
     }
 

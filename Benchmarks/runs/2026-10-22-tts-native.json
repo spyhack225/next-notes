@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "id": "2026-10-22-tts-native",
+  "title": "Native TTS comparison in progress",
+  "date": "2026-10-22",
+  "category": "tts",
+  "status": "unrun",
+  "scope": "Generated PCM benchmark preparation",
+  "summary": "Native build and timing acceptance pending; no accepted timing table yet.",
+  "environment": {
+    "hardware": "Apple M3, 16 GB RAM",
+    "workload": "One engine/model process at a time"
+  },
+  "provenance": {
+    "kind": "historical evidence import",
+    "build": "See original evidence; not re-run by hub"
+  },
+  "metrics": [],
+  "limitations": [
+    "Active agent owns native implementation and benchmark window. Refresh this entry when accepted evidence is saved.",
+    "Requested boundary is text request to first nonempty generated PCM; it is not first audible output or full-duplex latency."
+  ],
+  "sources": [
+    "Tests/Reports/tts-2026-10-22/README.md"
+  ],
+  "publication": {
+    "approved": true,
+    "reviewed_by": "benchmark-hub-20261022",
+    "reviewed_on": "2026-10-22"
+  }
+}

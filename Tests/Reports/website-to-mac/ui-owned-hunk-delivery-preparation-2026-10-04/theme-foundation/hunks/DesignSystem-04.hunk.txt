@@ -1,0 +1,17 @@
+--- a/Sources/NextNotes/UI/DesignSystem.swift
++++ b/Sources/NextNotes/UI/DesignSystem.swift
+@@ -41,8 +49,6 @@ enum DS {
+-        /// The notch island's own substrate.
+-        ///
+-        /// The one colour in the app that is a literal rather than a semantic value, and it
+-        /// is a literal on purpose: while the island hugs the notch it is continuous with
+-        /// the machine's black bezel, which is the same black in every appearance and every
+-        /// accent. `islandInk` is what sits on it, for the same reason.
+-        static let island = SwiftUI.Color.black
+-        static let islandInk = SwiftUI.Color.white
++        /// The notch island's own substrate. Fixed light per the owner every-surface
++        /// decision: the bezel-continuity exception is retired, so the island wears
++        /// the shared background with shared ink like every other surface. Notched-Mac
++        /// live review of the result remains open (geometry/camera gap untouched).
++        static let island = Theme.Palette.background
++        static let islandInk = Theme.Palette.foreground

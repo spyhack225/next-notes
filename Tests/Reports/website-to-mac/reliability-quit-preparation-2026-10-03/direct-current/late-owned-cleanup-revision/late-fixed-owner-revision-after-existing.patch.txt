@@ -1,0 +1,21 @@
+--- a/Sources/NextNotes/Transcription/ParakeetEngine.swift
++++ b/Sources/NextNotes/Transcription/ParakeetEngine.swift
+@@ -168,9 +168,16 @@
+         // The existing markBusy await is reentrant; finish may have revoked
+         // this start in that hop. Never reopen input for a withdrawn generation.
+         guard recognitionGeneration == generation, !Task.isCancelled else {
+-            await releaseSchedulerLane()
++            // This local start may have been superseded while markBusy awaited.
++            // Never release a successor's lane or erase its stream. If this
++            // generation still owns its exact acquired lane, take it before
++            // the release await so a concurrent finish cannot release it twice.
++            if recognitionGeneration == generation, schedulerJobID == jobID {
++                schedulerJobID = nil
++                await ComputeScheduler.shared.release(jobID)
++            }
+             continuation.finish()
+-            self.continuation = nil
++            if recognitionGeneration == generation { self.continuation = nil }
+             throw CancellationError()
+         }
+         acceptingInput = true

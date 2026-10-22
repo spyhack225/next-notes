@@ -1,0 +1,25 @@
+{
+  "status": "COPY_ONLY_UNCOMPILED_UNRUN",
+  "checks": [
+    {
+      "stage": "rootCOMMON_to_P4COMMON_HELD",
+      "exactPostimage": true
+    },
+    {
+      "stage": "rootCOMMON_to_rootFIXED_dependent",
+      "exactPostimage": true
+    },
+    {
+      "stage": "rootFIXED_to_P4COMMON",
+      "exactPostimage": true
+    },
+    {
+      "stage": "P4COMMON_to_P4FIXED",
+      "exactPostimage": true
+    },
+    {
+      "stage": "frozen169COMMON_to_amendedCOMMON",
+      "exactPostimage": true
+    }
+  ]
+}

@@ -1,0 +1,66 @@
+{
+  "status": "READ_ONLY_SOURCE_AUDIT_UNRUN",
+  "files": [
+    {
+      "path": "Sources/NextNotes/Agent/RealtimeAgent.swift",
+      "sha256": "c80b884e56ed12cb6fd1fa1bcb7a46cf387d44bc3db8dd6798944ee7a4627635",
+      "reason": "AgentSession.Message, ReviewRequest, append/load/new/forget"
+    },
+    {
+      "path": "Sources/NextNotes/Knowledge/Chunker.swift",
+      "sha256": "0fff156e791b0a4647869d2ec5d5074e5cc646f1e52a6dda094aeea8a57f51b1",
+      "reason": "conversation row/chunk turn aggregation"
+    },
+    {
+      "path": "Sources/NextNotes/Knowledge/KnowledgeIndexer.swift",
+      "sha256": "f29ba6d9b1fbba357479920ab7a8795a82f76ae46de7a98c6a67656ca45816b3",
+      "reason": "session hook, first UUID loss, backfill skip"
+    },
+    {
+      "path": "Sources/NextNotes/Knowledge/KnowledgeStore.swift",
+      "sha256": "9398c8653ae555dd423ecfac0a86ef0791c76a199de1570b673c3b624e3f29df",
+      "reason": "schema/open/replace/generation and current source state"
+    },
+    {
+      "path": "Sources/NextNotes/Knowledge/KnowledgeSearch.swift",
+      "sha256": "d6bdaadfbd7b78d3dad7a262a2d33eb19e8861a4612570702291f756f64236ce",
+      "reason": "SQL hit projection and search readers"
+    },
+    {
+      "path": "Sources/NextNotes/Knowledge/KnowledgeAsk.swift",
+      "sha256": "1dc54b5de32922fc2db414e7175ae9a3603e3c54bfdc7bdef9ebb35bc0114f2b",
+      "reason": "citation compact codec and target"
+    },
+    {
+      "path": "Sources/NextNotes/Knowledge/KnowledgeIndexSelfTest.swift",
+      "sha256": "ab570f39aedb518e1ba631a06e26a01b0d040f7fbdeb30187674c09ef9e71e4f",
+      "reason": "injected hooked session/index/store/search fixture"
+    },
+    {
+      "path": "Sources/NextNotes/Knowledge/KnowledgeTypedRouteSelfTest.swift",
+      "sha256": "538c6f9dc410214a2f0ce589d57096edb41de3b5d470f11a93ea76cc02388084",
+      "reason": "saved citation codec and typed consumer fixture"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Knowledge/KnowledgeSearchView.swift",
+      "sha256": "79c9b4ea85e66ec78cc90542419ca4c554c012db1e6cab023766316365f286e8",
+      "reason": "search result open action"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Knowledge/AskView.swift",
+      "sha256": "64af9a08a0509ad8c351c43ad620b0c94d5b09cc0c55fa7f1a510adc434e93f4",
+      "reason": "Ask citation open action"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Agent/AgentView.swift",
+      "sha256": "e16690c46235dfe28d69d03351928e4f4b3f2746472bb35815e9976b3c63fc85",
+      "reason": "conversation citation open and message row ID"
+    },
+    {
+      "path": "Sources/NextNotes/Support/NavigationState.swift",
+      "sha256": "9a9c583ae8c6b4e229f3d3d99dc009c5149e28ce5f28fa774f0c6eef457118b6",
+      "reason": "parameterless conversation navigation"
+    }
+  ],
+  "reportSHA256": "2934292ba934011e8287cf5ce149b418bbd4d815739f2a47f06ddfb564a55d85"
+}

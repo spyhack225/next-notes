@@ -142,53 +142,57 @@ struct FoundationModelFormatter: TextFormatter {
             let trace = trace
             let modelCall = modelCall
 
-            let cleaned = try await withThrowingTaskGroup(of: String.self) { group in
-                group.addTask {
-                    let stagedSession: LanguageModelSession?
-                    let staged: Bool
-                    if let modelCall {
-                        staged = await modelCall.takeSession(instructions)
-                        stagedSession = nil
-                    } else {
-                        stagedSession = await CleanupSessionWarmer.shared.take(instructions: instructions)
-                        staged = stagedSession != nil
-                    }
-                    trace?.noteSessionPrewarmed(staged)
-                    // The same bit for the group this call belongs to, so a chunked pass can
-                    // say which of its groups ran prewarmed. (D-08.)
-                    if let group = CleanupGroupContext.current {
-                        trace?.noteGroupPrewarmed(index: group.index, staged)
-                    }
-                    // A staged session was staged at key-down and is warm by construction;
-                    // otherwise the process is as warm as its last completed Apple-model call.
-                    let warmth: Warmth = staged
-                        ? .staged
-                        : await MainActor.run { AppleModelWarmth.current() }
-                    trace?.noteAssumedWarmth(warmth)
-                    // A call in a wave of `n` on an engine that answers one call at a time
-                    // waits its turn, so its own budget is that many times the solo budget.
-                    // The chunker charges the wave the same sum, so the two cannot disagree
-                    // about whether a wave was affordable. (D-08.)
-                    let queued = max(1, CleanupGroupContext.current?.callsInWave ?? 1)
-                    // Nothing between here and `respond` throws, so the seal is always
-                    // published and the waiting task can never wait forever.
-                    seal.publish(Self.timeout(for: trimmed, warmth: warmth) * scale * queued)
-                    return try await Self.respond(
-                        user: user,
-                        instructions: instructions,
-                        stagedSession: stagedSession,
-                        modelCall: modelCall
-                    )
+            // A structured group joins cancelled children before returning. Native
+            // model work may ignore cancellation, so that would defeat this deadline.
+            // Keep the same warmth budget and response, but bound the caller's wait.
+            let response = Task<String, Error> {
+                let stagedSession: LanguageModelSession?
+                let staged: Bool
+                if let modelCall {
+                    staged = await modelCall.takeSession(instructions)
+                    stagedSession = nil
+                } else {
+                    stagedSession = await CleanupSessionWarmer.shared.take(instructions: instructions)
+                    staged = stagedSession != nil
                 }
-                group.addTask {
-                    try await Task.sleep(for: await seal.budget())
-                    throw CleanupError.timedOut
+                trace?.noteSessionPrewarmed(staged)
+                // The same bit for the group this call belongs to, so a chunked pass can
+                // say which of its groups ran prewarmed. (D-08.)
+                if let group = CleanupGroupContext.current {
+                    trace?.noteGroupPrewarmed(index: group.index, staged)
                 }
-                // Whichever finishes first wins; cancel the loser.
-                guard let first = try await group.next() else { throw CleanupError.timedOut }
-                group.cancelAll()
-                return first
+                // A staged session was staged at key-down and is warm by construction;
+                // otherwise the process is as warm as its last completed Apple-model call.
+                let warmth: Warmth = staged
+                    ? .staged
+                    : await MainActor.run { AppleModelWarmth.current() }
+                trace?.noteAssumedWarmth(warmth)
+                // A call in a wave of `n` on an engine that answers one call at a time
+                // waits its turn, so its own budget is that many times the solo budget.
+                // The chunker charges the wave the same sum, so the two cannot disagree
+                // about whether a wave was affordable. (D-08.)
+                let queued = max(1, CleanupGroupContext.current?.callsInWave ?? 1)
+                // Nothing between here and `respond` throws, so the seal is always
+                // published and the waiting task can never wait forever.
+                seal.publish(Self.timeout(for: trimmed, warmth: warmth) * scale * queued)
+                return try await Self.respond(
+                    user: user,
+                    instructions: instructions,
+                    stagedSession: stagedSession,
+                    modelCall: modelCall
+                )
             }
+            let budget = await seal.budget()
+            let outcome = await withTaskCancellationHandler {
+                await withBoundedWait(budget) { await response.result }
+            } onCancel: {
+                response.cancel()
+            }
+            guard let outcome else {
+                response.cancel()
+                throw CleanupError.timedOut
+            }
+            let cleaned = try outcome.get()
 
             if let reason = CleanupGuard.rejection(
                 original: trimmed,

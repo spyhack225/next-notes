@@ -1,0 +1,17 @@
+{
+  "status": "COPY_ONLY_REPLAY_UNCOMPILED_UNRUN",
+  "checks": [
+    {
+      "stage": "COMMON",
+      "patch": "COMMON-history-fixture.patch",
+      "exactPostimages": true,
+      "paths": 2
+    },
+    {
+      "stage": "FIXED",
+      "patch": "FIXED-agent-view.patch",
+      "exactPostimages": true,
+      "paths": 1
+    }
+  ]
+}

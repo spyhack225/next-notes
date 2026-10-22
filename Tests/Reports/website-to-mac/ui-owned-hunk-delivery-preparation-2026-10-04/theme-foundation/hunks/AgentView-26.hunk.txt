@@ -1,0 +1,10 @@
+--- a/Sources/NextNotes/UI/Agent/AgentView.swift
++++ b/Sources/NextNotes/UI/Agent/AgentView.swift
+@@ -819,0 +834,7 @@ struct AgentView: View {
++        .overlay(alignment: .bottom) {
++            // A real busy edge, still so the agent's avatar owns the one live clock.
++            // No synthetic speaking mode or level feed; waiting for approval stays quiet.
++            if isWorking, gate.pending == nil, acpGate.pending == nil {
++                ThemeVoiceGlow(mode: .working, isAnimated: false)
++            }
++        }

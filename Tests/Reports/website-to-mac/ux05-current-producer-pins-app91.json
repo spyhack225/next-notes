@@ -1,0 +1,70 @@
+{
+  "status": "READ_ONLY_PRODUCER_REVIEW_NO_TEST_OR_UI_PROJECTION",
+  "observed_utc": "2026-10-02T19:54:13.014642+00:00",
+  "compiler_manifest": "Tests/Reports/agent-overhaul-closure/stale-observation-frontier/heartbeat-integration-review/build91-source-manifest.json",
+  "binary_metadata": {
+    "build": 91,
+    "sha256": "3aa351e0f7915e697304f2bfefbec924b704f54969c782edf376123c4bebe79b",
+    "cache": "/Users/sergekadjo/Library/Caches/NextNotesBuild/agent-closure-app91-NextNotes",
+    "sourceDrift": []
+  },
+  "source_inputs": {
+    "Sources/NextNotes/Agent/Duplex/VoiceSession.swift": {
+      "current_sha256": "36d2cfc07ea184f5954d34c7b0e5976ad3834b67db37ca242b7fdf97c9a58d59",
+      "app91_compiler_sha256": "36d2cfc07ea184f5954d34c7b0e5976ad3834b67db37ca242b7fdf97c9a58d59",
+      "matches_app91_compiler": true
+    },
+    "Sources/NextNotes/Agent/Duplex/VoiceContracts.swift": {
+      "current_sha256": "1544a4e8dadb7e419ac7411027baf81a7a8e67bb87b004823bec738ce9801997",
+      "app91_compiler_sha256": "1544a4e8dadb7e419ac7411027baf81a7a8e67bb87b004823bec738ce9801997",
+      "matches_app91_compiler": true
+    },
+    "Sources/NextNotes/Agent/RealtimeAudioSession.swift": {
+      "current_sha256": "37762cbf308d3b3e43d354f752a44688b4ba932df3571a3aa3acfce6c117fd1f",
+      "app91_compiler_sha256": "37762cbf308d3b3e43d354f752a44688b4ba932df3571a3aa3acfce6c117fd1f",
+      "matches_app91_compiler": true
+    },
+    "Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift": {
+      "current_sha256": "96856fe552b1b12f952ca26cb14f7793a629215f2c186e88b20221d5d8d1504c",
+      "app91_compiler_sha256": "96856fe552b1b12f952ca26cb14f7793a629215f2c186e88b20221d5d8d1504c",
+      "matches_app91_compiler": true
+    },
+    "Sources/NextNotes/Agent/Speech/AgentPCMRenderer.swift": {
+      "current_sha256": "0c199fc3abf89765f9debb0fb326e57eb34a83ed81460946785a04347e552730",
+      "app91_compiler_sha256": "0c199fc3abf89765f9debb0fb326e57eb34a83ed81460946785a04347e552730",
+      "matches_app91_compiler": true
+    },
+    "Sources/NextNotes/Agent/Speech/PocketSourceSpeechBacking.swift": {
+      "current_sha256": "0334fa3ad9708e99c1e9088867b3ad19e863433c3fbd1f95915a7e3931698ecd",
+      "app91_compiler_sha256": "0334fa3ad9708e99c1e9088867b3ad19e863433c3fbd1f95915a7e3931698ecd",
+      "matches_app91_compiler": true
+    },
+    "Sources/NextNotes/Agent/Speech/PocketAgentVoice.swift": {
+      "current_sha256": "2612896915d6b4dae22ab47838f71ba53a2b86ed66f587dbca7f39daebfa24ee",
+      "app91_compiler_sha256": "2612896915d6b4dae22ab47838f71ba53a2b86ed66f587dbca7f39daebfa24ee",
+      "matches_app91_compiler": true
+    },
+    "Sources/NextNotes/Agent/Speech/KokoroAgentVoice.swift": {
+      "current_sha256": "66bf1d77947a768a6cc18334c07a6d9a9c7b65cba66f2adcf30f4f2f3ca50630",
+      "app91_compiler_sha256": "66bf1d77947a768a6cc18334c07a6d9a9c7b65cba66f2adcf30f4f2f3ca50630",
+      "matches_app91_compiler": true
+    },
+    "Sources/NextNotes/UI/Island/IslandState.swift": {
+      "current_sha256": "c336aac3c8c2de5015c457fdfbe96bd34fda78de4633171591db668fd3f351b8",
+      "app91_compiler_sha256": "c336aac3c8c2de5015c457fdfbe96bd34fda78de4633171591db668fd3f351b8",
+      "matches_app91_compiler": true
+    },
+    "Sources/NextNotes/UI/Island/IslandView.swift": {
+      "current_sha256": "4d53c60d50e954863ca330961b1bcf5f006899daffce1867d82d567f3aa1bf09",
+      "app91_compiler_sha256": "4d53c60d50e954863ca330961b1bcf5f006899daffce1867d82d567f3aa1bf09",
+      "matches_app91_compiler": true
+    }
+  },
+  "live_dependencies": [
+    "P3-03a",
+    "P3-03b",
+    "P3-06a acceptance"
+  ],
+  "resume_contract": "inputDiscarded/resume status cannot change independently of positive post-resume receipt/epoch and legacy projection",
+  "ui_lease": false
+}

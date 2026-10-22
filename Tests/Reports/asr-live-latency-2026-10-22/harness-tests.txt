@@ -1,0 +1,10 @@
+test/model: weights.bin (7 bytes)
+.test/model: weights.bin (6 bytes)
+....test/model: weights.bin (8 bytes)
+.test/model: weights.bin (7 bytes)
+.LIVE en/0 first=2400.0000000000005 final=2000.0ms
+...
+----------------------------------------------------------------------
+Ran 10 tests in 0.054s
+
+OK

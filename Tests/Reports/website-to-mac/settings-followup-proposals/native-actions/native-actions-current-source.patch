@@ -1,0 +1,40 @@
+--- a/Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift
++++ b/Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift
+@@ -116,10 +116,14 @@
+                     .help("Puts back any built-in app you have removed. Your own rows and "
+                           + "your edits are left alone.")
+                 Spacer()
+-                Button("Reveal formatting.txt") {
++                Button {
+                     NSWorkspace.shared.activateFileViewerSelecting([OutputProfileStore.fileURL])
+-                }
+-                .buttonStyle(.link)
++                } label: {
++                    Text("Reveal formatting.txt")
++                        .underline()
++                        .foregroundStyle(DS.Color.accent)
++                }
++                .buttonStyle(.plain)
+                 .help(OutputProfileStore.fileURL.path)
+             }
+         } footer: {
+--- a/Sources/NextNotes/UI/Settings/AgentSettingsTab.swift
++++ b/Sources/NextNotes/UI/Settings/AgentSettingsTab.swift
+@@ -161,10 +161,14 @@
+                     .font(DS.Font.caption)
+                     .foregroundStyle(DS.Color.textSecondary)
+                 Spacer()
+-                Button("Manage in Models") {
++                Button {
+                     NavigationState.shared.selectedSettingsTab = .models
+-                }
+-                .buttonStyle(.link)
++                } label: {
++                    Text("Manage in Models")
++                        .underline()
++                        .foregroundStyle(DS.Color.accent)
++                }
++                .buttonStyle(.plain)
+                 .font(DS.Font.caption)
+             }
+         } header: {

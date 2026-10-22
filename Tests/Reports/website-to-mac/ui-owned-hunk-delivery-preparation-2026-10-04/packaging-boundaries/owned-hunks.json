@@ -1,0 +1,29 @@
+{
+  "hunks": [
+    {
+      "path": "Makefile",
+      "base": "HEAD",
+      "base_sha256": "db53a4b40362e97ca69adfc5a839bbc706aa917145d7f7280eaf38fbb03186ca",
+      "current_observed_sha256": "65442072cef3e700e4b1adfe84e223690fc2278705eaa23a81d0f58599ef64dd",
+      "selected_postimage_sha256": "98e1de69a12efe474cd1aaa638b4bfe6a8bbc3b1a199b7831946588a13ef5720",
+      "patch": "font-copy-only.patch.txt",
+      "patch_sha256": "fdf1d8f2fb13d6cc7f4b92caa0695fa05f37c856fbabbdbeadd96748526a81d4",
+      "acceptance": "PARENT_SOURCE_REVIEW_OF_EXPLICIT_FONT_HUNK_ONLY_ROOT_RECONCILIATION_REQUIRED",
+      "foreign_boundary": "Nearby OpenPeeps comment and copy remain illustration/root-owned, excluded; do not remove from canonical file or absorb via whole-file staging."
+    },
+    {
+      "path": "THIRD-PARTY-NOTICES.md",
+      "base": "HEAD",
+      "base_sha256": "c7d4b97bc7690df1b96a9ec6e3119eff73cb44b7e625a3b5c971bec647221767",
+      "current_observed_sha256": "20e65bec0bf59e3d8d155e1b587d5915e57fe5ec08bcc722d763cc8e6308e318",
+      "selected_postimage_sha256": "687358e081eafd4cf64a8c4a0299ef52600100ce440c1227f8476b54f3b940dd",
+      "patch": "mac-font-notice-only.patch.txt",
+      "patch_sha256": "d3cda3eb16f7763add9f4c3c3ecf5b72e311e8306cfcadacab25f6d24eb064be",
+      "acceptance": "PARENT_SOURCE_REVIEW_OF_EXPLICIT_FONT_HUNK_ONLY_ROOT_RECONCILIATION_REQUIRED",
+      "foreign_boundary": "Website border-beam/voice-glow MIT attribution hunk is independently owned, excluded; preserve it in canonical file."
+    }
+  ],
+  "whole_file_staging_authorized": false,
+  "canonical_applied": false,
+  "index_changed": false
+}

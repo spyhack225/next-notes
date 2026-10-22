@@ -1,0 +1,586 @@
+[
+  {
+    "at": "2026-10-07 12:53:44.034420-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:53:44.108417-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:53:44.133966-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:53:44.237130-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:53:44.375799-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:53:44.434572-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:54:41.042648-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:54:41.137385-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:54:41.486528-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:54:46.206678-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:54:46.255986-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:54:46.463010-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:54:46.543512-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:54:46.672952-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:54:47.228608-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:54:47.908782-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:54:48.235704-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:54:48.714648-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:54:49.113484-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:54:49.342809-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:54:49.643058-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:54:49.730988-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:54:49.777557-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:54:49.991647-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:54:50.193450-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:54:50.482596-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:54:51.057724-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:54:51.430684-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:54:51.439914-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:54:52.661333-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:54:53.361669-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:54:53.706117-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:54:54.129158-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:54:54.465506-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:54:54.750393-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:54:55.292244-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:54:55.365948-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:54:55.472832-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:54:55.876129-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:54:55.876143-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:54:56.096511-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:54:56.134826-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:54:56.750447-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:54:57.961799-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:54:58.591312-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:54:59.128520-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:55:15.197944-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:55:15.547850-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:55:15.713572-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:55:15.775017-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:55:16.211869-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:55:16.416966-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:55:16.669780-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:55:16.782785-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:55:16.898420-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:55:17.139909-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:55:17.252365-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:55:17.515355-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:55:21.043411-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:55:21.968588-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:55:22.482887-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:55:30.207848-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:55:30.624539-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:55:30.631395-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:55:31.289217-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:55:31.512182-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:55:49.942480-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:55:50.235793-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:55:50.398296-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:55:50.538318-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:55:50.649751-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:55:51.298270-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:55:51.628209-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:55:55.448792-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:55:55.537045-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:55:55.633236-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:55:55.745561-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:55:55.975034-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:55:56.363310-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:55:56.481683-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:55:56.542366-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:55:57.170649-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:55:57.331378-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:55:57.465989-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:56:03.616983-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:56:03.633677-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:56:04.194859-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:56:04.534503-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:56:15.714707-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:56:32.936096-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:56:33.333417-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:56:35.410999-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:56:35.445823-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:56:35.648686-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:56:36.184550-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:56:51.616456-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:56:51.634330-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:56:51.759892-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:56:51.936237-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:56:53.002286-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:56:53.030960-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:56:53.184249-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:56:53.515716-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:56:53.643796-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:56:53.741021-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:56:54.084852-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:56:55.090879-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:56:55.210753-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:56:55.635396-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:56:55.833999-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:56:55.943519-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:56:56.077932-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:57:01.508818-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:57:01.668922-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:57:01.891371-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:57:02.224840-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:57:02.331918-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:57:03.158585-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:57:03.358311-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:57:03.565190-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:57:03.971650-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:57:04.332061-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:57:04.338333-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:57:04.737079-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:57:40.067708-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:57:40.514880-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:57:44.155725-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:57:44.231156-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:57:44.426693-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:57:44.734318-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:57:44.876096-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:57:49.922676-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:57:49.997525-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:57:50.805222-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:57:51.031766-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:59:25.478747-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:59:25.665764-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:59:25.742640-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:59:39.499374-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:59:39.499431-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:59:39.544095-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:59:40.139875-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:59:41.971333-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:59:43.946050-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:59:57.441703-0400",
+    "event": "capture_delivery_backlog"
+  },
+  {
+    "at": "2026-10-07 12:59:57.566336-0400",
+    "event": "capture_delivery_backlog"
+  }
+]

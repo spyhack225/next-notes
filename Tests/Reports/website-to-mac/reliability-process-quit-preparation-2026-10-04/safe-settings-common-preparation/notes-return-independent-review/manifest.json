@@ -1,0 +1,13 @@
+{
+  "status": "CONDITIONAL_SOURCE_ACCEPTANCE_REQUIRES_ADDITIVE_CORRECTION",
+  "inputs": {
+    "Tests/Reports/website-to-mac/reliability-process-quit-preparation-2026-10-04/safe-settings-common-preparation/notes-return-prerequisite/manifest.json": "2f136393d8374c7c1b27f9152122bc6ffe6e5101d08f10ed4b8706fc49aee302",
+    "Tests/Reports/website-to-mac/reliability-process-quit-preparation-2026-10-04/safe-settings-common-preparation/notes-return-prerequisite/static-qualification-revision/manifest.json": "ba3d7345f53282c8e4223f87f7708935670d7f6d5c4ebc4edd34d38bc13e74d2"
+  },
+  "artifacts": {
+    "review.md": "edbe3a5d6deb22457784473f19c6a01adfc15cb5b9de665d669be9d5803d823a",
+    "pins.json": "ecd7e61045f3185cfc09d5ee4a760f62a4d6132ed1dd0893786a83633465d7aa"
+  },
+  "executed": "read-only source and hash checks only; no compiler/native",
+  "release": "NONE"
+}

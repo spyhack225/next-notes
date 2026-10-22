@@ -1,0 +1,53 @@
+{
+  "cases" : [
+    {
+      "firstRequestAtSamples" : 48000,
+      "held" : false,
+      "modelInputCounts" : [
+        24000,
+        28566
+      ],
+      "passesBeforeRelease" : 1,
+      "segmentPassesBeforeRelease" : 1
+    },
+    {
+      "firstRequestAtSamples" : 48000,
+      "held" : true,
+      "modelInputCounts" : [
+        24000,
+        28566
+      ],
+      "passesBeforeRelease" : 0,
+      "segmentPassesBeforeRelease" : 0
+    },
+    {
+      "chunks" : 1,
+      "digitalZeroSamples" : 1600,
+      "modelCalls" : 1
+    },
+    {
+      "chunks" : 1,
+      "digitalZeroSamples" : 6400,
+      "modelCalls" : 1
+    },
+    {
+      "chunks" : 2,
+      "digitalZeroSamples" : 52566,
+      "modelCalls" : 2
+    }
+  ],
+  "failures" : [
+    "accepted recognizable quiet PCM has no live request within first500ms",
+    "quiet phrase was frozen after false RMS cut",
+    "accepted recognizable quiet PCM has no live request within first500ms",
+    "held partial final did not receive complete quiet phrase",
+    "literal-zero hold entered native recognition",
+    "literal-zero hold entered native recognition",
+    "literal-zero hold failed to deliver one empty final",
+    "literal-zero hold entered native recognition",
+    "literal-zero hold failed to deliver one empty final"
+  ],
+  "inputSamples" : 52566,
+  "scope" : "Actual production actor feed\/schedule\/drain\/finish, real public WAV\/AV buffers\/RMS\/segmentation. Native recognizer\/converter\/scheduler\/registry boundaries substituted. Returned marker is explicitly not recognized speech; first native words and hallucinations are unproven."
+}
+LIVE_COVERAGE_PRODUCER_FAILED

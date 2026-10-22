@@ -1,0 +1,16 @@
+{
+  "atUTC": "2026-10-08T05:45:19.508057+00:00",
+  "relayAgreementCursor": "592",
+  "gate": {
+    "ok": true,
+    "swapGb": 8.31482421875,
+    "load": 3.29,
+    "freeGb": 6.324687957763672,
+    "path": "/",
+    "reasons": [],
+    "unknown": []
+  },
+  "reportedFreeMemoryPercent": 66,
+  "normalGatePassed": false,
+  "scope": "One unchanged private-S1 gpuLayers0 CPU parked-cancel/phase fixture only; no Parakeet, Apple, Metal, physical ASR or full Core benchmark"
+}

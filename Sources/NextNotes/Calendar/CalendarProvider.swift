@@ -122,6 +122,16 @@ enum CalendarAuthorizationState: Sendable, Equatable {
 /// Both implementations are actors: EventKit's store and the Google token refresh both
 /// have state that two refreshes must not touch at once, and an actor is the cheapest way
 /// to say so. Every requirement is `async` so an actor can satisfy it.
+/// One calendar that could not be read while the rest of the answer was.
+///
+/// The name is a DISPLAY name: a Google calendar's id is the account's address,
+/// and that does not belong in a string a person reads. The error is carried
+/// whole so the caller can classify it rather than guess.
+struct CalendarPartialFailure: Sendable {
+    var name: String
+    var error: any Error
+}
+
 protocol CalendarProvider: Sendable {
     nonisolated var id: CalendarProviderID { get }
     func authorizationState() async -> CalendarAuthorizationState
@@ -129,4 +139,14 @@ protocol CalendarProvider: Sendable {
     @discardableResult
     func authorize() async -> CalendarAuthorizationState
     func events(from: Date, to: Date) async throws -> [MeetingEvent]
+    /// The failures this provider hit while assembling its last answer, when it
+    /// could answer in part.
+    ///
+    /// A provider that reads several calendars and loses one of them answers
+    /// with the rest — which is the right behaviour for the events, and the
+    /// wrong behaviour for the errors: the failure disappears into a log line
+    /// and the caller's own error state never learns that one calendar was
+    /// unreadable. This is how the caller sees it without the provider
+    /// throwing away a good answer.
+    func partialFetchFailures() async -> [CalendarPartialFailure]
 }

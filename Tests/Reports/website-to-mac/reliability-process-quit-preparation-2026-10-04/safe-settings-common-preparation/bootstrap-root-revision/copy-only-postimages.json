@@ -1,0 +1,7 @@
+{
+  "scope": "pure source text patch replay only",
+  "app_frozen_common": "3183cec11369688b37180b25e4acfc27349c323cf376431d9fe42628191a3963",
+  "app_revised_common": "bbb3e07ca82f5e63c3149c2e1a8dda41a0ad2480270c2b75e91e3f2367cbf50d",
+  "fixture_selector_common": "24633ea451ba21caff6de79b68dd1e63ed87e3f808a23f6f3e7fc06184797756",
+  "fixture_root_revised_common": "281d7e56dd7d2ef1ef74ca48cca03dceae9a4112abd64c25d9e63e87ce17caa9"
+}

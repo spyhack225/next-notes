@@ -1,0 +1,5 @@
+--- a/Sources/NextNotes/UI/DesignSystem.swift
++++ b/Sources/NextNotes/UI/DesignSystem.swift
+@@ -55 +61 @@ enum DS {
+-        static let meterNeedle = SwiftUI.Color.primary
++        static let meterNeedle = Theme.Palette.foreground

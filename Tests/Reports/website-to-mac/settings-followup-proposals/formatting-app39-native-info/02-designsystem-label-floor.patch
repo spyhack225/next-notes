@@ -1,0 +1,12 @@
+--- a/Sources/NextNotes/UI/DesignSystem.swift
++++ b/Sources/NextNotes/UI/DesignSystem.swift
+@@ -416,6 +416,9 @@
+         /// One capability checkbox column in the output-formatting table. Wide enough for a
+         /// checkbox and the gap that keeps five of them from reading as one control.
+         static let formatCapabilityColumn: CGFloat = 34
++        /// Readable leading label floor for both the formatting table header and app rows.
++        /// Compact controls take over when the visible label and six columns do not fit.
++        static let formatAppLabelMinimum: CGFloat = 140
+         /// The output-formatting app list scrolls inside this height rather than growing
+         /// the pane.
+         static let formatListHeight: CGFloat = 240

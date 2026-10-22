@@ -1,0 +1,1072 @@
+{
+  "deliveryManifestSHA256": "1968bb47d4a8c773bd1fb6711701f2802224903b4b1f42274b60b3fa3124e3c5",
+  "checks": [
+    {
+      "path": "delivery-package/README.md",
+      "expected": "e944351feb66b048a96364a249b39302f9a51644e36ebc899dc4c4b99d7c778d",
+      "observed": "e944351feb66b048a96364a249b39302f9a51644e36ebc899dc4c4b99d7c778d"
+    },
+    {
+      "path": "delivery-package/components.json",
+      "expected": "e90aa0cc0dc1228cc3f50d7d8b434e29dc9c463f012304a98fa04d576ed25847",
+      "observed": "e90aa0cc0dc1228cc3f50d7d8b434e29dc9c463f012304a98fa04d576ed25847"
+    },
+    {
+      "path": "delivery-package/owned-hunk-acceptance.json",
+      "expected": "cff7f6c33f009415e905d710c0eb772685b1fd136d51798305380c72482f104a",
+      "observed": "cff7f6c33f009415e905d710c0eb772685b1fd136d51798305380c72482f104a"
+    },
+    {
+      "path": "delivery-package/new-theme-units.json",
+      "expected": "7c53a228e1fd1c048b590ced99e27d47c9e1c0dcc6aa7edb6390fb863fa5ca48",
+      "observed": "7c53a228e1fd1c048b590ced99e27d47c9e1c0dcc6aa7edb6390fb863fa5ca48"
+    },
+    {
+      "path": "delivery-package/assembly-validation.json",
+      "expected": "5e9b1ed60c64b0357b53ebd86a2f61414b5f274335d04ace9490c836deae3ebc",
+      "observed": "5e9b1ed60c64b0357b53ebd86a2f61414b5f274335d04ace9490c836deae3ebc"
+    },
+    {
+      "path": "../theme-foundation/manifest.json",
+      "expected": "56e0e2bd29c2c9c7867ebf4658b112480413abd150829a2b0ce2b12b09caefa7",
+      "observed": "56e0e2bd29c2c9c7867ebf4658b112480413abd150829a2b0ce2b12b09caefa7"
+    },
+    {
+      "path": "theme-foundation/README.md",
+      "expected": "fd8e4533d6b1d6bee326b9fbc288360fe562d2f3de78b3817e408be91ae8bc85",
+      "observed": "fd8e4533d6b1d6bee326b9fbc288360fe562d2f3de78b3817e408be91ae8bc85"
+    },
+    {
+      "path": "theme-foundation/inventory.json",
+      "expected": "332a9b81d1dc5608f87cf3f0f9d270f9cfc2655ed874c761952b07506e4071bc",
+      "observed": "332a9b81d1dc5608f87cf3f0f9d270f9cfc2655ed874c761952b07506e4071bc"
+    },
+    {
+      "path": "theme-foundation/hunks/DesignSystem-13.hunk.txt",
+      "expected": "4db7fc2ae1fdc56f61711ee746c3618f282d5b0567b210e99d043fe87047a3e4",
+      "observed": "4db7fc2ae1fdc56f61711ee746c3618f282d5b0567b210e99d043fe87047a3e4"
+    },
+    {
+      "path": "theme-foundation/hunks/DesignSystem-12.hunk.txt",
+      "expected": "3f76fc64dccdc0a1d88dc3c61db51f50a792d07e4394c23a67b1f3426a78465b",
+      "observed": "3f76fc64dccdc0a1d88dc3c61db51f50a792d07e4394c23a67b1f3426a78465b"
+    },
+    {
+      "path": "theme-foundation/hunks/DesignSystem-18.hunk.txt",
+      "expected": "1afc0443726313ca412194a059642a9ea01a740ac733716d34f80c9da06f3a9c",
+      "observed": "1afc0443726313ca412194a059642a9ea01a740ac733716d34f80c9da06f3a9c"
+    },
+    {
+      "path": "theme-foundation/hunks/DesignSystem-04.hunk.txt",
+      "expected": "5ec0ba127810f5ad567c5fbe48a8d9af8b3c679b0a7edd8825e225bbd45aaaee",
+      "observed": "5ec0ba127810f5ad567c5fbe48a8d9af8b3c679b0a7edd8825e225bbd45aaaee"
+    },
+    {
+      "path": "theme-foundation/hunks/DesignSystem-05.hunk.txt",
+      "expected": "cbef59d9559d4c661cb3639382fe2058c9ad91ee17fe3da2616f7e3104a2ec10",
+      "observed": "cbef59d9559d4c661cb3639382fe2058c9ad91ee17fe3da2616f7e3104a2ec10"
+    },
+    {
+      "path": "theme-foundation/hunks/GlassSurface-05.hunk.txt",
+      "expected": "f40651bc1ce42d0f519bb872ba3ea60567bd1f6f489bd3c92a32bc674234aa92",
+      "observed": "f40651bc1ce42d0f519bb872ba3ea60567bd1f6f489bd3c92a32bc674234aa92"
+    },
+    {
+      "path": "theme-foundation/hunks/GlassSurface-04.hunk.txt",
+      "expected": "bced7db92bcfab71583b0a672fba376b1a094006063aa4961e3ac57a9a0ba23e",
+      "observed": "bced7db92bcfab71583b0a672fba376b1a094006063aa4961e3ac57a9a0ba23e"
+    },
+    {
+      "path": "theme-foundation/hunks/IslandView-07.hunk.txt",
+      "expected": "5ac6253d76c7a5b6e3f6a7634a885f00ffc1b733d2b479e653cfc4d35b37c361",
+      "observed": "5ac6253d76c7a5b6e3f6a7634a885f00ffc1b733d2b479e653cfc4d35b37c361"
+    },
+    {
+      "path": "theme-foundation/hunks/SectionHeading-01.hunk.txt",
+      "expected": "756357a6d7e7dad67493bb641e22934f587496a3942dd0699f10a1c1f83102fe",
+      "observed": "756357a6d7e7dad67493bb641e22934f587496a3942dd0699f10a1c1f83102fe"
+    },
+    {
+      "path": "theme-foundation/hunks/MainWindow-01.hunk.txt",
+      "expected": "c01f1409c371d1552999a77faf0319f1f2926515b887b0d2d578f147bfb4c8a8",
+      "observed": "c01f1409c371d1552999a77faf0319f1f2926515b887b0d2d578f147bfb4c8a8"
+    },
+    {
+      "path": "theme-foundation/hunks/DesignSystem-03.hunk.txt",
+      "expected": "22772d44d9c351a5b22b1908c0f65eb28c0520f35c543a7066adecb4d1e118fb",
+      "observed": "22772d44d9c351a5b22b1908c0f65eb28c0520f35c543a7066adecb4d1e118fb"
+    },
+    {
+      "path": "theme-foundation/hunks/DesignSystem-02.hunk.txt",
+      "expected": "29e2e5d2e66d7eb5fb752792f045b9b1e75214e0e1004b8c81bc4ea2bddbc97a",
+      "observed": "29e2e5d2e66d7eb5fb752792f045b9b1e75214e0e1004b8c81bc4ea2bddbc97a"
+    },
+    {
+      "path": "theme-foundation/hunks/GlassSurface-02.hunk.txt",
+      "expected": "83642822bbdcf9ac28e81f310172d5e1c78b2fae5058b036d4c23fdf5a4314a3",
+      "observed": "83642822bbdcf9ac28e81f310172d5e1c78b2fae5058b036d4c23fdf5a4314a3"
+    },
+    {
+      "path": "theme-foundation/hunks/GlassSurface-03.hunk.txt",
+      "expected": "2c35ab4cb1b639f451d7d4ae6d56d4e2d73486669b89b420404265bf465b47cb",
+      "observed": "2c35ab4cb1b639f451d7d4ae6d56d4e2d73486669b89b420404265bf465b47cb"
+    },
+    {
+      "path": "theme-foundation/hunks/IslandView-01.hunk.txt",
+      "expected": "dac84d632daec539f1b9769a7db6f96a222bba0f42636819aa3337969586fe8a",
+      "observed": "dac84d632daec539f1b9769a7db6f96a222bba0f42636819aa3337969586fe8a"
+    },
+    {
+      "path": "theme-foundation/hunks/DesignSystem-09.hunk.txt",
+      "expected": "c318fd1f387142274dc69465c27b17b31477fb7182a181a441d654f87d5013fb",
+      "observed": "c318fd1f387142274dc69465c27b17b31477fb7182a181a441d654f87d5013fb"
+    },
+    {
+      "path": "theme-foundation/hunks/DesignSystem-08.hunk.txt",
+      "expected": "e6135a798075b9a343e493980a6716ceaf5e76a4c9b92c6708de2186bef050eb",
+      "observed": "e6135a798075b9a343e493980a6716ceaf5e76a4c9b92c6708de2186bef050eb"
+    },
+    {
+      "path": "theme-foundation/hunks/DesignSystem-14.hunk.txt",
+      "expected": "b9ac5efbc5cad90b660780d33d734a1e52342695f9fc92f56ed075275fb5f16f",
+      "observed": "b9ac5efbc5cad90b660780d33d734a1e52342695f9fc92f56ed075275fb5f16f"
+    },
+    {
+      "path": "theme-foundation/hunks/AgentPaneLayout-01.hunk.txt",
+      "expected": "ad874a84f8486f8e5f243f1cbc1dc9fdca6f690e0dd5eb651df31cf1537c41a8",
+      "observed": "ad874a84f8486f8e5f243f1cbc1dc9fdca6f690e0dd5eb651df31cf1537c41a8"
+    },
+    {
+      "path": "theme-foundation/hunks/SettingsWindow-03.hunk.txt",
+      "expected": "c2d86931783b9b9813ca65075170e50d4bd1df5ea7d4e28ddf597cf9ea1dcef7",
+      "observed": "c2d86931783b9b9813ca65075170e50d4bd1df5ea7d4e28ddf597cf9ea1dcef7"
+    },
+    {
+      "path": "theme-foundation/hunks/SettingsWindow-02.hunk.txt",
+      "expected": "4cd29c044d0ceaaad220a72483bdd1d72d3fa9dda98d2ae4253284e4a9719630",
+      "observed": "4cd29c044d0ceaaad220a72483bdd1d72d3fa9dda98d2ae4253284e4a9719630"
+    },
+    {
+      "path": "theme-foundation/hunks/SectionHeading-02.hunk.txt",
+      "expected": "4c6f71323630b198cbd8e5b720b75ed20b78fbfc4e7f9c81f6029b1c88158ca5",
+      "observed": "4c6f71323630b198cbd8e5b720b75ed20b78fbfc4e7f9c81f6029b1c88158ca5"
+    },
+    {
+      "path": "theme-foundation/hunks/AgentView-26.hunk.txt",
+      "expected": "4b28671b1a9df992e1a75b952cd6e9e36995ce4ef1055b67ea0de837c5f8ccc9",
+      "observed": "4b28671b1a9df992e1a75b952cd6e9e36995ce4ef1055b67ea0de837c5f8ccc9"
+    },
+    {
+      "path": "theme-foundation/hunks/MeetingConsoleSheet-01.hunk.txt",
+      "expected": "0e3f62a57177e2916198dfc4d42a8336a630a6a5d5f66ee111e729bb8930b1cd",
+      "observed": "0e3f62a57177e2916198dfc4d42a8336a630a6a5d5f66ee111e729bb8930b1cd"
+    },
+    {
+      "path": "theme-foundation/hunks/HUDView-01.hunk.txt",
+      "expected": "37bc5cfa7f9893dcd21c08b880ac17ca02b28378834cc9007a4d2e5c33faf425",
+      "observed": "37bc5cfa7f9893dcd21c08b880ac17ca02b28378834cc9007a4d2e5c33faf425"
+    },
+    {
+      "path": "theme-foundation/hunks/DesignSystem-07.hunk.txt",
+      "expected": "504ca8bf6a1a777ac71ca8bc8e65f07596c095a197f998b8b2504dde2b631d22",
+      "observed": "504ca8bf6a1a777ac71ca8bc8e65f07596c095a197f998b8b2504dde2b631d22"
+    },
+    {
+      "path": "theme-foundation/hunks/DesignSystem-06.hunk.txt",
+      "expected": "01648226248a375b6c46fc00a1e203f2219620b30cd4c79329990c87872326e9",
+      "observed": "01648226248a375b6c46fc00a1e203f2219620b30cd4c79329990c87872326e9"
+    },
+    {
+      "path": "theme-foundation/hunks/GlassSurface-06.hunk.txt",
+      "expected": "d77a309d0e013b3ed5be6ed312e2a378af81279915d1f846119817543860324d",
+      "observed": "d77a309d0e013b3ed5be6ed312e2a378af81279915d1f846119817543860324d"
+    },
+    {
+      "path": "theme-foundation/hunks/DesignSystem-10.hunk.txt",
+      "expected": "15a3ea8a287d9a2b9de8c9a531d2f6856c10a3a728715d870426a68e0c9216c9",
+      "observed": "15a3ea8a287d9a2b9de8c9a531d2f6856c10a3a728715d870426a68e0c9216c9"
+    },
+    {
+      "path": "theme-foundation/hunks/DesignSystem-11.hunk.txt",
+      "expected": "35d8c84a7a28d3868355158db4c7a8a79faba38a4a3933c1dd4d5eceb56a23fc",
+      "observed": "35d8c84a7a28d3868355158db4c7a8a79faba38a4a3933c1dd4d5eceb56a23fc"
+    },
+    {
+      "path": "theme-foundation/hunks/SettingsChrome-01.hunk.txt",
+      "expected": "47d015c9517a8d6b9dca9c9cb72704dc0a11d260bf0000e68e717ef0f2c01056",
+      "observed": "47d015c9517a8d6b9dca9c9cb72704dc0a11d260bf0000e68e717ef0f2c01056"
+    },
+    {
+      "path": "theme-foundation/hunks/AgentWorkingCard-03.hunk.txt",
+      "expected": "b76c3358aa67410c9e915953e11298cd0ec33eb443d55e127a260f6e3dca184f",
+      "observed": "b76c3358aa67410c9e915953e11298cd0ec33eb443d55e127a260f6e3dca184f"
+    },
+    {
+      "path": "theme-foundation/hunks/AgentView-08.hunk.txt",
+      "expected": "9646f875adbc84b4e8a3c3d2520d86918ae46c1db5882757dba29471ac2e7b79",
+      "observed": "9646f875adbc84b4e8a3c3d2520d86918ae46c1db5882757dba29471ac2e7b79"
+    },
+    {
+      "path": "theme-foundation/hunks/SettingsWindow-01.hunk.txt",
+      "expected": "d6d781b5f9deff86d4397d027d78d9f6d636c5c0d11fdb68872b7a4fae9b8c4b",
+      "observed": "d6d781b5f9deff86d4397d027d78d9f6d636c5c0d11fdb68872b7a4fae9b8c4b"
+    },
+    {
+      "path": "theme-foundation/hunks/DesignSystem-17.hunk.txt",
+      "expected": "dbb860de6e58c4b995ecc199f8bfaad4c218553e2b9d7d914b7961b32180559f",
+      "observed": "dbb860de6e58c4b995ecc199f8bfaad4c218553e2b9d7d914b7961b32180559f"
+    },
+    {
+      "path": "theme-foundation/hunks/DesignSystem-16.hunk.txt",
+      "expected": "e449fee68991fd77430bbe7c55e4b8115bf1a49be4ded890143f5532bc2f6a3e",
+      "observed": "e449fee68991fd77430bbe7c55e4b8115bf1a49be4ded890143f5532bc2f6a3e"
+    },
+    {
+      "path": "theme-foundation/hunks/AgentPaneLayout-03.hunk.txt",
+      "expected": "789059d6d983c53238b653a64ca3f98830d7970e506510143a7dd797638ebcb9",
+      "observed": "789059d6d983c53238b653a64ca3f98830d7970e506510143a7dd797638ebcb9"
+    },
+    {
+      "path": "theme-foundation/hunks/AgentPaneLayout-02.hunk.txt",
+      "expected": "3bf15269cb3574cad2a7f257608775517ff42c20ef22ffb90faf7961f42f878d",
+      "observed": "3bf15269cb3574cad2a7f257608775517ff42c20ef22ffb90faf7961f42f878d"
+    },
+    {
+      "path": "theme-foundation/hunks/ActivityView-02.hunk.txt",
+      "expected": "cfd18d0afc20c2a781b23c1c6c3218b0363d3fab0345071d0dc9c20851be9699",
+      "observed": "cfd18d0afc20c2a781b23c1c6c3218b0363d3fab0345071d0dc9c20851be9699"
+    },
+    {
+      "path": "theme-foundation/hunks/ActivityView-03.hunk.txt",
+      "expected": "35a447faee5d2a4b64296db4ad992f9647644a8d203e3d5a468e4167df2a5fd9",
+      "observed": "35a447faee5d2a4b64296db4ad992f9647644a8d203e3d5a468e4167df2a5fd9"
+    },
+    {
+      "path": "theme-foundation/hunks/IslandView-08.hunk.txt",
+      "expected": "f3152037be4c50506dd402e5f415fcdd5a6ac872b1c0b96a57a15b0b12345048",
+      "observed": "f3152037be4c50506dd402e5f415fcdd5a6ac872b1c0b96a57a15b0b12345048"
+    },
+    {
+      "path": "theme-foundation/hunks/DesignSystem-01.hunk.txt",
+      "expected": "0a6fa12af3062cba7cc4f085b5b57caa657c2f9a367a193ded2b319cfffa4f52",
+      "observed": "0a6fa12af3062cba7cc4f085b5b57caa657c2f9a367a193ded2b319cfffa4f52"
+    },
+    {
+      "path": "theme-foundation/hunks/IslandView-03.hunk.txt",
+      "expected": "29287990363f109986d2d9d4c94ddca6cb85e9237c73510077a8f8f74f2de098",
+      "observed": "29287990363f109986d2d9d4c94ddca6cb85e9237c73510077a8f8f74f2de098"
+    },
+    {
+      "path": "theme-foundation/hunks/IslandView-02.hunk.txt",
+      "expected": "50cc4769de46305676bdc9a351f71367059a0d5b152a0a2c1cf489b75e201f78",
+      "observed": "50cc4769de46305676bdc9a351f71367059a0d5b152a0a2c1cf489b75e201f78"
+    },
+    {
+      "path": "theme-foundation/hunks/GlassSurface-01.hunk.txt",
+      "expected": "8caf3a6ede8c0faec9615780f6226dceb51d586a4692dbecd5574bbd138fee68",
+      "observed": "8caf3a6ede8c0faec9615780f6226dceb51d586a4692dbecd5574bbd138fee68"
+    },
+    {
+      "path": "../consumer-boundaries/manifest.json",
+      "expected": "2952b3273447fb1cdfeb26f5adb9d8f76e7c9b931beca6890b43571c7730b6c0",
+      "observed": "2952b3273447fb1cdfeb26f5adb9d8f76e7c9b931beca6890b43571c7730b6c0"
+    },
+    {
+      "path": "consumer-boundaries/README.md",
+      "expected": "b725e7d4d313ea3d57a62a10449f8704b669f6d7ff442f4ddcf7477598267ca6",
+      "observed": "b725e7d4d313ea3d57a62a10449f8704b669f6d7ff442f4ddcf7477598267ca6"
+    },
+    {
+      "path": "consumer-boundaries/pins.json",
+      "expected": "79d42de0b05dd600659956093d2b19db163e805fa3ae72da8641a345db43c3a4",
+      "observed": "79d42de0b05dd600659956093d2b19db163e805fa3ae72da8641a345db43c3a4"
+    },
+    {
+      "path": "consumer-boundaries/fragment-acceptance.json",
+      "expected": "09e88bd3830623ccb9da7b11a918fff871eca65fd401c3904073cabe85f04f39",
+      "observed": "09e88bd3830623ccb9da7b11a918fff871eca65fd401c3904073cabe85f04f39"
+    },
+    {
+      "path": "../settings-display-boundaries/manifest.json",
+      "expected": "4fc90cf4af442d2b2137862b0a9cd804de484334f282b0fc77c0512203f2c5e1",
+      "observed": "4fc90cf4af442d2b2137862b0a9cd804de484334f282b0fc77c0512203f2c5e1"
+    },
+    {
+      "path": "settings-display-boundaries/README.md",
+      "expected": "ef93bf0ad5571714d971a9ca813313b6f54939ea5bea42e716c28048de950d34",
+      "observed": "ef93bf0ad5571714d971a9ca813313b6f54939ea5bea42e716c28048de950d34"
+    },
+    {
+      "path": "settings-display-boundaries/inventory.json",
+      "expected": "f6f4e95aaa70f10b4f4c8f1b518b539a56fd62828b81e51c81cdbe6ee21dc530",
+      "observed": "f6f4e95aaa70f10b4f4c8f1b518b539a56fd62828b81e51c81cdbe6ee21dc530"
+    },
+    {
+      "path": "settings-display-boundaries/hunks/FormattingSettingsTab-23.hunk.txt",
+      "expected": "c92a83ec1bf6f4acc8b910b87b1f91cfeeec7c6d929fa7a3c3377f6de1d3852f",
+      "observed": "c92a83ec1bf6f4acc8b910b87b1f91cfeeec7c6d929fa7a3c3377f6de1d3852f"
+    },
+    {
+      "path": "settings-display-boundaries/hunks/FormattingSettingsTab-22.hunk.txt",
+      "expected": "703e565b5941b16fe5218d8c334169e62253ca5a1043783809f5b8cea4d76ba3",
+      "observed": "703e565b5941b16fe5218d8c334169e62253ca5a1043783809f5b8cea4d76ba3"
+    },
+    {
+      "path": "settings-display-boundaries/hunks/FormattingSettingsTab-29.hunk.txt",
+      "expected": "063ff20749737d6f0e4d612df1984b6cf738ac42db4e2bfaf330ded8f4c7d0c9",
+      "observed": "063ff20749737d6f0e4d612df1984b6cf738ac42db4e2bfaf330ded8f4c7d0c9"
+    },
+    {
+      "path": "settings-display-boundaries/hunks/FormattingSettingsTab-28.hunk.txt",
+      "expected": "9719414fe9529e599b78854888f839a44a07c04daef176e66f55460b3a2c2b05",
+      "observed": "9719414fe9529e599b78854888f839a44a07c04daef176e66f55460b3a2c2b05"
+    },
+    {
+      "path": "settings-display-boundaries/hunks/FormattingSettingsTab-17.hunk.txt",
+      "expected": "7b9b3cca13b9479c147d627301782805377b0b763bb9557b20a02efc81d2dfa7",
+      "observed": "7b9b3cca13b9479c147d627301782805377b0b763bb9557b20a02efc81d2dfa7"
+    },
+    {
+      "path": "settings-display-boundaries/hunks/FormattingSettingsTab-16.hunk.txt",
+      "expected": "d55c77c7d78a0870a81c44f0cf58954c49dcf22ad1ceea83509b8a3fa714a78a",
+      "observed": "d55c77c7d78a0870a81c44f0cf58954c49dcf22ad1ceea83509b8a3fa714a78a"
+    },
+    {
+      "path": "settings-display-boundaries/hunks/FormattingSettingsTab-34.hunk.txt",
+      "expected": "159c946a16359e3a182afee1928453e761d19a9fac1e4ed6a00f4a2e6081a7fd",
+      "observed": "159c946a16359e3a182afee1928453e761d19a9fac1e4ed6a00f4a2e6081a7fd"
+    },
+    {
+      "path": "settings-display-boundaries/hunks/FormattingSettingsTab-35.hunk.txt",
+      "expected": "48c02b9be99a1ed02f2122a978b50042ba137301d539fee23433d3211a88ebfa",
+      "observed": "48c02b9be99a1ed02f2122a978b50042ba137301d539fee23433d3211a88ebfa"
+    },
+    {
+      "path": "settings-display-boundaries/hunks/AgentSettingsTab-03.hunk.txt",
+      "expected": "713eb36bfa0d992f21f8ba0c04b62710c879c6174aec4371933fdb3b169f48b9",
+      "observed": "713eb36bfa0d992f21f8ba0c04b62710c879c6174aec4371933fdb3b169f48b9"
+    },
+    {
+      "path": "settings-display-boundaries/hunks/AgentSettingsTab-02.hunk.txt",
+      "expected": "2bcb57fa46c9d9300dfe43a5da2829dbfa6dab11bbb622d761f35d5d0eec0dff",
+      "observed": "2bcb57fa46c9d9300dfe43a5da2829dbfa6dab11bbb622d761f35d5d0eec0dff"
+    },
+    {
+      "path": "settings-display-boundaries/hunks/FormattingSettingsTab-01.hunk.txt",
+      "expected": "1c2c913e492fef5b6c4eb457529341259dbdedc0aefb8020b2b7edd27f38cb8d",
+      "observed": "1c2c913e492fef5b6c4eb457529341259dbdedc0aefb8020b2b7edd27f38cb8d"
+    },
+    {
+      "path": "settings-display-boundaries/hunks/FormattingSettingsTab-33.hunk.txt",
+      "expected": "5f4d6e0ad13380ab8e7306a600654845f1f61304c894ecd397f3f31f07d5e964",
+      "observed": "5f4d6e0ad13380ab8e7306a600654845f1f61304c894ecd397f3f31f07d5e964"
+    },
+    {
+      "path": "settings-display-boundaries/hunks/FormattingSettingsTab-32.hunk.txt",
+      "expected": "f2a140aeb76865cc47d55554eb9101cf83fd68841a85bbf73564ea9f7e7c37ec",
+      "observed": "f2a140aeb76865cc47d55554eb9101cf83fd68841a85bbf73564ea9f7e7c37ec"
+    },
+    {
+      "path": "settings-display-boundaries/hunks/FormattingSettingsTab-07.hunk.txt",
+      "expected": "37ac6c5f444055d88748ecbe9f105b2be2ee28f688113ccfc5553c40743cfebd",
+      "observed": "37ac6c5f444055d88748ecbe9f105b2be2ee28f688113ccfc5553c40743cfebd"
+    },
+    {
+      "path": "settings-display-boundaries/hunks/FormattingSettingsTab-06.hunk.txt",
+      "expected": "03b0c7fe0c3912305533dcb1573dc1fad4249c7c7b915bc2cb059d6c2a646dc3",
+      "observed": "03b0c7fe0c3912305533dcb1573dc1fad4249c7c7b915bc2cb059d6c2a646dc3"
+    },
+    {
+      "path": "settings-display-boundaries/hunks/FormattingSettingsTab-24.hunk.txt",
+      "expected": "b2fce9e83755a5e93f92efe847653a5c0b8be2fef2cda7c5a8a5fcb852714e2c",
+      "observed": "b2fce9e83755a5e93f92efe847653a5c0b8be2fef2cda7c5a8a5fcb852714e2c"
+    },
+    {
+      "path": "settings-display-boundaries/hunks/FormattingSettingsTab-25.hunk.txt",
+      "expected": "af71dc2d84fe3af1d5bdeebc1ba9478d2268269491c99e32424bc6b237b15695",
+      "observed": "af71dc2d84fe3af1d5bdeebc1ba9478d2268269491c99e32424bc6b237b15695"
+    },
+    {
+      "path": "settings-display-boundaries/hunks/DesignSystem-15.hunk.txt",
+      "expected": "c1ff043023274d2ffa3e3cde46ebbbbbaf4fb4961f5b9d38d31435135d9e1859",
+      "observed": "c1ff043023274d2ffa3e3cde46ebbbbbaf4fb4961f5b9d38d31435135d9e1859"
+    },
+    {
+      "path": "settings-display-boundaries/hunks/FormattingSettingsTab-10.hunk.txt",
+      "expected": "0f02de3caea0255bbb1da7e955bb1838d9168c802bf41a68c9eb34d8c5ebfc7c",
+      "observed": "0f02de3caea0255bbb1da7e955bb1838d9168c802bf41a68c9eb34d8c5ebfc7c"
+    },
+    {
+      "path": "settings-display-boundaries/hunks/FormattingSettingsTab-11.hunk.txt",
+      "expected": "8e24a1b0aca4e7343ea898db4da898022d4b8699496f2e88425298ab71824660",
+      "observed": "8e24a1b0aca4e7343ea898db4da898022d4b8699496f2e88425298ab71824660"
+    },
+    {
+      "path": "settings-display-boundaries/hunks/AgentSettingsTab-01.hunk.txt",
+      "expected": "44dfca05bc140f6c9970232688cfddc4b0de545a00bb7e336a590d2445a72434",
+      "observed": "44dfca05bc140f6c9970232688cfddc4b0de545a00bb7e336a590d2445a72434"
+    },
+    {
+      "path": "settings-display-boundaries/hunks/FormattingSettingsTab-03.hunk.txt",
+      "expected": "9477724fee88073deafa04dbffda95761c39debb5f451ce28a6951dafc0d4cbd",
+      "observed": "9477724fee88073deafa04dbffda95761c39debb5f451ce28a6951dafc0d4cbd"
+    },
+    {
+      "path": "settings-display-boundaries/hunks/FormattingSettingsTab-02.hunk.txt",
+      "expected": "1420cf445ec88321394e399f74e7a28ce61966d5be5b65d0578660c61f8ee15d",
+      "observed": "1420cf445ec88321394e399f74e7a28ce61966d5be5b65d0578660c61f8ee15d"
+    },
+    {
+      "path": "settings-display-boundaries/hunks/FormattingSettingsTab-09.hunk.txt",
+      "expected": "0ac6b53fa650b739263e2dcc46437d8fdf120b4d98f9feee153303a4a1a2e9ea",
+      "observed": "0ac6b53fa650b739263e2dcc46437d8fdf120b4d98f9feee153303a4a1a2e9ea"
+    },
+    {
+      "path": "settings-display-boundaries/hunks/FormattingSettingsTab-08.hunk.txt",
+      "expected": "95e0964f14eb6560eecc8ebc89fcd66239bbbb09b9e24cc087fb8e68a2c126ea",
+      "observed": "95e0964f14eb6560eecc8ebc89fcd66239bbbb09b9e24cc087fb8e68a2c126ea"
+    },
+    {
+      "path": "settings-display-boundaries/hunks/ComputerBrowserReadiness-02.hunk.txt",
+      "expected": "28e28ce9603d7e77f8c8830c8b9610e57a7d5b8479bebc4737ffd3dfb99cc3f2",
+      "observed": "28e28ce9603d7e77f8c8830c8b9610e57a7d5b8479bebc4737ffd3dfb99cc3f2"
+    },
+    {
+      "path": "settings-display-boundaries/hunks/ComputerBrowserReadiness-03.hunk.txt",
+      "expected": "7f2fa5d11792a258e27bae66c82c459abab0dbe972ba5e6fbddda44efad84f1a",
+      "observed": "7f2fa5d11792a258e27bae66c82c459abab0dbe972ba5e6fbddda44efad84f1a"
+    },
+    {
+      "path": "settings-display-boundaries/hunks/FormattingSettingsTab-14.hunk.txt",
+      "expected": "aaf7f266566fc12555517a0277a9095b4f7a0ab92cd8f4a54b7f8aa20cfe3ea8",
+      "observed": "aaf7f266566fc12555517a0277a9095b4f7a0ab92cd8f4a54b7f8aa20cfe3ea8"
+    },
+    {
+      "path": "settings-display-boundaries/hunks/FormattingSettingsTab-15.hunk.txt",
+      "expected": "82ebfa8b64ba85dabfd2f520462739563d5baf024064006c299ee0df4053973a",
+      "observed": "82ebfa8b64ba85dabfd2f520462739563d5baf024064006c299ee0df4053973a"
+    },
+    {
+      "path": "settings-display-boundaries/hunks/FormattingSettingsTab-20.hunk.txt",
+      "expected": "4d6dfea1fe1f92630325b40cfd339af7942b06d74773abccdf0fc35d50cbf964",
+      "observed": "4d6dfea1fe1f92630325b40cfd339af7942b06d74773abccdf0fc35d50cbf964"
+    },
+    {
+      "path": "settings-display-boundaries/hunks/FormattingSettingsTab-21.hunk.txt",
+      "expected": "c36ce42e79320754bc657099c3aeab568bfc7c2bb8d723d7d5eadc91637dca4c",
+      "observed": "c36ce42e79320754bc657099c3aeab568bfc7c2bb8d723d7d5eadc91637dca4c"
+    },
+    {
+      "path": "settings-display-boundaries/hunks/FormattingSettingsTab-13.hunk.txt",
+      "expected": "53110184d7bc2f8fc11a3cae597ac3a1cf5b60c94fd0e2136a41f3c54d8146c2",
+      "observed": "53110184d7bc2f8fc11a3cae597ac3a1cf5b60c94fd0e2136a41f3c54d8146c2"
+    },
+    {
+      "path": "settings-display-boundaries/hunks/FormattingSettingsTab-12.hunk.txt",
+      "expected": "fa08520dfc0d660d089137f4bd69512530b87995c18aa4bcd8e3c5dfb7b9e326",
+      "observed": "fa08520dfc0d660d089137f4bd69512530b87995c18aa4bcd8e3c5dfb7b9e326"
+    },
+    {
+      "path": "settings-display-boundaries/hunks/FormattingSettingsTab-27.hunk.txt",
+      "expected": "c26fbea9d657894b83f4a25276b954760f60a289d3c44c504693af0306a016b3",
+      "observed": "c26fbea9d657894b83f4a25276b954760f60a289d3c44c504693af0306a016b3"
+    },
+    {
+      "path": "settings-display-boundaries/hunks/FormattingSettingsTab-26.hunk.txt",
+      "expected": "9bfa08e47b8bdb31661e9d16deb8eb2d09a2c959c6b04be4da7a78e3565aff10",
+      "observed": "9bfa08e47b8bdb31661e9d16deb8eb2d09a2c959c6b04be4da7a78e3565aff10"
+    },
+    {
+      "path": "settings-display-boundaries/hunks/FormattingSettingsTab-19.hunk.txt",
+      "expected": "bf3480c7eaa0d8b2f764174c94c839caf94897795fb5d1c5d7b00abaf31f7da0",
+      "observed": "bf3480c7eaa0d8b2f764174c94c839caf94897795fb5d1c5d7b00abaf31f7da0"
+    },
+    {
+      "path": "settings-display-boundaries/hunks/FormattingSettingsTab-18.hunk.txt",
+      "expected": "2fac308580be6c3e09d0ad6443c74d0f1558963606701d3c48d7cad653c039cc",
+      "observed": "2fac308580be6c3e09d0ad6443c74d0f1558963606701d3c48d7cad653c039cc"
+    },
+    {
+      "path": "settings-display-boundaries/hunks/FormattingSettingsTab-04.hunk.txt",
+      "expected": "8cfcae8a2cd6178b33c331693f7de81da292905aceff4d2175b03baaa357190c",
+      "observed": "8cfcae8a2cd6178b33c331693f7de81da292905aceff4d2175b03baaa357190c"
+    },
+    {
+      "path": "settings-display-boundaries/hunks/FormattingSettingsTab-05.hunk.txt",
+      "expected": "8a247a4f0114011aac0db4328ff97a519ddb70ddf5e9ea2000091afd1bf952a7",
+      "observed": "8a247a4f0114011aac0db4328ff97a519ddb70ddf5e9ea2000091afd1bf952a7"
+    },
+    {
+      "path": "settings-display-boundaries/hunks/FormattingSettingsTab-30.hunk.txt",
+      "expected": "77e4700f69a8636b0ea00bad293e614c558a72c3ea73b87676b5c71477ca0886",
+      "observed": "77e4700f69a8636b0ea00bad293e614c558a72c3ea73b87676b5c71477ca0886"
+    },
+    {
+      "path": "settings-display-boundaries/hunks/FormattingSettingsTab-31.hunk.txt",
+      "expected": "81a709c7f48e0a45dcea41aec4061c8cce904d681346957e40b476e71ac5fa0d",
+      "observed": "81a709c7f48e0a45dcea41aec4061c8cce904d681346957e40b476e71ac5fa0d"
+    },
+    {
+      "path": "settings-display-boundaries/hunks/ComputerBrowserReadiness-04.hunk.txt",
+      "expected": "2e8218b8f3b76b5338d131912b8088d80243bcd76ac0779428beaffbfd4fb834",
+      "observed": "2e8218b8f3b76b5338d131912b8088d80243bcd76ac0779428beaffbfd4fb834"
+    },
+    {
+      "path": "../packaging-boundaries/manifest.json",
+      "expected": "a8879a8e6b5767256494e6da975abf69f2b168cb5adb903dde4d423f523408ec",
+      "observed": "a8879a8e6b5767256494e6da975abf69f2b168cb5adb903dde4d423f523408ec"
+    },
+    {
+      "path": "packaging-boundaries/font-copy-only.patch.txt",
+      "expected": "fdf1d8f2fb13d6cc7f4b92caa0695fa05f37c856fbabbdbeadd96748526a81d4",
+      "observed": "fdf1d8f2fb13d6cc7f4b92caa0695fa05f37c856fbabbdbeadd96748526a81d4"
+    },
+    {
+      "path": "packaging-boundaries/mac-font-notice-only.patch.txt",
+      "expected": "d3cda3eb16f7763add9f4c3c3ecf5b72e311e8306cfcadacab25f6d24eb064be",
+      "observed": "d3cda3eb16f7763add9f4c3c3ecf5b72e311e8306cfcadacab25f6d24eb064be"
+    },
+    {
+      "path": "packaging-boundaries/owned-hunks.json",
+      "expected": "7bf599e62657823b449b26792207580023d73fe32450838d6aed79af6fdbfc4c",
+      "observed": "7bf599e62657823b449b26792207580023d73fe32450838d6aed79af6fdbfc4c"
+    },
+    {
+      "path": "packaging-boundaries/font-prerequisites.json",
+      "expected": "3857e394ca53d590d323175f7ff5fd739cc58d0522b74ce2d81c50f2b9e16b26",
+      "observed": "3857e394ca53d590d323175f7ff5fd739cc58d0522b74ce2d81c50f2b9e16b26"
+    },
+    {
+      "path": "packaging-boundaries/README.md",
+      "expected": "46835f2f8394616eeb56958b0aab1d4d01a0e530564ce8f6e7d2fa7867474603",
+      "observed": "46835f2f8394616eeb56958b0aab1d4d01a0e530564ce8f6e7d2fa7867474603"
+    },
+    {
+      "path": "../prerequisite-boundaries/manifest.json",
+      "expected": "5de2762bad32cd9bd823c9b36ccce3c0b4d04f44556e1cf6004ef67081020cfb",
+      "observed": "5de2762bad32cd9bd823c9b36ccce3c0b4d04f44556e1cf6004ef67081020cfb"
+    },
+    {
+      "path": "prerequisite-boundaries/README.md",
+      "expected": "d990157f0390bf0a71dfc7cf40d6a1478b69fb8bab3a5010d603d2e55bafae12",
+      "observed": "d990157f0390bf0a71dfc7cf40d6a1478b69fb8bab3a5010d603d2e55bafae12"
+    },
+    {
+      "path": "prerequisite-boundaries/groups.json",
+      "expected": "8629c6756db71e27ad693400c2058dbcaacfcf096a22cd15959b3711a3df3880",
+      "observed": "8629c6756db71e27ad693400c2058dbcaacfcf096a22cd15959b3711a3df3880"
+    },
+    {
+      "path": "prerequisite-boundaries/input-pins.json",
+      "expected": "0a4502ad15d024ca4250227f86f391a579fb4589687c09f36c5c84945401bcb2",
+      "observed": "0a4502ad15d024ca4250227f86f391a579fb4589687c09f36c5c84945401bcb2"
+    },
+    {
+      "path": "../foundation-independent-review/manifest.json",
+      "expected": "90e6d85d41e3f66e940113608637ef96a28a84e828d5ada222ec4ded15b5823c",
+      "observed": "90e6d85d41e3f66e940113608637ef96a28a84e828d5ada222ec4ded15b5823c"
+    },
+    {
+      "path": "foundation-independent-review/README.md",
+      "expected": "10300140d72872ea0de603c1d95471c46d9f9eca7f7413e5418cde5752fa518c",
+      "observed": "10300140d72872ea0de603c1d95471c46d9f9eca7f7413e5418cde5752fa518c"
+    },
+    {
+      "path": "foundation-independent-review/checks.json",
+      "expected": "0901c5c443aa9208c137ef8c0c8412e2c9852ee660bf556d1b1b625d2d9e0315",
+      "observed": "0901c5c443aa9208c137ef8c0c8412e2c9852ee660bf556d1b1b625d2d9e0315"
+    },
+    {
+      "path": "../settings-display-independent-review/manifest.json",
+      "expected": "f6fa55c1d89a8f426fe3dfe4a42a7f4881ca6c43de6462c61e0dc76c4dd678a8",
+      "observed": "f6fa55c1d89a8f426fe3dfe4a42a7f4881ca6c43de6462c61e0dc76c4dd678a8"
+    },
+    {
+      "path": "settings-display-independent-review/README.md",
+      "expected": "6c3ef2659cd4c696e7d1b6ca0f05d7e5085ec11ce29100ab929adb215f1d1714",
+      "observed": "6c3ef2659cd4c696e7d1b6ca0f05d7e5085ec11ce29100ab929adb215f1d1714"
+    },
+    {
+      "path": "settings-display-independent-review/checks.json",
+      "expected": "866b9c8f93e09eecd732c52650bb3c3a0d1de569bd7c05eaa101631d0b2f20bb",
+      "observed": "866b9c8f93e09eecd732c52650bb3c3a0d1de569bd7c05eaa101631d0b2f20bb"
+    },
+    {
+      "path": "../parent-boundary-independent-review/manifest.json",
+      "expected": "2acb3f509925b300056de867cc7e819fbc88d14afc528cbb2277746eba819e50",
+      "observed": "2acb3f509925b300056de867cc7e819fbc88d14afc528cbb2277746eba819e50"
+    },
+    {
+      "path": "parent-boundary-independent-review/README.md",
+      "expected": "c031997c709ece8168689ca35f6c3cfd71de0c63c70691f99d1febbdd6c4ada2",
+      "observed": "c031997c709ece8168689ca35f6c3cfd71de0c63c70691f99d1febbdd6c4ada2"
+    },
+    {
+      "path": "parent-boundary-independent-review/pins.json",
+      "expected": "603364ea104730cbba3a8a91956fb1c94b69907f8c9c66ce84c8a6a52e5155cd",
+      "observed": "603364ea104730cbba3a8a91956fb1c94b69907f8c9c66ce84c8a6a52e5155cd"
+    },
+    {
+      "path": "../theme-foundation/hunks/DesignSystem-01.hunk.txt",
+      "expected": "0a6fa12af3062cba7cc4f085b5b57caa657c2f9a367a193ded2b319cfffa4f52",
+      "observed": "0a6fa12af3062cba7cc4f085b5b57caa657c2f9a367a193ded2b319cfffa4f52"
+    },
+    {
+      "path": "../theme-foundation/hunks/DesignSystem-02.hunk.txt",
+      "expected": "29e2e5d2e66d7eb5fb752792f045b9b1e75214e0e1004b8c81bc4ea2bddbc97a",
+      "observed": "29e2e5d2e66d7eb5fb752792f045b9b1e75214e0e1004b8c81bc4ea2bddbc97a"
+    },
+    {
+      "path": "../theme-foundation/hunks/DesignSystem-03.hunk.txt",
+      "expected": "22772d44d9c351a5b22b1908c0f65eb28c0520f35c543a7066adecb4d1e118fb",
+      "observed": "22772d44d9c351a5b22b1908c0f65eb28c0520f35c543a7066adecb4d1e118fb"
+    },
+    {
+      "path": "../theme-foundation/hunks/DesignSystem-04.hunk.txt",
+      "expected": "5ec0ba127810f5ad567c5fbe48a8d9af8b3c679b0a7edd8825e225bbd45aaaee",
+      "observed": "5ec0ba127810f5ad567c5fbe48a8d9af8b3c679b0a7edd8825e225bbd45aaaee"
+    },
+    {
+      "path": "../theme-foundation/hunks/DesignSystem-05.hunk.txt",
+      "expected": "cbef59d9559d4c661cb3639382fe2058c9ad91ee17fe3da2616f7e3104a2ec10",
+      "observed": "cbef59d9559d4c661cb3639382fe2058c9ad91ee17fe3da2616f7e3104a2ec10"
+    },
+    {
+      "path": "../theme-foundation/hunks/DesignSystem-06.hunk.txt",
+      "expected": "01648226248a375b6c46fc00a1e203f2219620b30cd4c79329990c87872326e9",
+      "observed": "01648226248a375b6c46fc00a1e203f2219620b30cd4c79329990c87872326e9"
+    },
+    {
+      "path": "../theme-foundation/hunks/DesignSystem-07.hunk.txt",
+      "expected": "504ca8bf6a1a777ac71ca8bc8e65f07596c095a197f998b8b2504dde2b631d22",
+      "observed": "504ca8bf6a1a777ac71ca8bc8e65f07596c095a197f998b8b2504dde2b631d22"
+    },
+    {
+      "path": "../theme-foundation/hunks/DesignSystem-08.hunk.txt",
+      "expected": "e6135a798075b9a343e493980a6716ceaf5e76a4c9b92c6708de2186bef050eb",
+      "observed": "e6135a798075b9a343e493980a6716ceaf5e76a4c9b92c6708de2186bef050eb"
+    },
+    {
+      "path": "../theme-foundation/hunks/DesignSystem-09.hunk.txt",
+      "expected": "c318fd1f387142274dc69465c27b17b31477fb7182a181a441d654f87d5013fb",
+      "observed": "c318fd1f387142274dc69465c27b17b31477fb7182a181a441d654f87d5013fb"
+    },
+    {
+      "path": "../theme-foundation/hunks/DesignSystem-10.hunk.txt",
+      "expected": "15a3ea8a287d9a2b9de8c9a531d2f6856c10a3a728715d870426a68e0c9216c9",
+      "observed": "15a3ea8a287d9a2b9de8c9a531d2f6856c10a3a728715d870426a68e0c9216c9"
+    },
+    {
+      "path": "../theme-foundation/hunks/DesignSystem-11.hunk.txt",
+      "expected": "35d8c84a7a28d3868355158db4c7a8a79faba38a4a3933c1dd4d5eceb56a23fc",
+      "observed": "35d8c84a7a28d3868355158db4c7a8a79faba38a4a3933c1dd4d5eceb56a23fc"
+    },
+    {
+      "path": "../theme-foundation/hunks/DesignSystem-12.hunk.txt",
+      "expected": "3f76fc64dccdc0a1d88dc3c61db51f50a792d07e4394c23a67b1f3426a78465b",
+      "observed": "3f76fc64dccdc0a1d88dc3c61db51f50a792d07e4394c23a67b1f3426a78465b"
+    },
+    {
+      "path": "../theme-foundation/hunks/DesignSystem-13.hunk.txt",
+      "expected": "4db7fc2ae1fdc56f61711ee746c3618f282d5b0567b210e99d043fe87047a3e4",
+      "observed": "4db7fc2ae1fdc56f61711ee746c3618f282d5b0567b210e99d043fe87047a3e4"
+    },
+    {
+      "path": "../theme-foundation/hunks/DesignSystem-14.hunk.txt",
+      "expected": "b9ac5efbc5cad90b660780d33d734a1e52342695f9fc92f56ed075275fb5f16f",
+      "observed": "b9ac5efbc5cad90b660780d33d734a1e52342695f9fc92f56ed075275fb5f16f"
+    },
+    {
+      "path": "../theme-foundation/hunks/DesignSystem-16.hunk.txt",
+      "expected": "e449fee68991fd77430bbe7c55e4b8115bf1a49be4ded890143f5532bc2f6a3e",
+      "observed": "e449fee68991fd77430bbe7c55e4b8115bf1a49be4ded890143f5532bc2f6a3e"
+    },
+    {
+      "path": "../theme-foundation/hunks/DesignSystem-17.hunk.txt",
+      "expected": "dbb860de6e58c4b995ecc199f8bfaad4c218553e2b9d7d914b7961b32180559f",
+      "observed": "dbb860de6e58c4b995ecc199f8bfaad4c218553e2b9d7d914b7961b32180559f"
+    },
+    {
+      "path": "../theme-foundation/hunks/DesignSystem-18.hunk.txt",
+      "expected": "1afc0443726313ca412194a059642a9ea01a740ac733716d34f80c9da06f3a9c",
+      "observed": "1afc0443726313ca412194a059642a9ea01a740ac733716d34f80c9da06f3a9c"
+    },
+    {
+      "path": "../theme-foundation/hunks/GlassSurface-01.hunk.txt",
+      "expected": "8caf3a6ede8c0faec9615780f6226dceb51d586a4692dbecd5574bbd138fee68",
+      "observed": "8caf3a6ede8c0faec9615780f6226dceb51d586a4692dbecd5574bbd138fee68"
+    },
+    {
+      "path": "../theme-foundation/hunks/GlassSurface-02.hunk.txt",
+      "expected": "83642822bbdcf9ac28e81f310172d5e1c78b2fae5058b036d4c23fdf5a4314a3",
+      "observed": "83642822bbdcf9ac28e81f310172d5e1c78b2fae5058b036d4c23fdf5a4314a3"
+    },
+    {
+      "path": "../theme-foundation/hunks/GlassSurface-03.hunk.txt",
+      "expected": "2c35ab4cb1b639f451d7d4ae6d56d4e2d73486669b89b420404265bf465b47cb",
+      "observed": "2c35ab4cb1b639f451d7d4ae6d56d4e2d73486669b89b420404265bf465b47cb"
+    },
+    {
+      "path": "../theme-foundation/hunks/GlassSurface-04.hunk.txt",
+      "expected": "bced7db92bcfab71583b0a672fba376b1a094006063aa4961e3ac57a9a0ba23e",
+      "observed": "bced7db92bcfab71583b0a672fba376b1a094006063aa4961e3ac57a9a0ba23e"
+    },
+    {
+      "path": "../theme-foundation/hunks/GlassSurface-05.hunk.txt",
+      "expected": "f40651bc1ce42d0f519bb872ba3ea60567bd1f6f489bd3c92a32bc674234aa92",
+      "observed": "f40651bc1ce42d0f519bb872ba3ea60567bd1f6f489bd3c92a32bc674234aa92"
+    },
+    {
+      "path": "../theme-foundation/hunks/GlassSurface-06.hunk.txt",
+      "expected": "d77a309d0e013b3ed5be6ed312e2a378af81279915d1f846119817543860324d",
+      "observed": "d77a309d0e013b3ed5be6ed312e2a378af81279915d1f846119817543860324d"
+    },
+    {
+      "path": "../theme-foundation/hunks/SectionHeading-01.hunk.txt",
+      "expected": "756357a6d7e7dad67493bb641e22934f587496a3942dd0699f10a1c1f83102fe",
+      "observed": "756357a6d7e7dad67493bb641e22934f587496a3942dd0699f10a1c1f83102fe"
+    },
+    {
+      "path": "../theme-foundation/hunks/SectionHeading-02.hunk.txt",
+      "expected": "4c6f71323630b198cbd8e5b720b75ed20b78fbfc4e7f9c81f6029b1c88158ca5",
+      "observed": "4c6f71323630b198cbd8e5b720b75ed20b78fbfc4e7f9c81f6029b1c88158ca5"
+    },
+    {
+      "path": "../theme-foundation/hunks/AgentPaneLayout-01.hunk.txt",
+      "expected": "ad874a84f8486f8e5f243f1cbc1dc9fdca6f690e0dd5eb651df31cf1537c41a8",
+      "observed": "ad874a84f8486f8e5f243f1cbc1dc9fdca6f690e0dd5eb651df31cf1537c41a8"
+    },
+    {
+      "path": "../theme-foundation/hunks/AgentPaneLayout-02.hunk.txt",
+      "expected": "3bf15269cb3574cad2a7f257608775517ff42c20ef22ffb90faf7961f42f878d",
+      "observed": "3bf15269cb3574cad2a7f257608775517ff42c20ef22ffb90faf7961f42f878d"
+    },
+    {
+      "path": "../theme-foundation/hunks/AgentPaneLayout-03.hunk.txt",
+      "expected": "789059d6d983c53238b653a64ca3f98830d7970e506510143a7dd797638ebcb9",
+      "observed": "789059d6d983c53238b653a64ca3f98830d7970e506510143a7dd797638ebcb9"
+    },
+    {
+      "path": "../theme-foundation/hunks/AgentView-08.hunk.txt",
+      "expected": "9646f875adbc84b4e8a3c3d2520d86918ae46c1db5882757dba29471ac2e7b79",
+      "observed": "9646f875adbc84b4e8a3c3d2520d86918ae46c1db5882757dba29471ac2e7b79"
+    },
+    {
+      "path": "../theme-foundation/hunks/AgentView-26.hunk.txt",
+      "expected": "4b28671b1a9df992e1a75b952cd6e9e36995ce4ef1055b67ea0de837c5f8ccc9",
+      "observed": "4b28671b1a9df992e1a75b952cd6e9e36995ce4ef1055b67ea0de837c5f8ccc9"
+    },
+    {
+      "path": "../theme-foundation/hunks/ActivityView-02.hunk.txt",
+      "expected": "cfd18d0afc20c2a781b23c1c6c3218b0363d3fab0345071d0dc9c20851be9699",
+      "observed": "cfd18d0afc20c2a781b23c1c6c3218b0363d3fab0345071d0dc9c20851be9699"
+    },
+    {
+      "path": "../theme-foundation/hunks/ActivityView-03.hunk.txt",
+      "expected": "35a447faee5d2a4b64296db4ad992f9647644a8d203e3d5a468e4167df2a5fd9",
+      "observed": "35a447faee5d2a4b64296db4ad992f9647644a8d203e3d5a468e4167df2a5fd9"
+    },
+    {
+      "path": "../theme-foundation/hunks/AgentWorkingCard-03.hunk.txt",
+      "expected": "b76c3358aa67410c9e915953e11298cd0ec33eb443d55e127a260f6e3dca184f",
+      "observed": "b76c3358aa67410c9e915953e11298cd0ec33eb443d55e127a260f6e3dca184f"
+    },
+    {
+      "path": "../theme-foundation/hunks/SettingsChrome-01.hunk.txt",
+      "expected": "47d015c9517a8d6b9dca9c9cb72704dc0a11d260bf0000e68e717ef0f2c01056",
+      "observed": "47d015c9517a8d6b9dca9c9cb72704dc0a11d260bf0000e68e717ef0f2c01056"
+    },
+    {
+      "path": "../theme-foundation/hunks/SettingsWindow-01.hunk.txt",
+      "expected": "d6d781b5f9deff86d4397d027d78d9f6d636c5c0d11fdb68872b7a4fae9b8c4b",
+      "observed": "d6d781b5f9deff86d4397d027d78d9f6d636c5c0d11fdb68872b7a4fae9b8c4b"
+    },
+    {
+      "path": "../theme-foundation/hunks/SettingsWindow-02.hunk.txt",
+      "expected": "4cd29c044d0ceaaad220a72483bdd1d72d3fa9dda98d2ae4253284e4a9719630",
+      "observed": "4cd29c044d0ceaaad220a72483bdd1d72d3fa9dda98d2ae4253284e4a9719630"
+    },
+    {
+      "path": "../theme-foundation/hunks/SettingsWindow-03.hunk.txt",
+      "expected": "c2d86931783b9b9813ca65075170e50d4bd1df5ea7d4e28ddf597cf9ea1dcef7",
+      "observed": "c2d86931783b9b9813ca65075170e50d4bd1df5ea7d4e28ddf597cf9ea1dcef7"
+    },
+    {
+      "path": "../theme-foundation/hunks/MainWindow-01.hunk.txt",
+      "expected": "c01f1409c371d1552999a77faf0319f1f2926515b887b0d2d578f147bfb4c8a8",
+      "observed": "c01f1409c371d1552999a77faf0319f1f2926515b887b0d2d578f147bfb4c8a8"
+    },
+    {
+      "path": "../theme-foundation/hunks/HUDView-01.hunk.txt",
+      "expected": "37bc5cfa7f9893dcd21c08b880ac17ca02b28378834cc9007a4d2e5c33faf425",
+      "observed": "37bc5cfa7f9893dcd21c08b880ac17ca02b28378834cc9007a4d2e5c33faf425"
+    },
+    {
+      "path": "../theme-foundation/hunks/IslandView-01.hunk.txt",
+      "expected": "dac84d632daec539f1b9769a7db6f96a222bba0f42636819aa3337969586fe8a",
+      "observed": "dac84d632daec539f1b9769a7db6f96a222bba0f42636819aa3337969586fe8a"
+    },
+    {
+      "path": "../theme-foundation/hunks/IslandView-02.hunk.txt",
+      "expected": "50cc4769de46305676bdc9a351f71367059a0d5b152a0a2c1cf489b75e201f78",
+      "observed": "50cc4769de46305676bdc9a351f71367059a0d5b152a0a2c1cf489b75e201f78"
+    },
+    {
+      "path": "../theme-foundation/hunks/IslandView-03.hunk.txt",
+      "expected": "29287990363f109986d2d9d4c94ddca6cb85e9237c73510077a8f8f74f2de098",
+      "observed": "29287990363f109986d2d9d4c94ddca6cb85e9237c73510077a8f8f74f2de098"
+    },
+    {
+      "path": "../theme-foundation/hunks/IslandView-07.hunk.txt",
+      "expected": "5ac6253d76c7a5b6e3f6a7634a885f00ffc1b733d2b479e653cfc4d35b37c361",
+      "observed": "5ac6253d76c7a5b6e3f6a7634a885f00ffc1b733d2b479e653cfc4d35b37c361"
+    },
+    {
+      "path": "../theme-foundation/hunks/IslandView-08.hunk.txt",
+      "expected": "f3152037be4c50506dd402e5f415fcdd5a6ac872b1c0b96a57a15b0b12345048",
+      "observed": "f3152037be4c50506dd402e5f415fcdd5a6ac872b1c0b96a57a15b0b12345048"
+    },
+    {
+      "path": "../theme-foundation/hunks/MeetingConsoleSheet-01.hunk.txt",
+      "expected": "0e3f62a57177e2916198dfc4d42a8336a630a6a5d5f66ee111e729bb8930b1cd",
+      "observed": "0e3f62a57177e2916198dfc4d42a8336a630a6a5d5f66ee111e729bb8930b1cd"
+    },
+    {
+      "path": "../settings-display-boundaries/hunks/FormattingSettingsTab-01.hunk.txt",
+      "expected": "1c2c913e492fef5b6c4eb457529341259dbdedc0aefb8020b2b7edd27f38cb8d",
+      "observed": "1c2c913e492fef5b6c4eb457529341259dbdedc0aefb8020b2b7edd27f38cb8d"
+    },
+    {
+      "path": "../settings-display-boundaries/hunks/FormattingSettingsTab-02.hunk.txt",
+      "expected": "1420cf445ec88321394e399f74e7a28ce61966d5be5b65d0578660c61f8ee15d",
+      "observed": "1420cf445ec88321394e399f74e7a28ce61966d5be5b65d0578660c61f8ee15d"
+    },
+    {
+      "path": "../settings-display-boundaries/hunks/FormattingSettingsTab-03.hunk.txt",
+      "expected": "9477724fee88073deafa04dbffda95761c39debb5f451ce28a6951dafc0d4cbd",
+      "observed": "9477724fee88073deafa04dbffda95761c39debb5f451ce28a6951dafc0d4cbd"
+    },
+    {
+      "path": "../settings-display-boundaries/hunks/FormattingSettingsTab-04.hunk.txt",
+      "expected": "8cfcae8a2cd6178b33c331693f7de81da292905aceff4d2175b03baaa357190c",
+      "observed": "8cfcae8a2cd6178b33c331693f7de81da292905aceff4d2175b03baaa357190c"
+    },
+    {
+      "path": "../settings-display-boundaries/hunks/FormattingSettingsTab-05.hunk.txt",
+      "expected": "8a247a4f0114011aac0db4328ff97a519ddb70ddf5e9ea2000091afd1bf952a7",
+      "observed": "8a247a4f0114011aac0db4328ff97a519ddb70ddf5e9ea2000091afd1bf952a7"
+    },
+    {
+      "path": "../settings-display-boundaries/hunks/FormattingSettingsTab-06.hunk.txt",
+      "expected": "03b0c7fe0c3912305533dcb1573dc1fad4249c7c7b915bc2cb059d6c2a646dc3",
+      "observed": "03b0c7fe0c3912305533dcb1573dc1fad4249c7c7b915bc2cb059d6c2a646dc3"
+    },
+    {
+      "path": "../settings-display-boundaries/hunks/FormattingSettingsTab-07.hunk.txt",
+      "expected": "37ac6c5f444055d88748ecbe9f105b2be2ee28f688113ccfc5553c40743cfebd",
+      "observed": "37ac6c5f444055d88748ecbe9f105b2be2ee28f688113ccfc5553c40743cfebd"
+    },
+    {
+      "path": "../settings-display-boundaries/hunks/FormattingSettingsTab-08.hunk.txt",
+      "expected": "95e0964f14eb6560eecc8ebc89fcd66239bbbb09b9e24cc087fb8e68a2c126ea",
+      "observed": "95e0964f14eb6560eecc8ebc89fcd66239bbbb09b9e24cc087fb8e68a2c126ea"
+    },
+    {
+      "path": "../settings-display-boundaries/hunks/FormattingSettingsTab-09.hunk.txt",
+      "expected": "0ac6b53fa650b739263e2dcc46437d8fdf120b4d98f9feee153303a4a1a2e9ea",
+      "observed": "0ac6b53fa650b739263e2dcc46437d8fdf120b4d98f9feee153303a4a1a2e9ea"
+    },
+    {
+      "path": "../settings-display-boundaries/hunks/FormattingSettingsTab-10.hunk.txt",
+      "expected": "0f02de3caea0255bbb1da7e955bb1838d9168c802bf41a68c9eb34d8c5ebfc7c",
+      "observed": "0f02de3caea0255bbb1da7e955bb1838d9168c802bf41a68c9eb34d8c5ebfc7c"
+    },
+    {
+      "path": "../settings-display-boundaries/hunks/FormattingSettingsTab-11.hunk.txt",
+      "expected": "8e24a1b0aca4e7343ea898db4da898022d4b8699496f2e88425298ab71824660",
+      "observed": "8e24a1b0aca4e7343ea898db4da898022d4b8699496f2e88425298ab71824660"
+    },
+    {
+      "path": "../settings-display-boundaries/hunks/FormattingSettingsTab-12.hunk.txt",
+      "expected": "fa08520dfc0d660d089137f4bd69512530b87995c18aa4bcd8e3c5dfb7b9e326",
+      "observed": "fa08520dfc0d660d089137f4bd69512530b87995c18aa4bcd8e3c5dfb7b9e326"
+    },
+    {
+      "path": "../settings-display-boundaries/hunks/FormattingSettingsTab-13.hunk.txt",
+      "expected": "53110184d7bc2f8fc11a3cae597ac3a1cf5b60c94fd0e2136a41f3c54d8146c2",
+      "observed": "53110184d7bc2f8fc11a3cae597ac3a1cf5b60c94fd0e2136a41f3c54d8146c2"
+    },
+    {
+      "path": "../settings-display-boundaries/hunks/FormattingSettingsTab-14.hunk.txt",
+      "expected": "aaf7f266566fc12555517a0277a9095b4f7a0ab92cd8f4a54b7f8aa20cfe3ea8",
+      "observed": "aaf7f266566fc12555517a0277a9095b4f7a0ab92cd8f4a54b7f8aa20cfe3ea8"
+    },
+    {
+      "path": "../settings-display-boundaries/hunks/FormattingSettingsTab-15.hunk.txt",
+      "expected": "82ebfa8b64ba85dabfd2f520462739563d5baf024064006c299ee0df4053973a",
+      "observed": "82ebfa8b64ba85dabfd2f520462739563d5baf024064006c299ee0df4053973a"
+    },
+    {
+      "path": "../settings-display-boundaries/hunks/FormattingSettingsTab-16.hunk.txt",
+      "expected": "d55c77c7d78a0870a81c44f0cf58954c49dcf22ad1ceea83509b8a3fa714a78a",
+      "observed": "d55c77c7d78a0870a81c44f0cf58954c49dcf22ad1ceea83509b8a3fa714a78a"
+    },
+    {
+      "path": "../settings-display-boundaries/hunks/FormattingSettingsTab-17.hunk.txt",
+      "expected": "7b9b3cca13b9479c147d627301782805377b0b763bb9557b20a02efc81d2dfa7",
+      "observed": "7b9b3cca13b9479c147d627301782805377b0b763bb9557b20a02efc81d2dfa7"
+    },
+    {
+      "path": "../settings-display-boundaries/hunks/FormattingSettingsTab-18.hunk.txt",
+      "expected": "2fac308580be6c3e09d0ad6443c74d0f1558963606701d3c48d7cad653c039cc",
+      "observed": "2fac308580be6c3e09d0ad6443c74d0f1558963606701d3c48d7cad653c039cc"
+    },
+    {
+      "path": "../settings-display-boundaries/hunks/FormattingSettingsTab-19.hunk.txt",
+      "expected": "bf3480c7eaa0d8b2f764174c94c839caf94897795fb5d1c5d7b00abaf31f7da0",
+      "observed": "bf3480c7eaa0d8b2f764174c94c839caf94897795fb5d1c5d7b00abaf31f7da0"
+    },
+    {
+      "path": "../settings-display-boundaries/hunks/FormattingSettingsTab-20.hunk.txt",
+      "expected": "4d6dfea1fe1f92630325b40cfd339af7942b06d74773abccdf0fc35d50cbf964",
+      "observed": "4d6dfea1fe1f92630325b40cfd339af7942b06d74773abccdf0fc35d50cbf964"
+    },
+    {
+      "path": "../settings-display-boundaries/hunks/FormattingSettingsTab-21.hunk.txt",
+      "expected": "c36ce42e79320754bc657099c3aeab568bfc7c2bb8d723d7d5eadc91637dca4c",
+      "observed": "c36ce42e79320754bc657099c3aeab568bfc7c2bb8d723d7d5eadc91637dca4c"
+    },
+    {
+      "path": "../settings-display-boundaries/hunks/FormattingSettingsTab-22.hunk.txt",
+      "expected": "703e565b5941b16fe5218d8c334169e62253ca5a1043783809f5b8cea4d76ba3",
+      "observed": "703e565b5941b16fe5218d8c334169e62253ca5a1043783809f5b8cea4d76ba3"
+    },
+    {
+      "path": "../settings-display-boundaries/hunks/FormattingSettingsTab-23.hunk.txt",
+      "expected": "c92a83ec1bf6f4acc8b910b87b1f91cfeeec7c6d929fa7a3c3377f6de1d3852f",
+      "observed": "c92a83ec1bf6f4acc8b910b87b1f91cfeeec7c6d929fa7a3c3377f6de1d3852f"
+    },
+    {
+      "path": "../settings-display-boundaries/hunks/FormattingSettingsTab-24.hunk.txt",
+      "expected": "b2fce9e83755a5e93f92efe847653a5c0b8be2fef2cda7c5a8a5fcb852714e2c",
+      "observed": "b2fce9e83755a5e93f92efe847653a5c0b8be2fef2cda7c5a8a5fcb852714e2c"
+    },
+    {
+      "path": "../settings-display-boundaries/hunks/FormattingSettingsTab-25.hunk.txt",
+      "expected": "af71dc2d84fe3af1d5bdeebc1ba9478d2268269491c99e32424bc6b237b15695",
+      "observed": "af71dc2d84fe3af1d5bdeebc1ba9478d2268269491c99e32424bc6b237b15695"
+    },
+    {
+      "path": "../settings-display-boundaries/hunks/FormattingSettingsTab-26.hunk.txt",
+      "expected": "9bfa08e47b8bdb31661e9d16deb8eb2d09a2c959c6b04be4da7a78e3565aff10",
+      "observed": "9bfa08e47b8bdb31661e9d16deb8eb2d09a2c959c6b04be4da7a78e3565aff10"
+    },
+    {
+      "path": "../settings-display-boundaries/hunks/FormattingSettingsTab-27.hunk.txt",
+      "expected": "c26fbea9d657894b83f4a25276b954760f60a289d3c44c504693af0306a016b3",
+      "observed": "c26fbea9d657894b83f4a25276b954760f60a289d3c44c504693af0306a016b3"
+    },
+    {
+      "path": "../settings-display-boundaries/hunks/FormattingSettingsTab-28.hunk.txt",
+      "expected": "9719414fe9529e599b78854888f839a44a07c04daef176e66f55460b3a2c2b05",
+      "observed": "9719414fe9529e599b78854888f839a44a07c04daef176e66f55460b3a2c2b05"
+    },
+    {
+      "path": "../settings-display-boundaries/hunks/FormattingSettingsTab-29.hunk.txt",
+      "expected": "063ff20749737d6f0e4d612df1984b6cf738ac42db4e2bfaf330ded8f4c7d0c9",
+      "observed": "063ff20749737d6f0e4d612df1984b6cf738ac42db4e2bfaf330ded8f4c7d0c9"
+    },
+    {
+      "path": "../settings-display-boundaries/hunks/FormattingSettingsTab-30.hunk.txt",
+      "expected": "77e4700f69a8636b0ea00bad293e614c558a72c3ea73b87676b5c71477ca0886",
+      "observed": "77e4700f69a8636b0ea00bad293e614c558a72c3ea73b87676b5c71477ca0886"
+    },
+    {
+      "path": "../settings-display-boundaries/hunks/FormattingSettingsTab-31.hunk.txt",
+      "expected": "81a709c7f48e0a45dcea41aec4061c8cce904d681346957e40b476e71ac5fa0d",
+      "observed": "81a709c7f48e0a45dcea41aec4061c8cce904d681346957e40b476e71ac5fa0d"
+    },
+    {
+      "path": "../settings-display-boundaries/hunks/FormattingSettingsTab-32.hunk.txt",
+      "expected": "f2a140aeb76865cc47d55554eb9101cf83fd68841a85bbf73564ea9f7e7c37ec",
+      "observed": "f2a140aeb76865cc47d55554eb9101cf83fd68841a85bbf73564ea9f7e7c37ec"
+    },
+    {
+      "path": "../settings-display-boundaries/hunks/FormattingSettingsTab-33.hunk.txt",
+      "expected": "5f4d6e0ad13380ab8e7306a600654845f1f61304c894ecd397f3f31f07d5e964",
+      "observed": "5f4d6e0ad13380ab8e7306a600654845f1f61304c894ecd397f3f31f07d5e964"
+    },
+    {
+      "path": "../settings-display-boundaries/hunks/FormattingSettingsTab-34.hunk.txt",
+      "expected": "159c946a16359e3a182afee1928453e761d19a9fac1e4ed6a00f4a2e6081a7fd",
+      "observed": "159c946a16359e3a182afee1928453e761d19a9fac1e4ed6a00f4a2e6081a7fd"
+    },
+    {
+      "path": "../settings-display-boundaries/hunks/FormattingSettingsTab-35.hunk.txt",
+      "expected": "48c02b9be99a1ed02f2122a978b50042ba137301d539fee23433d3211a88ebfa",
+      "observed": "48c02b9be99a1ed02f2122a978b50042ba137301d539fee23433d3211a88ebfa"
+    },
+    {
+      "path": "../settings-display-boundaries/hunks/ComputerBrowserReadiness-02.hunk.txt",
+      "expected": "28e28ce9603d7e77f8c8830c8b9610e57a7d5b8479bebc4737ffd3dfb99cc3f2",
+      "observed": "28e28ce9603d7e77f8c8830c8b9610e57a7d5b8479bebc4737ffd3dfb99cc3f2"
+    },
+    {
+      "path": "../settings-display-boundaries/hunks/ComputerBrowserReadiness-03.hunk.txt",
+      "expected": "7f2fa5d11792a258e27bae66c82c459abab0dbe972ba5e6fbddda44efad84f1a",
+      "observed": "7f2fa5d11792a258e27bae66c82c459abab0dbe972ba5e6fbddda44efad84f1a"
+    },
+    {
+      "path": "../settings-display-boundaries/hunks/ComputerBrowserReadiness-04.hunk.txt",
+      "expected": "2e8218b8f3b76b5338d131912b8088d80243bcd76ac0779428beaffbfd4fb834",
+      "observed": "2e8218b8f3b76b5338d131912b8088d80243bcd76ac0779428beaffbfd4fb834"
+    },
+    {
+      "path": "../settings-display-boundaries/hunks/AgentSettingsTab-01.hunk.txt",
+      "expected": "44dfca05bc140f6c9970232688cfddc4b0de545a00bb7e336a590d2445a72434",
+      "observed": "44dfca05bc140f6c9970232688cfddc4b0de545a00bb7e336a590d2445a72434"
+    },
+    {
+      "path": "../settings-display-boundaries/hunks/AgentSettingsTab-02.hunk.txt",
+      "expected": "2bcb57fa46c9d9300dfe43a5da2829dbfa6dab11bbb622d761f35d5d0eec0dff",
+      "observed": "2bcb57fa46c9d9300dfe43a5da2829dbfa6dab11bbb622d761f35d5d0eec0dff"
+    },
+    {
+      "path": "../settings-display-boundaries/hunks/AgentSettingsTab-03.hunk.txt",
+      "expected": "713eb36bfa0d992f21f8ba0c04b62710c879c6174aec4371933fdb3b169f48b9",
+      "observed": "713eb36bfa0d992f21f8ba0c04b62710c879c6174aec4371933fdb3b169f48b9"
+    },
+    {
+      "path": "../settings-display-boundaries/hunks/DesignSystem-15.hunk.txt",
+      "expected": "c1ff043023274d2ffa3e3cde46ebbbbbaf4fb4961f5b9d38d31435135d9e1859",
+      "observed": "c1ff043023274d2ffa3e3cde46ebbbbbaf4fb4961f5b9d38d31435135d9e1859"
+    }
+  ],
+  "mismatches": 0,
+  "facts": {
+    "componentManifests": 8,
+    "componentArtifactPins": 108,
+    "aggregateUniqueIDs": 89,
+    "aggregateUniqueHunks": 89,
+    "groupCounts": {
+      "theme": 45,
+      "settings": 42,
+      "packaging": 2
+    },
+    "acceptedConditionalCount": 87,
+    "held": [
+      "theme:AgentView-08",
+      "theme:AgentView-26"
+    ],
+    "classificationIdentityMismatches": [],
+    "format140Hunks": 1,
+    "newPureUnits": 5,
+    "newPureUnitsMatchFoundation": true,
+    "noWholeFileGrant": true,
+    "ModelsTokenNotSelected": true,
+    "Models1787CorrectOnly": true,
+    "historicalFontsExplicit": true,
+    "historicalMissingPatchExplicit": true,
+    "allPinnedArtifactsMatch": true
+  }
+}

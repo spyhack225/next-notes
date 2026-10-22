@@ -1,0 +1,6 @@
+2026-10-07 12:52:02.575 NextNotes[16979:165939] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+2026-10-07 12:52:06.048 NextNotes[16979:165939] Type selection took over 1.000 seconds. Stopping early....
+MEETING_HEALTH_WARNING_DELAY seconds=0.118480 controlled_load_overlap=1 load_ticks=2490365 physical_visibility=unverified
+MEETING_HEALTH_OVERFLOW packets=1500 packet_frames=32 missed_frames=15232
+MEETING_HEALTH_NORMAL_BOUNDARY start_seconds=1791391927.984087 written_frames=48094 producer_seconds=1791391930.989962 stored_seconds=1791391930.000000 codec_seconds=1791391930.000000
+MEETING_HEALTH_OK: 90 checks; actual capture, writer, durable warning and notification producers

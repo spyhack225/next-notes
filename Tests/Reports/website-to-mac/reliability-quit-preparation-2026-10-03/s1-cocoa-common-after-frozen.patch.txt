@@ -1,0 +1,213 @@
+--- a/Sources/NextNotes/Support/NativeOtherLlamaQuitSelfTest.swift
++++ b/Sources/NextNotes/Support/NativeOtherLlamaQuitSelfTest.swift
+@@ -14,7 +14,7 @@
+     nonisolated static let modes = ["s1-active", "s1-closed", "embedding-active", "embedding-closed",
+                                    "vocab-active", "vocab-closed", "library-closed",
+                                    "trial-parent-closed", "trial-parent-return",
+-                                   "s1-cancel-format", "s1-stop-format", "s1-error-fallback"]
++                                   "s1-cancel-format", "s1-stop-format", "s1-error-fallback", "s1-cocoa-format"]
+ 
+     nonisolated static var isTrialParentCase: Bool {
+         guard isRequested,
+@@ -103,6 +103,9 @@
+         }
+         let mode = CommandLine.arguments[caseIndex + 1]
+         let modelFile = try validateModel(URL(fileURLWithPath: CommandLine.arguments[modelIndex + 1]), expected: spec(for: mode))
++        if NativeS1FormatterCocoaQuitSelfTest.isRequested {
++            return try await NativeS1FormatterCocoaQuitSelfTest.arm(modelFile: modelFile, delegate: delegate)
++        }
+         if NativeS1FormatterCancellationSelfTest.isRequested {
+             return try await NativeS1FormatterCancellationSelfTest.arm(mode: mode, modelFile: modelFile, delegate: delegate)
+         }
+--- a/Sources/NextNotes/Support/NativeS1FormatterCancellationSelfTest.swift
++++ b/Sources/NextNotes/Support/NativeS1FormatterCancellationSelfTest.swift
+@@ -9,7 +9,7 @@
+         guard NativeOtherLlamaQuitSelfTest.isRequested,
+               let index = CommandLine.arguments.firstIndex(of: "--native-llama-owner-case"),
+               CommandLine.arguments.indices.contains(index + 1) else { return false }
+-        return ["s1-cancel-format", "s1-stop-format", "s1-error-fallback"].contains(CommandLine.arguments[index + 1])
++        return ["s1-cancel-format", "s1-stop-format", "s1-error-fallback", "s1-cocoa-format"].contains(CommandLine.arguments[index + 1])
+     }
+     /// The SAME formatter operation is assigned on MainActor before its body starts.
+     private final class Operation: @unchecked Sendable {
+--- a/Sources/NextNotes/Support/NativeS1FormatterCocoaQuitSelfTest.swift
++++ b/Sources/NextNotes/Support/NativeS1FormatterCocoaQuitSelfTest.swift
+@@ -0,0 +1,178 @@
++import AppKit
++import Foundation
++
++/// Additive diagnostic for the actual Cocoa delegate entry while the SAME
++/// formatter and source-pinned S1 runtime own a real native decode call.
++/// This is a candidate fixture. It has not been compiled or run.
++@MainActor
++enum NativeS1FormatterCocoaQuitSelfTest {
++    nonisolated static var isRequested: Bool {
++        guard NativeOtherLlamaQuitSelfTest.isRequested,
++              let index = CommandLine.arguments.firstIndex(of: "--native-llama-owner-case"),
++              CommandLine.arguments.indices.contains(index + 1) else { return false }
++        return CommandLine.arguments[index + 1] == "s1-cocoa-format"
++    }
++
++    /// Diagnostic-only rendezvous AFTER a real native return, before the next
++    /// synchronous actor-loop iteration. It never holds an entered C call.
++    private final class ReplyGate: @unchecked Sendable {
++        private let condition = NSCondition()
++        private var triggered = false
++        private var released = false
++        private var timedOut = false
++
++        func triggerAtReturnedDecode() {
++            condition.lock()
++            guard !triggered else { condition.unlock(); return }
++            triggered = true
++            condition.unlock()
++            RunLoop.main.perform(inModes: [.common]) {
++                MainActor.assumeIsolated {
++                    SelfTest.diagnostic("S1_COCOA_FORMAT_QUIT_REQUEST: two real native returns")
++                    NSApp.terminate(nil)
++                }
++            }
++            condition.lock()
++            // Fixture-only bound: a missing AppKit reply is INVALID, never a
++            // green result or an unbounded process hold.
++            let deadline = Date().addingTimeInterval(10)
++            while !released {
++                if !condition.wait(until: deadline) { timedOut = true; break }
++            }
++            condition.unlock()
++        }
++
++        func releaseFromDelegateReply() {
++            condition.lock()
++            released = true
++            condition.broadcast()
++            condition.unlock()
++        }
++
++        func snapshot() -> (triggered: Bool, released: Bool, timedOut: Bool) {
++            condition.lock()
++            defer { condition.unlock() }
++            return (triggered, released, timedOut)
++        }
++    }
++
++    private final class Verdict {
++        var checks = 0
++        var failures = 0
++        var invalid = false
++        var firstReply = false
++        var firstProposal = false
++        var startsAtReply = -1
++        var result: String?
++        var operation: Task<String, Never>?
++
++        func check(_ label: String, _ accepted: Bool, input: Bool = false) {
++            checks += 1
++            guard !accepted else { return }
++            failures += 1
++            if input { invalid = true }
++            SelfTest.failed = true
++            SelfTest.diagnostic("S1_COCOA_FORMAT_ASSERT_FAILED: \(label)")
++        }
++    }
++
++    static func arm(modelFile: URL, delegate: AppDelegate) async throws -> Bool {
++        guard isRequested else { throw CocoaError(.fileReadNoPermission) }
++        _ = try NativeOtherLlamaQuitSelfTest.validateModel(modelFile, expected: S1MiniModels.spec)
++        let runtime = S1MiniRuntime()
++        let native = OtherLlamaTerminationTrace(autoQuit: false)
++        let replyGate = ReplyGate()
++        try await runtime.configureTerminationFixture(modelURL: modelFile, trace: native)
++        try await runtime.prepare()
++        try await runtime.configureFormatterCancellationCheckpoint { succeeded in
++            let observed = native.snapshot()
++            if succeeded && observed.successes == 2 && observed.ends == 2 {
++                replyGate.triggerAtReturnedDecode()
++            }
++        }
++        let verdict = Verdict()
++        verdict.check("C01 actual private S1 context loaded",
++                      await runtime.terminationResidentForTesting == true, input: true)
++
++        let empty = EmbeddingRuntime(
++            modelURL: modelFile.deletingLastPathComponent().appendingPathComponent("empty-unused.gguf"),
++            displayName: "Empty S1 Cocoa diagnostic owner", tag: "empty-s1-cocoa",
++            notesModelBusy: { false }, mayLoad: { _ in false }
++        )
++        try delegate.configureOtherLlamaTerminationFixture(
++            s1: runtime, embedding: empty, library: nil,
++            finalReply: { proposed in
++                guard proposed else {
++                    verdict.check("C02 real drain accepted before diagnostic veto", false, input: true)
++                    return false
++                }
++                if !verdict.firstProposal {
++                    verdict.firstProposal = true
++                    let observed = native.snapshot()
++                verdict.check("C03 first proposal follows qualified Cocoa reply",
++                              verdict.firstReply && verdict.startsAtReply == 2, input: true)
++                    verdict.check("F01 no new S1 decode entered after actual quit reply",
++                                  observed.starts == verdict.startsAtReply)
++                }
++                // Only the existing delegate safetyDrain may join the SAME
++                // retained operation. No fixture waiter Task or second queue.
++                return verdict.result != nil
++            },
++            safetyDrain: {
++                guard let operation = verdict.operation else {
++                    verdict.check("C04 SAME formatter operation retained for drain", false, input: true)
++                    return
++                }
++                _ = await operation.value
++            },
++            reply: { reply in
++                guard !verdict.firstReply else { return }
++                verdict.firstReply = true
++                let observed = native.snapshot()
++                verdict.startsAtReply = observed.starts
++                verdict.check("C05 actual Cocoa delegate returns later", reply == .terminateLater, input: true)
++                let gate = replyGate.snapshot()
++                verdict.check("C06 actual returned-native checkpoint reached delegate entry",
++                              gate.triggered && !gate.timedOut && observed.active == 0
++                              && observed.successes == 2 && observed.starts == 2
++                              && observed.ends == 2, input: true)
++                verdict.check("C07 SAME formatter operation pending at delegate entry",
++                              verdict.result == nil && verdict.operation != nil, input: true)
++                SelfTest.diagnostic("S1_COCOA_FORMAT_REPLY_TRACE starts=\(observed.starts) ends=\(observed.ends) active=\(observed.active) successes=\(observed.successes) later=\(reply == .terminateLater)")
++                replyGate.releaseFromDelegateReply()
++            },
++            willExit: {
++                let observed = native.snapshot()
++                verdict.check("C08 first proposal was measured before exit", verdict.firstProposal, input: true)
++                verdict.check("C09 actual native calls balanced before exit",
++                              observed.active == 0 && observed.starts == observed.ends, input: true)
++                verdict.check("C10 same actor released native model/context",
++                              observed.closes > 0, input: true)
++                let gate = replyGate.snapshot()
++                verdict.check("C11 real Cocoa reply released the bounded native-return checkpoint",
++                              gate.triggered && gate.released && !gate.timedOut, input: true)
++                verdict.check("F02 formatter publishes no stale text after actual Cocoa quit",
++                              verdict.result == "")
++                let marker = verdict.invalid ? "S1_COCOA_FORMAT_INVALID"
++                    : (verdict.failures == 0 ? "S1_COCOA_FORMAT_OK" : "S1_COCOA_FORMAT_FAILED")
++                SelfTest.diagnostic("S1_COCOA_FORMAT_EXIT_TRACE starts=\(observed.starts) ends=\(observed.ends) active=\(observed.active) checks=\(verdict.checks) failures=\(verdict.failures) invalid=\(verdict.invalid)")
++                SelfTest.diagnostic("\(marker): \(verdict.checks) checks; \(verdict.failures) failed")
++            }
++        )
++
++        let preferences = CleanupPreferences(tone: .balanced, formatsLists: false, context: .general)
++        let cleanup = CleanupTrace()
++        let formatter = S1MiniFormatter(preferences: preferences, trace: cleanup, runtimeForTesting: runtime)
++        let input = String(repeating: "the synthetic team agreed to review the schedule and document the next decision ", count: 24)
++        verdict.operation = Task { @MainActor in
++            let result = await formatter.format(input)
++            verdict.result = result
++            if !replyGate.snapshot().triggered {
++                verdict.check("C12 two actual successful native returns scheduled Cocoa quit", false, input: true)
++                SelfTest.requestTermination()
++            }
++            return result
++        }
++        return true
++    }
++}

@@ -40,7 +40,15 @@ struct IdentitySemantic: TextFormatter {
                             let stageA = RuleBasedFormatter().apply(raw, isFinal: false)
                             return candidate ? SpokenStructure.apply(to: stageA, target: target, isEnabled: enabled).text : stageA
                         }
+                        #if GROUP_PREPARE
+                        let session = IncrementalCleanupSession(semantic: formatter,
+                            rules: { RuleBasedFormatter().apply($0, isFinal: false) },
+                            prepareGroup: { raw in
+                                candidate ? SpokenStructure.apply(to: raw, target: target, isEnabled: enabled).text : raw
+                            })
+                        #else
                         let session = IncrementalCleanupSession(semantic: formatter, rules: rules)
+                        #endif
                         for committed in item.commits { await session.notePartial(committed, committed: committed) }
                         let head = await session.head()
                         for task in head.cleaned { _ = await task.value }
@@ -53,7 +61,15 @@ struct IdentitySemantic: TextFormatter {
                             var parts: [String] = []
                             for task in head.cleaned { parts.append(await task.value) }
                             if !remainder.isEmpty { parts.append(await formatter.format(remainder)) }
+                            #if PRESERVE_BOUNDARIES
+                            if candidate, let separators = SourceBoundaryCandidate.separators(in: before, groups: head.stageA) {
+                                answer = SourceBoundaryCandidate.joined(parts, separators: separators)
+                            } else {
+                                answer = CleanedText.joined(parts)
+                            }
+                            #else
                             answer = CleanedText.joined(parts)
+                            #endif
                         } else {
                             answer = await formatter.format(before)
                         }

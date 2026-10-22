@@ -1,0 +1,24 @@
+{
+  "atUTC": "2026-10-08T04:37:21.131433+00:00",
+  "status": "OriginalQUIET_CUT_FAILED2 ->candidateQUIET_CUT_OK, same independently referenced52566sample native-recognizable input",
+  "sourceApplied": false,
+  "nativeFixedWordQuality": false,
+  "nativePolishedLatency": false,
+  "sourcePins": {
+    "DictationSegmenter.original.swift": "215ef83b73014c1bffbcda9f8446798613e12c1f929593078f2c09fb9f4a5e3b",
+    "DictationSegmenter.candidate.swift": "b87b448013837a4c8e6a8286b7fcb97f084af1cccc9b6619c1fabfa5c7c125ad",
+    "OriginalDictationSegmenter.swift": "3f2f26b7b9bb47dde96eb8b3e2b1dfec7020f6e1c2dac9203b9196a1bf37c4e3",
+    "AudioConversion.swift": "444fc94b8fdd4e908071e165bfe8a86e0ae4d93dcadbecf1574a7d21b81b9fc1",
+    "TranscriptionEngine.swift": "78291e26cf280bf400eb5e54f0f18e4c617e7391db8a60d9cfc6172c6305949d",
+    "BoundaryTypes.swift": "37168e4b85ba3d387e0deb23ff717c2c73497a1abce1c672476b5cffbc267ddb",
+    "CutCheck.swift": "21f5bf8177fbba890b0ad4f374f2e6102200f1296278018f74423dc6e4564647",
+    "CutMakefile": "c238234306dc255940e365746b52f8d27c33830a1593a2d641c84ad35804f194",
+    "quiet-cut-review-only.patch": "96d48fa347aea4b2edc9b1732937737a6e985d08f357433a296954dd6a552ea7",
+    "pure-cut-input-pins.json": "6f0da6255f3eb404189ac28fae0d6eb237d8e0e4a026489bf723410dce07acb5",
+    "quiet-cut-original.log": "f0fa509cf4de6be8d8b9f75c3e7aa204442ccd4f7c6beb995b1eb99fbb487464",
+    "quiet-cut-candidate.log": "e080150c692711af713ef5fb47d35efaad747a9ece0f1d4b05ac556de0ee318e",
+    "cut-compile.log": "34997394dd276b148072e8e79baabf31b71492e9d53b014b3346bf7903119ecf",
+    "manifest.json": "16c9c338d27683806819d8245e0181eaca3dffee6fc32f2827479044d942bb40"
+  },
+  "scope": "Actual producer component only, no recognition call; native signedfifth input/gold/reference establishes underlying words separately"
+}

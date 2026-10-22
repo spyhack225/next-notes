@@ -1,0 +1,138 @@
+{
+  "kind": "finite independent read-only hash verification",
+  "checks": [
+    {
+      "path": "Tests/Reports/website-to-mac/reliability-process-quit-preparation-2026-10-04/safe-settings-common-preparation/admission-notes/NativeTerminationSelfTest.swift.proposed",
+      "expected": "fc49cf3402c9fc9b5a61436217903d96d416d0e4704d5615d4216bcea55d621b",
+      "observed": "fc49cf3402c9fc9b5a61436217903d96d416d0e4704d5615d4216bcea55d621b",
+      "matches": true
+    },
+    {
+      "path": "Tests/Reports/website-to-mac/reliability-process-quit-preparation-2026-10-04/safe-settings-common-preparation/admission-notes/NativeNotesSettingsSelfTest.swift.proposed",
+      "expected": "3fec2febf8bd28ae338dbf7866a976dc4beafbc44d579a572775e790c0498878",
+      "observed": "3fec2febf8bd28ae338dbf7866a976dc4beafbc44d579a572775e790c0498878",
+      "matches": true
+    },
+    {
+      "path": "Tests/Reports/website-to-mac/reliability-process-quit-preparation-2026-10-04/safe-settings-common-preparation/admission-notes/COMMON-native-termination.patch.txt",
+      "expected": "ac3b9d312b173b50883905c494bd4869ee6e4395d4c2a44373b7e2d8f0ee1a5d",
+      "observed": "ac3b9d312b173b50883905c494bd4869ee6e4395d4c2a44373b7e2d8f0ee1a5d",
+      "matches": true
+    },
+    {
+      "path": "Tests/Reports/website-to-mac/reliability-process-quit-preparation-2026-10-04/safe-settings-common-preparation/admission-notes/COMMON-notes-fixture.patch.txt",
+      "expected": "7f2c23a3437b7741b98fdece128b2c9b730bdba6420737ccec902443b9156323",
+      "observed": "7f2c23a3437b7741b98fdece128b2c9b730bdba6420737ccec902443b9156323",
+      "matches": true
+    },
+    {
+      "path": "Tests/Reports/website-to-mac/reliability-process-quit-preparation-2026-10-04/safe-settings-common-preparation/admission-notes/copy-only-replay.json",
+      "expected": "1d715be8baf09430499fa94beaab15d16d0bf8f0b4a21886e6052a18df93a975",
+      "observed": "1d715be8baf09430499fa94beaab15d16d0bf8f0b4a21886e6052a18df93a975",
+      "matches": true
+    },
+    {
+      "path": "Tests/Reports/website-to-mac/reliability-process-quit-preparation-2026-10-04/safe-settings-common-preparation/admission-notes/README.md",
+      "expected": "1d3bc2e6f076aa66df19dddf5b800733db5624c0f378ed5c219f7a8f5dfbd1ec",
+      "observed": "1d3bc2e6f076aa66df19dddf5b800733db5624c0f378ed5c219f7a8f5dfbd1ec",
+      "matches": true
+    },
+    {
+      "path": "Tests/Reports/website-to-mac/reliability-process-quit-preparation-2026-10-04/safe-settings-common-preparation/admission-notes/audited-source-pins.json",
+      "expected": "01d591a67d674532c3eb862e68d3bd351ab147ee4bfc1f6fb8392f202c7fdd81",
+      "observed": "01d591a67d674532c3eb862e68d3bd351ab147ee4bfc1f6fb8392f202c7fdd81",
+      "matches": true
+    },
+    {
+      "path": "Tests/Reports/website-to-mac/reliability-process-quit-preparation-2026-10-04/safe-settings-common-preparation/admission-notes/selector-revision/NativeNotesSettingsSelfTest.swift.revised",
+      "expected": "24633ea451ba21caff6de79b68dd1e63ed87e3f808a23f6f3e7fc06184797756",
+      "observed": "24633ea451ba21caff6de79b68dd1e63ed87e3f808a23f6f3e7fc06184797756",
+      "matches": true
+    },
+    {
+      "path": "Tests/Reports/website-to-mac/reliability-process-quit-preparation-2026-10-04/safe-settings-common-preparation/admission-notes/selector-revision/COMMON-selector-from-frozen.patch.txt",
+      "expected": "38ee85cbf8c05ef59c0dcb5763528c1758e7663c2bc2989e2bf591c8586bf356",
+      "observed": "38ee85cbf8c05ef59c0dcb5763528c1758e7663c2bc2989e2bf591c8586bf356",
+      "matches": true
+    },
+    {
+      "path": "Tests/Reports/website-to-mac/reliability-process-quit-preparation-2026-10-04/safe-settings-common-preparation/admission-notes/selector-revision/copy-only-replay.json",
+      "expected": "48b7fc26c6448d1334a104fcee2b9ac9c9a347cc59e27f3a32863d96c3230482",
+      "observed": "48b7fc26c6448d1334a104fcee2b9ac9c9a347cc59e27f3a32863d96c3230482",
+      "matches": true
+    },
+    {
+      "path": "Tests/Reports/website-to-mac/reliability-process-quit-preparation-2026-10-04/safe-settings-common-preparation/admission-notes/selector-revision/README.md",
+      "expected": "a14b6d54c77c349489627b1f053ee47dbfa6dc32797ef3b0bba2340b3879a592",
+      "observed": "a14b6d54c77c349489627b1f053ee47dbfa6dc32797ef3b0bba2340b3879a592",
+      "matches": true
+    },
+    {
+      "path": "Sources/NextNotes/Support/NativeTerminationSelfTest.swift",
+      "expected": "a1c1d30f8198e63758dde34abd8812b236c281a191cd9168383eff95a47aa4f5",
+      "observed": "a1c1d30f8198e63758dde34abd8812b236c281a191cd9168383eff95a47aa4f5",
+      "matches": true
+    },
+    {
+      "path": "Sources/NextNotes/NextNotesApp.swift",
+      "expected": "bc01a27f48478a297d07a1d35669c313615cc7c182c0c6d113b4899e792a1b61",
+      "observed": "bc01a27f48478a297d07a1d35669c313615cc7c182c0c6d113b4899e792a1b61",
+      "matches": true
+    },
+    {
+      "path": "Sources/NextNotes/Support/Settings.swift",
+      "expected": "884f7a297f68d588a7ae2de962432049682c478d4f53464dba6c92e0a01ee3c4",
+      "observed": "884f7a297f68d588a7ae2de962432049682c478d4f53464dba6c92e0a01ee3c4",
+      "matches": true
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/MeetingDiarizer.swift",
+      "expected": "bee04c83e4c23c91126482360e891c800f4e27200b930a00cf9dd89cd8cb3f13",
+      "observed": "bee04c83e4c23c91126482360e891c800f4e27200b930a00cf9dd89cd8cb3f13",
+      "matches": true
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/NotesService.swift",
+      "expected": "c1577429843cd4f2a50bca738a8afe95ed574e7faea29153de38fe8264c79652",
+      "observed": "c1577429843cd4f2a50bca738a8afe95ed574e7faea29153de38fe8264c79652",
+      "matches": true
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/MeetingStore.swift",
+      "expected": "085f6b60395192c230d80ac429e84f98cd0c79f2fce0300f10fd4bb0cbc52c6b",
+      "observed": "085f6b60395192c230d80ac429e84f98cd0c79f2fce0300f10fd4bb0cbc52c6b",
+      "matches": true
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/MeetingModels.swift",
+      "expected": "39cacae98ac6fc6ce427d52f99ee88867bb24f73546354a3217116467dd2cbc6",
+      "observed": "39cacae98ac6fc6ce427d52f99ee88867bb24f73546354a3217116467dd2cbc6",
+      "matches": true
+    },
+    {
+      "path": "Sources/NextNotes/Formatting/LLM/NotesModelRuntime.swift",
+      "expected": "45ef55fe4afed62847932bd9fdf36f8819f093fb030a3f461af754b52deaef88",
+      "observed": "45ef55fe4afed62847932bd9fdf36f8819f093fb030a3f461af754b52deaef88",
+      "matches": true
+    },
+    {
+      "path": "Sources/NextNotes/Formatting/LLM/NotesModels.swift",
+      "expected": "b3fc49cfe8886189d25c3f24c86235288d86bfec66e5095b1005db94819a17cc",
+      "observed": "b3fc49cfe8886189d25c3f24c86235288d86bfec66e5095b1005db94819a17cc",
+      "matches": true
+    },
+    {
+      "path": "Sources/NextNotes/Support/SelfTestStoreGuard.swift",
+      "expected": "dc2733998fbb09ce1128d2f5dfeb9ce782e821ec2ef752330dab5c5a2de63eed",
+      "observed": "dc2733998fbb09ce1128d2f5dfeb9ce782e821ec2ef752330dab5c5a2de63eed",
+      "matches": true
+    },
+    {
+      "path": "Sources/NextNotes/Support/ModelDownloader.swift",
+      "expected": "dd3ff581ae28606a62ea2ea5f424282fb07325eef99fd829164f677c4d665e07",
+      "observed": "dd3ff581ae28606a62ea2ea5f424282fb07325eef99fd829164f677c4d665e07",
+      "matches": true
+    }
+  ],
+  "mismatches": 0
+}

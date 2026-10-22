@@ -1,0 +1,11 @@
+--- a/Sources/NextNotes/Agent/Proactive/ProactiveSelfTest.swift
++++ b/Sources/NextNotes/Agent/Proactive/ProactiveSelfTest.swift
+@@ -214,7 +214,7 @@
+             let headsUpLog = IslandState.noticeLogLabel(for: .agentHeadsUp(privateCard))
+             check(headsUpLog == "agentHeadsUp", "F26 exact notice log operand excludes associated private data")
+             let replyLog = IslandState.noticeLogLabel(for: .agentReply("OWNED_PRIVATE_REPLY"))
+-            check(replyLog == "notice", "F27 exact reply notice log operand remains metadata only")
++            check(replyLog == "agentReply", "F27 exact reply notice log operand remains metadata only")
+             let encoded = try JSONEncoder().encode(urlOccurrence)
+             var old = try JSONSerialization.jsonObject(with: encoded) as! [String: Any]; old.removeValue(forKey: "conferenceURL")
+             let legacy = try JSONDecoder().decode(ScheduleTriggerOccurrence.self, from: JSONSerialization.data(withJSONObject: old))

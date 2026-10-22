@@ -1,0 +1,47 @@
+{
+  "cases" : [
+    {
+      "firstRequestAtSamples" : 8000,
+      "held" : false,
+      "modelInputCounts" : [
+        8000,
+        24000,
+        40000,
+        52566
+      ],
+      "passesBeforeRelease" : 3,
+      "segmentPassesBeforeRelease" : 0
+    },
+    {
+      "firstRequestAtSamples" : 8000,
+      "held" : true,
+      "modelInputCounts" : [
+        8000,
+        52566
+      ],
+      "passesBeforeRelease" : 0,
+      "segmentPassesBeforeRelease" : 0
+    },
+    {
+      "chunks" : 1,
+      "digitalZeroSamples" : 1600,
+      "modelCalls" : 0
+    },
+    {
+      "chunks" : 1,
+      "digitalZeroSamples" : 6400,
+      "modelCalls" : 0
+    },
+    {
+      "chunks" : 1,
+      "digitalZeroSamples" : 52566,
+      "modelCalls" : 0
+    }
+  ],
+  "failures" : [
+
+  ],
+  "inputSamples" : 52566,
+  "scope" : "Actual production actor feed\/schedule\/drain\/finish, real public WAV\/AV buffers\/RMS\/segmentation. Native recognizer\/converter\/scheduler\/registry boundaries substituted. Returned marker is explicitly not recognized speech; first native words and hallucinations are unproven."
+}
+LIVE_COVERAGE_PRODUCER_OK

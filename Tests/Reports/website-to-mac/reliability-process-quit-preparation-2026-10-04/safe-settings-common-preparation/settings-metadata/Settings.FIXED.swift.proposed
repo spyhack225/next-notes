@@ -1,0 +1,1501 @@
+import AppKit
+import Foundation
+import Observation
+
+/// Which speech engine transcribes an utterance.
+enum SpeechEngineChoice: String, CaseIterable, Sendable {
+    case apple
+    case parakeet
+
+    var displayName: String {
+        switch self {
+        case .apple: "Apple (streaming)"
+        case .parakeet: "Parakeet (batch)"
+        }
+    }
+
+    /// Apple shows text while you talk; Parakeet only resolves on release.
+    var showsLiveText: Bool { self == .apple }
+}
+
+/// Which local model performs the semantic cleanup pass.
+enum CleanupEngineChoice: String, CaseIterable, Sendable {
+    case apple
+    case s1Mini
+    case miniCPM
+
+    var displayName: String {
+        switch self {
+        case .apple: "Apple Foundation Model"
+        case .s1Mini: "S1-mini by Superwhisper"
+        case .miniCPM: "MiniCPM 5"
+        }
+    }
+}
+
+/// User-facing tone names. S1-mini has four trained control values; `balanced` deliberately
+/// maps to its recommended `semi-formal` register rather than inventing an unsupported token.
+enum CleanupTone: String, CaseIterable, Sendable {
+    case casual
+    case semiCasual
+    case balanced
+    case semiFormal
+    case formal
+
+    var displayName: String {
+        switch self {
+        case .casual: "Casual"
+        case .semiCasual: "Semi-casual"
+        case .balanced: "Balanced"
+        case .semiFormal: "Semi-formal"
+        case .formal: "Formal"
+        }
+    }
+
+    var s1MiniValue: String {
+        switch self {
+        case .casual: "casual"
+        case .semiCasual: "semi-casual"
+        case .balanced, .semiFormal: "semi-formal"
+        case .formal: "formal"
+        }
+    }
+}
+
+/// Voice-agent effort only. Dictation and meeting recording never read this preference.
+enum AgentResponsiveness: String, CaseIterable, Sendable, Identifiable {
+    case fast
+    case balanced
+    case deep
+
+    var id: String { rawValue }
+    var displayName: String { rawValue.capitalized }
+
+    var localAnswerTokenBudget: Int {
+        switch self {
+        case .fast: 128
+        case .balanced: 256
+        case .deep: 500
+        }
+    }
+
+    var toolRoundLimit: Int {
+        switch self {
+        case .fast, .balanced: 4
+        case .deep: 8
+        }
+    }
+
+    var toolCallLimit: Int {
+        switch self {
+        case .fast: 4
+        case .balanced, .deep: 8
+        }
+    }
+}
+
+/// Where the app shows what it is hearing while you dictate.
+/// What to do when the user switches apps while a dictation is still being transcribed.
+///
+/// The tail between releasing the key and having text to insert is seconds long — drain,
+/// transcribe, then cleanup — and the user is free to walk away inside it. Something has to
+/// happen to that text, and which thing is genuinely a matter of taste: interrupting to
+/// deliver it, or holding it somewhere safe.
+enum SwitchAwayBehavior: String, CaseIterable, Sendable, Identifiable {
+    /// Bring the original app back to the front and type it there.
+    case returnToApp
+    /// Type it wherever the caret happens to be now.
+    case insertWhereFocused
+    /// Copy it and leave the front app alone.
+    case copyToClipboard
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .returnToApp: "Switch back and insert it"
+        case .insertWhereFocused: "Insert it wherever I am"
+        case .copyToClipboard: "Copy it to the clipboard"
+        }
+    }
+
+    var explanation: String {
+        switch self {
+        case .returnToApp:
+            "The app you dictated into comes back to the front. This interrupts whatever "
+                + "you moved on to, which is the price of the text arriving where you meant it."
+        case .insertWhereFocused:
+            "Whatever you have moved to receives the text. If that is not a text field, "
+                + "the dictation is lost — this is how Next Notes behaved before the setting "
+                + "existed."
+        case .copyToClipboard:
+            "Nothing is typed and nothing is interrupted; press ⌘V when you are ready. "
+                + "Your previous clipboard contents are replaced."
+        }
+    }
+}
+
+/// What to do with the corrections implied by editing a past transcript.
+enum DictionaryLearning: String, CaseIterable, Sendable, Identifiable {
+    /// Show what was learned and let the user pick. The default, because a dictionary rule
+    /// applies to every future transcript and a wrong one is quietly expensive.
+    case ask
+    /// Trust the edit and file it.
+    case automatic
+    /// Edit the transcript, learn nothing from it.
+    case off
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .ask: "Ask before adding it"
+        case .automatic: "Add it to the dictionary"
+        case .off: "Don't learn from edits"
+        }
+    }
+
+    var explanation: String {
+        switch self {
+        case .ask:
+            "Correcting a past transcript proposes the change as a dictionary rule, and "
+                + "you choose which ones to keep."
+        case .automatic:
+            "Corrections are filed as you make them. Faster, but a rule you did not mean "
+                + "applies to every transcript after it — the Dictionary tab is where to undo one."
+        case .off:
+            "Transcripts stay editable; nothing is inferred from the edit."
+        }
+    }
+}
+
+/// Whether Return is pressed after a dictation lands in a text field.
+///
+/// On (the default) means every app. Off means only the apps the user picked — and none
+/// at all until they pick one. The origin is the app captured at key-down, not whichever
+/// one happens to be frontmost after the tail.
+enum AutoSendPolicy {
+    static func shouldSend(
+        enabled: Bool,
+        selectedApps: [String: String],
+        bundleID: String?
+    ) -> Bool {
+        guard let bundleID, !bundleID.isEmpty else { return false }
+        if bundleID == AppIdentity.bundleIdentifier { return false }
+        if enabled { return true }
+        return selectedApps[bundleID] != nil
+    }
+
+    /// What `--selftest-settings` asks of the policy: the four combinations a toggle and
+    /// a list can produce, plus the two title-cleaning cases rename depends on. Pure, so
+    /// it fails without a grant or a key event.
+    static func selfTestFailures() -> [String] {
+        var failures: [String] = []
+        let slack = "com.tinyspeck.slackmacgap"
+        if !shouldSend(enabled: true, selectedApps: [:], bundleID: slack) {
+            failures.append("auto-send on should send in any app")
+        }
+        if shouldSend(enabled: true, selectedApps: [:], bundleID: nil) {
+            failures.append("auto-send on should not send without an origin app")
+        }
+        if shouldSend(enabled: true, selectedApps: [:], bundleID: AppIdentity.bundleIdentifier) {
+            failures.append("auto-send should never press Return in Next Notes")
+        }
+        if shouldSend(enabled: false, selectedApps: [:], bundleID: slack) {
+            failures.append("auto-send off with no apps should be manual")
+        }
+        if !shouldSend(
+            enabled: false,
+            selectedApps: [slack: "Slack"],
+            bundleID: slack
+        ) {
+            failures.append("auto-send off should send in a selected app")
+        }
+        if shouldSend(
+            enabled: false,
+            selectedApps: [slack: "Slack"],
+            bundleID: "com.apple.mail"
+        ) {
+            failures.append("auto-send off should stay manual in other apps")
+        }
+        if MeetingTitle.cleaned("  Stand-up  ") != "Stand-up" {
+            failures.append("meeting title should trim")
+        }
+        if MeetingTitle.cleaned("   ") != nil {
+            failures.append("blank meeting title should be rejected")
+        }
+        return failures
+    }
+}
+
+enum HUDPlacement: String, CaseIterable, Sendable, Identifiable {
+    /// The island at the top of the screen — hugging the notch on a Mac that has one, and
+    /// a capsule under the menu bar on one that doesn't.
+    case notch
+    /// The floating capsule above the Dock, which is where the HUD has always been.
+    case bottom
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .notch: "At the top of the screen"
+        case .bottom: "Above the Dock"
+        }
+    }
+}
+
+enum CleanupContext: String, CaseIterable, Sendable {
+    case general
+    case email
+
+    var displayName: String { self == .general ? "General" : "Email" }
+}
+
+/// How much dictation history to keep (D-15a).
+///
+/// Forever is the default and stays the default: a transcript is the only copy of
+/// something the user said, and deleting one is a decision they make, not one the app
+/// makes for them. The two limits exist because `runs.jsonl` grows without bound — about
+/// 1.5 KB a run with its cleanup record — and nothing else in the app prunes it.
+enum DictationHistoryRetention: String, CaseIterable, Sendable, Identifiable {
+    case forever
+    case days90
+    case rows5000
+
+    var id: String { rawValue }
+
+    /// What the picker says, in the words a person would use.
+    var displayName: String {
+        switch self {
+        case .forever: "Forever"
+        case .days90: "90 days"
+        case .rows5000: "Last 5,000"
+        }
+    }
+
+    /// The sentence under the picker, per choice.
+    var explanation: String {
+        switch self {
+        case .forever:
+            "Nothing is deleted. A transcript is the only copy of what you said, so this "
+                + "is what the app ships with."
+        case .days90:
+            "Transcripts older than 90 days are removed, at launch, once a day."
+        case .rows5000:
+            "Only the most recent 5,000 transcripts are kept. Older ones are removed, at "
+                + "launch, once a day."
+        }
+    }
+
+    /// Runs older than this are pruned; `nil` when age is not the limit.
+    var maxAgeDays: Double? {
+        switch self {
+        case .forever, .rows5000: nil
+        case .days90: 90
+        }
+    }
+
+    /// How many runs are kept, oldest first; `nil` when the count is not the limit.
+    var maxRuns: Int? {
+        switch self {
+        case .forever, .days90: nil
+        case .rows5000: 5_000
+        }
+    }
+}
+
+struct CleanupPreferences: Sendable {
+    let tone: CleanupTone
+    let formatsLists: Bool
+    let context: CleanupContext
+}
+
+@MainActor
+@Observable
+final class Settings {
+    static let shared = Settings()
+
+    /// Exact private native Settings diagnostic only. Production stays nil.
+    private static var nativeNotesAvailabilityProbe: (@MainActor () -> Void)?
+    private static var nativeNotesInitializerEntered = false
+
+    static func configureNativeNotesAvailabilityProbe(_ probe: @escaping @MainActor () -> Void) throws {
+        guard SelfTest.isRunning, SelfTest.requested == "--selftest-native-termination",
+              NativeNotesSettingsSelfTest.isRequested,
+              NativeNotesSettingsSelfTest.isProbeConfigurationAdmitted,
+              !nativeNotesInitializerEntered, nativeNotesAvailabilityProbe == nil else {
+            throw CocoaError(.fileWriteNoPermission)
+        }
+        nativeNotesAvailabilityProbe = probe
+    }
+
+
+    /// Master choices only; behavior-specific preferences remain unchanged when a module is off.
+    /// Missing keys keep Dictation and Meetings available for existing users.
+    var moduleDictationEnabled: Bool {
+        didSet { defaults.set(moduleDictationEnabled, forKey: Keys.moduleDictationEnabled) }
+    }
+
+    var moduleMeetingsEnabled: Bool {
+        didSet { defaults.set(moduleMeetingsEnabled, forKey: Keys.moduleMeetingsEnabled) }
+    }
+
+    /// Assistant activation uses the existing Workspace choice, not a second switch.
+    func isModuleEnabled(_ module: AppModule) -> Bool {
+        ModulePolicy.isEnabled(module, dictation: moduleDictationEnabled,
+            meetings: moduleMeetingsEnabled, assistant: agentEnabled)
+    }
+
+    var pushToTalkKey: PushToTalkKey {
+        didSet {
+            if commandModeEnabled, commandModeKey == pushToTalkKey {
+                commandModeEnabled = false
+            }
+            defaults.set(pushToTalkKey.rawValue, forKey: Keys.pushToTalkKey)
+        }
+    }
+
+    /// Opt-in because a second global modifier key must never be intercepted unexpectedly.
+    var commandModeEnabled: Bool {
+        didSet {
+            // Two event taps consuming the same modifier would start two recordings and make
+            // the key unusable. Refuse that persisted/configured state by switching the
+            // optional feature back off.
+            if commandModeEnabled, commandModeKey == pushToTalkKey {
+                commandModeEnabled = false
+            }
+            defaults.set(commandModeEnabled, forKey: Keys.commandModeEnabled)
+        }
+    }
+
+    /// Hold this key after selecting editable text, then speak an editing instruction.
+    var commandModeKey: PushToTalkKey {
+        didSet {
+            if commandModeEnabled, commandModeKey == pushToTalkKey {
+                commandModeEnabled = false
+            }
+            defaults.set(commandModeKey.rawValue, forKey: Keys.commandModeKey)
+        }
+    }
+
+    var engine: SpeechEngineChoice {
+        didSet { defaults.set(engine.rawValue, forKey: Keys.engine) }
+    }
+
+    /// Run every engine on each recording and show them side by side, instead of
+    /// transcribing with one. Nothing is typed into the focused app in this mode.
+    var compareMode: Bool {
+        didSet { defaults.set(compareMode, forKey: Keys.compareMode) }
+    }
+
+    /// Run the cleanup pass before injecting. Off = raw engine output.
+    var cleanupEnabled: Bool {
+        didSet { defaults.set(cleanupEnabled, forKey: Keys.cleanupEnabled) }
+    }
+
+    /// Choose between the entirely local semantic cleanup engines.
+    var cleanupEngine: CleanupEngineChoice {
+        didSet { defaults.set(cleanupEngine.rawValue, forKey: Keys.cleanupEngine) }
+    }
+
+    /// Repair grammar, not only punctuation — the Grammarly job, done locally.
+    ///
+    /// Only the Apple engine can do this. S1-mini is a purpose-trained punctuation and
+    /// capitalisation model, not an instruction-following one; it has no grammar mode to
+    /// switch on. `activeFormatter` therefore uses Apple alone when this is on, even if the
+    /// cleanup picker says S1-mini — chaining the two was a second wait that often timed
+    /// out and left the unformatted S1 text as what got typed.
+    ///
+    /// On by default because it measured both better and faster than the alternative: over
+    /// the 28 evaluation cases, Apple returned 19 clean against the app LLM's 14
+    /// (Qwen3.5-4B at the time), at a warm median
+    /// of 0.686s against 7.41s. See `--selftest-cleanup apple-grammar`.
+    ///
+    /// The 2026-09-30 head-to-head (`--selftest-cleanup app-llm-compare`, 42
+    /// cases) moved the picture: MiniCPM5-2B answers 39 clean at 0.59 s median
+    /// against Apple's 42 at 3.03 s — the speed-for-quality trade, not a sweep.
+    /// MiniCPM is a picker row for that reason; Apple stays the default for the
+    /// reason above it. This switch only names the grammar-capable default path.
+    var cleanupFixesGrammar: Bool {
+        didSet { defaults.set(cleanupFixesGrammar, forKey: Keys.cleanupFixesGrammar) }
+    }
+
+    var cleanupTone: CleanupTone {
+        didSet { defaults.set(cleanupTone.rawValue, forKey: Keys.cleanupTone) }
+    }
+
+    var cleanupFormatsLists: Bool {
+        didSet { defaults.set(cleanupFormatsLists, forKey: Keys.cleanupFormatsLists) }
+    }
+
+    var cleanupContext: CleanupContext {
+        didSet { defaults.set(cleanupContext.rawValue, forKey: Keys.cleanupContext) }
+    }
+
+    /// Let short dictations skip the cleanup model while the Mac is busy — memory pressure, a
+    /// hot or Low Power Mac, or live transcription or meeting notes holding the model — and take
+    /// rule-based cleanup instead. `CleanupRouter` is where this is read.
+    ///
+    /// Off by default, because rule-based cleanup on its own is not good enough to type into
+    /// somebody's document: it keeps "acoustic dash echo dot md" as spoken, leaves repeated
+    /// clauses in, and cannot fix a misheard word. The switch is for somebody who would rather
+    /// have rough text immediately than good text a moment later when the machine is
+    /// struggling. A dictation that names something on screen still uses the model, because
+    /// rules cannot write the reference at all.
+    var cleanupSkipsModelWhenBusy: Bool {
+        didSet { defaults.set(cleanupSkipsModelWhenBusy, forKey: Keys.cleanupSkipsModelWhenBusy) }
+    }
+
+    /// Read the file, folder and tab names visible in the app being dictated into, and use them
+    /// to resolve a spoken file name. See `ScreenContextStore`, which owns the harvest itself
+    /// and reads this through `isEnabled`.
+    ///
+    /// On by default. The harvest costs up to 250 ms of a window in which the user is holding a key
+    /// anyway, and it is scoped to three hand-tested editors — everywhere else the answer is
+    /// already "no adapter", so the switch has nothing to turn off. Off is for somebody who does
+    /// not want another application's window read at all, which is a position worth honouring
+    /// without argument.
+    var screenContextEnabled: Bool {
+        didSet { defaults.set(screenContextEnabled, forKey: Keys.screenContextEnabled) }
+    }
+
+    /// Where the dictation HUD appears.
+    ///
+    /// The default is decided by the hardware rather than fixed: on a Mac with a notch the
+    /// island grows out of a strip of screen that is already dead, and on one without it
+    /// the same capsule would sit over the top of whatever the user is typing into — so
+    /// that machine keeps the HUD above the Dock. Only dictation is placed by this; the
+    /// island still announces meetings and notes either way, because those are
+    /// notifications rather than a live readout of something being held down.
+    var hudPlacement: HUDPlacement {
+        didSet { defaults.set(hudPlacement.rawValue, forKey: Keys.hudPlacement) }
+    }
+
+    /// What happens to a dictation when the user changes apps before it is ready.
+    ///
+    /// Only consulted when they actually switched: staying put takes the same path it
+    /// always did.
+    var switchAwayBehavior: SwitchAwayBehavior {
+        didSet { defaults.set(switchAwayBehavior.rawValue, forKey: Keys.switchAwayBehavior) }
+    }
+
+    /// How much dictation history to keep.
+    ///
+    /// Off by default: `.forever` is the shipped behaviour, and the only thing this
+    /// setting can do is delete a transcript the user has not asked to lose.
+    var dictationHistoryRetention: DictationHistoryRetention {
+        didSet {
+            defaults.set(dictationHistoryRetention.rawValue, forKey: Keys.dictationHistoryRetention)
+        }
+    }
+
+    /// Press Return after the text is typed, so Slack / Messages / mail send it.
+    ///
+    /// On by default: the point of dictating into a composer is usually to send, and a
+    /// leftover Return the user has to press themselves is the one extra step this
+    /// setting exists to remove. Off is for people who want that step back everywhere
+    /// except the apps they list in `autoSendApps`.
+    var autoSendEnabled: Bool {
+        didSet { defaults.set(autoSendEnabled, forKey: Keys.autoSendEnabled) }
+    }
+
+    /// Apps that still press Return when `autoSendEnabled` is off, keyed by bundle
+    /// identifier to the name a person would recognise.
+    var autoSendApps: [String: String] {
+        didSet { defaults.set(autoSendApps, forKey: Keys.autoSendApps) }
+    }
+
+    /// Whether editing a past transcript teaches the dictionary.
+    var dictionaryLearning: DictionaryLearning {
+        didSet { defaults.set(dictionaryLearning.rawValue, forKey: Keys.dictionaryLearning) }
+    }
+
+    /// Fingerprint of the suspicious dictionary rules the review notice was last
+    /// dismissed for. A new suspicious rule changes the fingerprint, so the notice
+    /// shows again; keeping the rules hides it until then.
+    var dictionaryReviewDismissedFingerprint: String {
+        didSet {
+            defaults.set(
+                dictionaryReviewDismissedFingerprint,
+                forKey: Keys.dictionaryReviewDismissedFingerprint)
+        }
+    }
+
+    /// Play a short tick when capture starts and stops.
+    var soundEnabled: Bool {
+        didSet { defaults.set(soundEnabled, forKey: Keys.soundEnabled) }
+    }
+
+    /// Let llama.cpp use the GPU. The escape hatch for the Metal backend wedging
+    /// MTLCompilerService on some macOS 26 builds; takes effect at next launch because the
+    /// backend is initialized once per process.
+    var llmMetalEnabled: Bool {
+        didSet { defaults.set(llmMetalEnabled, forKey: Keys.llmMetalEnabled) }
+    }
+
+    /// Keep the recorded meeting audio next to the transcript.
+    ///
+    /// Off by default: an hour of two-channel 16 kHz audio is roughly 230 MB, and the
+    /// transcript — the thing the notes are actually written from — is a few kilobytes.
+    /// Turn it on to be able to listen back. Diarization does not need it: a meeting that
+    /// is going to have its speakers identified records audio either way and drops it again
+    /// afterwards.
+    var meetingsKeepAudio: Bool {
+        didSet { defaults.set(meetingsKeepAudio, forKey: Keys.meetingsKeepAudio) }
+    }
+
+    /// Tell the other participants apart on the system track once a meeting has finished.
+    ///
+    /// On by default once the models are on disk (M-15). It used to be off because it
+    /// needs a second model and a temporary recording, and a fresh install therefore
+    /// labelled every remote voice "Others" with the notes' action items Unassigned until
+    /// the owner found this switch. The cost only exists on a Mac that has not paid it
+    /// yet, so the effective answer with nothing stored follows the models, and a
+    /// meeting that actually needs it offers it (`DiarizationOffer`) rather than turning
+    /// it on behind somebody's back. An explicit answer, in either direction, always
+    /// wins — `chooseDiarization(_:)` is the only writer a person's tap goes through.
+    private(set) var meetingsDiarize: Bool
+
+    /// The person's own answer, or nil when they have never touched the switch.
+    ///
+    /// What separates "off because they said no" from "off because the models are not here
+    /// yet" — the one distinction this setting cannot get wrong, because getting it wrong
+    /// re-asks a person who already answered.
+    private(set) var meetingsDiarizeChoice: Bool?
+
+    /// Records an explicit answer, in either direction.
+    ///
+    /// Also the only writer of the stored key, which keeps that key meaning exactly one
+    /// thing: that somebody said so. A default applied because models arrived must not
+    /// leave a stored answer behind, or the next launch would read it as a decision.
+    func chooseDiarization(_ on: Bool) {
+        meetingsDiarizeChoice = on
+        meetingsDiarize = on
+        defaults.set(on, forKey: Keys.meetingsDiarize)
+    }
+
+    /// Re-applies the default when the models arrive mid-session.
+    ///
+    /// The Models tab and the one-time offer both fetch the speaker models without
+    /// touching the switch, and a Mac that downloaded them an hour ago should not have to
+    /// be relaunched to be believed. Refuses while a stored answer exists, in either
+    /// direction.
+    func applyDiarizationDefaultIfUnchosen() {
+        guard meetingsDiarizeChoice == nil else { return }
+        let resolved = Self.diarizationDefault(stored: nil, modelsPresent: MeetingDiarizer.isDownloaded)
+        if meetingsDiarize != resolved { meetingsDiarize = resolved }
+    }
+
+    /// Whether the one-time offer has already been answered (M-15).
+    var meetingsDiarizeOfferDismissed: Bool {
+        didSet { defaults.set(meetingsDiarizeOfferDismissed, forKey: Keys.meetingsDiarizeOfferDismissed) }
+    }
+
+    /// The answer with no stored choice: the models' presence, and nothing else.
+    ///
+    /// Pure, nonisolated, and taking the models as an argument so a self-test can ask it
+    /// about a throwaway defaults suite and a hypothetical machine rather than about this
+    /// Mac's disk — the same shape as `initialKnowledgeIndexEnabled(from:)` below.
+    nonisolated static func diarizationDefault(stored: Bool?, modelsPresent: Bool) -> Bool {
+        stored ?? modelsPresent
+    }
+
+    /// The same answer, read from a defaults suite. What `--selftest-onboarding` drives.
+    nonisolated static func initialDiarize(from defaults: UserDefaults, modelsPresent: Bool) -> Bool {
+        diarizationDefault(
+            stored: defaults.object(forKey: Keys.meetingsDiarize) as? Bool,
+            modelsPresent: modelsPresent
+        )
+    }
+
+    /// Re-transcribe each meeting track in long windows after Stop (M-01).
+    ///
+    /// On by default: the 2–5 s live windows flip short French stretches into
+    /// English-sounding text, and the pass fixes most of it at ≤ 5 % of the meeting's
+    /// length. Records a temporary file when nothing else would, released with it.
+    var meetingsFinalPass: Bool {
+        didSet { defaults.set(meetingsFinalPass, forKey: Keys.meetingsFinalPass) }
+    }
+
+    /// Re-read the live transcript while the meeting is still running, so topics and
+    /// requests appear during the call instead of only in the notes afterwards (M-14).
+    ///
+    /// Three states, and **no stored value is the point**: automatic. With nothing stored the
+    /// pass follows the model that would answer — on when it runs on this Mac (the model Next
+    /// Notes runs itself, or Apple's), off when it is an online model or a model app reached
+    /// over the network, because a minute of live meeting text is not something to send
+    /// somewhere every minute unasked. Turning it on here *is* the consent for exactly that;
+    /// turning it off means it never runs, whatever the model is.
+    ///
+    /// `MeetingContextReconciler.isEnabled` is the one place that answer is computed, from
+    /// this and the role store's decision — the effective value is not written here, so
+    /// nothing can be stored that disagrees with it.
+    var meetingLiveUnderstanding: Bool? {
+        didSet {
+            if let meetingLiveUnderstanding {
+                defaults.set(meetingLiveUnderstanding, forKey: Keys.meetingLiveUnderstanding)
+            } else {
+                // Not `set(nil, forKey:)`: that stores NSNull rather than removing the key,
+                // so the third state would come back as a value that is neither yes nor no.
+                defaults.removeObject(forKey: Keys.meetingLiveUnderstanding)
+            }
+        }
+    }
+
+    /// Throw the recording away once the notes have been written.
+    ///
+    /// For keeping the audio only as long as the things made from it need it — diarization
+    /// reads the system channel, and nothing after that does. Ignored when the audio isn't
+    /// being kept in the first place; a meeting recorded only so its speakers could be
+    /// identified always drops its audio afterwards.
+    var meetingsDeleteAudioAfterNotes: Bool {
+        didSet { defaults.set(meetingsDeleteAudioAfterNotes, forKey: Keys.meetingsDeleteAudioAfterNotes) }
+    }
+
+    /// Start recording by itself when a calendar meeting begins.
+    ///
+    /// On by default because a note-taker that has to be remembered is a note-taker that
+    /// misses the meeting you most wanted notes from. Every event is still individually
+    /// refusable through `meetingAutoRecordOverrides`, and the scheduler only ever claims
+    /// events that look like real meetings.
+    var meetingsAutoRecord: Bool {
+        didSet { defaults.set(meetingsAutoRecord, forKey: Keys.meetingsAutoRecord) }
+    }
+
+    /// How many minutes before the start time the meeting is armed and announced.
+    ///
+    /// One minute by default: long enough to press Skip on the notification, short enough
+    /// that the armed row isn't sitting there through the previous meeting.
+    var meetingLeadMinutes: Int {
+        didSet { defaults.set(meetingLeadMinutes, forKey: Keys.meetingLeadMinutes) }
+    }
+
+    /// Per-event answers to "record this one?", keyed by `MeetingEvent.overrideKey`.
+    ///
+    /// An explicit answer beats both the heuristic and the global switch, in either
+    /// direction: the one recurring stand-up you never want recorded, and the one-to-one
+    /// with no conference link that you do.
+    var meetingAutoRecordOverrides: [String: Bool] {
+        didSet { defaults.set(meetingAutoRecordOverrides, forKey: Keys.meetingAutoRecordOverrides) }
+    }
+
+    /// Notice that the Mac is on a call and offer to record it.
+    ///
+    /// On by default, and on by itself it records nothing. Detection needs no permission at
+    /// all — Core Audio's process list reads without a TCC grant — and all it ever does on
+    /// its own is raise the same armed card a calendar meeting raises, with Record now and
+    /// Skip on it. The switch that turns that question into a recording is the next one.
+    var callDetectionEnabled: Bool {
+        didSet { defaults.set(callDetectionEnabled, forKey: Keys.callDetectionEnabled) }
+    }
+
+    /// Record a detected call without asking first.
+    ///
+    /// **Off by default, and that default is the argument.** A calendar meeting is
+    /// something the user agreed to in advance; a call that rang out of nowhere could be a
+    /// doctor or a lawyer, and consent law for recording a call varies by jurisdiction —
+    /// several places require every party to agree. Asking costs nothing to build, because
+    /// the island already has the card. Anyone who wants the calendar behaviour turns this
+    /// on, and `callAppAnswers` makes "always record Zoom" one switch without making it
+    /// the answer for every app.
+    var callDetectionAutoRecord: Bool {
+        didSet { defaults.set(callDetectionAutoRecord, forKey: Keys.callDetectionAutoRecord) }
+    }
+
+    /// Per-app answers to "record calls in this app?", keyed by bundle identifier and
+    /// holding `CallPolicy.AppAnswer` raw values.
+    ///
+    /// Keyed by the *app*, where `meetingAutoRecordOverrides` is keyed by the occurrence,
+    /// and the difference is deliberate: a calendar event recurs, so an answer about one
+    /// occurrence is worth keeping and an answer about the series would be wrong. A call
+    /// happens once and never again under the same key, so a per-call answer would be a row
+    /// that is written and never read. Every call in an app is the same kind of call.
+    ///
+    /// Strings rather than the `Bool` this held first, because the control has three
+    /// positions and a `Bool?` has only two plus "unanswered" — with auto-record on there
+    /// was no way to store "ask me about this one".
+    var callAppAnswers: [String: String] {
+        didSet { defaults.set(callAppAnswers, forKey: Keys.callAppAnswers) }
+    }
+
+    /// Apps that have actually been seen holding the microphone: bundle identifier to the
+    /// name a person would recognise.
+    ///
+    /// Written by `CallDetector`, read by the Meetings settings tab, and the reason that
+    /// tab can offer a per-app answer without anybody typing `us.zoom.xos` into a text
+    /// field. A record of what happened on this Mac, not a catalogue of what exists — an
+    /// app nobody has ever used the microphone in is an app with no calls to answer for.
+    var callAppsSeen: [String: String] {
+        didSet { defaults.set(callAppsSeen, forKey: Keys.callAppsSeen) }
+    }
+
+    /// Read meetings from the Mac's own calendars through EventKit.
+    var calendarEventKitEnabled: Bool {
+        didSet { defaults.set(calendarEventKitEnabled, forKey: Keys.calendarEventKitEnabled) }
+    }
+
+    /// Read meetings from Google Calendar over its HTTP API.
+    ///
+    /// Off by default, and useless until `googleClientID` is filled in: Google has no
+    /// client credentials to give an unsigned desktop app, so the user brings their own
+    /// OAuth client from Google Cloud.
+    var calendarGoogleEnabled: Bool {
+        didSet { defaults.set(calendarGoogleEnabled, forKey: Keys.calendarGoogleEnabled) }
+    }
+
+    /// The user's own Google Cloud OAuth client ID, of type "Desktop app".
+    ///
+    /// Not a secret worth hiding — desktop clients are public by design, which is exactly
+    /// why the flow uses PKCE — so it lives in defaults beside the rest of the settings.
+    /// The refresh token it earns does not: that goes to the Keychain.
+    var googleClientID: String {
+        didSet { defaults.set(googleClientID, forKey: Keys.googleClientID) }
+    }
+
+    /// The secret printed beside that client ID.
+    ///
+    /// Google's token endpoint asks an installed client for it even though PKCE is what
+    /// actually protects the exchange — the "secret" is public by construction, since it
+    /// ships inside every copy of an app that has one, so it lives in defaults next to the
+    /// ID rather than in the Keychain. Left empty for a client type that doesn't need one.
+    var googleClientSecret: String {
+        didSet { defaults.set(googleClientSecret, forKey: Keys.googleClientSecret) }
+    }
+
+    /// Which Google calendars to read. Empty means "every calendar the account shows".
+    var googleCalendarIDs: [String] {
+        didSet { defaults.set(googleCalendarIDs, forKey: Keys.googleCalendarIDs) }
+    }
+
+    /// Write notes by themselves when a meeting finishes transcribing.
+    ///
+    /// On by default: the notes are the reason a meeting was recorded, and a summarisation
+    /// that has to be asked for is one that happens after the user has already moved on.
+    var notesAutoGenerate: Bool {
+        didSet { defaults.set(notesAutoGenerate, forKey: Keys.notesAutoGenerate) }
+    }
+
+    /// Let the notes connect the meeting to what Next Notes already knows.
+    ///
+    /// On by default: a follow-up that names the wrong Sarah, or a decision that reverses one
+    /// from three weeks ago without saying so, is what notes that see only this meeting miss.
+    /// Every source keeps its own switch — memory, the graph and the file index each still
+    /// have to be on, and their cloud consents still apply — so this is one toggle for the
+    /// feature rather than a fourth copy of every privacy decision.
+    var notesRelatedContext: Bool {
+        didSet { defaults.set(notesRelatedContext, forKey: Keys.notesRelatedContext) }
+    }
+
+    /// The mirror of the everyday-assistant role, written by `ModelRoleStore` whenever the
+    /// role changes and read by paths that predate the role screen (the background
+    /// function-call proposer). The role store is the source of truth; this only keeps the
+    /// old key from disagreeing with it.
+    ///
+    /// There is deliberately no `notesProvider` beside it: the meeting-notes role is the
+    /// one place that choice lives, and a second stored copy read by a self-test and a menu
+    /// label is how a notes history ends up naming a model nothing runs.
+    var agentModelProvider: LLMProviderID {
+        didSet { defaults.set(agentModelProvider.rawValue, forKey: Keys.agentModelProvider) }
+    }
+    var openRouterNotesModelID: String {
+        didSet { defaults.set(openRouterNotesModelID, forKey: Keys.openRouterNotesModelID) }
+    }
+    var openRouterAgentModelID: String {
+        didSet { defaults.set(openRouterAgentModelID, forKey: Keys.openRouterAgentModelID) }
+    }
+    var openRouterNotesContextTokens: Int {
+        didSet { defaults.set(openRouterNotesContextTokens, forKey: Keys.openRouterNotesContextTokens) }
+    }
+    var openRouterAgentContextTokens: Int {
+        didSet { defaults.set(openRouterAgentContextTokens, forKey: Keys.openRouterAgentContextTokens) }
+    }
+
+    /// Whether each OpenRouter model id reasons before it writes (P0-17). Written where a
+    /// model is picked and where a provider refuses the reasoning field; read so a turn
+    /// pays the bounded reasoning allowance for a model that thinks and sends an unchanged
+    /// body for one that does not. Unknown means it may reason, because OpenRouter ignores
+    /// the field for models without it.
+    var openRouterModelReasons: [String: Bool] {
+        didSet { defaults.set(openRouterModelReasons, forKey: Keys.openRouterModelReasons) }
+    }
+
+    /// Let the meeting agent propose follow-up actions in Google Workspace.
+    ///
+    /// Off until the user has signed the Workspace CLI in, because an agent with no way to
+    /// perform anything is a switch that produces a list of things that can't happen. The
+    /// Workspace tab turns it on as part of finishing the sign-in.
+    var agentEnabled: Bool {
+        didSet { defaults.set(agentEnabled, forKey: Keys.agentEnabled) }
+    }
+
+    /// Talking to the assistant from Messages. Off until the setup sheet
+    /// connects: the flip opens setup and the switch itself only reads as on
+    /// once pairing and the confirmation send are both observed.
+    var imessageEnabled: Bool {
+        didSet { defaults.set(imessageEnabled, forKey: Keys.imessageEnabled) }
+    }
+
+    /// Let the agent run read-only tools by itself while it plans.
+    ///
+    /// On by default, and it is the one thing the agent does without being asked: searching
+    /// the user's own mail for the deck somebody promised changes nothing and is invisible
+    /// to everyone else. Every tool that creates or sends is a click whatever this says.
+    var agentAutoRunReadTools: Bool {
+        didSet { defaults.set(agentAutoRunReadTools, forKey: Keys.agentAutoRunReadTools) }
+    }
+
+    /// Look at the last couple of minutes of a running meeting and propose as it goes.
+    ///
+    /// Off by default: it spends model time during the call — the moment the machine is
+    /// busiest — to catch the requests that are made out loud and then forgotten. Worth
+    /// turning on for meetings that end in "can you send me…", and not otherwise.
+    var agentLiveDuringMeeting: Bool {
+        didSet { defaults.set(agentLiveDuringMeeting, forKey: Keys.agentLiveDuringMeeting) }
+    }
+
+    /// Local wake-phrase detection. Off until the user turns it on — a hot microphone
+    /// while the app is sleeping is a choice, not a default.
+    var voiceWakeEnabled: Bool {
+        didSet {
+            defaults.set(voiceWakeEnabled, forKey: Keys.voiceWakeEnabled)
+            WakeWordAudioMonitor.shared.sync()
+        }
+    }
+
+    /// Installed macOS voice identifier for Agent speech. Empty means system default.
+    var agentVoiceIdentifier: String {
+        didSet { defaults.set(agentVoiceIdentifier, forKey: Keys.agentVoiceIdentifier) }
+    }
+
+    /// Explicitly downloaded, local neural voice; system speech remains the default.
+    var agentVoiceEngine: String {
+        didSet { defaults.set(agentVoiceEngine, forKey: Keys.agentVoiceEngine) }
+    }
+
+    /// Whether Agent prompts start with `persona.md`. The file is kept either way.
+    var agentPersonaEnabled: Bool {
+        didSet { defaults.set(agentPersonaEnabled, forKey: Keys.agentPersonaEnabled) }
+    }
+
+    /// Whether the Agent keeps and uses core memory. Entries stay on disk either way.
+    var agentMemoryEnabled: Bool {
+        didSet { defaults.set(agentMemoryEnabled, forKey: Keys.agentMemoryEnabled) }
+    }
+
+    /// Which model the background memory review uses: "auto" (the on-device model when it is loaded and
+    /// idle and nothing is recording, else OpenRouter when configured, else wait), "local"
+    /// or "cloud".
+    var agentMemoryReviewModel: String {
+        didSet { defaults.set(agentMemoryReviewModel, forKey: Keys.agentMemoryReviewModel) }
+    }
+
+    /// Minutes of silence after which the next Agent message starts a new session.
+    var agentSessionIdleMinutes: Int {
+        didSet { defaults.set(agentSessionIdleMinutes, forKey: Keys.agentSessionIdleMinutes) }
+    }
+
+    /// Whether reminders run. Off withdraws everything registered with macOS too.
+    var agentSchedulesEnabled: Bool {
+        didSet { defaults.set(agentSchedulesEnabled, forKey: Keys.agentSchedulesEnabled) }
+    }
+
+    /// Quiet hours, "HH:mm" in local time. Deliveries found inside them wait until they end.
+    var agentQuietHoursStart: String {
+        didSet { defaults.set(agentQuietHoursStart, forKey: Keys.agentQuietHoursStart) }
+    }
+
+    var agentQuietHoursEnd: String {
+        didSet { defaults.set(agentQuietHoursEnd, forKey: Keys.agentQuietHoursEnd) }
+    }
+
+    /// "whenPresent" speaks reminders only when the user is at the Mac, nothing is recording
+    /// and no call is active; "never" keeps them to notifications.
+    var agentRoutineSpeech: String {
+        didSet { defaults.set(agentRoutineSpeech, forKey: Keys.agentRoutineSpeech) }
+    }
+
+    /// Open Next Notes at login, so routines keep running. Off by default; offered when the
+    /// first routine is created, and applied through `LaunchAtLogin` (`SMAppService`).
+    var agentLaunchAtLogin: Bool {
+        didSet { defaults.set(agentLaunchAtLogin, forKey: Keys.agentLaunchAtLogin) }
+    }
+
+    /// Whether meetings, notes and (per the switches below) conversations are chunked into
+    /// `knowledge.sqlite` for Search and `memory.recall`. On by default.
+    var knowledgeIndexEnabled: Bool {
+        didSet { defaults.set(knowledgeIndexEnabled, forKey: Keys.knowledgeIndexEnabled) }
+    }
+
+    /// Ended Agent conversations are indexed too.
+    var knowledgeIncludeConversations: Bool {
+        didSet { defaults.set(knowledgeIncludeConversations, forKey: Keys.knowledgeIncludeConversations) }
+    }
+
+    /// Every dictation is indexed too — high volume, low signal, so off by default.
+    var knowledgeIncludeDictation: Bool {
+        didSet { defaults.set(knowledgeIncludeDictation, forKey: Keys.knowledgeIncludeDictation) }
+    }
+
+    /// Each routine run's result is indexed too. Off by default.
+    var knowledgeIncludeRoutines: Bool {
+        didSet { defaults.set(knowledgeIncludeRoutines, forKey: Keys.knowledgeIncludeRoutines) }
+    }
+
+    /// Which model gives the index dense vectors for hybrid search: `none`, `potion` or
+    /// `embeddinggemma` (`KnowledgeEmbedderChoice`). `none` by default — search stays BM25.
+    var knowledgeEmbedder: String {
+        didSet { defaults.set(knowledgeEmbedder, forKey: Keys.knowledgeEmbedder) }
+    }
+
+    /// Whether the Agent may use `search_knowledge`, `expand_node` and `timeline`, and Ask
+    /// may answer from the index. On by default; needs the index on as well.
+    var knowledgeAgentToolsEnabled: Bool {
+        didSet { defaults.set(knowledgeAgentToolsEnabled, forKey: Keys.knowledgeAgentToolsEnabled) }
+    }
+
+    /// Whether finished meetings' notes are extracted into `notes.json` and the knowledge
+    /// graph — decisions, action items, open questions, people — with the on-device model.
+    /// Off by default; needs the index on as well.
+    var knowledgeGraphEnabled: Bool {
+        didSet { defaults.set(knowledgeGraphEnabled, forKey: Keys.knowledgeGraphEnabled) }
+    }
+
+    /// Whether a cloud model (OpenRouter) may read the knowledge graph through `expand_node`
+    /// and `timeline`. Off by default: separate, per-feature consent.
+    var knowledgeGraphCloudConsent: Bool {
+        didSet { defaults.set(knowledgeGraphCloudConsent, forKey: Keys.knowledgeGraphCloudConsent) }
+    }
+
+    /// Whether a cloud vision model may be shown screenshots (`computer.screenshot`,
+    /// `browser.screenshot`). Off by default: a screenshot leaves the Mac, so this is a
+    /// separate switch from the graph consent, plus a per-run thumbnail sheet.
+    var visionCloudConsent: Bool {
+        didSet { defaults.set(visionCloudConsent, forKey: Keys.visionCloudConsent) }
+    }
+
+    var agentPocketVoice: String {
+        didSet { defaults.set(agentPocketVoice, forKey: Keys.agentPocketVoice) }
+    }
+
+    var wakePhrase: String {
+        didSet { defaults.set(wakePhrase, forKey: Keys.wakePhrase) }
+    }
+
+    /// 0 = conservative, 1 = sensitive.
+    var wakeSensitivity: Double {
+        didSet { defaults.set(wakeSensitivity, forKey: Keys.wakeSensitivity) }
+    }
+
+    var listenWhileSleeping: Bool {
+        didSet {
+            defaults.set(listenWhileSleeping, forKey: Keys.listenWhileSleeping)
+            WakeWordAudioMonitor.shared.sync()
+        }
+    }
+
+    var agentShortcutEnabled: Bool {
+        didSet { defaults.set(agentShortcutEnabled, forKey: Keys.agentShortcutEnabled) }
+    }
+
+    var agentShortcut: AgentShortcut {
+        didSet { defaults.set(agentShortcut.rawValue, forKey: Keys.agentShortcut) }
+    }
+
+    var agentBackend: AgentBackendKind {
+        didSet { defaults.set(agentBackend.rawValue, forKey: Keys.agentBackend) }
+    }
+
+    var agentResponsiveness: AgentResponsiveness {
+        didSet { defaults.set(agentResponsiveness.rawValue, forKey: Keys.agentResponsiveness) }
+    }
+
+    /// Whether the planner asks a model for tool calls through whatever native channel the
+    /// reader has — a GBNF grammar for the on-device runtime, Apple's `Tool` protocol, an
+    /// OpenAI-style `tools` array — instead of the prose catalogue and the Hermes tags.
+    ///
+    /// **Off by default, and deliberately so.** The task's own rule is to flip this only after
+    /// `--selftest-toolloop-live` scores at least as well on the prompt path on both the
+    /// Agent-role model and Apple FM, with zero malformed-call repairs in the trace; that
+    /// takes three full 30-case runs, which is the Phase-1-exit artefact rather than this
+    /// task's. The prompt-convention path is a complete, tested, first-class backend, so
+    /// nothing is waiting on this switch — and the live eval can force either path for one
+    /// process with `--planner native|prompt`.
+    ///
+    /// No UI row: the person using this app does not choose a decoding strategy, and a
+    /// defaults key they cannot see is the honest shape for a rollout switch. A rollback is
+    /// `defaults write ai.pivotstudio.nextnotes agentNativeToolCalling -bool false`.
+    var agentNativeToolCalling: Bool {
+        get { defaults.object(forKey: Keys.agentNativeToolCalling) as? Bool ?? false }
+        set { defaults.set(newValue, forKey: Keys.agentNativeToolCalling) }
+    }
+
+    var acpBackendID: String {
+        didSet { defaults.set(acpBackendID, forKey: Keys.acpBackendID) }
+    }
+
+    var agentAutoSearchFiles: Bool {
+        didSet { defaults.set(agentAutoSearchFiles, forKey: Keys.agentAutoSearchFiles) }
+    }
+
+    /// Standing yes for local click / type / open. Off by default — observe still runs.
+    var agentAllowComputerControl: Bool {
+        didSet { defaults.set(agentAllowComputerControl, forKey: Keys.agentAllowComputerControl) }
+    }
+
+    var composioEnabled: Bool {
+        didSet { defaults.set(composioEnabled, forKey: Keys.composioEnabled) }
+    }
+
+    var composioAPIKey: String {
+        didSet { defaults.set(composioAPIKey, forKey: Keys.composioAPIKey) }
+    }
+
+    var composioURL: String {
+        didSet { defaults.set(composioURL, forKey: Keys.composioURL) }
+    }
+
+    var composioAllowlist: [String] {
+        didSet { defaults.set(composioAllowlist, forKey: Keys.composioAllowlist) }
+    }
+
+    var mcpServersJSON: String {
+        didSet { defaults.set(mcpServersJSON, forKey: Keys.mcpServersJSON) }
+    }
+
+    /// Whether the first-launch permissions checklist has been dismissed. The checklist
+    /// itself stays reachable from Settings, so this only decides whether it opens by
+    /// itself — not whether the app is usable.
+    var hasCompletedOnboarding: Bool {
+        didSet { defaults.set(hasCompletedOnboarding, forKey: Keys.hasCompletedOnboarding) }
+    }
+
+    /// The stored answer for one event, or nil when the heuristic decides.
+    func autoRecordOverride(forEvent key: String) -> Bool? {
+        meetingAutoRecordOverrides[key]
+    }
+
+    /// Records or clears one event's answer. `nil` hands the event back to the heuristic.
+    func setAutoRecordOverride(_ value: Bool?, forEvent key: String) {
+        var overrides = meetingAutoRecordOverrides
+        overrides[key] = value
+        meetingAutoRecordOverrides = overrides
+    }
+
+    /// The stored answer for one app's calls, or nil when the global switch decides.
+    func callAnswer(forApp bundleID: String) -> CallPolicy.AppAnswer? {
+        callAppAnswers[bundleID].flatMap(CallPolicy.AppAnswer.init(rawValue:))
+    }
+
+    /// Records or clears one app's answer. `nil` hands its calls back to the global switch.
+    func setCallAnswer(_ value: CallPolicy.AppAnswer?, forApp bundleID: String) {
+        var answers = callAppAnswers
+        answers[bundleID] = value?.rawValue
+        callAppAnswers = answers
+    }
+
+    /// Notes that an app has used the microphone, so it can be answered for.
+    ///
+    /// The name is refreshed as well as the identifier: an app that was running unbundled
+    /// the first time it was seen, or was renamed, should not be listed forever under
+    /// whatever it was called then.
+    func rememberCallApp(bundleID: String, name: String) {
+        var seen = callAppsSeen
+        seen[bundleID] = name
+        callAppsSeen = seen
+    }
+
+    /// M-02: answers stored against a helper id belong to the owning app.
+    ///
+    /// One-shot, guarded by `callAnswersOwnerMigrationV1`: moves `*.helper` rows in
+    /// `callAppAnswers` / `callAppsSeen` to the installed owner, keeping the more
+    /// cautious answer on a collision and dropping denied ids. Never runs under the
+    /// self-test harness — the harness must not touch the user's defaults; the
+    /// self-test calls the pure `AudioProcessOwner.migrate` directly.
+    private func migrateCallAnswersToOwnersIfNeeded() {
+        guard !SelfTest.isRunning else { return }
+        guard !defaults.bool(forKey: Keys.callAnswersOwnerMigrationV1) else { return }
+        let migrated = AudioProcessOwner.migrate(
+            answers: callAppAnswers,
+            seen: callAppsSeen,
+            installedApp: {
+                NSWorkspace.shared.urlForApplication(withBundleIdentifier: $0) != nil
+            }
+        )
+        let moved = (Set(callAppAnswers.keys).subtracting(migrated.answers.keys).sorted()
+            + Set(callAppsSeen.keys).subtracting(migrated.seen.keys).sorted()
+            .map { "seen:\($0)" })
+            .joined(separator: ", ")
+        callAppAnswers = migrated.answers
+        callAppsSeen = migrated.seen
+        // `didSet` does not fire during `init`, so write through by hand.
+        defaults.set(migrated.answers, forKey: Keys.callAppAnswers)
+        defaults.set(migrated.seen, forKey: Keys.callAppsSeen)
+        defaults.set(true, forKey: Keys.callAnswersOwnerMigrationV1)
+        // Bundle ids are not personal data.
+        Log.calls.info("migrated call answers to owning apps: \(moved, privacy: .public)")
+    }
+
+    /// Whether Return should follow a successful insert into this app.
+    ///
+    /// `bundleID` is the app the text actually landed in — the origin captured at
+    /// key-down, or the frontmost app when the user asked to insert wherever they are.
+    func shouldAutoSend(to bundleID: String?) -> Bool {
+        AutoSendPolicy.shouldSend(
+            enabled: autoSendEnabled,
+            selectedApps: autoSendApps,
+            bundleID: bundleID
+        )
+    }
+
+    func addAutoSendApp(bundleID: String, name: String) {
+        var apps = autoSendApps
+        apps[bundleID] = name
+        autoSendApps = apps
+    }
+
+    func removeAutoSendApp(bundleID: String) {
+        var apps = autoSendApps
+        apps[bundleID] = nil
+        autoSendApps = apps
+    }
+
+    private let defaults = SelfTest.isRunning ? SelfTestHarnessDefaults.suite : UserDefaults.standard
+
+    /// Check ownership before a fixture changes any preference.
+    var usesHarnessPreferencesForTesting: Bool {
+        SelfTest.isRunning && defaults === SelfTestHarnessDefaults.suite
+            && defaults !== UserDefaults.standard
+    }
+
+    /// Exercise the actual settings writers and a fresh reader of their domain.
+    /// Refuse before writing if a harness accidentally selected the owner's domain.
+    func harnessPreferenceFailures() -> [String] {
+        guard usesHarnessPreferencesForTesting else {
+            return ["Settings does not use isolated harness preferences"]
+        }
+        let ownerBefore = UserDefaults.standard.dictionaryRepresentation() as NSDictionary
+        let savedKeep = meetingsKeepAudio
+        let savedFinal = meetingsFinalPass
+        let savedNotes = notesAutoGenerate
+        defer {
+            meetingsKeepAudio = savedKeep
+            meetingsFinalPass = savedFinal
+            notesAutoGenerate = savedNotes
+        }
+        meetingsKeepAudio.toggle()
+        meetingsFinalPass.toggle()
+        notesAutoGenerate.toggle()
+        guard let reader = UserDefaults(suiteName: SelfTestHarnessDefaults.suiteName) else {
+            return ["Isolated preference reader unavailable"]
+        }
+        var failures: [String] = []
+        for (key, expected) in [
+            (Keys.meetingsKeepAudio, meetingsKeepAudio),
+            (Keys.meetingsFinalPass, meetingsFinalPass),
+            (Keys.notesAutoGenerate, notesAutoGenerate),
+        ] where reader.object(forKey: key) == nil || reader.bool(forKey: key) != expected {
+            failures.append("Isolated preference did not reach fresh reader: \(key)")
+        }
+        if !ownerBefore.isEqual(to: UserDefaults.standard.dictionaryRepresentation()) {
+            failures.append("Settings writes changed owner preferences")
+        }
+        return failures
+    }
+
+    private enum Keys {
+        static let moduleDictationEnabled = "moduleDictationEnabled"
+        static let moduleMeetingsEnabled = "moduleMeetingsEnabled"
+        static let pushToTalkKey = "pushToTalkKey"
+        static let commandModeEnabled = "commandModeEnabled"
+        static let commandModeKey = "commandModeKey"
+        static let cleanupEnabled = "cleanupEnabled"
+        static let soundEnabled = "soundEnabled"
+        static let engine = "engine"
+        static let cleanupEngine = "cleanupEngine"
+        static let cleanupFixesGrammar = "cleanupFixesGrammar"
+        static let cleanupTone = "cleanupTone"
+        static let cleanupFormatsLists = "cleanupFormatsLists"
+        static let cleanupContext = "cleanupContext"
+        static let cleanupSkipsModelWhenBusy = "cleanupSkipsModelWhenBusy"
+        /// The key `ScreenContextStore` wrote before this moved onto `Settings`. Unchanged on
+        /// purpose: a renamed key is a silently reset preference.
+        static let screenContextEnabled = "screenContextEnabled"
+        static let legacySmartCleanup = "smartCleanup"
+        static let compareMode = "compareMode"
+        static let llmMetalEnabled = "llmMetalEnabled"
+        static let hudPlacement = "hudPlacement"
+        static let switchAwayBehavior = "switchAwayBehavior"
+        static let dictationHistoryRetention = "dictationHistoryRetention"
+        static let autoSendEnabled = "autoSendEnabled"
+        static let autoSendApps = "autoSendApps"
+        static let dictionaryLearning = "dictionaryLearning"
+        static let dictionaryReviewDismissedFingerprint = "dictionaryReviewDismissedFingerprint"
+        static let hasCompletedOnboarding = "hasCompletedOnboarding"
+        static let meetingsKeepAudio = "meetingsKeepAudio"
+        static let meetingsDiarize = "meetingsDiarize"
+        static let meetingsDiarizeOfferDismissed = "meetingsDiarizeOfferDismissed"
+        static let meetingsFinalPass = "meetingsFinalPass"
+        static let meetingLiveUnderstanding = "meetingLiveUnderstanding"
+        static let meetingsDeleteAudioAfterNotes = "meetingsDeleteAudioAfterNotes"
+        static let notesAutoGenerate = "notesAutoGenerate"
+        static let notesRelatedContext = "notesRelatedContext"
+        static let agentModelProvider = "agentModelProvider"
+        static let openRouterNotesModelID = "openRouterNotesModelID"
+        static let openRouterAgentModelID = "openRouterAgentModelID"
+        static let openRouterNotesContextTokens = "openRouterNotesContextTokens"
+        static let openRouterAgentContextTokens = "openRouterAgentContextTokens"
+        static let openRouterModelReasons = "openRouterModelReasons"
+        static let meetingsAutoRecord = "meetingsAutoRecord"
+        static let meetingLeadMinutes = "meetingLeadMinutes"
+        static let meetingAutoRecordOverrides = "meetingAutoRecordOverrides"
+        static let callDetectionEnabled = "callDetectionEnabled"
+        static let callDetectionAutoRecord = "callDetectionAutoRecord"
+        static let callAppAnswers = "callAppAnswers"
+        static let callAppsSeen = "callAppsSeen"
+        static let callAnswersOwnerMigrationV1 = "callAnswersOwnerMigrationV1"
+        static let calendarEventKitEnabled = "calendarEventKitEnabled"
+        static let calendarGoogleEnabled = "calendarGoogleEnabled"
+        static let googleClientID = "googleClientID"
+        static let googleClientSecret = "googleClientSecret"
+        static let googleCalendarIDs = "googleCalendarIDs"
+        static let agentEnabled = "agentEnabled"
+        static let imessageEnabled = "imessageEnabled"
+        static let agentAutoRunReadTools = "agentAutoRunReadTools"
+        static let agentLiveDuringMeeting = "agentLiveDuringMeeting"
+        static let voiceWakeEnabled = "voiceWakeEnabled"
+        static let agentVoiceIdentifier = "agentVoiceIdentifier"
+        static let agentVoiceEngine = "agentVoiceEngine"
+        static let agentPersonaEnabled = PersonaStore.enabledDefaultsKey
+        static let agentMemoryEnabled = MemorySnapshotCache.enabledDefaultsKey
+        static let agentMemoryReviewModel = MemoryReviewModelChoice.defaultsKey
+        static let agentSessionIdleMinutes = AgentSessionBoundary.idleDefaultsKey
+        static let agentSchedulesEnabled = "agentSchedulesEnabled"
+        static let agentQuietHoursStart = "agentQuietHoursStart"
+        static let agentQuietHoursEnd = "agentQuietHoursEnd"
+        static let agentNativeToolCalling = "agentNativeToolCalling"
+        static let agentRoutineSpeech = "agentRoutineSpeech"
+        static let agentLaunchAtLogin = "agentLaunchAtLogin"
+        static let knowledgeIndexEnabled = KnowledgeIndexSettings.enabledKey
+        static let knowledgeIncludeConversations = KnowledgeIndexSettings.includeConversationsKey
+        static let knowledgeIncludeDictation = KnowledgeIndexSettings.includeDictationKey
+        static let knowledgeIncludeRoutines = KnowledgeIndexSettings.includeRoutinesKey
+        static let knowledgeEmbedder = KnowledgeIndexSettings.embedderKey
+        static let knowledgeAgentToolsEnabled = KnowledgeToolGate.enabledKey
+        static let knowledgeGraphEnabled = KnowledgeIndexSettings.graphKey
+        static let knowledgeGraphCloudConsent = KnowledgeIndexSettings.graphCloudConsentKey
+        static let visionCloudConsent = "visionCloudConsent"
+        static let agentPocketVoice = "agentPocketVoice"
+        static let wakePhrase = "wakePhrase"
+        static let wakeSensitivity = "wakeSensitivity"
+        static let listenWhileSleeping = "listenWhileSleeping"
+        static let agentShortcutEnabled = "agentShortcutEnabled"
+        static let agentShortcut = "agentShortcut"
+        static let agentBackend = "agentBackend"
+        static let agentResponsiveness = "agentResponsiveness"
+        static let acpBackendID = "acpBackendID"
+        static let agentAutoSearchFiles = "agentAutoSearchFiles"
+        static let agentAllowComputerControl = "agentAllowComputerControl"
+        static let composioEnabled = "composioEnabled"
+        static let composioAPIKey = "composioAPIKey"
+        static let composioURL = "composioURL"
+        static let composioAllowlist = "composioAllowlist"
+        static let mcpServersJSON = "mcpServersJSON"
+    }
+
+    /// The knowledge-index switch with no stored value, from the one constant. Taking the
+    /// defaults instance is what lets a self-test read a throwaway suite rather than the
+    /// user's own keys.
+    nonisolated static func initialKnowledgeIndexEnabled(from defaults: UserDefaults) -> Bool {
+        defaults.object(forKey: Keys.knowledgeIndexEnabled) as? Bool ?? KnowledgeIndexSettings.defaultEnabled
+    }
+
+    /// The Agent's knowledge-tools switch with no stored value, from the one constant.
+    nonisolated static func initialKnowledgeAgentToolsEnabled(from defaults: UserDefaults) -> Bool {
+        defaults.object(forKey: Keys.knowledgeAgentToolsEnabled) as? Bool ?? KnowledgeToolGate.defaultEnabled
+    }
+
+    /// The same reader used at launch, with an isolated defaults suite available to tests.
+    nonisolated static func initialModuleEnabled(_ module: AppModule, from defaults: UserDefaults) -> Bool {
+        switch module {
+        case .dictation: defaults.object(forKey: Keys.moduleDictationEnabled) as? Bool ?? true
+        case .meetings: defaults.object(forKey: Keys.moduleMeetingsEnabled) as? Bool ?? true
+        case .assistant: defaults.object(forKey: Keys.agentEnabled) as? Bool ?? false
+        }
+    }
+
+    private init() {
+        // Diagnostic-only lifecycle latch; never construct a second Settings owner.
+        if SelfTest.isRunning, NativeNotesSettingsSelfTest.isRequested {
+            Self.nativeNotesInitializerEntered = true
+        }
+        moduleDictationEnabled = Self.initialModuleEnabled(.dictation, from: defaults)
+        moduleMeetingsEnabled = Self.initialModuleEnabled(.meetings, from: defaults)
+        let raw = defaults.string(forKey: Keys.pushToTalkKey) ?? PushToTalkKey.rightOption.rawValue
+        pushToTalkKey = PushToTalkKey(rawValue: raw) ?? .rightOption
+        commandModeEnabled = defaults.object(forKey: Keys.commandModeEnabled) as? Bool ?? false
+        let commandRaw = defaults.string(forKey: Keys.commandModeKey)
+            ?? PushToTalkKey.rightCommand.rawValue
+        commandModeKey = PushToTalkKey(rawValue: commandRaw) ?? .rightCommand
+        // Apple by default: no download, no dependency, live text while speaking.
+        // MiniCPM joins the picker but is not the fresh default: it needs a
+        // 1.56 GB file no fresh Mac has, and the Models tab does not offer it
+        // yet — a default nobody can fulfil is a picker row that lies. Picking
+        // it without the file simply runs Apple until the file arrives.
+        engine = SpeechEngineChoice(rawValue: defaults.string(forKey: Keys.engine) ?? "") ?? .apple
+        cleanupEnabled = defaults.object(forKey: Keys.cleanupEnabled) as? Bool ?? true
+        cleanupFixesGrammar = defaults.object(forKey: Keys.cleanupFixesGrammar) as? Bool ?? true
+        cleanupSkipsModelWhenBusy = defaults.object(forKey: Keys.cleanupSkipsModelWhenBusy) as? Bool ?? false
+        if let rawCleanupEngine = defaults.string(forKey: Keys.cleanupEngine) {
+            cleanupEngine = CleanupEngineChoice(rawValue: rawCleanupEngine) ?? .apple
+        } else {
+            // The previous smart-cleanup switch only had one semantic provider: Apple.
+            // Preserve that intent, while making Apple the sensible default for new users.
+            cleanupEngine = .apple
+            if defaults.bool(forKey: Keys.legacySmartCleanup) {
+                defaults.set(CleanupEngineChoice.apple.rawValue, forKey: Keys.cleanupEngine)
+            }
+        }
+        cleanupTone = CleanupTone(
+            rawValue: defaults.string(forKey: Keys.cleanupTone) ?? ""
+        ) ?? .balanced
+        cleanupFormatsLists = defaults.object(forKey: Keys.cleanupFormatsLists) as? Bool ?? true
+        cleanupContext = CleanupContext(
+            rawValue: defaults.string(forKey: Keys.cleanupContext) ?? ""
+        ) ?? .general
+        screenContextEnabled = defaults.object(forKey: Keys.screenContextEnabled) as? Bool ?? true
+        compareMode = defaults.object(forKey: Keys.compareMode) as? Bool ?? false
+        soundEnabled = defaults.object(forKey: Keys.soundEnabled) as? Bool ?? true
+        llmMetalEnabled = defaults.object(forKey: Keys.llmMetalEnabled) as? Bool ?? true
+        hudPlacement = HUDPlacement(
+            rawValue: defaults.string(forKey: Keys.hudPlacement) ?? ""
+        ) ?? (IslandGeometry.hasNotch ? .notch : .bottom)
+        // Defaults to returning: the alternative was losing the text outright, which is
+        // the bug this setting was added alongside.
+        dictionaryLearning = DictionaryLearning(
+            rawValue: defaults.string(forKey: Keys.dictionaryLearning) ?? ""
+        ) ?? .ask
+        dictionaryReviewDismissedFingerprint =
+            defaults.string(forKey: Keys.dictionaryReviewDismissedFingerprint) ?? ""
+        switchAwayBehavior = SwitchAwayBehavior(
+            rawValue: defaults.string(forKey: Keys.switchAwayBehavior) ?? ""
+        ) ?? .returnToApp
+        // Forever, deliberately: this setting can only delete the user's own transcripts,
+        // and nothing else in the app prunes `runs.jsonl`.
+        dictationHistoryRetention = DictationHistoryRetention(
+            rawValue: defaults.string(forKey: Keys.dictationHistoryRetention) ?? ""
+        ) ?? .forever
+        autoSendEnabled = defaults.object(forKey: Keys.autoSendEnabled) as? Bool ?? true
+        autoSendApps = defaults.dictionary(forKey: Keys.autoSendApps) as? [String: String] ?? [:]
+        hasCompletedOnboarding = defaults.object(forKey: Keys.hasCompletedOnboarding) as? Bool ?? false
+        meetingsKeepAudio = defaults.object(forKey: Keys.meetingsKeepAudio) as? Bool ?? false
+        // Nothing stored means nobody has been asked, so the models decide — and nothing
+        // is written here: `didSet` does not fire from `init`, and the stored key is
+        // reserved for a person's own answer.
+        let diarizeChoice = defaults.object(forKey: Keys.meetingsDiarize) as? Bool
+        meetingsDiarizeChoice = diarizeChoice
+        meetingsDiarize = diarizeChoice ?? {
+            Self.nativeNotesAvailabilityProbe?()
+            return MeetingDiarizer.isDownloaded
+        }()
+        meetingsDiarizeOfferDismissed = defaults.object(forKey: Keys.meetingsDiarizeOfferDismissed)
+            as? Bool ?? false
+        meetingsFinalPass = defaults.object(forKey: Keys.meetingsFinalPass) as? Bool ?? true
+        // `as? NSNumber` rather than `as? Bool`: a key that somehow holds NSNull is a value
+        // that is neither answer, and it must read back as "never touched" (automatic).
+        meetingLiveUnderstanding = (defaults.object(
+            forKey: Keys.meetingLiveUnderstanding
+        ) as? NSNumber)?.boolValue
+        meetingsDeleteAudioAfterNotes = defaults.object(forKey: Keys.meetingsDeleteAudioAfterNotes)
+            as? Bool ?? false
+        notesAutoGenerate = defaults.object(forKey: Keys.notesAutoGenerate) as? Bool ?? true
+        notesRelatedContext = defaults.object(forKey: Keys.notesRelatedContext) as? Bool ?? true
+        agentModelProvider = LLMProviderID(
+            rawValue: defaults.string(forKey: Keys.agentModelProvider) ?? ""
+        ) ?? .appLLM
+        openRouterNotesModelID = defaults.string(forKey: Keys.openRouterNotesModelID) ?? ""
+        openRouterAgentModelID = defaults.string(forKey: Keys.openRouterAgentModelID) ?? ""
+        openRouterNotesContextTokens = defaults.integer(forKey: Keys.openRouterNotesContextTokens)
+        openRouterAgentContextTokens = defaults.integer(forKey: Keys.openRouterAgentContextTokens)
+        openRouterModelReasons = defaults.dictionary(forKey: Keys.openRouterModelReasons)
+            as? [String: Bool] ?? [:]
+        meetingsAutoRecord = defaults.object(forKey: Keys.meetingsAutoRecord) as? Bool ?? true
+        // Clamped on read as well as on write: a hand-edited or corrupted default of 0 or
+        // 4000 would either arm at the start time or arm every meeting of the week.
+        let leadMinutes = defaults.object(forKey: Keys.meetingLeadMinutes) as? Int ?? 1
+        meetingLeadMinutes = min(max(leadMinutes, Self.leadMinutesRange.lowerBound), Self.leadMinutesRange.upperBound)
+        meetingAutoRecordOverrides = defaults.dictionary(forKey: Keys.meetingAutoRecordOverrides)
+            as? [String: Bool] ?? [:]
+        callDetectionEnabled = defaults.object(forKey: Keys.callDetectionEnabled) as? Bool ?? true
+        callDetectionAutoRecord = defaults.object(forKey: Keys.callDetectionAutoRecord) as? Bool ?? false
+        callAppAnswers = defaults.dictionary(forKey: Keys.callAppAnswers) as? [String: String] ?? [:]
+        callAppsSeen = defaults.dictionary(forKey: Keys.callAppsSeen) as? [String: String] ?? [:]
+        calendarEventKitEnabled = defaults.object(forKey: Keys.calendarEventKitEnabled) as? Bool ?? true
+        calendarGoogleEnabled = defaults.object(forKey: Keys.calendarGoogleEnabled) as? Bool ?? false
+        googleClientID = defaults.string(forKey: Keys.googleClientID) ?? ""
+        googleClientSecret = defaults.string(forKey: Keys.googleClientSecret) ?? ""
+        googleCalendarIDs = defaults.stringArray(forKey: Keys.googleCalendarIDs) ?? []
+        agentEnabled = Self.initialModuleEnabled(.assistant, from: defaults)
+        imessageEnabled = defaults.object(forKey: Keys.imessageEnabled) as? Bool ?? false
+        agentAutoRunReadTools = defaults.object(forKey: Keys.agentAutoRunReadTools) as? Bool ?? true
+        agentLiveDuringMeeting = defaults.object(forKey: Keys.agentLiveDuringMeeting) as? Bool ?? false
+        voiceWakeEnabled = defaults.object(forKey: Keys.voiceWakeEnabled) as? Bool ?? false
+        agentVoiceIdentifier = defaults.string(forKey: Keys.agentVoiceIdentifier) ?? ""
+        agentVoiceEngine = defaults.string(forKey: Keys.agentVoiceEngine) ?? "apple"
+        agentPocketVoice = defaults.string(forKey: Keys.agentPocketVoice) ?? "alba"
+        agentPersonaEnabled = defaults.object(forKey: Keys.agentPersonaEnabled) as? Bool ?? true
+        agentMemoryEnabled = defaults.object(forKey: Keys.agentMemoryEnabled) as? Bool ?? true
+        agentMemoryReviewModel = defaults.string(forKey: Keys.agentMemoryReviewModel)
+            ?? MemoryReviewModelChoice.auto.rawValue
+        agentSessionIdleMinutes = defaults.object(forKey: Keys.agentSessionIdleMinutes) as? Int
+            ?? AgentSessionBoundary.defaultIdleMinutes
+        agentSchedulesEnabled = defaults.object(forKey: Keys.agentSchedulesEnabled) as? Bool ?? true
+        agentQuietHoursStart = defaults.string(forKey: Keys.agentQuietHoursStart) ?? "21:00"
+        agentQuietHoursEnd = defaults.string(forKey: Keys.agentQuietHoursEnd) ?? "08:00"
+        agentRoutineSpeech = defaults.string(forKey: Keys.agentRoutineSpeech) ?? "whenPresent"
+        agentLaunchAtLogin = defaults.object(forKey: Keys.agentLaunchAtLogin) as? Bool ?? false
+        knowledgeIndexEnabled = Self.initialKnowledgeIndexEnabled(from: defaults)
+        knowledgeIncludeConversations = defaults.object(forKey: Keys.knowledgeIncludeConversations) as? Bool ?? true
+        knowledgeIncludeDictation = defaults.object(forKey: Keys.knowledgeIncludeDictation) as? Bool ?? false
+        knowledgeIncludeRoutines = defaults.object(forKey: Keys.knowledgeIncludeRoutines) as? Bool ?? false
+        knowledgeEmbedder = defaults.string(forKey: Keys.knowledgeEmbedder) ?? KnowledgeEmbedderChoice.none.rawValue
+        knowledgeAgentToolsEnabled = Self.initialKnowledgeAgentToolsEnabled(from: defaults)
+        knowledgeGraphEnabled = defaults.object(forKey: Keys.knowledgeGraphEnabled) as? Bool ?? false
+        knowledgeGraphCloudConsent = defaults.object(forKey: Keys.knowledgeGraphCloudConsent) as? Bool ?? false
+        visionCloudConsent = defaults.object(forKey: Keys.visionCloudConsent) as? Bool ?? false
+        wakePhrase = defaults.string(forKey: Keys.wakePhrase) ?? WakeWordConfiguration.defaultPhrase
+        wakeSensitivity = defaults.object(forKey: Keys.wakeSensitivity) as? Double ?? 0.5
+        listenWhileSleeping = defaults.object(forKey: Keys.listenWhileSleeping) as? Bool ?? true
+        agentShortcutEnabled = defaults.object(forKey: Keys.agentShortcutEnabled) as? Bool ?? true
+        agentShortcut = AgentShortcut(rawValue: defaults.string(forKey: Keys.agentShortcut) ?? "") ?? .shiftCommandSpace
+        agentBackend = AgentBackendKind(rawValue: defaults.string(forKey: Keys.agentBackend) ?? "") ?? .local
+        agentResponsiveness = AgentResponsiveness(
+            rawValue: defaults.string(forKey: Keys.agentResponsiveness) ?? ""
+        ) ?? .balanced
+        acpBackendID = defaults.string(forKey: Keys.acpBackendID) ?? ""
+        agentAutoSearchFiles = defaults.object(forKey: Keys.agentAutoSearchFiles) as? Bool ?? false
+        agentAllowComputerControl = defaults.object(forKey: Keys.agentAllowComputerControl) as? Bool ?? false
+        composioEnabled = defaults.object(forKey: Keys.composioEnabled) as? Bool ?? false
+        composioAPIKey = defaults.string(forKey: Keys.composioAPIKey) ?? ""
+        composioURL = defaults.string(forKey: Keys.composioURL) ?? ComposioProvider.defaultURL
+        composioAllowlist = defaults.stringArray(forKey: Keys.composioAllowlist) ?? []
+        mcpServersJSON = defaults.string(forKey: Keys.mcpServersJSON) ?? ""
+
+        // Old/default values can be loaded without invoking property observers.
+        if commandModeEnabled, commandModeKey == pushToTalkKey {
+            commandModeEnabled = false
+        }
+        migrateCallAnswersToOwnersIfNeeded()
+    }
+
+    /// What the lead-time stepper offers, and what a stored value is clamped to.
+    static let leadMinutesRange = 0...15
+
+    var cleanupPreferences: CleanupPreferences {
+        CleanupPreferences(
+            tone: cleanupTone,
+            formatsLists: cleanupFormatsLists,
+            context: cleanupContext
+        )
+    }
+}

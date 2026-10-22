@@ -1,0 +1,15 @@
+--- a/Sources/NextNotes/Transcription/DictationSegmenter.swift
++++ b/Sources/NextNotes/Transcription/DictationSegmenter.swift
+@@ -126,7 +126,11 @@
+             }
+ 
+             let needed = length >= longSegment ? longPause : pause
+-            if length >= minSegment, silenceRun >= needed {
++            // An all-quiet open segment has no observed speech/pause boundary.
++            // Cutting it every three seconds splits whispered words as if they
++            // were digital silence; keep its context until the unchanged hard cap.
++            if length >= minSegment, silenceRun >= needed,
++               lastSpeechEnd > segmentStart {
+                 let cut = scanned - silenceRun / 2
+                 scan.cuts.append(cut)
+                 startSegment(at: cut, rewind: false)

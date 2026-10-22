@@ -1,0 +1,34 @@
+--- a/Sources/NextNotes/Activation/AgentCaptureController.swift
++++ b/Sources/NextNotes/Activation/AgentCaptureController.swift
+@@ -90,7 +90,30 @@
+ @MainActor
+ @Observable
+ final class AgentCaptureController {
+-    static let shared = AgentCaptureController()
++    private static weak var loadedShared: AgentCaptureController?
++    static let shared: AgentCaptureController = {
++        let controller = AgentCaptureController()
++        loadedShared = controller
++        return controller
++    }()
++    /// Process quit may inspect the existing owner without creating capture resources.
++    static var sharedIfLoaded: AgentCaptureController? { loadedShared }
++
++    /// Registered handles only. This supplies no complete native-shutdown verdict.
++    struct ProcessTerminationOwnership {
++        fileprivate let engine: (any TranscriptionEngine)?
++        fileprivate let fileFeed: Task<Void, Never>?
++        fileprivate let feed: Task<Void, Never>?
++        fileprivate let consume: Task<Void, Never>?
++        fileprivate let decoder: Task<Void, Never>?
++        fileprivate let vad: Task<Void, Never>?
++        fileprivate let activeTurn: Task<Void, Never>?
++    }
++    private var processTerminationRequested = false
++
++    /// COMMON preserves existing input and task ownership for original qualification.
++    func beginProcessTermination() -> ProcessTerminationOwnership? { nil }
++    func finishProcessTermination(_ owned: ProcessTerminationOwnership?) async {}
+ 
+     enum Limits {
+         static let speechLevel: Float = 0.06

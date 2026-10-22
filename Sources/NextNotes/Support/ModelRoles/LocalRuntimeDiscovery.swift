@@ -100,6 +100,7 @@ enum LocalRuntimeDiscovery {
     /// Used only to word the UI: "Ollama is installed but not running" is a useful thing
     /// to say, and "Ollama isn't installed" should not be said to someone who has it.
     static func isInstalled(_ kind: LocalRuntimeKind) -> Bool {
+        guard SelfTest.requested != "--selftest-settings-sheet" else { return false }
         let manager = FileManager.default
         let home = manager.homeDirectoryForCurrentUser.path
         switch kind {
@@ -162,6 +163,8 @@ enum LocalRuntimeDiscovery {
 
     /// Asks one server what it can run. Never throws: an absent server is a normal answer.
     static func probe(_ endpoint: LocalRuntimeEndpoint) async -> ProbeResult {
+        // Empty visual input, not a measured running/not-running server verdict.
+        guard SelfTest.requested != "--selftest-settings-sheet" else { return ProbeResult(models: [], problem: nil) }
         guard endpoint.isLoopback else {
             return ProbeResult(models: [], problem: .notLoopback)
         }
@@ -265,6 +268,7 @@ final class LocalRuntimeCatalog {
     static let shared = LocalRuntimeCatalog()
 
     private static let customDefaultsKey = "modelRoles.customLocalServers"
+    private let defaults: UserDefaults
 
     private(set) var models: [LocalRuntimeModel] = []
     private(set) var problems: [String: LocalRuntimeProblem] = [:]
@@ -275,8 +279,10 @@ final class LocalRuntimeCatalog {
     private(set) var customAddresses: [String]
 
     init(customAddresses: [String]? = nil) {
+        let defaults = SelfTest.requested == "--selftest-settings-sheet" ? SelfTestHarnessDefaults.suite : UserDefaults.standard
+        self.defaults = defaults
         self.customAddresses = customAddresses
-            ?? UserDefaults.standard.stringArray(forKey: Self.customDefaultsKey)
+            ?? defaults.stringArray(forKey: Self.customDefaultsKey)
             ?? []
     }
 
@@ -335,6 +341,7 @@ final class LocalRuntimeCatalog {
     /// Re-asks every server. Cheap enough to call when the Settings tab opens and when the
     /// user presses "Check again"; it is never on a turn's critical path.
     func refresh() async {
+        guard SelfTest.requested != "--selftest-settings-sheet" else { return }
         guard !isChecking else { return }
         isChecking = true
         defer { isChecking = false }
@@ -350,6 +357,15 @@ final class LocalRuntimeCatalog {
         lastChecked = Date()
     }
 
+    func settingsSheetIsolationFailures() -> [String] {
+        guard SelfTest.requested == "--selftest-settings-sheet" else { return ["Wrong local runtime fixture scope"] }
+        var failures: [String] = []
+        if defaults !== SelfTestHarnessDefaults.suite { failures.append("Local runtime addresses used owner preferences") }
+        if !customAddresses.isEmpty || !models.isEmpty || !problems.isEmpty { failures.append("Local runtime input is not empty") }
+        if isChecking || lastChecked != nil { failures.append("Local runtime probe started") }
+        return failures
+    }
+
     /// Adds an address the user typed. Returns a plain-language problem, or nil on success.
     @discardableResult
     func addCustomAddress(_ text: String) -> String? {
@@ -361,14 +377,14 @@ final class LocalRuntimeCatalog {
             if customAddresses.contains(address) { return nil }
             if LocalRuntimeKind.allCases.contains(where: { $0.defaultBaseURL == url }) { return nil }
             customAddresses.append(address)
-            UserDefaults.standard.set(customAddresses, forKey: Self.customDefaultsKey)
+            defaults.set(customAddresses, forKey: Self.customDefaultsKey)
             return nil
         }
     }
 
     func removeCustomAddress(_ address: String) {
         customAddresses.removeAll { $0 == address }
-        UserDefaults.standard.set(customAddresses, forKey: Self.customDefaultsKey)
+        defaults.set(customAddresses, forKey: Self.customDefaultsKey)
         models.removeAll { $0.endpointID == address }
         problems[address] = nil
     }

@@ -1,0 +1,104 @@
+{
+  "at": "2026-10-07T17:01:44.030948+00:00",
+  "process_footprints_sum_bytes": 25705992032,
+  "grouped_footprints_bytes": {
+    "other": 12788849592,
+    "Chrome": 7370097664,
+    "Next Notes": 1766182488,
+    "Codex": 3780862288
+  },
+  "top": [
+    {
+      "pid": 17128,
+      "footprint": 1766182488,
+      "resident": 156319744,
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-14840/Next Notes.app/Contents/MacOS/NextNotes"
+    },
+    {
+      "pid": 17801,
+      "footprint": 846316840,
+      "resident": 502775808,
+      "path": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swift-frontend"
+    },
+    {
+      "pid": 1871,
+      "footprint": 807619104,
+      "resident": 591773696,
+      "path": "/Applications/ChatGPT.app/Contents/Frameworks/Codex Framework.framework/Versions/154.0.8037.98/Helpers/Codex (Renderer).app/Contents/MacOS/Codex (Renderer)"
+    },
+    {
+      "pid": 11596,
+      "footprint": 675580712,
+      "resident": 79364096,
+      "path": "/Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/154.0.8037.98/Helpers/Google Chrome Helper (Renderer).app/Contents/MacOS/Google Chrome Helper (Renderer)"
+    },
+    {
+      "pid": 12014,
+      "footprint": 543739072,
+      "resident": 44072960,
+      "path": "/Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/154.0.8037.98/Helpers/Google Chrome Helper (Renderer).app/Contents/MacOS/Google Chrome Helper (Renderer)"
+    },
+    {
+      "pid": 1241,
+      "footprint": 523700960,
+      "resident": 111083520,
+      "path": "/Applications/Claude.app/Contents/Frameworks/Claude Helper (Renderer).app/Contents/MacOS/Claude Helper (Renderer)"
+    },
+    {
+      "pid": 11821,
+      "footprint": 512919856,
+      "resident": 116064256,
+      "path": "/Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/154.0.8037.98/Helpers/Google Chrome Helper (Renderer).app/Contents/MacOS/Google Chrome Helper (Renderer)"
+    },
+    {
+      "pid": 1641,
+      "footprint": 497583784,
+      "resident": 50675712,
+      "path": "/Applications/ChatGPT.app/Contents/Frameworks/Codex Framework.framework/Versions/154.0.8037.98/Helpers/Codex (Service).app/Contents/MacOS/Codex (Service)"
+    },
+    {
+      "pid": 10562,
+      "footprint": 490212160,
+      "resident": 210124800,
+      "path": "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+    },
+    {
+      "pid": 17805,
+      "footprint": 460162056,
+      "resident": 442417152,
+      "path": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swift-frontend"
+    },
+    {
+      "pid": 1535,
+      "footprint": 459164888,
+      "resident": 180764672,
+      "path": "/Applications/ChatGPT.app/Contents/MacOS/ChatGPT"
+    },
+    {
+      "pid": 17800,
+      "footprint": 439698416,
+      "resident": 388579328,
+      "path": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swift-frontend"
+    },
+    {
+      "pid": 12438,
+      "footprint": 420219184,
+      "resident": 71974912,
+      "path": "/Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/154.0.8037.98/Helpers/Google Chrome Helper (Renderer).app/Contents/MacOS/Google Chrome Helper (Renderer)"
+    },
+    {
+      "pid": 17625,
+      "footprint": 396445136,
+      "resident": 158072832,
+      "path": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swift-package"
+    },
+    {
+      "pid": 11820,
+      "footprint": 370395272,
+      "resident": 79069184,
+      "path": "/Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/154.0.8037.98/Helpers/Google Chrome Helper (Renderer).app/Contents/MacOS/Google Chrome Helper (Renderer)"
+    }
+  ],
+  "swap": "vm.swapusage: total = 8192.00M  used = 6961.12M  free = 1230.88M  (encrypted)",
+  "vm_stat": "Mach Virtual Memory Statistics: (page size of 16384 bytes)\nPages free:                                    14901.\nPages active:                                 272929.\nPages inactive:                               268806.\nPages speculative:                              3001.\nPages throttled:                                   0.\nPages wired down:                             194247.\nPages purgeable:                                 438.\n\"Translation faults\":                      144942853.\nPages copy-on-write:                         1779157.\nPages zero filled:                         208331617.\nPages reactivated:                          57579048.\nPages purged:                                5434727.\nFile-backed pages:                            207270.\nAnonymous pages:                              337466.\nPages stored in compressor:                   586870.\nPages occupied by compressor:                 258128.\nDecompressions:                             55361281.\nCompressions:                               63892612.\nPageins:                                    22079812.\nPageouts:                                     271724.\nSwapins:                                     1233620.\nSwapouts:                                    1926250.\n"
+}

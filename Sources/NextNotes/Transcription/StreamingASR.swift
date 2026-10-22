@@ -4,20 +4,15 @@ import Foundation
 /// meeting provisional windows). Kept as plain numbers so a self-test can
 /// assert the API exists without loading a model.
 enum StreamingASR {
-    /// How often Parakeet re-transcribes the held buffer while the key is down.
-    /// Short enough for HUD live text; long enough that CoreML is not thrashed.
-    /// First partials should appear after roughly one second of speech. The engine still
-    /// requires a small minimum audio span, but two seconds made the HUD feel batch based.
+    /// Start the live display before the ordinary one-second refresh cadence. Subsequent
+    /// passes retain that cadence so a long hold doesn't double its model workload.
+    static let dictationFirstPartialSeconds: TimeInterval = 0.4
+    /// How often Parakeet re-transcribes the **open tail** (the audio after the last
+    /// pause-committed segment) while the key is down, when there was speech since the last
+    /// pass. End of speech also starts a tail pass at once (`DictationSegmenter`). The tail
+    /// is at most one 14.5 s segment, so this cadence costs the same at minute two as at
+    /// second two; it used to re-transcribe the whole buffer, which was O(n²).
     static let dictationPartialIntervalSeconds: TimeInterval = 1.0
-
-    /// At most one partial can wait behind the current CoreML pass. A newer snapshot replaces
-    /// the older one because it already contains all of its audio; retaining every cadence
-    /// point creates a stale, unbounded tail when inference falls behind.
-    static let maxQueuedPartials = 1
-
-    /// Leftover audio after the last partial below which `finish()` reuses that
-    /// partial instead of a full cold pass.
-    static let dictationReusePartialBelowSeconds: TimeInterval = 0.5
 
     /// Meeting compute windows (roadmap §11): provisional ASR every 2–5 s.
     /// Finals still split on sentence punctuation + 600 ms pause for diarization.
@@ -82,8 +77,17 @@ enum StreamingASR {
                 "dictation partial interval \(dictationPartialIntervalSeconds)s is not a near-stream cadence"
             )
         }
-        if maxQueuedPartials != 1 {
-            failures.append("partial backlog is not bounded to one latest snapshot")
+        // Every dictation model pass must fit one native 15 s encoder window, and a
+        // segment must be long enough to punctuate (8 s floors forced mid-word cuts).
+        let dictation = DictationSegmenter.Rule.dictation
+        if dictation.maxSegmentSeconds > 15 || dictation.maxSegmentSeconds <= dictation.minSegmentSeconds {
+            failures.append("dictation segment cap \(dictation.maxSegmentSeconds)s is not one encoder window")
+        }
+        if dictation.minSegmentSeconds < 2 || dictation.minSegmentSeconds > 5 {
+            failures.append("dictation segment floor \(dictation.minSegmentSeconds)s is outside 2–5 s")
+        }
+        if dictation.endOfSpeechSeconds > dictation.longPauseSeconds {
+            failures.append("end of speech is detected later than a segment commits")
         }
         // M-07: the live backlog is bounded by audio seconds and merged by the drain
         // task, not by a window count — the old 8-window cap read as 16–40 s at the

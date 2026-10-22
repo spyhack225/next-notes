@@ -1,0 +1,11 @@
+# Independent final UI delivery-package review
+
+CONDITIONAL SOURCE-ONLY ACCEPTANCE of assembly manifest `1968bb47d4a8c773bd1fb6711701f2802224903b4b1f42274b60b3fa3124e3c5`. Report/hunk text integrity and ownership mapping only; no Source reads/rechecks, compiler, index, native, model/default or asset action.
+
+Eight component manifests and all108 component artifact pins match. Five aggregate artifact pins also match. Aggregate selections reproduce the frozen45 theme and42 Settings fragments exactly by source, relative header and hunk identity; two font packaging fragments give89 unique fragments total. Acceptance remains87 conditional source fragments and TWO HELD AgentView fragments (empty prompt AgentView-08 and composer edge AgentView-26), honoring consumer-boundaries2952's root-owner override. Neither fragment is released by the broader foundation candidate classification.
+
+Five new pure-theme units match foundation's pinned declarations, with no whole-file staging grant. The same DSformat140 dependency appears exactly once, from Settings; all other theme DS hunks remain foundation selections. The excluded Computer fixture guard/runtime/permission/meeting work, onboarding illustrations/practice receipts and other foreign changes remain prerequisites with separate owners, not extra accepted hunks. ModelsSettingsTab1787 is excluded and its corrected Settings-only scope is explicit; SettingsSheet/AgentSettingsTab are not token-owned by that packet.
+
+The packaging fragments add only ThemeFonts copy and Mac font notice, excluding OpenPeeps/siteMIT. Font hashes are historical and source/provenance/package revalidation is required. Missing historical six-caller/tmp patch provenance is explicitly recorded; no historical replay is invented. Historical shared-working-tree app13/app19/app36/app41 acceptance is bounded, not current clean-checkout proof.
+
+No material assembly/classification blocker was found. Root must still select and reconcile its base/index/foreign owners, separately qualify AgentView predicates/callers, reconstruct/compile/package the coherent set and exercise prescribed functional/privacy/permission/latency/native/physical gates. Source-only acceptance releases no Source/staging/build/native/install/owner-quit slot and closes no roadmap/phase/model gate. All prior packet and report bytes remain unchanged.

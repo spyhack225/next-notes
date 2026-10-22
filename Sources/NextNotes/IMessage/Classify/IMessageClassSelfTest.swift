@@ -7,7 +7,7 @@ import Foundation
 /// store, no clock and no ledger** — every case is a value in and a value out, which is the same
 /// claim the file under test makes, asserted by the fact that this test can exist at all.
 ///
-/// ## The fourteen cases, and what each one is for
+/// ## The seventeen cases, and what each one is for
 ///
 /// | # | case | the measurement or rule it pins |
 /// |---|---|---|
@@ -25,6 +25,9 @@ import Foundation
 /// | 12 | `no_sentence_names_a_database_a_grant_or_an_app` | the eleven words `--selftest-ui-strings` cannot catch here |
 /// | 13 | `the_two_copies_of_one_command_classify_identically` | **IM-01's two-row measurement, as an assertion** |
 /// | 14 | `no_class_is_reachable_by_a_row_level_from_me_test` | the negative: the column decides a direction and nothing else |
+/// | 15 | `a_reaction_text_balloon_with_a_target_is_not_a_command` | **IM-01's 214-byte reaction, as an assertion**: `Liked "…"` + `associated_message_guid` is `.fromSomebodyElse` — no turn, no memory, no reply |
+/// | 16 | `a_genuine_sentence_without_a_target_is_still_a_command` | the two gates' negatives: prose without a guid, and a guid without reaction prose, both stay commands |
+/// | 17 | `a_matched_echo_wins_before_the_reaction_check` | the ledger first: a matched reaction row is still an echo, and the ambiguity tiebreak never resurrects system prose |
 ///
 /// ## Why the fixtures are fixtures
 ///
@@ -110,6 +113,29 @@ enum MessagesClassSelfTest {
     /// A turn whose words carry a link, and the same turn without one.
     static let linkTurn = "look at https://example.com/pricing for me"
     static let plainTurn = "look at the pricing sheet for me"
+
+    /// A reaction's target, in the shape the fixture corpus names it: the
+    /// `associated_message_guid` a tapback row carries at the row it answers
+    /// (`Tests/Fixtures/chatdb/cases.sh`, the `reaction` case). Any non-empty
+    /// string exercises the gate; this one names the measurement.
+    static let reactionTargetGUID = "FIXTURE-REACTEE-0001"
+
+    /// The quoted original inside a reaction balloon. Synthetic placeholder prose —
+    /// never a real conversation — in the shape IM-01 measured (`Liked "…"`).
+    static let reactionQuotedOriginal = "the budget numbers are in"
+
+    /// One reaction balloon per verb, as `.text`: this is the route the decoder
+    /// takes for a text-balloon reaction (unlike the `payload_data` tapback, which
+    /// decodes to `.notText`), and the route the old table misclassified.
+    static func reactionBody(verb: String) -> MessageBody {
+        .text("\(verb) \"\(reactionQuotedOriginal)\"", discardedBytes: 0)
+    }
+
+    /// The verbs case 15 holds the producer to. The task's five
+    /// (Liked/Loved/Laughed/Emphasised/Disliked) plus the device's own spellings
+    /// (`Laughed at`, American `Emphasized`) the producer claims.
+    static let reactionVerbsProbed = ["Liked", "Loved", "Disliked", "Laughed at",
+                                      "Emphasized", "Emphasised", "Laughed"]
 
     /// The eleven words this feature must never put in front of a person, which
     /// `--selftest-ui-strings` cannot catch here because it scans `UI/` and reads five call
@@ -716,6 +742,119 @@ enum MessagesClassSelfTest {
                         }
                     }
                 }
+            }
+            return nil
+        }
+
+        // 15 — IM-01's 214-byte reaction, as an assertion. A text balloon carrying
+        // reaction prose AND answering another row is system-composed, not typed, so it
+        // is `.fromSomebodyElse` from either direction: no turn, no memory, no reply.
+        //
+        // RED on the old table, by inspection: `classify` took four inputs and the
+        // `.text` branch mapped every non-empty user-direction string to `.userCommand`
+        // with no associated-message input anywhere, so `Liked "…"` + a target guid
+        // classified `.userCommand` with `remoteSpeaker == .userCommand` — a tapback
+        // texted to yourself opened a turn. The five-argument form below does not
+        // exist there at all, so this case cannot pass without the producer fix.
+        check("a_reaction_text_balloon_with_a_target_is_not_a_command") {
+            let directions: [(String, Bool, ResolvedSender)] = [
+                ("this Mac", true, .thisMac),
+                ("the paired number", false, .localNumber),
+            ]
+            for verb in reactionVerbsProbed {
+                for (name, isFromMe, sender) in directions {
+                    let result = IMessageClassifier.classify(
+                        body: reactionBody(verb: verb), isFromMe: isFromMe, sender: sender,
+                        echo: .notOurEcho, associatedMessageGUID: reactionTargetGUID)
+                    guard result.messageClass == .fromSomebodyElse else {
+                        return "\(verb) from \(name) was \(result.messageClass.rawValue), "
+                            + "not refused — a tapback would execute as a command"
+                    }
+                    guard result.messageClass != .userCommand else {
+                        return "\(verb) from \(name) was a command"
+                    }
+                    guard result.messageClass.remoteSpeaker == nil else {
+                        return "\(verb) from \(name) can open a turn — the memory gate "
+                            + "is reachable from a tapback"
+                    }
+                    guard IMessageClassifier.remoteAnswer(for: result) == .nothing,
+                          result.carriesLink == false else {
+                        return "\(verb) from \(name) produced output or reported a link"
+                    }
+                }
+            }
+            // The quoted original may carry a link; it is quoted, not typed, so it is
+            // still not an instruction and still reports no link.
+            let quotedLink = IMessageClassifier.classify(
+                body: .text("Liked \"see https://example.com/a\"", discardedBytes: 0),
+                isFromMe: false, sender: .localNumber, echo: .notOurEcho,
+                associatedMessageGUID: reactionTargetGUID)
+            guard quotedLink.messageClass == .fromSomebodyElse,
+                  quotedLink.carriesLink == false,
+                  IMessageClassifier.remoteAnswer(for: quotedLink) == .nothing else {
+                return "a reaction quoting a link was \(quotedLink.messageClass.rawValue)/"
+                    + "carriesLink=\(quotedLink.carriesLink)"
+            }
+            return nil
+        }
+
+        // 16 — the two gates' negatives. Reaction prose without a target is somebody's
+        // typing (`Loved "Dune"` with a nil guid stays a command, so the prose alone
+        // never diverts), and a target without reaction prose is an edited sentence
+        // (which carries a guid but is the user's own words, so the guid alone never
+        // diverts either). Both stay `.userCommand` through the five-argument form.
+        check("a_genuine_sentence_without_a_target_is_still_a_command") {
+            let genuine = IMessageClassifier.classify(body: sentenceBody(), isFromMe: false,
+                                                      sender: .localNumber, echo: .notOurEcho,
+                                                      associatedMessageGUID: nil)
+            guard genuine.messageClass == .userCommand,
+                  genuine.messageClass.remoteSpeaker == .userCommand else {
+                return "an ordinary sentence with no target was \(genuine.messageClass.rawValue)"
+            }
+            let typedReaction = IMessageClassifier.classify(
+                body: .text("Loved \"Dune\"", discardedBytes: 0),
+                isFromMe: false, sender: .localNumber, echo: .notOurEcho,
+                associatedMessageGUID: nil)
+            guard typedReaction.messageClass == .userCommand else {
+                return "reaction prose with no target was \(typedReaction.messageClass.rawValue) "
+                    + "— the prose alone must never divert"
+            }
+            let edited = IMessageClassifier.classify(
+                body: .text("the budget numbers are revised", discardedBytes: 0),
+                isFromMe: false, sender: .localNumber, echo: .notOurEcho,
+                associatedMessageGUID: reactionTargetGUID)
+            guard edited.messageClass == .userCommand,
+                  edited.messageClass.remoteSpeaker == .userCommand else {
+                return "an edited sentence with a target was \(edited.messageClass.rawValue) "
+                    + "— the guid alone must never divert"
+            }
+            return nil
+        }
+
+        // 17 — the ledger first. A reaction row the ledger claims is still an echo
+        // from either direction, and the ambiguity tiebreak ("it is a command") never
+        // resurrects system prose: an ambiguous reaction is refused, because the
+        // tiebreak exists to avoid losing a real request, and a reaction is not one.
+        check("a_matched_echo_wins_before_the_reaction_check") {
+            for (name, isFromMe, sender) in [("this Mac", true, ResolvedSender.thisMac),
+                                             ("the paired number", false, ResolvedSender.localNumber)] as [(String, Bool, ResolvedSender)] {
+                let echo = IMessageClassifier.classify(
+                    body: reactionBody(verb: "Liked"), isFromMe: isFromMe, sender: sender,
+                    echo: .ownEcho, associatedMessageGUID: reactionTargetGUID)
+                guard echo.messageClass == .ownEcho,
+                      echo.directionEvidence == .notConsulted,
+                      IMessageClassifier.remoteAnswer(for: echo) == .nothing,
+                      echo.messageClass.remoteSpeaker == nil else {
+                    return "a matched reaction from \(name) was \(echo.messageClass.rawValue)"
+                }
+            }
+            let ambiguous = IMessageClassifier.classify(
+                body: reactionBody(verb: "Liked"), isFromMe: true, sender: .thisMac,
+                echo: .ambiguous, associatedMessageGUID: reactionTargetGUID)
+            guard ambiguous.messageClass == .fromSomebodyElse,
+                  ambiguous.messageClass.remoteSpeaker == nil else {
+                return "an ambiguous reaction was \(ambiguous.messageClass.rawValue) — the "
+                    + "tiebreak must not promote system prose to a command"
             }
             return nil
         }

@@ -16,13 +16,15 @@ import SwiftUI
 struct GlassSurfaceModifier<S: Shape>: ViewModifier {
     let shape: S
     let glass: Glass
-    let material: SwiftUI.Material
 
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
     func body(content: Content) -> some View {
         if reduceTransparency {
-            content.background(material, in: shape)
+            // One renderer owns this rule: the solid theme surface, never a
+            // system material (which would break the fixed look). The old
+            // Material override had no callers and is gone.
+            content.background(DS.Theme.Glass.solidFallback, in: shape)
         } else {
             content.glassEffect(glass, in: shape)
         }
@@ -33,22 +35,19 @@ extension View {
     /// The glass treatment on an arbitrary shape — a capsule, an uneven rectangle, anything.
     func glassSurface(
         in shape: some Shape,
-        glass: Glass = DS.Material.surfaceGlass,
-        fallback: SwiftUI.Material = DS.Material.card
+        glass: Glass = DS.Material.surfaceGlass
     ) -> some View {
-        modifier(GlassSurfaceModifier(shape: shape, glass: glass, material: fallback))
+        modifier(GlassSurfaceModifier(shape: shape, glass: glass))
     }
 
     /// The glass treatment on a rounded rectangle, which is nearly always what is wanted.
     func glassSurface(
         cornerRadius: CGFloat = DS.Radius.glass,
-        glass: Glass = DS.Material.surfaceGlass,
-        fallback: SwiftUI.Material = DS.Material.card
+        glass: Glass = DS.Material.surfaceGlass
     ) -> some View {
         glassSurface(
             in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous),
-            glass: glass,
-            fallback: fallback
+            glass: glass
         )
     }
 }

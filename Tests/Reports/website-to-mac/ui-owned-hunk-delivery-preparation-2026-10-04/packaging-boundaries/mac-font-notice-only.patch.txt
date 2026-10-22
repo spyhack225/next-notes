@@ -1,0 +1,11 @@
+--- a/THIRD-PARTY-NOTICES.md
++++ b/THIRD-PARTY-NOTICES.md
+@@ -86,3 +86,8 @@
+ 
+ OpenRouter, Google Workspace (`gws`), Composio and any MCP server the user configures are
+ optional, opt-in, and reached over the network. They are services, not code in this work.
++
++## Mac app headline fonts
++
++Inter and Instrument Serif (Fontsource packages 5.3.0) are included in the Mac app.
++Local WOFF TrueType outlines were unwrapped into TTF containers without changing glyphs, character maps or PostScript names. The original copyright and SIL Open Font License 1.1 texts are bundled in `Resources/ThemeFonts/`. The provenance manifest records the source and output hashes. These are Latin subsets; the operating system supplies other glyphs. No font is installed into the user’s Fonts directory.

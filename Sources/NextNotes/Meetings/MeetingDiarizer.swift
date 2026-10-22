@@ -183,6 +183,31 @@ actor MeetingDiarizer {
         return result
     }
 
+    /// Same global segmentation/clustering, with range reads instead of a whole PCM array.
+    func speakerRuns(
+        in audioSource: any AudioSampleSource,
+        hint: SpeakerCountHint? = nil,
+        merged: Bool = true,
+        progress: (@Sendable (Double) -> Void)? = nil
+    ) async throws -> [SpeakerRun] {
+        guard AudioConversion.usesBoundedMeetingAudioExperiment else { throw CocoaError(.fileReadNoPermission) }
+        guard Double(audioSource.sampleCount) / ChunkedTranscriber.sampleRate >= Self.minimumAudioSeconds else {
+            return []
+        }
+        try await prepare()
+        try checkTerminationAdmission()
+        guard let models else { throw DiarizationError.notPrepared }
+        terminationFixtureTrace?.nativeEntered()
+        var succeeded = false
+        defer { terminationFixtureTrace?.nativeReturned(succeeded: succeeded) }
+        let result = try await Self.speakerRuns(
+            from: models, in: audioSource, hint: hint, merged: merged, progress: progress
+        )
+        succeeded = true
+        try checkTerminationAdmission()
+        return result
+    }
+
     /// Frees the models. Called when nothing is going to be diarized for a while.
     func unload() {
         models = nil
@@ -253,6 +278,44 @@ actor MeetingDiarizer {
             manager = models.defaultManager
         }
         let result = try await manager.process(audio: samples) { done, total in
+            guard total > 0 else { return }
+            progress?(Double(done) / Double(total))
+        }
+        var runs = result.segments.map {
+            SpeakerRun(
+                speakerID: $0.speakerId,
+                start: TimeInterval($0.startTimeSeconds),
+                end: TimeInterval($0.endTimeSeconds),
+                embedding: $0.embedding
+            )
+        }
+        guard merged else { return runs }
+        // The person's exact count is not something the merge may second-guess: they
+        // counted the voices they heard, and `numSpeakers` is that answer, not a bound
+        // to squeeze under.
+        runs = mergeClusters(
+            runs,
+            maxSpeakers: hint?.maxSpeakers,
+            threshold: hint?.numSpeakers == nil ? Self.mergeThreshold : nil
+        )
+        return runs
+    }
+
+    private nonisolated static func speakerRuns(
+        from models: Models,
+        in audioSource: any AudioSampleSource,
+        hint: SpeakerCountHint?,
+        merged: Bool,
+        progress: (@Sendable (Double) -> Void)?
+    ) async throws -> [SpeakerRun] {
+        let manager: OfflineDiarizerManager
+        if let hint, let config = Self.config(for: hint) {
+            manager = OfflineDiarizerManager(config: config)
+            manager.initialize(models: models.prepared)
+        } else {
+            manager = models.defaultManager
+        }
+        let result = try await manager.process(audioSource: audioSource, audioLoadingSeconds: 0) { done, total in
             guard total > 0 else { return }
             progress?(Double(done) / Double(total))
         }

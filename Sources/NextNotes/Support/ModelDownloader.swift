@@ -45,34 +45,40 @@ enum ModelDownloader {
     /// `progress` is called on an arbitrary thread with a 0…1 fraction.
     static func download(
         _ spec: ModelSpec,
+        directory: URL = ModelSpec.directory,
+        reserveBytes: Int64 = ModelDownloader.minimumFreeBytesAfterDownload,
         progress: @escaping @Sendable (Double) -> Void = { _ in }
     ) async throws {
-        if spec.isDownloaded {
+        let destination = directory.appendingPathComponent(spec.fileName)
+        let existingSize = (try? destination.resourceValues(forKeys: [.fileSizeKey]))?.fileSize
+        if existingSize.map(Int64.init) == spec.expectedBytes {
             // A matching length is presence, not identity. Verification stays in this
             // explicit download/adoption path, never in a user's model turn.
             _ = try VerifiedModelArtifact.verify(
-                spec.fileURL, bytes: spec.expectedBytes, expectedSHA256: spec.expectedSHA256)
+                destination, bytes: spec.expectedBytes, expectedSHA256: spec.expectedSHA256)
             return
         }
 
-        let free = availableDiskBytes()
-        if free - spec.expectedBytes < minimumFreeBytesAfterDownload {
+        let free = availableDiskBytes(at: directory)
+        if free - spec.expectedBytes < reserveBytes {
             throw ModelDownloadError.insufficientDisk(free: free, needed: spec.expectedBytes)
         }
 
-        let delegate = ProgressDelegate(expectedBytes: spec.expectedBytes, progress: progress)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let delegate = ProgressDelegate(expectedBytes: spec.expectedBytes, stashDirectory: directory, progress: progress)
         let (temporaryURL, response) = try await URLSession.shared.download(
             from: spec.url,
             delegate: delegate
         )
-        guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
-            throw ModelDownloadError.downloadFailed(spec.displayName)
-        }
-
         // The delegate stashes the file in case URLSession removes the original once
         // `didFinishDownloadingTo` returns; prefer whichever still exists.
         let source = delegate.stashedURL.flatMap { FileManager.default.fileExists(atPath: $0.path) ? $0 : nil }
             ?? temporaryURL
+        defer { try? FileManager.default.removeItem(at: source) }
+
+        guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+            throw ModelDownloadError.downloadFailed(spec.displayName)
+        }
 
         let size = try source.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0
         guard Int64(size) == spec.expectedBytes else {
@@ -88,16 +94,16 @@ enum ModelDownloader {
             Log.app.notice("\(spec.fileName, privacy: .public) has no pinned hash; computed sha256 \(hash, privacy: .public)")
         }
 
-        try FileManager.default.createDirectory(at: ModelSpec.directory, withIntermediateDirectories: true)
-        if FileManager.default.fileExists(atPath: spec.fileURL.path) {
-            try FileManager.default.removeItem(at: spec.fileURL)
+        try FileManager.default.createDirectory(at: destination.deletingLastPathComponent(), withIntermediateDirectories: true)
+        if FileManager.default.fileExists(atPath: destination.path) {
+            try FileManager.default.removeItem(at: destination)
         }
-        try FileManager.default.moveItem(at: source, to: spec.fileURL)
+        try FileManager.default.moveItem(at: source, to: destination)
         progress(1)
     }
 
-    static func availableDiskBytes() -> Int64 {
-        let values = try? ModelSpec.directory.deletingLastPathComponent()
+    static func availableDiskBytes(at directory: URL = ModelSpec.directory) -> Int64 {
+        let values = try? directory.deletingLastPathComponent()
             .resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey])
         return values?.volumeAvailableCapacityForImportantUsage ?? .max
     }
@@ -107,10 +113,17 @@ enum ModelDownloader {
         let handle = try FileHandle(forReadingFrom: url)
         defer { try? handle.close() }
         var hash = SHA256()
-        while let data = try handle.read(upToCount: 4 * 1_024 * 1_024), !data.isEmpty {
+        // FileHandle's Foundation read may autorelease its backing NSData. Drain
+        // each chunk here so verification retains a chunk, not the whole model,
+        // even when the caller's autorelease pool spans the complete hash pass.
+        while try autoreleasepool(invoking: {
+            guard let data = try handle.read(upToCount: 4 * 1_024 * 1_024), !data.isEmpty else {
+                return false
+            }
             try Task.checkCancellation()
             hash.update(data: data)
-        }
+            return true
+        }) {}
         try Task.checkCancellation()
         return hash.finalize().map { String(format: "%02x", $0) }.joined()
     }
@@ -118,6 +131,7 @@ enum ModelDownloader {
     /// Reports byte progress and preserves the finished file.
     private final class ProgressDelegate: NSObject, URLSessionDownloadDelegate, @unchecked Sendable {
         private let expectedBytes: Int64
+        private let stashDirectory: URL
         private let progress: @Sendable (Double) -> Void
         private let lock = NSLock()
         private var _stashedURL: URL?
@@ -128,8 +142,9 @@ enum ModelDownloader {
             return _stashedURL
         }
 
-        init(expectedBytes: Int64, progress: @escaping @Sendable (Double) -> Void) {
+        init(expectedBytes: Int64, stashDirectory: URL, progress: @escaping @Sendable (Double) -> Void) {
             self.expectedBytes = expectedBytes
+            self.stashDirectory = stashDirectory
             self.progress = progress
         }
 
@@ -149,7 +164,7 @@ enum ModelDownloader {
             downloadTask: URLSessionDownloadTask,
             didFinishDownloadingTo location: URL
         ) {
-            let stash = FileManager.default.temporaryDirectory
+            let stash = stashDirectory
                 .appendingPathComponent("nextnotes-model-\(UUID().uuidString)")
             if (try? FileManager.default.moveItem(at: location, to: stash)) != nil {
                 lock.lock()

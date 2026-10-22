@@ -1,0 +1,37 @@
+{
+  "status": "SOURCE_ONLY_PATCH_REPLAY_UNCOMPILED_UNRUN",
+  "checks": [
+    {
+      "stage": "directCommon",
+      "patch": "direct33-common-current.patch.txt",
+      "checkExit": 0,
+      "applyExit": 0,
+      "exactPostimages": true,
+      "paths": 5
+    },
+    {
+      "stage": "directFixed",
+      "patch": "direct33-fixed-current.patch.txt",
+      "checkExit": 0,
+      "applyExit": 0,
+      "exactPostimages": true,
+      "paths": 5
+    },
+    {
+      "stage": "lateCommon",
+      "patch": "late-input-common-after-direct33-fixed.patch.txt",
+      "checkExit": 0,
+      "applyExit": 0,
+      "exactPostimages": true,
+      "paths": 6
+    },
+    {
+      "stage": "lateFixed",
+      "patch": "late-input-fixed-after-common.patch.txt",
+      "checkExit": 0,
+      "applyExit": 0,
+      "exactPostimages": true,
+      "paths": 6
+    }
+  ]
+}

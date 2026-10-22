@@ -154,6 +154,11 @@ enum MeetingIntegritySelfTest {
         let start = Date(timeIntervalSince1970: 1_700_000_000)
         let restart = start.addingTimeInterval(3_300)
         do {
+            // Verification must open the survivor, never create an empty replacement.
+            if stage == "verify", !FileManager.default.fileExists(atPath: root.path) {
+                log("MEETING_INTEGRITY_PROCESS_FAILED: surviving fixture directory was missing")
+                return false
+            }
             let store = try MeetingStore.isolated(at: root)
             switch stage {
             case "seed":
@@ -290,6 +295,14 @@ enum MeetingIntegritySelfTest {
         check("notes producer erased capture boundary", meeting.captureBoundary == boundary)
         check("notes producer erased unknown cause", meeting.captureIntegrity?.interruptionReason == .unknown)
         check("notes producer changed keep intent", meeting.audioIsTemporary == nil)
+        if let directory = SelfTest.value(after: "--meeting-reliability-sheet") {
+            check("actual recovered meeting row did not render", MeetingConsolePreview.writeReliabilitySheet(
+                MeetingRow(meeting: meeting), named: "partial-recording-row", to: directory,
+                size: CGSize(width: 720, height: 100)))
+            check("actual recovered meeting detail did not render", MeetingConsolePreview.writeReliabilitySheet(
+                MeetingDetailView(meeting: meeting, store: completed), named: "partial-recording-detail",
+                to: directory, size: CGSize(width: 720, height: 820)))
+        }
         fresh.releaseAudio(for: meeting.id, notesWritten: true, deleteKeptAfterNotes: true)
         check("unknown-choice recovered audio deleted", fresh.audioURL(for: meeting) != nil)
 

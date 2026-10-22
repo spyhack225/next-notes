@@ -1,0 +1,13 @@
+{
+  "status": "HELD_CONFIRMED_SOURCE_ADMISSION_BLOCKER",
+  "artifacts": [
+    {
+      "path": "README.md",
+      "sha256": "80ce0d1830204779166c2b9bf35c40006f0ac11091fc0d4ea4d65c317470505f"
+    },
+    {
+      "path": "source-pins.json",
+      "sha256": "21c9d790342d18917fe31ab0932a57a6267d65fd068a86bed38aed7e4fde4ce8"
+    }
+  ]
+}

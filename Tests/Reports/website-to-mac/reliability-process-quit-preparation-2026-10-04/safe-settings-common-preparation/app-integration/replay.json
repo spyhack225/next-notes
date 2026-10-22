@@ -1,0 +1,15 @@
+{
+  "scope": "exact source text producer replacement/diff generation only; not compiler/runtime verdict",
+  "preimage": "bc01a27f48478a297d07a1d35669c313615cc7c182c0c6d113b4899e792a1b61",
+  "common_postimage": "3183cec11369688b37180b25e4acfc27349c323cf376431d9fe42628191a3963",
+  "patch": "5609f68df42c5609184aba269dca0dff1ac7de047cba456130b8028bace6330c",
+  "exact_replacements": [
+    "exact additive native selector allowlist",
+    "exclusive mode and copied model pairing",
+    "existing notes tuple default nil veto/vote/same cleanup",
+    "exact notes arm failure private route",
+    "same terminationTask one cleanup selector",
+    "real drain and actual vote before existing reply",
+    "consume notes cleanup once in existing task"
+  ]
+}

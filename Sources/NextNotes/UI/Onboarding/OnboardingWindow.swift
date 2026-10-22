@@ -7,6 +7,7 @@ import SwiftUI
 /// a fade implies one window changing its mind about what it is asking, which is what this
 /// is.
 struct OnboardingFlowView: View {
+    @Environment(\.onboardingVisualFixture) private var visualFixture
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let controller: DictationController
     /// Closes the window. Progress is already on disk by then — every transition writes —
@@ -22,18 +23,34 @@ struct OnboardingFlowView: View {
 
     var body: some View {
         ZStack(alignment: .top) {
-            DS.Color.window.ignoresSafeArea()
+            DS.Theme.Palette.background.ignoresSafeArea()
+
+            // This belongs above the substrate: a background modifier behind an
+            // opaque window fill cannot display the site's dotted backdrop.
+            // A still diagram leaves the one live mark to actual grants/practice.
+            OrbBackdrop(
+                size: DS.Theme.Orb.backdropSize,
+                ink: DS.Theme.Palette.orbInk,
+                opacity: DS.Theme.Orb.backdropOpacity,
+                isAnimated: !reduceMotion
+            )
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .clipped()
 
             VStack(spacing: DS.Space.xl) {
-                Spacer(minLength: 0)
+                // The step scrolls; the dots do not. Themed headlines no longer fit
+                // every screen in 600pt, and clipping them is not an option.
+                ScrollView {
+                    step
+                        .id(displayedStep)
+                        .transition(.opacity)
+                }
 
-                step
-                    .id(model.step)
-                    .transition(.opacity)
-
-                OnboardingDots(index: model.flow.index, total: model.flow.total)
-
-                Spacer(minLength: 0)
+                OnboardingDots(
+                    index: visualFixture?.index ?? model.flow.index,
+                    total: OnboardingFlow.order.count,
+                    caption: (visualFixture?.step ?? model.step).phaseName
+                )
             }
             .padding(.horizontal, DS.Space.xl)
             .padding(.vertical, DS.Space.xl)
@@ -42,19 +59,18 @@ struct OnboardingFlowView: View {
             HStack {
                 Spacer()
                 OnboardingChevrons(
-                    canGoBack: model.canGoBack,
-                    canGoForward: model.flow.index < furthest,
+                    canGoBack: visualFixture.map { $0.index > 0 } ?? model.canGoBack,
+                    canGoForward: visualFixture.map { $0.index < OnboardingFlow.order.count - 1 } ?? (model.flow.index < furthest),
                     back: { move { model.back() } },
                     forward: { move { model.advance() } }
                 )
             }
             .padding(DS.Space.l)
         }
-        // The landing page's mark, at watermark strength, behind everything. One slow
-        // breathing ring: the app is present and idle, which is exactly true here.
-        .orbBackdrop(.breathing, opacity: DS.Opacity.orbWatermark)
-        .animation(reduceMotion ? nil : DS.Motion.reveal, value: model.step)
-        .onAppear { furthest = max(furthest, model.flow.index) }
+        .foregroundStyle(DS.Theme.Palette.foreground)
+        .tint(DS.Theme.Palette.primary)
+        .animation(reduceMotion ? nil : DS.Theme.Motion.entrance, value: displayedStep)
+        .onAppear { if visualFixture == nil { furthest = max(furthest, model.flow.index) } }
         // Escape closes the window. It never loses anything, because there is nothing held
         // only in memory to lose.
         .onExitCommand(perform: close)
@@ -64,9 +80,11 @@ struct OnboardingFlowView: View {
         )
     }
 
+    private var displayedStep: OnboardingStep { visualFixture?.step ?? model.step }
+
     @ViewBuilder
     private var step: some View {
-        switch model.step {
+        switch displayedStep {
         case .welcome:
             OnboardingWelcomeStep(onContinue: { move { model.advance() } })
         case .dictation:
@@ -115,6 +133,10 @@ struct OnboardingFlowView: View {
 @MainActor
 final class OnboardingWindowController: NSObject, NSWindowDelegate {
     private var window: NSWindow?
+    /// Dim behind first run so the setup window owns the screen instead of
+    /// floating over a busy desktop. Swallows clicks (it does nothing with
+    /// them) so the Mac behind stays untouched while setup is up.
+    private var scrim: NSPanel?
 
     func show(controller: DictationController) {
         if let window {
@@ -148,16 +170,44 @@ final class OnboardingWindowController: NSObject, NSWindowDelegate {
         window.setContentSize(DS.Onboarding.window)
         self.window = window
 
+        showScrim(on: window.screen)
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
     }
 
+    /// A borderless dim covering the setup window's screen, ordered underneath
+    /// it. Non-activating and shadowless; closed with the window, never leaked.
+    private func showScrim(on screen: NSScreen?) {
+        guard let screen else { return }
+        if scrim == nil {
+            let panel = NSPanel(
+                contentRect: screen.frame,
+                styleMask: [.borderless, .nonactivatingPanel],
+                backing: .buffered,
+                defer: false
+            )
+            panel.backgroundColor = .black.withAlphaComponent(0.35)
+            panel.isOpaque = false
+            panel.hasShadow = false
+            panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+            scrim = panel
+        }
+        scrim?.orderFront(nil)
+    }
+
+    private func dismissScrim() {
+        scrim?.close()
+        scrim = nil
+    }
+
     func close() {
+        dismissScrim()
         window?.close()
         window = nil
     }
 
     func windowWillClose(_ notification: Notification) {
+        dismissScrim()
         window = nil
     }
 }

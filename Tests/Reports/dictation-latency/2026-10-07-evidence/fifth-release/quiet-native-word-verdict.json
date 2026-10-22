@@ -1,0 +1,35 @@
+{
+  "status": "FAILED native fixedwordquality; capturedEnd coverage is insufficient",
+  "publicFixtureOnly": true,
+  "binarySHA256": "7b3c734900a2535e1f22bc6068aeb560b25c23774bcc7780501f8328a49a91d2",
+  "inputSHA256": "409ee48c5033c947f45413d71ca2a162097b9f220995bb8e613579a23b315000",
+  "sampleCount": 52566,
+  "sourceAbsoluteRange": [
+    916800,
+    969366
+  ],
+  "independentReferenceWords": 7,
+  "nativeReferenceWER": 0,
+  "nativeStreamWER": [
+    0.857,
+    0.857
+  ],
+  "nativeStreamWords": [
+    1,
+    2
+  ],
+  "firstPartialMs": [
+    3084,
+    3087
+  ],
+  "ASRFinalMs": [
+    103,
+    79
+  ],
+  "wholePolishTest": false,
+  "rootResourceException": "One-off ASR-only max9GB swap/min6.5GB disk, <=90s/3GBfootprint; ordinary8GB swap refusal retained; no concurrency/default/install claim",
+  "componentCause": "Actual segmenter produces24000sample/1.5s cut inside independently rendered turn despite no above-floor frame. Nativepass returnedGreat; finaltailreturnedempty/Yeah. More exact perpass/native input evidence required before broader attribution.",
+  "fixNativeAcceptance": false,
+  "safeNoiseWorkloadAcceptance": false,
+  "full60sQuietAcceptance": false
+}

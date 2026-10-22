@@ -1,5 +1,7 @@
 # Next Notes
 
+[Benchmark results: models and workflows](Benchmarks/README.md) · [All retained evidence](Benchmarks/EVIDENCE.md)
+
 **Be present. Keep your promises.**
 
 Next Notes is one familiar companion that starts on your Mac. Its macOS app brings
@@ -10,9 +12,38 @@ it can put your spoken words where your cursor is. In a meeting it can capture w
 was said and propose a follow-up. **Home helper, office associate and meeting partner
 are roles for the same Next Notes, not separate assistants.**
 
+**Who it is for.** People who want an assistant that does real work but will not set one
+up: the parent running a household — the school calendar, the budget, the groceries; the
+office manager onboarding a new hire, keeping the team's email and calendar moving, and
+turning a meeting into a summary and a follow-up; the operations manager at a legal
+practice (not the lawyer) keeping case files, deadlines and shared files in order; and the
+filmmaker or editor sorting footage by shoot date, session and drive. It is not built for
+people who enjoy configuring tools. The aim is that nothing on the default path asks for an
+account, an API key, a terminal or a choice of model.
+
+**What the agent is meant to be.** Proactive — it notices what needs doing and prepares it
+before being asked. Listening and answering at the same time, so you can interrupt it
+mid-sentence. There when you call it, from a key, a phrase or a click, with no setup in the
+way. Private, running on this Mac. You never pick or download a model: the app is to
+benchmark a small set of local candidates through its own code paths, use the one that
+performs best as a silent default, and build on it from there. Anything that sends, creates
+or deletes still waits for one approval. These are goals; the next paragraphs say how far
+the app is from them.
+
+**The reference machine is the low-end MacBook Air** — M2 or M3, 16 GB of memory, 256 GB of
+storage. Speed, memory and disk claims are to be made on that machine: at least 20 tokens a
+second from the local model, with 25–30 as the target, while speech recognition and voice
+run alongside; memory use that leaves the Mac usable for other work; and a footprint that
+fits on a 256 GB disk. If it passes there, it is better everywhere else. **This floor has not
+been measured yet.** The plan is
+[`roadmap/in-progress/POSITIONING-AND-LOCAL-MODEL/00-README.md`](roadmap/in-progress/POSITIONING-AND-LOCAL-MODEL/00-README.md),
+in the git-ignored local `roadmap/` folder, so it is not published with the repository.
+
 The Mac app is in daily use; dictation is its most exercised path. The broader agent
 is still being made reliable: continuous history across every moment, dependable
-end-to-end actions and proactive follow-through remain roadmap work. See
+end-to-end actions, proactive follow-through and the low-end performance floor remain
+roadmap work, and local tool use still scores below its own bar (see
+[The agent](#the-agent)). See
 [what exists today](#what-exists-today) and
 [what is not built yet](#not-built-yet).
 
@@ -33,7 +64,7 @@ working. It also records meetings: the
 microphone and the system's own output are captured as two separate tracks and transcribed
 separately, which is where the "You" and "Others" attribution in a meeting transcript comes
 from. A finished recording then walks itself the rest of the way — tell the speakers on the
-system track apart, write Granola-style notes with a chosen local or OpenRouter model, and offer follow-up actions
+system track apart, write structured notes with a chosen local or OpenRouter model, and offer follow-up actions
 in Gmail, Calendar, Drive and Docs that only happen if you approve them. A meeting that was
 interrupted is resumed rather than written off, and a recording kept only for a pipeline
 stage is released 72 hours later rather than immediately. **Meeting panel** (⌘⇧M) opens over
@@ -49,8 +80,11 @@ default. Optional MCP servers and Composio sit behind the same permission broker
 native Workspace tools stay on `gws`. OpenRouter is opt-in: when chosen for Agent or notes,
 the relevant prompts and transcripts are sent to its cloud API and may incur charges.
 A read-only path into your own Messages database is in place behind Full Disk Access, with a
-Settings row that reports what it can actually read; **the iMessage command channel itself is
-not built** — see [Not built yet](#not-built-yet).
+Settings row that reports what it can actually read. The iMessage command channel —
+pairing, classification, sending, remote approval, attachments — is now written (IM-07 to
+IM-15 in the local roadmap; one real send fired on 2026-09-30 per `action-receipts.json`,
+checked 2026-10-04), but durable delivery (IM-16) is blocked, so it is not a finished
+feature — see [Not built yet](#not-built-yet).
 The Windows app is dictation only: it builds and is
 exercised in CI, but has not yet been used for a real microphone/key/injection session on
 Windows hardware.
@@ -108,7 +142,8 @@ evidence; **History** is earlier meetings by the same people or the same subject
 carrying the reason it is there and saying plainly when the switch that answers it is off;
 **Ask** is the same agent, reading the meeting through its own tools. One floating primary
 action and one status row sit over the content. The panel has been built and pinned by
-self-test but **has never been seen by an eye** — see
+self-test; the first live screenshots (2026-09-29) showed layout problems that were then
+reworked, and **the revised layout has not been checked by eye** (as of 2026-10-04) — see
 [Written but never exercised](#written-but-never-exercised-end-to-end).
 
 **The island.** On a MacBook with a notch, the Next Notes status lives in a small card
@@ -198,6 +233,18 @@ file and the agent role resolves exactly as before.
 This direction does not claim the shared-file resolver or module activation gates have shipped.
 The implementation contracts live in the local SHARED-BRAIN and MODULES-ACTIVATION
 roadmaps; the existing runtime's residency limits still apply during migration.
+
+**Local default and hardware floor (owner decision, 2026-10-04; not yet measured).** The
+person using the app should never have to pick or download a model. The local candidates —
+MiniCPM5-2B, a Qwen 4B model, Gemma 4 E4B and a code model — are to be benchmarked through
+the app's real code paths (dictation cleanup, meeting notes, the agent's tool loop) on the
+reference 16 GB / 256 GB M2 or M3 MacBook Air, with speech recognition and voice running at
+the same time. The one that performs best becomes the silent default and is augmented from
+there; the candidates are not all kept resident at once. The gate is at least 20 tokens a
+second of decode (25–30 targeted), memory that leaves the Mac usable, and a download
+footprint that fits a 256 GB disk. Until that benchmark runs, the role choices described in
+this section are what the app does. The plan is
+`roadmap/in-progress/POSITIONING-AND-LOCAL-MODEL/00-README.md` in the local roadmap.
 
 In Settings ▸ Models, enter an OpenRouter API key. It is stored in the macOS Keychain.
 Then choose OpenRouter separately in Settings ▸ Agent and Settings ▸ Meetings. Each model
@@ -554,8 +601,11 @@ Sources/NextNotes/
 │   ├── Skills/                     SKILL.md folders already on this Mac, plus search and
 │   │                               install from skills.sh over plain HTTPS
 │   ├── Duplex/                     Production-worker interleaving, final-effect gate and
-│   │                               pure voice shadow observer; TaskBridge remains upcoming.
-│   ├── Tasks/                      AgentTask + manager; conversation stays free.
+│   │                               VoiceSession + IslandOwnership current-session presentation;
+│   │                               other effect/audio commands stay shadow; bounded OutputScheduler deliveries.
+│   ├── Tasks/                      AgentTask + same-Manager voice worker; conversation stays free.
+│   │                               TaskBridge.swift stateless interface + TaskStatusRenderer.swift;
+│   │                               canonical public steps verified; voice ACP/full state migration open.
 │   │                               AgentArtifactLedger retains one ordered result collection;
 │   │                               verified titles/kinds survive SQL/export into named Open/Copy rows
 │   │   └── Durable/                SQLite authority, event journal, strict migration and held restart tests;
@@ -830,6 +880,7 @@ S="/Applications/Next Notes.app/Contents/MacOS/NextNotes"
 #                                         sheet under the harness
 "$S" --selftest-meeting-tidier          # your own lines tidied, a cut pass says so, no model says so
 "$S" --selftest-audio-retention         # a temporary recording is kept 72 h, with the disk guards
+"$S" --selftest-meeting-retention-choices # eight actual start/toggle/Quit/restart recording choices
 "$S" --selftest-realtime                # question/follow-up routing, tool speech, harness, duplex VAD
 "$S" --selftest-computer                # inspect/click/type on an owned window; stub trees stay empty
 "$S" --selftest-computer-actions        # scroll both ways, double click, wait_for, and what could
@@ -1005,8 +1056,12 @@ rather than the whole window taking whoever held most of it.
 **Notes.** `NotesGenerator` writes markdown under six fixed headings — Summary, Key
 points, Decisions, Action items, Open questions, Related context — in one pass when the
 transcript fits the model's context, and otherwise by mapping chunks to attributed facts and
-reducing them. Two providers are interchangeable and either can be picked per meeting from
-**Regenerate**:
+reducing them. Two local providers are interchangeable and either can be picked per meeting
+from **Regenerate** (Settings ▸ Meetings can also use an opt-in OpenRouter model, described
+above). The built-in row
+runs whatever file the app's runtime has active, not necessarily Gemma: on the owner's Mac
+meeting notes ran on Qwen3-4B-Instruct-2507 (09-29) and MiniCPM5-2B (10-01, 10-02) per
+`usage.jsonl`, checked 2026-10-04.
 
 | Provider | Where it runs | Context | Notes |
 |---|---|---|---|
@@ -1057,9 +1112,9 @@ least as well on both models.
 
 `--selftest-toolloop-live` is the number that says whether any of this worked: 30 canonical
 requests through the real turn, every tool answered by a fixture, no mail read, nothing sent,
-and the run fails if your own conversation, tasks, memory or history changed. **It currently
-scores 5/10 on the 10-case gate.** That is the honest measurement, and the remaining failures
-are named in the local roadmap rather than rounded up.
+and the run fails if your own conversation, tasks, memory or history changed. **Recent runs
+score between 2/10 and 4/10 on the 10-case gate, against a bar of 9/10.** That is the honest
+measurement, and the remaining failures are named in the local roadmap rather than rounded up.
 
 Push-to-talk stays dictation. ⇧⌘ Space (Settings ▸ Agent; configurable) or the wake
 phrase — default “Hey Next”, after the keyword model is downloaded — opens a conversation.
@@ -1094,7 +1149,10 @@ session protocol to a local fixture.
 and cleanup resolve to the model that came with the app (or one you install); driving the Mac
 goes to Codex and writing code to Claude Code, each falling back when that app is not
 installed. The Agent pane names the model that actually answered the last turn, and says so
-plainly when the one you chose cannot run here.
+plainly when the one you chose cannot run here. The direction is for that row to stop being
+a choice anyone has to make: a benchmark on the reference MacBook Air is to pick the local
+default (see [Optional OpenRouter models](#optional-openrouter-models)). Until it runs, the
+roles resolve as described here.
 
 **What has been running is on the record.** Settings ▸ Models ▸ Usage shows the last seven
 days grouped into what you would call things — the assistant, meetings, dictation, other —
@@ -1367,24 +1425,31 @@ release. The disk image is signed but not notarized, so the page gives the first
 
 ## Not built yet
 
-1. **The iMessage command channel.** The read side is done and honest: a read-only
-   `chat.db` reader, a hand-written typedstream decoder, and a WAL watcher that turns a
-   landed row into one ordered envelope — with a Settings row that answers Full Disk Access
-   by making a real read. **Nothing consumes it yet.** Pairing a self-conversation,
-   classifying which side of it you are on, sending a reply through Messages and approving an
-   action from your phone are all designed and none are written, and three spikes that need a
-   human, an iPhone and System Settings have not been run. The measured finding that shapes
-   them: an iMessage you send yourself from your phone lands as **two rows with opposite
-   flags**, so the pairing has to be by chat and never by row.
+1. **A finished iMessage command channel.** The read side is done: a read-only `chat.db`
+   reader, a hand-written typedstream decoder, and a WAL watcher that turns a landed row into
+   one ordered envelope, with a Settings row that answers Full Disk Access by making a real
+   read. Checked 2026-10-04, the old "nothing consumes it; none are written" is no longer
+   true: pairing, classification, sending through Messages, remote approval, attachments and
+   voice notes are written (`Sources/NextNotes/IMessage/Pairing`, `Classify`, `Sending`,
+   `Approval`, `Attachments`; IM-07 to IM-15 marked done in the local roadmap), and one real
+   send fired on 2026-09-30 (`action-receipts.json`). What is missing is durable delivery,
+   sleep/wake backlog and crash safety (IM-16, blocked on durable-task contracts), and the
+   IM-01 spike is only partly answered. The measured finding that shaped the pairing: an
+   iMessage you send yourself from your phone lands as **two rows with opposite flags**, so
+   the pairing has to be by chat and never by row.
 2. **Durable background jobs.** Quit mid-task and the list survives as history; the work does
-   not resume. Heartbeats, retry, crash recovery and a job journal are designed in the local
-   roadmap against the existing task ledger, not built.
-3. **Proactivity.** There are no routines and no agent-initiated turns. The morning digest,
-   the podcast routine and the pre-meeting brief have self-tests over fixtures and injected
-   models, and nothing has ever fired on a schedule against your real data.
-4. **Claude cleanup/command provider.** The formatter and command processor have seams for a
-   server-backed higher-quality tier, but no credential storage, consent UI, or network path
-   is present.
+   not resume. The task ledger is now SQLite (`agent-tasks.sqlite`) with an event journal and
+   per-attempt heartbeat fields (P6 work in `AGENTS.md`, checked 2026-10-04); retry, crash
+   recovery and stale-job detection are still not built.
+3. **Proactivity.** Routines are built (`Sources/NextNotes/Agent/Schedules/`: store,
+   scheduler, runner, digest and podcast templates) but none is scheduled on the owner's Mac
+   — there is no `agent-schedules.json` (checked 2026-10-04) — and nothing has ever fired on
+   a schedule against real data. The digest, podcast and pre-meeting brief are exercised
+   only by self-tests over fixtures and injected models.
+4. **A direct Claude (Anthropic API) cleanup/command provider.** The formatter and command
+   processor have seams for one, and there is no Anthropic-specific provider (checked
+   2026-10-04). Cloud credentials, consent and a network path do exist, for OpenRouter:
+   its key is in the Keychain and it can serve Agent and meeting-notes passes.
 5. **Windows local cleanup.** S1-mini by Superwhisper is a strong candidate; the integration
    design and constraints are written up in the local (git-ignored) plan folder, so there is
    no link to follow here.
@@ -1398,16 +1463,24 @@ release. The disk image is signed but not notarized, so the page gives the first
    the app places *is* a call by that definition, so it would arm a meeting recorder unless
    the policy is changed in code. One gate in that plan needs a Developer ID and a
    notarized build, which is item 6.
+9. **A measured low-end floor and a benchmark-chosen default model.** No local model has
+   been benchmarked on the reference 16 GB / 256 GB MacBook Air with speech and voice
+   running, so the 20 tokens-a-second floor is a target, not a result, and model choice is
+   still a Settings row rather than a silent default. The plan is in the local roadmap
+   (`roadmap/in-progress/POSITIONING-AND-LOCAL-MODEL/00-README.md`).
 
 ### Written but never exercised end to end
 
 Every one of these compiles, has a self-test where a self-test is possible, and has never
 had the one real thing it needs:
 
-- **The system-audio tap with its grant.** `--selftest-systemaudio` has only ever reported
-  `SYSTEM_AUDIO_SILENT` here, and no recording has yet contained an "Others" track. Every
-  call succeeds without the grant and every sample is zero, which is why the Permissions
-  checklist shows that row as unanswerable rather than guessing.
+- **The system-audio tap's grant, read back.** Every call succeeds without the grant and
+  every sample is zero, which is why the Permissions checklist shows that row as
+  unanswerable rather than guessing. The tap itself has now worked here: checked
+  2026-10-04, 8 of the 10 recorded meetings have transcribed "Others" (`system`-track)
+  segments and three have been diarized, and `AGENTS.md` records a LaunchServices run of
+  `--selftest-systemaudio` with non-zero RMS — so "only ever SILENT" and "no Others track"
+  were false. Whether the grant holds for the current build's signature is not re-verified.
 - **The meeting panel.** The first live screenshots on 2026-09-29 showed a fixed sheet with
   no visible close control, a cramped note field, and an Ask composer that could fall below
   the bottom edge. It is now a movable, resizable window with a close button, a rich
@@ -1420,23 +1493,29 @@ had the one real thing it needs:
   tuning pass took the measured maximum of the trade surface rather than lowering the bar.
   The fixtures are synthetic voices; the missing evidence is real-room recordings, which
   `--wake-mic-record` produces and **has never been run with a live microphone**.
-- **Gemma 4 E4B.** Never downloaded — it needs about 9 GB of free disk, which this machine
-  did not have — so meeting notes fall back to Apple's model and the expected SHA-256 is
-  still unpinned. The agent role is a different, installed model and has been measured
-  answering.
-- **Both real calendars.** EventKit reports *not determined* here; macOS prompts exactly
-  once, so a dismissed prompt is permanent until
-  `tccutil reset Calendar ai.pivotstudio.nextnotes` puts it back to undecided. Google
-  Calendar has never had an account connected, and needs your own Desktop-type OAuth client
-  (id *and* secret — Google's installed-app client type requires the secret at the token
-  endpoint even with PKCE).
+- **Gemma 4 E4B as the notes model.** Downloaded on 2026-09-28 and its SHA-256 is pinned,
+  but meeting notes have not run on it: checked 2026-10-04 in `usage.jsonl`, the three
+  notes passes ran on Qwen3-4B-Instruct-2507 (09-29) and MiniCPM5-2B (10-01, 10-02),
+  because the built-in role runs the runtime's active file — not on Gemma and not on
+  Apple's model. Tool-loop evals have measured Gemma; the agent role is a different model.
+- **EventKit.** It was reported *not determined* here; not re-verified 2026-10-04 (the
+  grant database is not readable from an agent shell). macOS prompts exactly once, so a
+  dismissed prompt is permanent until `tccutil reset Calendar ai.pivotstudio.nextnotes`
+  puts it back to undecided. **Google Calendar is connected** (checked 2026-10-04: a
+  stored token since 2026-09-10 and two meetings armed from Google events); it needs your
+  own Desktop-type OAuth client (id *and* secret — Google's installed-app client type
+  requires the secret at the token endpoint even with PKCE).
 - **Every Workspace write.** `gws` **is** signed in on this machine, with a refresh token
-  and 21 scopes, so the agent's own reads reach the account. No write proposal has ever been
-  approved, so nothing has ever created a Doc, an event or an email; each tool's flags were
-  checked against `gws <service> <helper> --help` rather than against a live call.
-- **The iPhone path.** The Messages read path has been run against a real `chat.db` on a
-  real account. Everything after it — pairing, classification, sending, remote approval —
-  has not been built at all.
+  and 21 scopes (`gws auth status`, 2026-10-04), so the agent's own reads reach the account.
+  No write has ever completed: the one approved write on record, an `append_doc` on
+  2026-09-20, fired and failed (`action-receipts.json`, checked 2026-10-04), so nothing has
+  ever created a Doc, an event or an email. Each tool's flags were checked against
+  `gws <service> <helper> --help` rather than against a successful live call.
+- **The iPhone path, end to end.** The Messages read path has been run against a real
+  `chat.db` on a real account, and pairing, classification, sending and remote approval are
+  now written; one real send fired on 2026-09-30 (checked 2026-10-04). Durable delivery and
+  crash safety (IM-16) are not built, and a full phone-to-approval round trip is not
+  recorded as verified.
 - **Returning the text to the app it came from.** `TextInjector.Origin` and the switch-away
   setting are written and the state machine is covered by `--selftest-dictation`, but that
   harness stubs the insert seam. The activation path — `NSRunningApplication.activate()`, the
@@ -1448,9 +1527,11 @@ had the one real thing it needs:
   reason. `output target: <app>` in the log at key-down is the proof when it runs.
 - **Composio.** Settings ▸ Integrations accepts a key; none has been entered, so the
   gateway has never listed a live tool.
-- **A live coding CLI over ACP.** `--selftest-acp` talks to a local fixture. Claude Code,
-  Codex, Qwen Code or OpenCode still have to be installed by the user before a real
-  hand-off.
+- **A live coding CLI over ACP.** `--selftest-acp` talks to a local fixture. A user still
+  has to install Claude Code, Codex, Qwen Code or OpenCode before a real hand-off. On the
+  owner's Mac, `claude`, `codex` and `opencode` are installed (checked 2026-10-04 with
+  `which`), and the one real ACP session receipt (2026-09-14) ended *could not verify*, so a
+  completed real hand-off is still unrecorded.
 - **The redesigned UI by eye.** Screenshots need Screen Recording and driving the UI needs
   Accessibility; neither can be granted non-interactively. The self-tests prove geometry and
   behaviour, not appearance.
@@ -1508,17 +1589,22 @@ as opposed to the list above of what has not:
   connection, and a typedstream decoder that refuses rather than answering empty — both
   against fixtures generated at run time, so no `.sqlite` is committed
   (`--selftest-imessage-db`, `--selftest-imessage-decode`).
-- `make acceptance TIER=core` on this tree: **15/16**, the one failure the known-red wake word.
+- `make acceptance TIER=core`: **21/22** in the latest full CORE run (2026-10-02 21:51,
+  `~/Library/Caches/NextNotesBuild/acceptance/`, recounted 2026-10-04), the one failure the
+  known-red wake word (17/24 hits, 3/32 false).
 - `cd windows && dotnet test NextNotes.CrossPlatform.slnf`: 63 tests in about half a second,
   and the published single-file executable starting and reporting its own self-test on
   Windows.
 
-**Two claims this file used to make and no longer can.** It previously said Gemma 4 E4B was
-downloaded and running, that Google Calendar was connected through the OAuth loopback flow,
-and that the system-audio tap ran with its grant. **None of those is true of this machine
-any more** — the built-in notes model was never downloaded, Google has never had an account
-connected, and the tap has never held its grant. They are listed above as unproven rather
-than quietly kept, because a "Verified" list that outruns the evidence is worse than no list.
+**Three claims this file once withdrew, re-checked 2026-10-04.** An earlier version said
+Gemma 4 E4B was downloaded and running, that Google Calendar was connected through the OAuth
+loopback flow, and that the system-audio tap ran with its grant; a later version withdrew all
+three. The withdrawal is itself now stale: Gemma 4 E4B is on disk (since 2026-09-28, SHA
+pinned) though meeting notes run on the active installed model instead; Google Calendar
+holds a token (since 2026-09-10) and has armed meetings from Google events; and 8 recorded
+meetings contain real system-track audio. These were checked from files, settings and the
+Keychain item's attributes, not by a fresh run, which is why they sit in the list above
+with what is still unproven rather than in this list.
 
 > `log` is shadowed in this shell — use `/usr/bin/log` explicitly or it returns nothing.
 

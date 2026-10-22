@@ -1,0 +1,2 @@
+2026-10-07 11:51:20.663 NextNotes[7727:61038] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+MEETING_INTEGRITY_OK: 67 checks; recording restart through final pass, notes, done and fresh reader

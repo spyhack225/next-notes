@@ -1,0 +1,12 @@
+--- a/Sources/NextNotes/NextNotesApp.swift
++++ b/Sources/NextNotes/NextNotesApp.swift
+@@ -9676,6 +9676,9 @@
+         // built-in file only on admitted load; this diagnostic injects an empty
+         // private owner for non-embedding modes, avoiding the ORIGINAL eager URL.
+         let s1 = otherLlamaTerminationFixtureForTesting?.s1 ?? S1MiniRuntime.shared
++        // Publish stop before the quit Task can wait behind synchronous S1 decode.
++        // The same actor still frees its native context in finishTermination().
++        s1.beginTermination()
+         let embedding: EmbeddingRuntime
+         if let selected = otherLlamaTerminationFixtureForTesting?.embedding {
+             embedding = selected

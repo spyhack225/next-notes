@@ -1,0 +1,15 @@
+--- a/Sources/NextNotes/UI/Settings/ComputerBrowserReadiness.swift
++++ b/Sources/NextNotes/UI/Settings/ComputerBrowserReadiness.swift
+@@ -260,7 +261,5 @@ private struct ReadinessRow: View {
+-            HStack(spacing: DS.Space.s) {
+-                Text(title)
+-                    .font(DS.Font.headline)
+-                Spacer()
+-                if let busy {
+-                    ThinkingOrb(state: busy, size: DS.Size.orbBadge)
+-                        .accessibilityHidden(true)
++            ViewThatFits(in: .horizontal) {
++                HStack(spacing: DS.Space.s) {
++                    titleLabel.fixedSize(horizontal: true, vertical: true)
++                    Spacer()
++                    statusAndAction.fixedSize(horizontal: true, vertical: true)

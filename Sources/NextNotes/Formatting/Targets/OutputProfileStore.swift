@@ -61,10 +61,22 @@ final class OutputProfileStore {
     private var activationObserver: NSObjectProtocol?
 
     static var fileURL: URL {
-        AppIdentity.applicationSupportDirectory.appendingPathComponent("formatting.txt")
+        if SelfTest.requested == "--selftest-settings-sheet" {
+            let root = SelfTest.checkedSettingsFixturePath(FileManager.default.temporaryDirectory
+                .appendingPathComponent("NextNotesSelfTest-\(ProcessInfo.processInfo.processIdentifier)", isDirectory: true))
+            return SelfTest.checkedSettingsFixturePath(root.appendingPathComponent("formatting.txt"))
+        }
+        return AppIdentity.applicationSupportDirectory.appendingPathComponent("formatting.txt")
     }
 
     private init() {
+        if SelfTest.requested == "--selftest-settings-sheet" {
+            // The original file producer still loads/seeds its real format; all
+            // reads and writes use the existing process-local harness root.
+            try? FileManager.default.createDirectory(
+                at: Self.fileURL.deletingLastPathComponent(), withIntermediateDirectories: true
+            )
+        }
         // Seeding only when the file is absent is the whole contract with the user: once
         // the file exists it is theirs. Re-adding a default row they deleted would make the
         // table impossible to actually edit — the app would keep arguing with them.
@@ -76,6 +88,20 @@ final class OutputProfileStore {
         }
         startWatching()
         startTrackingFrontmostApp()
+    }
+
+    /// The real producer's effect state, exposed only to the fixture capture gate.
+    /// Checks installed observers rather than asserting the guard's spelling.
+    func settingsSheetIsolationFailures() -> [String] {
+        guard SelfTest.requested == "--selftest-settings-sheet" else {
+            return ["Output-profile fixture check requires the settings-sheet self-test"]
+        }
+        var failures: [String] = []
+        if watcher != nil { failures.append("Formatting file watcher started in visual fixture") }
+        if activationObserver != nil { failures.append("Frontmost-app observer started in visual fixture") }
+        if lastForeignApp != nil { failures.append("Visual fixture read the frontmost app") }
+        if captureTarget() != nil { failures.append("Visual fixture captured a live app target") }
+        return failures
     }
 
     // MARK: - Resolving a target
@@ -108,6 +134,10 @@ final class OutputProfileStore {
     /// dictation and the frontmost app at key-down really is the app the text will land in.
     @discardableResult
     func captureTarget() -> OutputTarget? {
+        guard SelfTest.requested != "--selftest-settings-sheet" else {
+            capturedTarget = nil
+            return nil
+        }
         capturedTarget = Self.frontmostApp() ?? lastForeignApp
         if let capturedTarget {
             Log.inject.info("output target: \(capturedTarget.displayName, privacy: .public)")
@@ -136,6 +166,7 @@ final class OutputProfileStore {
     var capturedProfile: OutputProfile { resolved(for: capturedTarget) }
 
     private static func frontmostApp() -> OutputTarget? {
+        guard SelfTest.requested != "--selftest-settings-sheet" else { return nil }
         guard let app = NSWorkspace.shared.frontmostApplication,
               let bundleID = app.bundleIdentifier,
               bundleID != AppIdentity.bundleIdentifier
@@ -144,6 +175,7 @@ final class OutputProfileStore {
     }
 
     private func startTrackingFrontmostApp() {
+        guard SelfTest.requested != "--selftest-settings-sheet" else { return }
         lastForeignApp = Self.frontmostApp()
         activationObserver = NSWorkspace.shared.notificationCenter.addObserver(
             forName: NSWorkspace.didActivateApplicationNotification,
@@ -412,6 +444,7 @@ final class OutputProfileStore {
     /// Rearms after every event: an atomic write replaces the inode, so the descriptor we
     /// were watching is gone the moment the file changes — including when *we* save.
     private func startWatching() {
+        guard SelfTest.requested != "--selftest-settings-sheet" else { return }
         watcher?.cancel()
 
         let descriptor = open(Self.fileURL.path, O_EVTONLY)

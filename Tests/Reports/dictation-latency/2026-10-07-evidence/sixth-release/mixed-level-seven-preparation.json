@@ -1,0 +1,17 @@
+{
+  "atUTC": "2026-10-08T05:36:05.751865+00:00",
+  "status": "PREPARED PUBLIC PCM CONTROL; native recognition and actual segmenter check UNRUN",
+  "sourcePath": "/Users/sergekadjo/Library/Caches/NextNotesBuild/action-intent-harness-90400946-c987-4404-80ad-4c6761ac7014/quiet-meeting/quiet-final-source-window.wav",
+  "sourceSHA256": "409ee48c5033c947f45413d71ca2a162097b9f220995bb8e613579a23b315000",
+  "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-sixth-native-20261008/mixed-level-exact-seven.wav",
+  "SHA256": "99baf0b561cb14b2f52fdf4c2a6add896fba8fe298027dd1556a3930c3695ec4",
+  "samples": 52566,
+  "duration": 3.285375,
+  "transformation": "Exact original public seven-word turn; gain8 through0.900s, continuous linear gain8-to1 during0.900-1.000s, gain1 afterward. No sample clipping, resample, trimming, padding or concatenation.",
+  "independentGold": "Great, I will send the summary tonight.",
+  "aboveFloorFrames": 15,
+  "aboveFloorLastEnd": 11840,
+  "required": "Direct native complete-buffer gold WER0 first, then actual full Engine both endings WER0; compare native first/live/final/count/duty. Exact candidate hardcaps and ordinary pause controls retained.",
+  "risk": "All-below-floor guard does not handle a loud opening followed by quiet recognizable continuation; native actual producer loss must be established before another source change.",
+  "modelLaunched": false
+}

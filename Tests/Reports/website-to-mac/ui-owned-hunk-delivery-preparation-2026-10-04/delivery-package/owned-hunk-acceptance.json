@@ -1,0 +1,1365 @@
+{
+  "scope": "Explicit selected hunk acceptance only, source review conditional; NO whole-file/index/application grant",
+  "fragments": [
+    {
+      "id": "theme:DesignSystem-01",
+      "source": "Sources/NextNotes/UI/DesignSystem.swift",
+      "relativeHeader": "@@ -0,0 +1 @@",
+      "hunk_sha256": "68174c96dcd80ac3c2155e51c34a0694fcb9a795512a77f0960477db6770a878",
+      "artifact": "../theme-foundation/hunks/DesignSystem-01.hunk.txt",
+      "artifact_sha256": "0a6fa12af3062cba7cc4f085b5b57caa657c2f9a367a193ded2b319cfffa4f52",
+      "observed_source_sha256": "4834688eb005804071731afa6a359aa68434cdc3fd99cd62f5ac444bf57c1fe4",
+      "observed_HEAD_sha256": "0554e3afe6c23c6739355fb30077ff01b3a782fa5fc3bf6b81e0a9ac9ca9ac8a",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "Shared theme/semantic type producer; canonical owner review required.",
+      "acceptance_evidence": [
+        "../foundation-independent-review/manifest.json"
+      ]
+    },
+    {
+      "id": "theme:DesignSystem-02",
+      "source": "Sources/NextNotes/UI/DesignSystem.swift",
+      "relativeHeader": "@@ -23,5 +24,9 @@ enum DS {",
+      "hunk_sha256": "fad62fc3f57beb1838ca9542fc969e2d83eda99926643779014776081d1c2e5c",
+      "artifact": "../theme-foundation/hunks/DesignSystem-02.hunk.txt",
+      "artifact_sha256": "29e2e5d2e66d7eb5fb752792f045b9b1e75214e0e1004b8c81bc4ea2bddbc97a",
+      "observed_source_sha256": "4834688eb005804071731afa6a359aa68434cdc3fd99cd62f5ac444bf57c1fe4",
+      "observed_HEAD_sha256": "0554e3afe6c23c6739355fb30077ff01b3a782fa5fc3bf6b81e0a9ac9ca9ac8a",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "Shared theme/semantic type producer; canonical owner review required.",
+      "acceptance_evidence": [
+        "../foundation-independent-review/manifest.json"
+      ]
+    },
+    {
+      "id": "theme:DesignSystem-03",
+      "source": "Sources/NextNotes/UI/DesignSystem.swift",
+      "relativeHeader": "@@ -30,8 +35,11 @@ enum DS {",
+      "hunk_sha256": "3f20c63ab8d6756a48f78d843419582d2b4643bf2b6d36a00e26bba90d13d8f9",
+      "artifact": "../theme-foundation/hunks/DesignSystem-03.hunk.txt",
+      "artifact_sha256": "22772d44d9c351a5b22b1908c0f65eb28c0520f35c543a7066adecb4d1e118fb",
+      "observed_source_sha256": "4834688eb005804071731afa6a359aa68434cdc3fd99cd62f5ac444bf57c1fe4",
+      "observed_HEAD_sha256": "0554e3afe6c23c6739355fb30077ff01b3a782fa5fc3bf6b81e0a9ac9ca9ac8a",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "Shared theme/semantic type producer; canonical owner review required.",
+      "acceptance_evidence": [
+        "../foundation-independent-review/manifest.json"
+      ]
+    },
+    {
+      "id": "theme:DesignSystem-04",
+      "source": "Sources/NextNotes/UI/DesignSystem.swift",
+      "relativeHeader": "@@ -41,8 +49,6 @@ enum DS {",
+      "hunk_sha256": "e433c6b3cdf8513273bca33c657dc1c80a44f2d6707f5230982d2683a5291a32",
+      "artifact": "../theme-foundation/hunks/DesignSystem-04.hunk.txt",
+      "artifact_sha256": "5ec0ba127810f5ad567c5fbe48a8d9af8b3c679b0a7edd8825e225bbd45aaaee",
+      "observed_source_sha256": "4834688eb005804071731afa6a359aa68434cdc3fd99cd62f5ac444bf57c1fe4",
+      "observed_HEAD_sha256": "0554e3afe6c23c6739355fb30077ff01b3a782fa5fc3bf6b81e0a9ac9ca9ac8a",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "Shared theme/semantic type producer; canonical owner review required.",
+      "acceptance_evidence": [
+        "../foundation-independent-review/manifest.json"
+      ]
+    },
+    {
+      "id": "theme:DesignSystem-05",
+      "source": "Sources/NextNotes/UI/DesignSystem.swift",
+      "relativeHeader": "@@ -55 +61 @@ enum DS {",
+      "hunk_sha256": "9b566e26a984801973d0ffd4697dbba35e37243031911d2969777f8115d0bd78",
+      "artifact": "../theme-foundation/hunks/DesignSystem-05.hunk.txt",
+      "artifact_sha256": "cbef59d9559d4c661cb3639382fe2058c9ad91ee17fe3da2616f7e3104a2ec10",
+      "observed_source_sha256": "4834688eb005804071731afa6a359aa68434cdc3fd99cd62f5ac444bf57c1fe4",
+      "observed_HEAD_sha256": "0554e3afe6c23c6739355fb30077ff01b3a782fa5fc3bf6b81e0a9ac9ca9ac8a",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "Shared theme/semantic type producer; canonical owner review required.",
+      "acceptance_evidence": [
+        "../foundation-independent-review/manifest.json"
+      ]
+    },
+    {
+      "id": "theme:DesignSystem-06",
+      "source": "Sources/NextNotes/UI/DesignSystem.swift",
+      "relativeHeader": "@@ -57,4 +63,5 @@ enum DS {",
+      "hunk_sha256": "3c3ec115cae3ca2a9f400f256976cc1cb36e58735b9a312240d049f38275cb74",
+      "artifact": "../theme-foundation/hunks/DesignSystem-06.hunk.txt",
+      "artifact_sha256": "01648226248a375b6c46fc00a1e203f2219620b30cd4c79329990c87872326e9",
+      "observed_source_sha256": "4834688eb005804071731afa6a359aa68434cdc3fd99cd62f5ac444bf57c1fe4",
+      "observed_HEAD_sha256": "0554e3afe6c23c6739355fb30077ff01b3a782fa5fc3bf6b81e0a9ac9ca9ac8a",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "Shared theme/semantic type producer; canonical owner review required.",
+      "acceptance_evidence": [
+        "../foundation-independent-review/manifest.json"
+      ]
+    },
+    {
+      "id": "theme:DesignSystem-07",
+      "source": "Sources/NextNotes/UI/DesignSystem.swift",
+      "relativeHeader": "@@ -63 +70,4 @@ enum DS {",
+      "hunk_sha256": "4ce4b3e3b50ffd206df880e49d3ada09a4c3bf455e71f71818bfc2a3c4244e90",
+      "artifact": "../theme-foundation/hunks/DesignSystem-07.hunk.txt",
+      "artifact_sha256": "504ca8bf6a1a777ac71ca8bc8e65f07596c095a197f998b8b2504dde2b631d22",
+      "observed_source_sha256": "4834688eb005804071731afa6a359aa68434cdc3fd99cd62f5ac444bf57c1fe4",
+      "observed_HEAD_sha256": "0554e3afe6c23c6739355fb30077ff01b3a782fa5fc3bf6b81e0a9ac9ca9ac8a",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "Shared theme/semantic type producer; canonical owner review required.",
+      "acceptance_evidence": [
+        "../foundation-independent-review/manifest.json"
+      ]
+    },
+    {
+      "id": "theme:DesignSystem-08",
+      "source": "Sources/NextNotes/UI/DesignSystem.swift",
+      "relativeHeader": "@@ -65 +75,3 @@ enum DS {",
+      "hunk_sha256": "650fc14b7f6f5eaef757cc3c4fd0e64ce11440ac0deb2c2e57c88eac949fe019",
+      "artifact": "../theme-foundation/hunks/DesignSystem-08.hunk.txt",
+      "artifact_sha256": "e6135a798075b9a343e493980a6716ceaf5e76a4c9b92c6708de2186bef050eb",
+      "observed_source_sha256": "4834688eb005804071731afa6a359aa68434cdc3fd99cd62f5ac444bf57c1fe4",
+      "observed_HEAD_sha256": "0554e3afe6c23c6739355fb30077ff01b3a782fa5fc3bf6b81e0a9ac9ca9ac8a",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "Shared theme/semantic type producer; canonical owner review required.",
+      "acceptance_evidence": [
+        "../foundation-independent-review/manifest.json"
+      ]
+    },
+    {
+      "id": "theme:DesignSystem-09",
+      "source": "Sources/NextNotes/UI/DesignSystem.swift",
+      "relativeHeader": "@@ -121 +133,4 @@ enum DS {",
+      "hunk_sha256": "973ce1a29860233111b8b9822b5be7782b1e5c75d9bf6f60354b3443a7c5abcc",
+      "artifact": "../theme-foundation/hunks/DesignSystem-09.hunk.txt",
+      "artifact_sha256": "c318fd1f387142274dc69465c27b17b31477fb7182a181a441d654f87d5013fb",
+      "observed_source_sha256": "4834688eb005804071731afa6a359aa68434cdc3fd99cd62f5ac444bf57c1fe4",
+      "observed_HEAD_sha256": "0554e3afe6c23c6739355fb30077ff01b3a782fa5fc3bf6b81e0a9ac9ca9ac8a",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "Shared theme/semantic type producer; canonical owner review required.",
+      "acceptance_evidence": [
+        "../foundation-independent-review/manifest.json"
+      ]
+    },
+    {
+      "id": "theme:DesignSystem-10",
+      "source": "Sources/NextNotes/UI/DesignSystem.swift",
+      "relativeHeader": "@@ -123,11 +138,11 @@ enum DS {",
+      "hunk_sha256": "15ff93fe2d378f55d600ebf3bcad84aed697be86b45d11e848ad04267a0d3b78",
+      "artifact": "../theme-foundation/hunks/DesignSystem-10.hunk.txt",
+      "artifact_sha256": "15a3ea8a287d9a2b9de8c9a531d2f6856c10a3a728715d870426a68e0c9216c9",
+      "observed_source_sha256": "4834688eb005804071731afa6a359aa68434cdc3fd99cd62f5ac444bf57c1fe4",
+      "observed_HEAD_sha256": "0554e3afe6c23c6739355fb30077ff01b3a782fa5fc3bf6b81e0a9ac9ca9ac8a",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "Shared theme/semantic type producer; canonical owner review required.",
+      "acceptance_evidence": [
+        "../foundation-independent-review/manifest.json"
+      ]
+    },
+    {
+      "id": "theme:DesignSystem-11",
+      "source": "Sources/NextNotes/UI/DesignSystem.swift",
+      "relativeHeader": "@@ -136 +151 @@ enum DS {",
+      "hunk_sha256": "960c205801eeafb4cd9a69963710b91128d6749e0818c8bf237f2dbddf939c4c",
+      "artifact": "../theme-foundation/hunks/DesignSystem-11.hunk.txt",
+      "artifact_sha256": "35d8c84a7a28d3868355158db4c7a8a79faba38a4a3933c1dd4d5eceb56a23fc",
+      "observed_source_sha256": "4834688eb005804071731afa6a359aa68434cdc3fd99cd62f5ac444bf57c1fe4",
+      "observed_HEAD_sha256": "0554e3afe6c23c6739355fb30077ff01b3a782fa5fc3bf6b81e0a9ac9ca9ac8a",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "Shared theme/semantic type producer; canonical owner review required.",
+      "acceptance_evidence": [
+        "../foundation-independent-review/manifest.json"
+      ]
+    },
+    {
+      "id": "theme:DesignSystem-12",
+      "source": "Sources/NextNotes/UI/DesignSystem.swift",
+      "relativeHeader": "@@ -143,4 +158,4 @@ enum DS {",
+      "hunk_sha256": "7b2ee4c6cd9b57213e09cf0d29ccd24a9d4c27f99f5f8f9fb823603d47ee2134",
+      "artifact": "../theme-foundation/hunks/DesignSystem-12.hunk.txt",
+      "artifact_sha256": "3f76fc64dccdc0a1d88dc3c61db51f50a792d07e4394c23a67b1f3426a78465b",
+      "observed_source_sha256": "4834688eb005804071731afa6a359aa68434cdc3fd99cd62f5ac444bf57c1fe4",
+      "observed_HEAD_sha256": "0554e3afe6c23c6739355fb30077ff01b3a782fa5fc3bf6b81e0a9ac9ca9ac8a",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "Shared theme/semantic type producer; canonical owner review required.",
+      "acceptance_evidence": [
+        "../foundation-independent-review/manifest.json"
+      ]
+    },
+    {
+      "id": "theme:DesignSystem-13",
+      "source": "Sources/NextNotes/UI/DesignSystem.swift",
+      "relativeHeader": "@@ -151 +166 @@ enum DS {",
+      "hunk_sha256": "edee6427f9548c5f73d4f4e7486f60f8e84f3e0d172f3dc54ace0daa782b6507",
+      "artifact": "../theme-foundation/hunks/DesignSystem-13.hunk.txt",
+      "artifact_sha256": "4db7fc2ae1fdc56f61711ee746c3618f282d5b0567b210e99d043fe87047a3e4",
+      "observed_source_sha256": "4834688eb005804071731afa6a359aa68434cdc3fd99cd62f5ac444bf57c1fe4",
+      "observed_HEAD_sha256": "0554e3afe6c23c6739355fb30077ff01b3a782fa5fc3bf6b81e0a9ac9ca9ac8a",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "Shared theme/semantic type producer; canonical owner review required.",
+      "acceptance_evidence": [
+        "../foundation-independent-review/manifest.json"
+      ]
+    },
+    {
+      "id": "theme:DesignSystem-14",
+      "source": "Sources/NextNotes/UI/DesignSystem.swift",
+      "relativeHeader": "@@ -158,2 +173,2 @@ enum DS {",
+      "hunk_sha256": "0cf520f20fa744f4234b1873a77377ab6bdefb98ecf8ccec6d19c2f2dd237a2a",
+      "artifact": "../theme-foundation/hunks/DesignSystem-14.hunk.txt",
+      "artifact_sha256": "b9ac5efbc5cad90b660780d33d734a1e52342695f9fc92f56ed075275fb5f16f",
+      "observed_source_sha256": "4834688eb005804071731afa6a359aa68434cdc3fd99cd62f5ac444bf57c1fe4",
+      "observed_HEAD_sha256": "0554e3afe6c23c6739355fb30077ff01b3a782fa5fc3bf6b81e0a9ac9ca9ac8a",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "Shared theme/semantic type producer; canonical owner review required.",
+      "acceptance_evidence": [
+        "../foundation-independent-review/manifest.json"
+      ]
+    },
+    {
+      "id": "theme:DesignSystem-16",
+      "source": "Sources/NextNotes/UI/DesignSystem.swift",
+      "relativeHeader": "@@ -656 +674 @@ enum DS {",
+      "hunk_sha256": "fea84385ca976e81e69892e15a257950b82cfdbc21b70e08555dbc09fa665083",
+      "artifact": "../theme-foundation/hunks/DesignSystem-16.hunk.txt",
+      "artifact_sha256": "e449fee68991fd77430bbe7c55e4b8115bf1a49be4ded890143f5532bc2f6a3e",
+      "observed_source_sha256": "4834688eb005804071731afa6a359aa68434cdc3fd99cd62f5ac444bf57c1fe4",
+      "observed_HEAD_sha256": "0554e3afe6c23c6739355fb30077ff01b3a782fa5fc3bf6b81e0a9ac9ca9ac8a",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "Shared theme/semantic type producer; canonical owner review required.",
+      "acceptance_evidence": [
+        "../foundation-independent-review/manifest.json"
+      ]
+    },
+    {
+      "id": "theme:DesignSystem-17",
+      "source": "Sources/NextNotes/UI/DesignSystem.swift",
+      "relativeHeader": "@@ -659,3 +677,5 @@ enum DS {",
+      "hunk_sha256": "ca68a112b08c76435ffa857acef46b356faebfbdb12b90ca4014caa3d4b6ba8d",
+      "artifact": "../theme-foundation/hunks/DesignSystem-17.hunk.txt",
+      "artifact_sha256": "dbb860de6e58c4b995ecc199f8bfaad4c218553e2b9d7d914b7961b32180559f",
+      "observed_source_sha256": "4834688eb005804071731afa6a359aa68434cdc3fd99cd62f5ac444bf57c1fe4",
+      "observed_HEAD_sha256": "0554e3afe6c23c6739355fb30077ff01b3a782fa5fc3bf6b81e0a9ac9ca9ac8a",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "Shared theme/semantic type producer; canonical owner review required.",
+      "acceptance_evidence": [
+        "../foundation-independent-review/manifest.json"
+      ]
+    },
+    {
+      "id": "theme:DesignSystem-18",
+      "source": "Sources/NextNotes/UI/DesignSystem.swift",
+      "relativeHeader": "@@ -947,0 +968,345 @@ enum DS {",
+      "hunk_sha256": "a8b72ccda638e66e3c505ab01e85abc9b7a09b9266b6dc20e4667b8ab99c9897",
+      "artifact": "../theme-foundation/hunks/DesignSystem-18.hunk.txt",
+      "artifact_sha256": "1afc0443726313ca412194a059642a9ea01a740ac733716d34f80c9da06f3a9c",
+      "observed_source_sha256": "4834688eb005804071731afa6a359aa68434cdc3fd99cd62f5ac444bf57c1fe4",
+      "observed_HEAD_sha256": "0554e3afe6c23c6739355fb30077ff01b3a782fa5fc3bf6b81e0a9ac9ca9ac8a",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "Shared theme/semantic type producer; canonical owner review required.",
+      "acceptance_evidence": [
+        "../foundation-independent-review/manifest.json"
+      ]
+    },
+    {
+      "id": "theme:GlassSurface-01",
+      "source": "Sources/NextNotes/UI/Components/GlassSurface.swift",
+      "relativeHeader": "@@ -19 +18,0 @@ struct GlassSurfaceModifier<S: Shape>: ViewModifier {",
+      "hunk_sha256": "e03c9f5918d25a43050916b93c88b4edd067cfa20636d6197402f6273ee1b973",
+      "artifact": "../theme-foundation/hunks/GlassSurface-01.hunk.txt",
+      "artifact_sha256": "8caf3a6ede8c0faec9615780f6226dceb51d586a4692dbecd5574bbd138fee68",
+      "observed_source_sha256": "c296b474b6868c13ef734f2ac54696620f3f3aa8584e393974e6cb1798b8b0e4",
+      "observed_HEAD_sha256": "3b4c6293c72ba9979847eacd900019539ab849f4e6e7088095bfb58d40366434",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "Single glass/optional heading/shared explicit accent producer.",
+      "acceptance_evidence": [
+        "../foundation-independent-review/manifest.json"
+      ]
+    },
+    {
+      "id": "theme:GlassSurface-02",
+      "source": "Sources/NextNotes/UI/Components/GlassSurface.swift",
+      "relativeHeader": "@@ -25 +24,4 @@ struct GlassSurfaceModifier<S: Shape>: ViewModifier {",
+      "hunk_sha256": "69046aee17b3e1e8ec01ba4c9ebf2c378c75802032afe9de7c84935318ce801e",
+      "artifact": "../theme-foundation/hunks/GlassSurface-02.hunk.txt",
+      "artifact_sha256": "83642822bbdcf9ac28e81f310172d5e1c78b2fae5058b036d4c23fdf5a4314a3",
+      "observed_source_sha256": "c296b474b6868c13ef734f2ac54696620f3f3aa8584e393974e6cb1798b8b0e4",
+      "observed_HEAD_sha256": "3b4c6293c72ba9979847eacd900019539ab849f4e6e7088095bfb58d40366434",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "Single glass/optional heading/shared explicit accent producer.",
+      "acceptance_evidence": [
+        "../foundation-independent-review/manifest.json"
+      ]
+    },
+    {
+      "id": "theme:GlassSurface-03",
+      "source": "Sources/NextNotes/UI/Components/GlassSurface.swift",
+      "relativeHeader": "@@ -36,2 +38 @@ extension View {",
+      "hunk_sha256": "e2c091669009387d4ebba89e2205279e91dc10cae92d0949a2cba4f24f6754b4",
+      "artifact": "../theme-foundation/hunks/GlassSurface-03.hunk.txt",
+      "artifact_sha256": "2c35ab4cb1b639f451d7d4ae6d56d4e2d73486669b89b420404265bf465b47cb",
+      "observed_source_sha256": "c296b474b6868c13ef734f2ac54696620f3f3aa8584e393974e6cb1798b8b0e4",
+      "observed_HEAD_sha256": "3b4c6293c72ba9979847eacd900019539ab849f4e6e7088095bfb58d40366434",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "Single glass/optional heading/shared explicit accent producer.",
+      "acceptance_evidence": [
+        "../foundation-independent-review/manifest.json"
+      ]
+    },
+    {
+      "id": "theme:GlassSurface-04",
+      "source": "Sources/NextNotes/UI/Components/GlassSurface.swift",
+      "relativeHeader": "@@ -39 +40 @@ extension View {",
+      "hunk_sha256": "d3ab70df2395d37b743c050dc30836228ca65f871c7fb5976b4800f7af936f4d",
+      "artifact": "../theme-foundation/hunks/GlassSurface-04.hunk.txt",
+      "artifact_sha256": "bced7db92bcfab71583b0a672fba376b1a094006063aa4961e3ac57a9a0ba23e",
+      "observed_source_sha256": "c296b474b6868c13ef734f2ac54696620f3f3aa8584e393974e6cb1798b8b0e4",
+      "observed_HEAD_sha256": "3b4c6293c72ba9979847eacd900019539ab849f4e6e7088095bfb58d40366434",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "Single glass/optional heading/shared explicit accent producer.",
+      "acceptance_evidence": [
+        "../foundation-independent-review/manifest.json"
+      ]
+    },
+    {
+      "id": "theme:GlassSurface-05",
+      "source": "Sources/NextNotes/UI/Components/GlassSurface.swift",
+      "relativeHeader": "@@ -45,2 +46 @@ extension View {",
+      "hunk_sha256": "d3b1decf724aa6e94b4793a592b0fde8a1d89f342796a552e00fdf453a644ae2",
+      "artifact": "../theme-foundation/hunks/GlassSurface-05.hunk.txt",
+      "artifact_sha256": "f40651bc1ce42d0f519bb872ba3ea60567bd1f6f489bd3c92a32bc674234aa92",
+      "observed_source_sha256": "c296b474b6868c13ef734f2ac54696620f3f3aa8584e393974e6cb1798b8b0e4",
+      "observed_HEAD_sha256": "3b4c6293c72ba9979847eacd900019539ab849f4e6e7088095bfb58d40366434",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "Single glass/optional heading/shared explicit accent producer.",
+      "acceptance_evidence": [
+        "../foundation-independent-review/manifest.json"
+      ]
+    },
+    {
+      "id": "theme:GlassSurface-06",
+      "source": "Sources/NextNotes/UI/Components/GlassSurface.swift",
+      "relativeHeader": "@@ -50,2 +50 @@ extension View {",
+      "hunk_sha256": "29e516079103a121f1d3abc233212c56fb34fb6f37f16fb48d93ec5366c90ba7",
+      "artifact": "../theme-foundation/hunks/GlassSurface-06.hunk.txt",
+      "artifact_sha256": "d77a309d0e013b3ed5be6ed312e2a378af81279915d1f846119817543860324d",
+      "observed_source_sha256": "c296b474b6868c13ef734f2ac54696620f3f3aa8584e393974e6cb1798b8b0e4",
+      "observed_HEAD_sha256": "3b4c6293c72ba9979847eacd900019539ab849f4e6e7088095bfb58d40366434",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "Single glass/optional heading/shared explicit accent producer.",
+      "acceptance_evidence": [
+        "../foundation-independent-review/manifest.json"
+      ]
+    },
+    {
+      "id": "theme:SectionHeading-01",
+      "source": "Sources/NextNotes/UI/Components/SectionHeading.swift",
+      "relativeHeader": "@@ -17,0 +18,8 @@ struct SectionHeading: View {",
+      "hunk_sha256": "00c0d49750b8bf508c0f43007b409e7d32415959fbde893287a0bbc06108e4e3",
+      "artifact": "../theme-foundation/hunks/SectionHeading-01.hunk.txt",
+      "artifact_sha256": "756357a6d7e7dad67493bb641e22934f587496a3942dd0699f10a1c1f83102fe",
+      "observed_source_sha256": "68f10152d8be83c8e912c8c297f821daa74cfecac32053dc6584889775e5f435",
+      "observed_HEAD_sha256": "a9d976649beff1c4daa3ed053e5f2364a4d8cf27e2c20dcb6a41b5fdea50fe55",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "optional explicit accent and pane level API",
+      "acceptance_evidence": [
+        "../foundation-independent-review/manifest.json",
+        "../consumer-boundaries/fragment-acceptance.json"
+      ]
+    },
+    {
+      "id": "theme:SectionHeading-02",
+      "source": "Sources/NextNotes/UI/Components/SectionHeading.swift",
+      "relativeHeader": "@@ -45,5 +53,10 @@ struct SectionHeading: View {",
+      "hunk_sha256": "bbe017968cb180682a302ee1d89998189a224cc0338f738460388c2b2d2ba3e0",
+      "artifact": "../theme-foundation/hunks/SectionHeading-02.hunk.txt",
+      "artifact_sha256": "4c6f71323630b198cbd8e5b720b75ed20b78fbfc4e7f9c81f6029b1c88158ca5",
+      "observed_source_sha256": "68f10152d8be83c8e912c8c297f821daa74cfecac32053dc6584889775e5f435",
+      "observed_HEAD_sha256": "a9d976649beff1c4daa3ed053e5f2364a4d8cf27e2c20dcb6a41b5fdea50fe55",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "accessible explicit static heading branch; plain dynamic fallback preserved",
+      "acceptance_evidence": [
+        "../foundation-independent-review/manifest.json",
+        "../consumer-boundaries/fragment-acceptance.json"
+      ]
+    },
+    {
+      "id": "theme:AgentPaneLayout-01",
+      "source": "Sources/NextNotes/UI/Agent/AgentPaneLayout.swift",
+      "relativeHeader": "@@ -49,0 +50,2 @@ struct AgentPaneHeader<Accessory: View>: View {",
+      "hunk_sha256": "db0675b417e52a42b07db6e039311a21f9bfd9674371dbbeb30f0458e18b5ddc",
+      "artifact": "../theme-foundation/hunks/AgentPaneLayout-01.hunk.txt",
+      "artifact_sha256": "ad874a84f8486f8e5f243f1cbc1dc9fdca6f690e0dd5eb651df31cf1537c41a8",
+      "observed_source_sha256": "15271f90abb694bdceb6a75579d147f8de584a18362c8ed36f98aebf4e41deb4",
+      "observed_HEAD_sha256": "e1a682ae6dd87ae8f3cd35756f528e47bdc373d0429fa941f420cffed0a6e702",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "optional caller-supplied accent, nil default",
+      "acceptance_evidence": [
+        "../foundation-independent-review/manifest.json",
+        "../consumer-boundaries/fragment-acceptance.json"
+      ]
+    },
+    {
+      "id": "theme:AgentPaneLayout-02",
+      "source": "Sources/NextNotes/UI/Agent/AgentPaneLayout.swift",
+      "relativeHeader": "@@ -55,2 +57,7 @@ struct AgentPaneHeader<Accessory: View>: View {",
+      "hunk_sha256": "c0523da415bec3d2c1c1dcc4d9534dd0913d67cff8642ff4c9e4643670d85221",
+      "artifact": "../theme-foundation/hunks/AgentPaneLayout-02.hunk.txt",
+      "artifact_sha256": "3bf15269cb3574cad2a7f257608775517ff42c20ef22ffb90faf7961f42f878d",
+      "observed_source_sha256": "15271f90abb694bdceb6a75579d147f8de584a18362c8ed36f98aebf4e41deb4",
+      "observed_HEAD_sha256": "e1a682ae6dd87ae8f3cd35756f528e47bdc373d0429fa941f420cffed0a6e702",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "ThemeHeadline pane only for explicit accent; plain fallback",
+      "acceptance_evidence": [
+        "../foundation-independent-review/manifest.json",
+        "../consumer-boundaries/fragment-acceptance.json"
+      ]
+    },
+    {
+      "id": "theme:AgentPaneLayout-03",
+      "source": "Sources/NextNotes/UI/Agent/AgentPaneLayout.swift",
+      "relativeHeader": "@@ -73,2 +80,2 @@ extension AgentPaneHeader where Accessory == EmptyView {",
+      "hunk_sha256": "93281b1b127270faece2a691e4dce715739e4f36412b7dbaf4eaeabc73c7320f",
+      "artifact": "../theme-foundation/hunks/AgentPaneLayout-03.hunk.txt",
+      "artifact_sha256": "789059d6d983c53238b653a64ca3f98830d7970e506510143a7dd797638ebcb9",
+      "observed_source_sha256": "15271f90abb694bdceb6a75579d147f8de584a18362c8ed36f98aebf4e41deb4",
+      "observed_HEAD_sha256": "e1a682ae6dd87ae8f3cd35756f528e47bdc373d0429fa941f420cffed0a6e702",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "empty accessory initializer forwards accent",
+      "acceptance_evidence": [
+        "../foundation-independent-review/manifest.json",
+        "../consumer-boundaries/fragment-acceptance.json"
+      ]
+    },
+    {
+      "id": "theme:AgentView-08",
+      "source": "Sources/NextNotes/UI/Agent/AgentView.swift",
+      "relativeHeader": "@@ -250,2 +242,2 @@ struct AgentView: View {",
+      "hunk_sha256": "5f7fdef5fe67a40ebbcfa698a15229b406f9f73871bac22c6fb8b86d4df781b9",
+      "artifact": "../theme-foundation/hunks/AgentView-08.hunk.txt",
+      "artifact_sha256": "9646f875adbc84b4e8a3c3d2520d86918ae46c1db5882757dba29471ac2e7b79",
+      "observed_source_sha256": "dec7e55a9e50b4f27d16190193e7276b06c37a771285c3e5780cdec82af9b919",
+      "observed_HEAD_sha256": "32e5adcb7771739ca957a131fa3192fe183beecf64e54351f56f8c80a182200b",
+      "source_review": "HELD_ROOT_AGENTVIEW_RECONCILIATION",
+      "boundary": "empty prompt headline candidate; current AgentView drift and root typed owner",
+      "acceptance_evidence": [
+        "../foundation-independent-review/manifest.json",
+        "../consumer-boundaries/fragment-acceptance.json"
+      ]
+    },
+    {
+      "id": "theme:AgentView-26",
+      "source": "Sources/NextNotes/UI/Agent/AgentView.swift",
+      "relativeHeader": "@@ -819,0 +834,7 @@ struct AgentView: View {",
+      "hunk_sha256": "42975de01a47d634f4ec91f47eebb30e7c9c514d15079f2bac7da2cf2cf2e591",
+      "artifact": "../theme-foundation/hunks/AgentView-26.hunk.txt",
+      "artifact_sha256": "4b28671b1a9df992e1a75b952cd6e9e36995ce4ef1055b67ea0de837c5f8ccc9",
+      "observed_source_sha256": "dec7e55a9e50b4f27d16190193e7276b06c37a771285c3e5780cdec82af9b919",
+      "observed_HEAD_sha256": "32e5adcb7771739ca957a131fa3192fe183beecf64e54351f56f8c80a182200b",
+      "source_review": "HELD_ROOT_AGENTVIEW_RECONCILIATION",
+      "boundary": "parked composer edge references root typed isWorking and approval predicates",
+      "acceptance_evidence": [
+        "../foundation-independent-review/manifest.json",
+        "../consumer-boundaries/fragment-acceptance.json"
+      ]
+    },
+    {
+      "id": "theme:ActivityView-02",
+      "source": "Sources/NextNotes/UI/Agent/ActivityView.swift",
+      "relativeHeader": "@@ -52 +55 @@ struct ActivityView: View {",
+      "hunk_sha256": "226c2ef5cbc9873b1e6b67f4e5371087e9a6a122721ab9d55e08f91b69d926f5",
+      "artifact": "../theme-foundation/hunks/ActivityView-02.hunk.txt",
+      "artifact_sha256": "cfd18d0afc20c2a781b23c1c6c3218b0363d3fab0345071d0dc9c20851be9699",
+      "observed_source_sha256": "2fc1b5ee0f8ef36d0b359e57d41d9552ace8f60b44650d68543728557ec005cc",
+      "observed_HEAD_sha256": "ad96426ac59b786c1373a3c5e2157517f015ded13bd5009b420086ccf0587b24",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "static title phrase only",
+      "acceptance_evidence": [
+        "../foundation-independent-review/manifest.json",
+        "../consumer-boundaries/fragment-acceptance.json"
+      ]
+    },
+    {
+      "id": "theme:ActivityView-03",
+      "source": "Sources/NextNotes/UI/Agent/ActivityView.swift",
+      "relativeHeader": "@@ -54 +57,2 @@ struct ActivityView: View {",
+      "hunk_sha256": "21df4a07ea4279b4ad1d0d28f3e458297669c2e935f65333ff58457929d15150",
+      "artifact": "../theme-foundation/hunks/ActivityView-03.hunk.txt",
+      "artifact_sha256": "35a447faee5d2a4b64296db4ad992f9647644a8d203e3d5a468e4167df2a5fd9",
+      "observed_source_sha256": "2fc1b5ee0f8ef36d0b359e57d41d9552ace8f60b44650d68543728557ec005cc",
+      "observed_HEAD_sha256": "ad96426ac59b786c1373a3c5e2157517f015ded13bd5009b420086ccf0587b24",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "static subtitle/accent only; saved jobs excluded",
+      "acceptance_evidence": [
+        "../foundation-independent-review/manifest.json",
+        "../consumer-boundaries/fragment-acceptance.json"
+      ]
+    },
+    {
+      "id": "theme:AgentWorkingCard-03",
+      "source": "Sources/NextNotes/UI/Agent/AgentWorkingCard.swift",
+      "relativeHeader": "@@ -111,0 +124,7 @@ struct AgentWorkingCard: View {",
+      "hunk_sha256": "9c712e6f6423a36d1c933faa57a7bbb8c48b532c41285703a3b708644f8024a9",
+      "artifact": "../theme-foundation/hunks/AgentWorkingCard-03.hunk.txt",
+      "artifact_sha256": "b76c3358aa67410c9e915953e11298cd0ec33eb443d55e127a260f6e3dca184f",
+      "observed_source_sha256": "c070708cb25be23e85d0185b0b39588bf64837e44143427b70664e1afc246108",
+      "observed_HEAD_sha256": "2d5aa735a815f349a1b2f84a27a3fe31ae2ccfca4e82b54a63ee5b84143d182a",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "parked rim on real running task outside approval/yield; typed cancel excluded",
+      "acceptance_evidence": [
+        "../foundation-independent-review/manifest.json",
+        "../consumer-boundaries/fragment-acceptance.json"
+      ]
+    },
+    {
+      "id": "theme:SettingsChrome-01",
+      "source": "Sources/NextNotes/UI/Settings/SettingsChrome.swift",
+      "relativeHeader": "@@ -68 +68,6 @@ struct SettingsPane<Content: View>: View {",
+      "hunk_sha256": "8c69b9727149d4a00d61a21d2920e89a14b724be6922ff2c0d33baeb05b24ed4",
+      "artifact": "../theme-foundation/hunks/SettingsChrome-01.hunk.txt",
+      "artifact_sha256": "47d015c9517a8d6b9dca9c9cb72704dc0a11d260bf0000e68e717ef0f2c01056",
+      "observed_source_sha256": "a228a7e07670b2848b8984f4041bec525adfd6b88107f0005557ca42f20d71b4",
+      "observed_HEAD_sha256": "b89503d92cc98647ef22fee929cab1e43fd6115ef08b4ad8822aab0d7fc1f42a",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "explicit static SectionHeading spans; throwaway-window fixes excluded",
+      "acceptance_evidence": [
+        "../foundation-independent-review/manifest.json",
+        "../consumer-boundaries/fragment-acceptance.json"
+      ]
+    },
+    {
+      "id": "theme:SettingsWindow-01",
+      "source": "Sources/NextNotes/UI/Settings/SettingsWindow.swift",
+      "relativeHeader": "@@ -41,0 +42,2 @@ struct SettingsWindow: View {",
+      "hunk_sha256": "ef5dcec39284ba79e7a10a6357fca9f817fb29e29de8b871153af19cca3153e5",
+      "artifact": "../theme-foundation/hunks/SettingsWindow-01.hunk.txt",
+      "artifact_sha256": "d6d781b5f9deff86d4397d027d78d9f6d636c5c0d11fdb68872b7a4fae9b8c4b",
+      "observed_source_sha256": "d9c854b3b6d9f0a80e310f525d3cc9f3c99f89be8af5a5e7cd480214a54d39f6",
+      "observed_HEAD_sha256": "59b5a13b898cac4389066264766109d44ae52cf5aab4c3b4c565424ae0178f8d",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "inherited tint/body font",
+      "acceptance_evidence": [
+        "../foundation-independent-review/manifest.json",
+        "../consumer-boundaries/fragment-acceptance.json"
+      ]
+    },
+    {
+      "id": "theme:SettingsWindow-02",
+      "source": "Sources/NextNotes/UI/Settings/SettingsWindow.swift",
+      "relativeHeader": "@@ -128 +130,5 @@ enum SettingsTab: String, CaseIterable, Identifiable, Hashable {",
+      "hunk_sha256": "cd758cd012127c4ba38ed6fdb01e56bf6ac87155087dceae1f774e0053a6edbd",
+      "artifact": "../theme-foundation/hunks/SettingsWindow-02.hunk.txt",
+      "artifact_sha256": "4cd29c044d0ceaaad220a72483bdd1d72d3fa9dda98d2ae4253284e4a9719630",
+      "observed_source_sha256": "d9c854b3b6d9f0a80e310f525d3cc9f3c99f89be8af5a5e7cd480214a54d39f6",
+      "observed_HEAD_sha256": "59b5a13b898cac4389066264766109d44ae52cf5aab4c3b4c565424ae0178f8d",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "existing heading recomposed from explicit spans",
+      "acceptance_evidence": [
+        "../foundation-independent-review/manifest.json",
+        "../consumer-boundaries/fragment-acceptance.json"
+      ]
+    },
+    {
+      "id": "theme:SettingsWindow-03",
+      "source": "Sources/NextNotes/UI/Settings/SettingsWindow.swift",
+      "relativeHeader": "@@ -130,12 +136,12 @@ enum SettingsTab: String, CaseIterable, Identifiable, Hashable {",
+      "hunk_sha256": "93f959daaa89f6cd594d4197402a7b0db583cc4d823bf9e51897f57400ddf25f",
+      "artifact": "../theme-foundation/hunks/SettingsWindow-03.hunk.txt",
+      "artifact_sha256": "c2d86931783b9b9813ca65075170e50d4bd1df5ea7d4e28ddf597cf9ea1dcef7",
+      "observed_source_sha256": "d9c854b3b6d9f0a80e310f525d3cc9f3c99f89be8af5a5e7cd480214a54d39f6",
+      "observed_HEAD_sha256": "59b5a13b898cac4389066264766109d44ae52cf5aab4c3b4c565424ae0178f8d",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "12 literal heading pairs; no form control change",
+      "acceptance_evidence": [
+        "../foundation-independent-review/manifest.json",
+        "../consumer-boundaries/fragment-acceptance.json"
+      ]
+    },
+    {
+      "id": "theme:MainWindow-01",
+      "source": "Sources/NextNotes/UI/MainWindow.swift",
+      "relativeHeader": "@@ -23,0 +24,2 @@ struct MainWindow: View {",
+      "hunk_sha256": "0bc97963ddfddc3d74c3760b87ea910d9a92c71f3d9760a00cce36ba5539ac25",
+      "artifact": "../theme-foundation/hunks/MainWindow-01.hunk.txt",
+      "artifact_sha256": "c01f1409c371d1552999a77faf0319f1f2926515b887b0d2d578f147bfb4c8a8",
+      "observed_source_sha256": "5f65aea558ea800d47f62d6deb5a9085a0b8fec4790485b6846578dccbc01150",
+      "observed_HEAD_sha256": "19fe38311d9a86d59439eef095f088bf2049a9d4bc2ee0ae4a1bf9acdcf7214d",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "inherited tint/body font",
+      "acceptance_evidence": [
+        "../foundation-independent-review/manifest.json",
+        "../consumer-boundaries/fragment-acceptance.json"
+      ]
+    },
+    {
+      "id": "theme:HUDView-01",
+      "source": "Sources/NextNotes/UI/HUDView.swift",
+      "relativeHeader": "@@ -18,0 +19,6 @@ struct HUDView: View {",
+      "hunk_sha256": "f4c3434470f559d274e35d52cb00d00c9580a909af86076df53c77489ddd5c87",
+      "artifact": "../theme-foundation/hunks/HUDView-01.hunk.txt",
+      "artifact_sha256": "37bc5cfa7f9893dcd21c08b880ac17ca02b28378834cc9007a4d2e5c33faf425",
+      "observed_source_sha256": "0f695e3f4da92e98dbdb7d4ed69ead9643db5e9b497e94278b18d7a8a1d94e13",
+      "observed_HEAD_sha256": "4021b5fe8333c653501a07e2f0fc86c75d02ffc3abd8a4fd73f6615bbffc0058",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "inherited tint/body font",
+      "acceptance_evidence": [
+        "../foundation-independent-review/manifest.json",
+        "../consumer-boundaries/fragment-acceptance.json"
+      ]
+    },
+    {
+      "id": "theme:IslandView-01",
+      "source": "Sources/NextNotes/UI/Island/IslandView.swift",
+      "relativeHeader": "@@ -37,0 +38,2 @@ struct IslandView: View {",
+      "hunk_sha256": "df2c24d99865f72326752ff9b37f1dafd392403d09f5012d488fd801592090bb",
+      "artifact": "../theme-foundation/hunks/IslandView-01.hunk.txt",
+      "artifact_sha256": "dac84d632daec539f1b9769a7db6f96a222bba0f42636819aa3337969586fe8a",
+      "observed_source_sha256": "4d53c60d50e954863ca330961b1bcf5f006899daffce1867d82d567f3aa1bf09",
+      "observed_HEAD_sha256": "0355eb716f992afb95767f00ff4529ca0e15d981045c3f268589744dc8e46ab1",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "inherited tint/body font; speaking excluded",
+      "acceptance_evidence": [
+        "../foundation-independent-review/manifest.json",
+        "../consumer-boundaries/fragment-acceptance.json"
+      ]
+    },
+    {
+      "id": "theme:IslandView-02",
+      "source": "Sources/NextNotes/UI/Island/IslandView.swift",
+      "relativeHeader": "@@ -80 +82 @@ struct IslandView: View {",
+      "hunk_sha256": "46e51dab9b8a250a997ddeb4f4001cd00022ccaade80839268b0d3a1c588d3f0",
+      "artifact": "../theme-foundation/hunks/IslandView-02.hunk.txt",
+      "artifact_sha256": "50cc4769de46305676bdc9a351f71367059a0d5b152a0a2c1cf489b75e201f78",
+      "observed_source_sha256": "4d53c60d50e954863ca330961b1bcf5f006899daffce1867d82d567f3aa1bf09",
+      "observed_HEAD_sha256": "0355eb716f992afb95767f00ff4529ca0e15d981045c3f268589744dc8e46ab1",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "fixed-light comment/contract; no motion",
+      "acceptance_evidence": [
+        "../foundation-independent-review/manifest.json",
+        "../consumer-boundaries/fragment-acceptance.json"
+      ]
+    },
+    {
+      "id": "theme:IslandView-03",
+      "source": "Sources/NextNotes/UI/Island/IslandView.swift",
+      "relativeHeader": "@@ -159 +161 @@ struct IslandView: View {",
+      "hunk_sha256": "36c0674c833372a9a99c443fc297db970653fdb4134a858f39cafd12485ba51a",
+      "artifact": "../theme-foundation/hunks/IslandView-03.hunk.txt",
+      "artifact_sha256": "29287990363f109986d2d9d4c94ddca6cb85e9237c73510077a8f8f74f2de098",
+      "observed_source_sha256": "4d53c60d50e954863ca330961b1bcf5f006899daffce1867d82d567f3aa1bf09",
+      "observed_HEAD_sha256": "0355eb716f992afb95767f00ff4529ca0e15d981045c3f268589744dc8e46ab1",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "shared tracking token; no state transition",
+      "acceptance_evidence": [
+        "../foundation-independent-review/manifest.json",
+        "../consumer-boundaries/fragment-acceptance.json"
+      ]
+    },
+    {
+      "id": "theme:IslandView-07",
+      "source": "Sources/NextNotes/UI/Island/IslandView.swift",
+      "relativeHeader": "@@ -454 +459 @@ struct IslandView: View {",
+      "hunk_sha256": "75936899f4cd2a1af28b1596db21575eff2f741ccca543c96bec0cb9cde4aa88",
+      "artifact": "../theme-foundation/hunks/IslandView-07.hunk.txt",
+      "artifact_sha256": "5ac6253d76c7a5b6e3f6a7634a885f00ffc1b733d2b479e653cfc4d35b37c361",
+      "observed_source_sha256": "4d53c60d50e954863ca330961b1bcf5f006899daffce1867d82d567f3aa1bf09",
+      "observed_HEAD_sha256": "0355eb716f992afb95767f00ff4529ca0e15d981045c3f268589744dc8e46ab1",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "shared tracking token; no state transition",
+      "acceptance_evidence": [
+        "../foundation-independent-review/manifest.json",
+        "../consumer-boundaries/fragment-acceptance.json"
+      ]
+    },
+    {
+      "id": "theme:IslandView-08",
+      "source": "Sources/NextNotes/UI/Island/IslandView.swift",
+      "relativeHeader": "@@ -591,2 +596,2 @@ struct IslandView: View {",
+      "hunk_sha256": "787fb2b4eb8db9dbef0b93891c11a7e8196db3d320a511d0afde03b7d13c2c8f",
+      "artifact": "../theme-foundation/hunks/IslandView-08.hunk.txt",
+      "artifact_sha256": "f3152037be4c50506dd402e5f415fcdd5a6ac872b1c0b96a57a15b0b12345048",
+      "observed_source_sha256": "4d53c60d50e954863ca330961b1bcf5f006899daffce1867d82d567f3aa1bf09",
+      "observed_HEAD_sha256": "0355eb716f992afb95767f00ff4529ca0e15d981045c3f268589744dc8e46ab1",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "fixed-light ink comment; P3-09 held",
+      "acceptance_evidence": [
+        "../foundation-independent-review/manifest.json",
+        "../consumer-boundaries/fragment-acceptance.json"
+      ]
+    },
+    {
+      "id": "theme:MeetingConsoleSheet-01",
+      "source": "Sources/NextNotes/UI/Meetings/MeetingConsoleSheet.swift",
+      "relativeHeader": "@@ -146,0 +147,2 @@ struct MeetingConsoleSheet: View {",
+      "hunk_sha256": "c81cac4ed2764f5e7821905e8c20339962460a5b4cad68aa692cffc336cc2df0",
+      "artifact": "../theme-foundation/hunks/MeetingConsoleSheet-01.hunk.txt",
+      "artifact_sha256": "0e3f62a57177e2916198dfc4d42a8336a630a6a5d5f66ee111e729bb8930b1cd",
+      "observed_source_sha256": "6645bac730b41d97de7ad180dd217b69851830cad28915301e44f82b8e1cd507",
+      "observed_HEAD_sha256": "c37410b0391ed81d93bc3ea2914fb0b3ce0e96d3446c16b3ed80adda1d00cbb7",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "inherited tint/body font",
+      "acceptance_evidence": [
+        "../foundation-independent-review/manifest.json",
+        "../consumer-boundaries/fragment-acceptance.json"
+      ]
+    },
+    {
+      "id": "settings:FormattingSettingsTab-01",
+      "source": "Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift",
+      "relativeHeader": "@@ -17,24 +17,5 @@ import SwiftUI",
+      "hunk_sha256": "1961e3477e330515390384f8145ad1903f11c534a3dfc648714c763b442cd478",
+      "artifact": "../settings-display-boundaries/hunks/FormattingSettingsTab-01.hunk.txt",
+      "artifact_sha256": "1c2c913e492fef5b6c4eb457529341259dbdedc0aefb8020b2b7edd27f38cb8d",
+      "observed_source_sha256": "4fcad108cbb67cfbc5abfaefee6520f969b65904a7dad0e839dbc2355b3450a4",
+      "observed_HEAD_sha256": "c750e16bd51c4f8f40875d2122b3a89d57dfe3a02f40cd2a08ec7f0c4eb64d69",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "Native List/sections/profile/header/compact row/Menu/text-action producer; preserving existing bindings/actions.",
+      "acceptance_evidence": [
+        "../settings-display-independent-review/manifest.json"
+      ]
+    },
+    {
+      "id": "settings:FormattingSettingsTab-02",
+      "source": "Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift",
+      "relativeHeader": "@@ -41,0 +23 @@ struct FormattingSettingsTab: View {",
+      "hunk_sha256": "248a336d27515c722684588ecb644bfd6977811b1c0c339729210fc8a37c0ccf",
+      "artifact": "../settings-display-boundaries/hunks/FormattingSettingsTab-02.hunk.txt",
+      "artifact_sha256": "1420cf445ec88321394e399f74e7a28ce61966d5be5b65d0578660c61f8ee15d",
+      "observed_source_sha256": "4fcad108cbb67cfbc5abfaefee6520f969b65904a7dad0e839dbc2355b3450a4",
+      "observed_HEAD_sha256": "c750e16bd51c4f8f40875d2122b3a89d57dfe3a02f40cd2a08ec7f0c4eb64d69",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "Native List/sections/profile/header/compact row/Menu/text-action producer; preserving existing bindings/actions.",
+      "acceptance_evidence": [
+        "../settings-display-independent-review/manifest.json"
+      ]
+    },
+    {
+      "id": "settings:FormattingSettingsTab-03",
+      "source": "Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift",
+      "relativeHeader": "@@ -53 +35 @@ struct FormattingSettingsTab: View {",
+      "hunk_sha256": "3fd9bcf46354add95cc60178161bd5ca96517693e051d0cdfe1af940744c00f0",
+      "artifact": "../settings-display-boundaries/hunks/FormattingSettingsTab-03.hunk.txt",
+      "artifact_sha256": "9477724fee88073deafa04dbffda95761c39debb5f451ce28a6951dafc0d4cbd",
+      "observed_source_sha256": "4fcad108cbb67cfbc5abfaefee6520f969b65904a7dad0e839dbc2355b3450a4",
+      "observed_HEAD_sha256": "c750e16bd51c4f8f40875d2122b3a89d57dfe3a02f40cd2a08ec7f0c4eb64d69",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "Native List/sections/profile/header/compact row/Menu/text-action producer; preserving existing bindings/actions.",
+      "acceptance_evidence": [
+        "../settings-display-independent-review/manifest.json"
+      ]
+    },
+    {
+      "id": "settings:FormattingSettingsTab-04",
+      "source": "Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift",
+      "relativeHeader": "@@ -55,2 +37,2 @@ struct FormattingSettingsTab: View {",
+      "hunk_sha256": "dfa7b70473e860052727588904532dfd66badb17e3ba30aa4bb5f860d0f66db8",
+      "artifact": "../settings-display-boundaries/hunks/FormattingSettingsTab-04.hunk.txt",
+      "artifact_sha256": "8cfcae8a2cd6178b33c331693f7de81da292905aceff4d2175b03baaa357190c",
+      "observed_source_sha256": "4fcad108cbb67cfbc5abfaefee6520f969b65904a7dad0e839dbc2355b3450a4",
+      "observed_HEAD_sha256": "c750e16bd51c4f8f40875d2122b3a89d57dfe3a02f40cd2a08ec7f0c4eb64d69",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "Native List/sections/profile/header/compact row/Menu/text-action producer; preserving existing bindings/actions.",
+      "acceptance_evidence": [
+        "../settings-display-independent-review/manifest.json"
+      ]
+    },
+    {
+      "id": "settings:FormattingSettingsTab-05",
+      "source": "Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift",
+      "relativeHeader": "@@ -58,5 +40,8 @@ struct FormattingSettingsTab: View {",
+      "hunk_sha256": "627e9a22553038248acf556ff478207397ef3e731bdbc057f23525def44d4f41",
+      "artifact": "../settings-display-boundaries/hunks/FormattingSettingsTab-05.hunk.txt",
+      "artifact_sha256": "8a247a4f0114011aac0db4328ff97a519ddb70ddf5e9ea2000091afd1bf952a7",
+      "observed_source_sha256": "4fcad108cbb67cfbc5abfaefee6520f969b65904a7dad0e839dbc2355b3450a4",
+      "observed_HEAD_sha256": "c750e16bd51c4f8f40875d2122b3a89d57dfe3a02f40cd2a08ec7f0c4eb64d69",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "Native List/sections/profile/header/compact row/Menu/text-action producer; preserving existing bindings/actions.",
+      "acceptance_evidence": [
+        "../settings-display-independent-review/manifest.json"
+      ]
+    },
+    {
+      "id": "settings:FormattingSettingsTab-06",
+      "source": "Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift",
+      "relativeHeader": "@@ -65 +50 @@ struct FormattingSettingsTab: View {",
+      "hunk_sha256": "8c7d6604cc061f0634e97abca41f67a2fcf8511b3f432aa52f7ad4cfe0cce0c5",
+      "artifact": "../settings-display-boundaries/hunks/FormattingSettingsTab-06.hunk.txt",
+      "artifact_sha256": "03b0c7fe0c3912305533dcb1573dc1fad4249c7c7b915bc2cb059d6c2a646dc3",
+      "observed_source_sha256": "4fcad108cbb67cfbc5abfaefee6520f969b65904a7dad0e839dbc2355b3450a4",
+      "observed_HEAD_sha256": "c750e16bd51c4f8f40875d2122b3a89d57dfe3a02f40cd2a08ec7f0c4eb64d69",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "Native List/sections/profile/header/compact row/Menu/text-action producer; preserving existing bindings/actions.",
+      "acceptance_evidence": [
+        "../settings-display-independent-review/manifest.json"
+      ]
+    },
+    {
+      "id": "settings:FormattingSettingsTab-07",
+      "source": "Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift",
+      "relativeHeader": "@@ -90 +75,3 @@ struct FormattingSettingsTab: View {",
+      "hunk_sha256": "e0c8ab4fc359dbbea3db6a8d02665cc5125b541c6b16e34122fee56aeba01ae4",
+      "artifact": "../settings-display-boundaries/hunks/FormattingSettingsTab-07.hunk.txt",
+      "artifact_sha256": "37ac6c5f444055d88748ecbe9f105b2be2ee28f688113ccfc5553c40743cfebd",
+      "observed_source_sha256": "4fcad108cbb67cfbc5abfaefee6520f969b65904a7dad0e839dbc2355b3450a4",
+      "observed_HEAD_sha256": "c750e16bd51c4f8f40875d2122b3a89d57dfe3a02f40cd2a08ec7f0c4eb64d69",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "Native List/sections/profile/header/compact row/Menu/text-action producer; preserving existing bindings/actions.",
+      "acceptance_evidence": [
+        "../settings-display-independent-review/manifest.json"
+      ]
+    },
+    {
+      "id": "settings:FormattingSettingsTab-08",
+      "source": "Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift",
+      "relativeHeader": "@@ -91,0 +79,5 @@ struct FormattingSettingsTab: View {",
+      "hunk_sha256": "d3b2069cc8d707bab55f45ac1b8ea358134360320b86fa89b94dd2c357cbe5a4",
+      "artifact": "../settings-display-boundaries/hunks/FormattingSettingsTab-08.hunk.txt",
+      "artifact_sha256": "95e0964f14eb6560eecc8ebc89fcd66239bbbb09b9e24cc087fb8e68a2c126ea",
+      "observed_source_sha256": "4fcad108cbb67cfbc5abfaefee6520f969b65904a7dad0e839dbc2355b3450a4",
+      "observed_HEAD_sha256": "c750e16bd51c4f8f40875d2122b3a89d57dfe3a02f40cd2a08ec7f0c4eb64d69",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "Native List/sections/profile/header/compact row/Menu/text-action producer; preserving existing bindings/actions.",
+      "acceptance_evidence": [
+        "../settings-display-independent-review/manifest.json"
+      ]
+    },
+    {
+      "id": "settings:FormattingSettingsTab-09",
+      "source": "Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift",
+      "relativeHeader": "@@ -94,11 +85,0 @@ struct FormattingSettingsTab: View {",
+      "hunk_sha256": "e2054e725449414b3fb1bdbb6a13877dad9a0989d163f72334bd686a2069ab21",
+      "artifact": "../settings-display-boundaries/hunks/FormattingSettingsTab-09.hunk.txt",
+      "artifact_sha256": "0ac6b53fa650b739263e2dcc46437d8fdf120b4d98f9feee153303a4a1a2e9ea",
+      "observed_source_sha256": "4fcad108cbb67cfbc5abfaefee6520f969b65904a7dad0e839dbc2355b3450a4",
+      "observed_HEAD_sha256": "c750e16bd51c4f8f40875d2122b3a89d57dfe3a02f40cd2a08ec7f0c4eb64d69",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "Native List/sections/profile/header/compact row/Menu/text-action producer; preserving existing bindings/actions.",
+      "acceptance_evidence": [
+        "../settings-display-independent-review/manifest.json"
+      ]
+    },
+    {
+      "id": "settings:FormattingSettingsTab-10",
+      "source": "Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift",
+      "relativeHeader": "@@ -106,4 +87,15 @@ struct FormattingSettingsTab: View {",
+      "hunk_sha256": "262c139680290cc6e9301c8303f99be326534f18da6b5815a156518400b1ebde",
+      "artifact": "../settings-display-boundaries/hunks/FormattingSettingsTab-10.hunk.txt",
+      "artifact_sha256": "0f02de3caea0255bbb1da7e955bb1838d9168c802bf41a68c9eb34d8c5ebfc7c",
+      "observed_source_sha256": "4fcad108cbb67cfbc5abfaefee6520f969b65904a7dad0e839dbc2355b3450a4",
+      "observed_HEAD_sha256": "c750e16bd51c4f8f40875d2122b3a89d57dfe3a02f40cd2a08ec7f0c4eb64d69",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "Native List/sections/profile/header/compact row/Menu/text-action producer; preserving existing bindings/actions.",
+      "acceptance_evidence": [
+        "../settings-display-independent-review/manifest.json"
+      ]
+    },
+    {
+      "id": "settings:FormattingSettingsTab-11",
+      "source": "Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift",
+      "relativeHeader": "@@ -114,7 +106,9 @@ struct FormattingSettingsTab: View {",
+      "hunk_sha256": "4c261d85919fa9c32493f4cc8d0271f4b06ba1bdc57ce101cbeaca0e84c856bb",
+      "artifact": "../settings-display-boundaries/hunks/FormattingSettingsTab-11.hunk.txt",
+      "artifact_sha256": "8e24a1b0aca4e7343ea898db4da898022d4b8699496f2e88425298ab71824660",
+      "observed_source_sha256": "4fcad108cbb67cfbc5abfaefee6520f969b65904a7dad0e839dbc2355b3450a4",
+      "observed_HEAD_sha256": "c750e16bd51c4f8f40875d2122b3a89d57dfe3a02f40cd2a08ec7f0c4eb64d69",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "Native List/sections/profile/header/compact row/Menu/text-action producer; preserving existing bindings/actions.",
+      "acceptance_evidence": [
+        "../settings-display-independent-review/manifest.json"
+      ]
+    },
+    {
+      "id": "settings:FormattingSettingsTab-12",
+      "source": "Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift",
+      "relativeHeader": "@@ -122,2 +115,0 @@ struct FormattingSettingsTab: View {",
+      "hunk_sha256": "f6380a510e9dc35b0ec9ef984681d698dc1235bef0d2f80cb917877b0d93252c",
+      "artifact": "../settings-display-boundaries/hunks/FormattingSettingsTab-12.hunk.txt",
+      "artifact_sha256": "fa08520dfc0d660d089137f4bd69512530b87995c18aa4bcd8e3c5dfb7b9e326",
+      "observed_source_sha256": "4fcad108cbb67cfbc5abfaefee6520f969b65904a7dad0e839dbc2355b3450a4",
+      "observed_HEAD_sha256": "c750e16bd51c4f8f40875d2122b3a89d57dfe3a02f40cd2a08ec7f0c4eb64d69",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "Native List/sections/profile/header/compact row/Menu/text-action producer; preserving existing bindings/actions.",
+      "acceptance_evidence": [
+        "../settings-display-independent-review/manifest.json"
+      ]
+    },
+    {
+      "id": "settings:FormattingSettingsTab-13",
+      "source": "Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift",
+      "relativeHeader": "@@ -125,3 +117,27 @@ struct FormattingSettingsTab: View {",
+      "hunk_sha256": "59b2c86748dfff74587a9fa34bf1881da4e2788240cb3148884e20bddf68eca0",
+      "artifact": "../settings-display-boundaries/hunks/FormattingSettingsTab-13.hunk.txt",
+      "artifact_sha256": "53110184d7bc2f8fc11a3cae597ac3a1cf5b60c94fd0e2136a41f3c54d8146c2",
+      "observed_source_sha256": "4fcad108cbb67cfbc5abfaefee6520f969b65904a7dad0e839dbc2355b3450a4",
+      "observed_HEAD_sha256": "c750e16bd51c4f8f40875d2122b3a89d57dfe3a02f40cd2a08ec7f0c4eb64d69",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "Native List/sections/profile/header/compact row/Menu/text-action producer; preserving existing bindings/actions.",
+      "acceptance_evidence": [
+        "../settings-display-independent-review/manifest.json"
+      ]
+    },
+    {
+      "id": "settings:FormattingSettingsTab-14",
+      "source": "Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift",
+      "relativeHeader": "@@ -128,0 +145,2 @@ struct FormattingSettingsTab: View {",
+      "hunk_sha256": "67f7279ee2a2ecef2634dbf4e75f5249453a8c51b2d95eedcc7dee41951b1a24",
+      "artifact": "../settings-display-boundaries/hunks/FormattingSettingsTab-14.hunk.txt",
+      "artifact_sha256": "aaf7f266566fc12555517a0277a9095b4f7a0ab92cd8f4a54b7f8aa20cfe3ea8",
+      "observed_source_sha256": "4fcad108cbb67cfbc5abfaefee6520f969b65904a7dad0e839dbc2355b3450a4",
+      "observed_HEAD_sha256": "c750e16bd51c4f8f40875d2122b3a89d57dfe3a02f40cd2a08ec7f0c4eb64d69",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "Native List/sections/profile/header/compact row/Menu/text-action producer; preserving existing bindings/actions.",
+      "acceptance_evidence": [
+        "../settings-display-independent-review/manifest.json"
+      ]
+    },
+    {
+      "id": "settings:FormattingSettingsTab-15",
+      "source": "Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift",
+      "relativeHeader": "@@ -149,0 +168 @@ struct FormattingSettingsTab: View {",
+      "hunk_sha256": "117881f4df7e51e815bb0fb7ac60060d59e907bdc9673ce0ff66a43d07eaaef6",
+      "artifact": "../settings-display-boundaries/hunks/FormattingSettingsTab-15.hunk.txt",
+      "artifact_sha256": "82ebfa8b64ba85dabfd2f520462739563d5baf024064006c299ee0df4053973a",
+      "observed_source_sha256": "4fcad108cbb67cfbc5abfaefee6520f969b65904a7dad0e839dbc2355b3450a4",
+      "observed_HEAD_sha256": "c750e16bd51c4f8f40875d2122b3a89d57dfe3a02f40cd2a08ec7f0c4eb64d69",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "Native List/sections/profile/header/compact row/Menu/text-action producer; preserving existing bindings/actions.",
+      "acceptance_evidence": [
+        "../settings-display-independent-review/manifest.json"
+      ]
+    },
+    {
+      "id": "settings:FormattingSettingsTab-16",
+      "source": "Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift",
+      "relativeHeader": "@@ -160,0 +180 @@ struct FormattingSettingsTab: View {",
+      "hunk_sha256": "36d6411e3fda078fbd93b751e3255c30f183bb2a21e1242a0fea35be8e766aac",
+      "artifact": "../settings-display-boundaries/hunks/FormattingSettingsTab-16.hunk.txt",
+      "artifact_sha256": "d55c77c7d78a0870a81c44f0cf58954c49dcf22ad1ceea83509b8a3fa714a78a",
+      "observed_source_sha256": "4fcad108cbb67cfbc5abfaefee6520f969b65904a7dad0e839dbc2355b3450a4",
+      "observed_HEAD_sha256": "c750e16bd51c4f8f40875d2122b3a89d57dfe3a02f40cd2a08ec7f0c4eb64d69",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "Native List/sections/profile/header/compact row/Menu/text-action producer; preserving existing bindings/actions.",
+      "acceptance_evidence": [
+        "../settings-display-independent-review/manifest.json"
+      ]
+    },
+    {
+      "id": "settings:FormattingSettingsTab-17",
+      "source": "Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift",
+      "relativeHeader": "@@ -161,0 +182,3 @@ struct FormattingSettingsTab: View {",
+      "hunk_sha256": "9d6926d7c2f9120eccb3bb2605f93a10d8579ade54ca123a4f3ab0c01b466aad",
+      "artifact": "../settings-display-boundaries/hunks/FormattingSettingsTab-17.hunk.txt",
+      "artifact_sha256": "7b9b3cca13b9479c147d627301782805377b0b763bb9557b20a02efc81d2dfa7",
+      "observed_source_sha256": "4fcad108cbb67cfbc5abfaefee6520f969b65904a7dad0e839dbc2355b3450a4",
+      "observed_HEAD_sha256": "c750e16bd51c4f8f40875d2122b3a89d57dfe3a02f40cd2a08ec7f0c4eb64d69",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "Native List/sections/profile/header/compact row/Menu/text-action producer; preserving existing bindings/actions.",
+      "acceptance_evidence": [
+        "../settings-display-independent-review/manifest.json"
+      ]
+    },
+    {
+      "id": "settings:FormattingSettingsTab-18",
+      "source": "Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift",
+      "relativeHeader": "@@ -164,16 +186,0 @@ struct FormattingSettingsTab: View {",
+      "hunk_sha256": "dfc82e7e14cc4f47baee33194f033f301ac5bba1995d0f1e990eac0e625d062c",
+      "artifact": "../settings-display-boundaries/hunks/FormattingSettingsTab-18.hunk.txt",
+      "artifact_sha256": "2fac308580be6c3e09d0ad6443c74d0f1558963606701d3c48d7cad653c039cc",
+      "observed_source_sha256": "4fcad108cbb67cfbc5abfaefee6520f969b65904a7dad0e839dbc2355b3450a4",
+      "observed_HEAD_sha256": "c750e16bd51c4f8f40875d2122b3a89d57dfe3a02f40cd2a08ec7f0c4eb64d69",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "Native List/sections/profile/header/compact row/Menu/text-action producer; preserving existing bindings/actions.",
+      "acceptance_evidence": [
+        "../settings-display-independent-review/manifest.json"
+      ]
+    },
+    {
+      "id": "settings:FormattingSettingsTab-19",
+      "source": "Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift",
+      "relativeHeader": "@@ -182,0 +190,20 @@ struct FormattingSettingsTab: View {",
+      "hunk_sha256": "721d7fbe66bea9fb9a924305ec3f9d4b7038e0d99d0c4105a1c0c5e86cb4f5da",
+      "artifact": "../settings-display-boundaries/hunks/FormattingSettingsTab-19.hunk.txt",
+      "artifact_sha256": "bf3480c7eaa0d8b2f764174c94c839caf94897795fb5d1c5d7b00abaf31f7da0",
+      "observed_source_sha256": "4fcad108cbb67cfbc5abfaefee6520f969b65904a7dad0e839dbc2355b3450a4",
+      "observed_HEAD_sha256": "c750e16bd51c4f8f40875d2122b3a89d57dfe3a02f40cd2a08ec7f0c4eb64d69",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "Native List/sections/profile/header/compact row/Menu/text-action producer; preserving existing bindings/actions.",
+      "acceptance_evidence": [
+        "../settings-display-independent-review/manifest.json"
+      ]
+    },
+    {
+      "id": "settings:FormattingSettingsTab-20",
+      "source": "Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift",
+      "relativeHeader": "@@ -185,0 +213,18 @@ struct FormattingSettingsTab: View {",
+      "hunk_sha256": "feff21d837bf3bf6704ca7e6934580fc4ae6cf4b11627ea09d65b79de417c7a4",
+      "artifact": "../settings-display-boundaries/hunks/FormattingSettingsTab-20.hunk.txt",
+      "artifact_sha256": "4d6dfea1fe1f92630325b40cfd339af7942b06d74773abccdf0fc35d50cbf964",
+      "observed_source_sha256": "4fcad108cbb67cfbc5abfaefee6520f969b65904a7dad0e839dbc2355b3450a4",
+      "observed_HEAD_sha256": "c750e16bd51c4f8f40875d2122b3a89d57dfe3a02f40cd2a08ec7f0c4eb64d69",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "Native List/sections/profile/header/compact row/Menu/text-action producer; preserving existing bindings/actions.",
+      "acceptance_evidence": [
+        "../settings-display-independent-review/manifest.json"
+      ]
+    },
+    {
+      "id": "settings:FormattingSettingsTab-21",
+      "source": "Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift",
+      "relativeHeader": "@@ -187,4 +231,0 @@ struct FormattingSettingsTab: View {",
+      "hunk_sha256": "0c1ebc2980de005d948e0ca54c3ae27f859cdb89418562153da250a9fad054e8",
+      "artifact": "../settings-display-boundaries/hunks/FormattingSettingsTab-21.hunk.txt",
+      "artifact_sha256": "c36ce42e79320754bc657099c3aeab568bfc7c2bb8d723d7d5eadc91637dca4c",
+      "observed_source_sha256": "4fcad108cbb67cfbc5abfaefee6520f969b65904a7dad0e839dbc2355b3450a4",
+      "observed_HEAD_sha256": "c750e16bd51c4f8f40875d2122b3a89d57dfe3a02f40cd2a08ec7f0c4eb64d69",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "Native List/sections/profile/header/compact row/Menu/text-action producer; preserving existing bindings/actions.",
+      "acceptance_evidence": [
+        "../settings-display-independent-review/manifest.json"
+      ]
+    },
+    {
+      "id": "settings:FormattingSettingsTab-22",
+      "source": "Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift",
+      "relativeHeader": "@@ -211 +252 @@ struct FormattingSettingsTab: View {",
+      "hunk_sha256": "c19b24dcd9d55b16d6e2a98686242f3df2b116576f16d69ad65059a6a38de2c3",
+      "artifact": "../settings-display-boundaries/hunks/FormattingSettingsTab-22.hunk.txt",
+      "artifact_sha256": "703e565b5941b16fe5218d8c334169e62253ca5a1043783809f5b8cea4d76ba3",
+      "observed_source_sha256": "4fcad108cbb67cfbc5abfaefee6520f969b65904a7dad0e839dbc2355b3450a4",
+      "observed_HEAD_sha256": "c750e16bd51c4f8f40875d2122b3a89d57dfe3a02f40cd2a08ec7f0c4eb64d69",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "Native List/sections/profile/header/compact row/Menu/text-action producer; preserving existing bindings/actions.",
+      "acceptance_evidence": [
+        "../settings-display-independent-review/manifest.json"
+      ]
+    },
+    {
+      "id": "settings:FormattingSettingsTab-23",
+      "source": "Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift",
+      "relativeHeader": "@@ -213,3 +253,0 @@ struct FormattingSettingsTab: View {",
+      "hunk_sha256": "43eaa7e300d3b4924c380b61fbf1523dcf59ebe7ddd9b569c580e3d86fda7ae3",
+      "artifact": "../settings-display-boundaries/hunks/FormattingSettingsTab-23.hunk.txt",
+      "artifact_sha256": "c92a83ec1bf6f4acc8b910b87b1f91cfeeec7c6d929fa7a3c3377f6de1d3852f",
+      "observed_source_sha256": "4fcad108cbb67cfbc5abfaefee6520f969b65904a7dad0e839dbc2355b3450a4",
+      "observed_HEAD_sha256": "c750e16bd51c4f8f40875d2122b3a89d57dfe3a02f40cd2a08ec7f0c4eb64d69",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "Native List/sections/profile/header/compact row/Menu/text-action producer; preserving existing bindings/actions.",
+      "acceptance_evidence": [
+        "../settings-display-independent-review/manifest.json"
+      ]
+    },
+    {
+      "id": "settings:FormattingSettingsTab-24",
+      "source": "Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift",
+      "relativeHeader": "@@ -221 +259,2 @@ struct FormattingSettingsTab: View {",
+      "hunk_sha256": "c78b6e8efb48280e3d79f89f88e9c79a135ee8669009f23abb56f44114b3daaf",
+      "artifact": "../settings-display-boundaries/hunks/FormattingSettingsTab-24.hunk.txt",
+      "artifact_sha256": "b2fce9e83755a5e93f92efe847653a5c0b8be2fef2cda7c5a8a5fcb852714e2c",
+      "observed_source_sha256": "4fcad108cbb67cfbc5abfaefee6520f969b65904a7dad0e839dbc2355b3450a4",
+      "observed_HEAD_sha256": "c750e16bd51c4f8f40875d2122b3a89d57dfe3a02f40cd2a08ec7f0c4eb64d69",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "Native List/sections/profile/header/compact row/Menu/text-action producer; preserving existing bindings/actions.",
+      "acceptance_evidence": [
+        "../settings-display-independent-review/manifest.json"
+      ]
+    },
+    {
+      "id": "settings:FormattingSettingsTab-25",
+      "source": "Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift",
+      "relativeHeader": "@@ -223,17 +262,13 @@ struct FormattingSettingsTab: View {",
+      "hunk_sha256": "1b13a79ab88f1ece6fc566ea555b11c6d43bfe717aceedc35c766f961d84f3c1",
+      "artifact": "../settings-display-boundaries/hunks/FormattingSettingsTab-25.hunk.txt",
+      "artifact_sha256": "af71dc2d84fe3af1d5bdeebc1ba9478d2268269491c99e32424bc6b237b15695",
+      "observed_source_sha256": "4fcad108cbb67cfbc5abfaefee6520f969b65904a7dad0e839dbc2355b3450a4",
+      "observed_HEAD_sha256": "c750e16bd51c4f8f40875d2122b3a89d57dfe3a02f40cd2a08ec7f0c4eb64d69",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "Native List/sections/profile/header/compact row/Menu/text-action producer; preserving existing bindings/actions.",
+      "acceptance_evidence": [
+        "../settings-display-independent-review/manifest.json"
+      ]
+    },
+    {
+      "id": "settings:FormattingSettingsTab-26",
+      "source": "Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift",
+      "relativeHeader": "@@ -241,3 +275,0 @@ struct FormattingSettingsTab: View {",
+      "hunk_sha256": "870e8bd4b205d9416bd72c42aff2ccbc1807b74c3cdc57d726fb7668c33a23e6",
+      "artifact": "../settings-display-boundaries/hunks/FormattingSettingsTab-26.hunk.txt",
+      "artifact_sha256": "9bfa08e47b8bdb31661e9d16deb8eb2d09a2c959c6b04be4da7a78e3565aff10",
+      "observed_source_sha256": "4fcad108cbb67cfbc5abfaefee6520f969b65904a7dad0e839dbc2355b3450a4",
+      "observed_HEAD_sha256": "c750e16bd51c4f8f40875d2122b3a89d57dfe3a02f40cd2a08ec7f0c4eb64d69",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "Native List/sections/profile/header/compact row/Menu/text-action producer; preserving existing bindings/actions.",
+      "acceptance_evidence": [
+        "../settings-display-independent-review/manifest.json"
+      ]
+    },
+    {
+      "id": "settings:FormattingSettingsTab-27",
+      "source": "Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift",
+      "relativeHeader": "@@ -247,0 +280,15 @@ struct FormattingSettingsTab: View {",
+      "hunk_sha256": "6f9f26436df23be9e9031a1710a7febb721db65418a6715daf6c408fe3d843d7",
+      "artifact": "../settings-display-boundaries/hunks/FormattingSettingsTab-27.hunk.txt",
+      "artifact_sha256": "c26fbea9d657894b83f4a25276b954760f60a289d3c44c504693af0306a016b3",
+      "observed_source_sha256": "4fcad108cbb67cfbc5abfaefee6520f969b65904a7dad0e839dbc2355b3450a4",
+      "observed_HEAD_sha256": "c750e16bd51c4f8f40875d2122b3a89d57dfe3a02f40cd2a08ec7f0c4eb64d69",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "Native List/sections/profile/header/compact row/Menu/text-action producer; preserving existing bindings/actions.",
+      "acceptance_evidence": [
+        "../settings-display-independent-review/manifest.json"
+      ]
+    },
+    {
+      "id": "settings:FormattingSettingsTab-28",
+      "source": "Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift",
+      "relativeHeader": "@@ -268,3 +314,0 @@ struct FormattingSettingsTab: View {",
+      "hunk_sha256": "440d1b15a6672ac8703c2e787841ba547edd8897037f84f60492e9f3bb273241",
+      "artifact": "../settings-display-boundaries/hunks/FormattingSettingsTab-28.hunk.txt",
+      "artifact_sha256": "9719414fe9529e599b78854888f839a44a07c04daef176e66f55460b3a2c2b05",
+      "observed_source_sha256": "4fcad108cbb67cfbc5abfaefee6520f969b65904a7dad0e839dbc2355b3450a4",
+      "observed_HEAD_sha256": "c750e16bd51c4f8f40875d2122b3a89d57dfe3a02f40cd2a08ec7f0c4eb64d69",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "Native List/sections/profile/header/compact row/Menu/text-action producer; preserving existing bindings/actions.",
+      "acceptance_evidence": [
+        "../settings-display-independent-review/manifest.json"
+      ]
+    },
+    {
+      "id": "settings:FormattingSettingsTab-29",
+      "source": "Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift",
+      "relativeHeader": "@@ -272 +315,0 @@ struct FormattingSettingsTab: View {",
+      "hunk_sha256": "d3e1272d774d301be10bb1801f16e96af995210e89491253b6cd3bd00edf03e1",
+      "artifact": "../settings-display-boundaries/hunks/FormattingSettingsTab-29.hunk.txt",
+      "artifact_sha256": "063ff20749737d6f0e4d612df1984b6cf738ac42db4e2bfaf330ded8f4c7d0c9",
+      "observed_source_sha256": "4fcad108cbb67cfbc5abfaefee6520f969b65904a7dad0e839dbc2355b3450a4",
+      "observed_HEAD_sha256": "c750e16bd51c4f8f40875d2122b3a89d57dfe3a02f40cd2a08ec7f0c4eb64d69",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "Native List/sections/profile/header/compact row/Menu/text-action producer; preserving existing bindings/actions.",
+      "acceptance_evidence": [
+        "../settings-display-independent-review/manifest.json"
+      ]
+    },
+    {
+      "id": "settings:FormattingSettingsTab-30",
+      "source": "Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift",
+      "relativeHeader": "@@ -308,7 +351,15 @@ private struct OutputProfileRow: View {",
+      "hunk_sha256": "229107c8ff6a3b525ef24ecd9fb968e8b1226b8cf8323b97eaec346a36582eff",
+      "artifact": "../settings-display-boundaries/hunks/FormattingSettingsTab-30.hunk.txt",
+      "artifact_sha256": "77e4700f69a8636b0ea00bad293e614c558a72c3ea73b87676b5c71477ca0886",
+      "observed_source_sha256": "4fcad108cbb67cfbc5abfaefee6520f969b65904a7dad0e839dbc2355b3450a4",
+      "observed_HEAD_sha256": "c750e16bd51c4f8f40875d2122b3a89d57dfe3a02f40cd2a08ec7f0c4eb64d69",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "Native List/sections/profile/header/compact row/Menu/text-action producer; preserving existing bindings/actions.",
+      "acceptance_evidence": [
+        "../settings-display-independent-review/manifest.json"
+      ]
+    },
+    {
+      "id": "settings:FormattingSettingsTab-31",
+      "source": "Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift",
+      "relativeHeader": "@@ -316,13 +367,21 @@ private struct OutputProfileRow: View {",
+      "hunk_sha256": "fdcf4c2e244819f46cd1f6d4e45dd1a7361db0576f9049c3351a8f0644ab20a2",
+      "artifact": "../settings-display-boundaries/hunks/FormattingSettingsTab-31.hunk.txt",
+      "artifact_sha256": "81a709c7f48e0a45dcea41aec4061c8cce904d681346957e40b476e71ac5fa0d",
+      "observed_source_sha256": "4fcad108cbb67cfbc5abfaefee6520f969b65904a7dad0e839dbc2355b3450a4",
+      "observed_HEAD_sha256": "c750e16bd51c4f8f40875d2122b3a89d57dfe3a02f40cd2a08ec7f0c4eb64d69",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "Native List/sections/profile/header/compact row/Menu/text-action producer; preserving existing bindings/actions.",
+      "acceptance_evidence": [
+        "../settings-display-independent-review/manifest.json"
+      ]
+    },
+    {
+      "id": "settings:FormattingSettingsTab-32",
+      "source": "Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift",
+      "relativeHeader": "@@ -330 +388,0 @@ private struct OutputProfileRow: View {",
+      "hunk_sha256": "e859dad5c409539cf7bf2d54e23d4153bc6f1d00c52cefa9cc4570d47985760c",
+      "artifact": "../settings-display-boundaries/hunks/FormattingSettingsTab-32.hunk.txt",
+      "artifact_sha256": "f2a140aeb76865cc47d55554eb9101cf83fd68841a85bbf73564ea9f7e7c37ec",
+      "observed_source_sha256": "4fcad108cbb67cfbc5abfaefee6520f969b65904a7dad0e839dbc2355b3450a4",
+      "observed_HEAD_sha256": "c750e16bd51c4f8f40875d2122b3a89d57dfe3a02f40cd2a08ec7f0c4eb64d69",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "Native List/sections/profile/header/compact row/Menu/text-action producer; preserving existing bindings/actions.",
+      "acceptance_evidence": [
+        "../settings-display-independent-review/manifest.json"
+      ]
+    },
+    {
+      "id": "settings:FormattingSettingsTab-33",
+      "source": "Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift",
+      "relativeHeader": "@@ -335,5 +393,26 @@ private struct OutputProfileRow: View {",
+      "hunk_sha256": "0db680fd07d0c3920d6dee730797f8aa25ebdcae177f12cd5ad7ee47e87acdb5",
+      "artifact": "../settings-display-boundaries/hunks/FormattingSettingsTab-33.hunk.txt",
+      "artifact_sha256": "5f4d6e0ad13380ab8e7306a600654845f1f61304c894ecd397f3f31f07d5e964",
+      "observed_source_sha256": "4fcad108cbb67cfbc5abfaefee6520f969b65904a7dad0e839dbc2355b3450a4",
+      "observed_HEAD_sha256": "c750e16bd51c4f8f40875d2122b3a89d57dfe3a02f40cd2a08ec7f0c4eb64d69",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "Native List/sections/profile/header/compact row/Menu/text-action producer; preserving existing bindings/actions.",
+      "acceptance_evidence": [
+        "../settings-display-independent-review/manifest.json"
+      ]
+    },
+    {
+      "id": "settings:FormattingSettingsTab-34",
+      "source": "Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift",
+      "relativeHeader": "@@ -355 +434,8 @@ private struct OutputProfileRow: View {",
+      "hunk_sha256": "ec63c94eb5fbf1a5a688d4f20008ef483f86b590726f6c5dbe466c012f253180",
+      "artifact": "../settings-display-boundaries/hunks/FormattingSettingsTab-34.hunk.txt",
+      "artifact_sha256": "159c946a16359e3a182afee1928453e761d19a9fac1e4ed6a00f4a2e6081a7fd",
+      "observed_source_sha256": "4fcad108cbb67cfbc5abfaefee6520f969b65904a7dad0e839dbc2355b3450a4",
+      "observed_HEAD_sha256": "c750e16bd51c4f8f40875d2122b3a89d57dfe3a02f40cd2a08ec7f0c4eb64d69",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "Native List/sections/profile/header/compact row/Menu/text-action producer; preserving existing bindings/actions.",
+      "acceptance_evidence": [
+        "../settings-display-independent-review/manifest.json"
+      ]
+    },
+    {
+      "id": "settings:FormattingSettingsTab-35",
+      "source": "Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift",
+      "relativeHeader": "@@ -358,2 +444 @@ private struct OutputProfileRow: View {",
+      "hunk_sha256": "e03f4367e4f2be76ca973de9bda90052cf8fa4652079e89a01c258efd8338482",
+      "artifact": "../settings-display-boundaries/hunks/FormattingSettingsTab-35.hunk.txt",
+      "artifact_sha256": "48c02b9be99a1ed02f2122a978b50042ba137301d539fee23433d3211a88ebfa",
+      "observed_source_sha256": "4fcad108cbb67cfbc5abfaefee6520f969b65904a7dad0e839dbc2355b3450a4",
+      "observed_HEAD_sha256": "c750e16bd51c4f8f40875d2122b3a89d57dfe3a02f40cd2a08ec7f0c4eb64d69",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "Native List/sections/profile/header/compact row/Menu/text-action producer; preserving existing bindings/actions.",
+      "acceptance_evidence": [
+        "../settings-display-independent-review/manifest.json"
+      ]
+    },
+    {
+      "id": "settings:ComputerBrowserReadiness-02",
+      "source": "Sources/NextNotes/UI/Settings/ComputerBrowserReadiness.swift",
+      "relativeHeader": "@@ -260,7 +261,5 @@ private struct ReadinessRow: View {",
+      "hunk_sha256": "e391a866f2a94e29f5e71cc0b8958589288cfb18faf6ac74aeb5a2a59dc40fc3",
+      "artifact": "../settings-display-boundaries/hunks/ComputerBrowserReadiness-02.hunk.txt",
+      "artifact_sha256": "28e28ce9603d7e77f8c8830c8b9610e57a7d5b8479bebc4737ffd3dfb99cc3f2",
+      "observed_source_sha256": "513e885becca8306b95a13bde2fea217106d0fddaa086f55766ac30ca1b6f5df",
+      "observed_HEAD_sha256": "5d49ce2ef6d0f34e8fa6508e236d91203d6357f0ebeba9f4dc49d964de73a23a",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "Native List/sections/profile/header/compact row/Menu/text-action producer; preserving existing bindings/actions.",
+      "acceptance_evidence": [
+        "../settings-display-independent-review/manifest.json"
+      ]
+    },
+    {
+      "id": "settings:ComputerBrowserReadiness-03",
+      "source": "Sources/NextNotes/UI/Settings/ComputerBrowserReadiness.swift",
+      "relativeHeader": "@@ -268,6 +267,3 @@ private struct ReadinessRow: View {",
+      "hunk_sha256": "8ee8462594925f4483700db71a805507a9ba005c4862bf50f8f9b00b9a98d4f3",
+      "artifact": "../settings-display-boundaries/hunks/ComputerBrowserReadiness-03.hunk.txt",
+      "artifact_sha256": "7f2fa5d11792a258e27bae66c82c459abab0dbe972ba5e6fbddda44efad84f1a",
+      "observed_source_sha256": "513e885becca8306b95a13bde2fea217106d0fddaa086f55766ac30ca1b6f5df",
+      "observed_HEAD_sha256": "5d49ce2ef6d0f34e8fa6508e236d91203d6357f0ebeba9f4dc49d964de73a23a",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "Native List/sections/profile/header/compact row/Menu/text-action producer; preserving existing bindings/actions.",
+      "acceptance_evidence": [
+        "../settings-display-independent-review/manifest.json"
+      ]
+    },
+    {
+      "id": "settings:ComputerBrowserReadiness-04",
+      "source": "Sources/NextNotes/UI/Settings/ComputerBrowserReadiness.swift",
+      "relativeHeader": "@@ -283,0 +280,23 @@ private struct ReadinessRow: View {",
+      "hunk_sha256": "e0d508e4424333d8b78e8f5a42b00665a5abd1ef6dc3c188d2bc7d6c1ad9361a",
+      "artifact": "../settings-display-boundaries/hunks/ComputerBrowserReadiness-04.hunk.txt",
+      "artifact_sha256": "2e8218b8f3b76b5338d131912b8088d80243bcd76ac0779428beaffbfd4fb834",
+      "observed_source_sha256": "513e885becca8306b95a13bde2fea217106d0fddaa086f55766ac30ca1b6f5df",
+      "observed_HEAD_sha256": "5d49ce2ef6d0f34e8fa6508e236d91203d6357f0ebeba9f4dc49d964de73a23a",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "Native List/sections/profile/header/compact row/Menu/text-action producer; preserving existing bindings/actions.",
+      "acceptance_evidence": [
+        "../settings-display-independent-review/manifest.json"
+      ]
+    },
+    {
+      "id": "settings:AgentSettingsTab-01",
+      "source": "Sources/NextNotes/UI/Settings/AgentSettingsTab.swift",
+      "relativeHeader": "@@ -164 +164 @@ struct AgentSettingsTab: View {",
+      "hunk_sha256": "25ec4242682bc9ba61af3d12d176f7de7bb30c831bbd8f2f602ab146fa3c0d71",
+      "artifact": "../settings-display-boundaries/hunks/AgentSettingsTab-01.hunk.txt",
+      "artifact_sha256": "44dfca05bc140f6c9970232688cfddc4b0de545a00bb7e336a590d2445a72434",
+      "observed_source_sha256": "e7432003a343b2e9a7901cae4676b78216098823bad4d142cb640f4f9e341f31",
+      "observed_HEAD_sha256": "b31f0440dd9f45ccd8112f4aebb1c0ce8b2d1094fde8ba302d64c1d1db2ecf02",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "Native List/sections/profile/header/compact row/Menu/text-action producer; preserving existing bindings/actions.",
+      "acceptance_evidence": [
+        "../settings-display-independent-review/manifest.json"
+      ]
+    },
+    {
+      "id": "settings:AgentSettingsTab-02",
+      "source": "Sources/NextNotes/UI/Settings/AgentSettingsTab.swift",
+      "relativeHeader": "@@ -165,0 +166,4 @@ struct AgentSettingsTab: View {",
+      "hunk_sha256": "ec7707919c92d6e71f283d3675b21324e4f278552f0b99c80df3bf41df4e05b6",
+      "artifact": "../settings-display-boundaries/hunks/AgentSettingsTab-02.hunk.txt",
+      "artifact_sha256": "2bcb57fa46c9d9300dfe43a5da2829dbfa6dab11bbb622d761f35d5d0eec0dff",
+      "observed_source_sha256": "e7432003a343b2e9a7901cae4676b78216098823bad4d142cb640f4f9e341f31",
+      "observed_HEAD_sha256": "b31f0440dd9f45ccd8112f4aebb1c0ce8b2d1094fde8ba302d64c1d1db2ecf02",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "Native List/sections/profile/header/compact row/Menu/text-action producer; preserving existing bindings/actions.",
+      "acceptance_evidence": [
+        "../settings-display-independent-review/manifest.json"
+      ]
+    },
+    {
+      "id": "settings:AgentSettingsTab-03",
+      "source": "Sources/NextNotes/UI/Settings/AgentSettingsTab.swift",
+      "relativeHeader": "@@ -167 +171 @@ struct AgentSettingsTab: View {",
+      "hunk_sha256": "f225304f2c1896e8581e2dc317bd39c15e1071a338b0f6f5049b24b1e7c23f35",
+      "artifact": "../settings-display-boundaries/hunks/AgentSettingsTab-03.hunk.txt",
+      "artifact_sha256": "713eb36bfa0d992f21f8ba0c04b62710c879c6174aec4371933fdb3b169f48b9",
+      "observed_source_sha256": "e7432003a343b2e9a7901cae4676b78216098823bad4d142cb640f4f9e341f31",
+      "observed_HEAD_sha256": "b31f0440dd9f45ccd8112f4aebb1c0ce8b2d1094fde8ba302d64c1d1db2ecf02",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "Native List/sections/profile/header/compact row/Menu/text-action producer; preserving existing bindings/actions.",
+      "acceptance_evidence": [
+        "../settings-display-independent-review/manifest.json"
+      ]
+    },
+    {
+      "id": "settings:DesignSystem-15",
+      "source": "Sources/NextNotes/UI/DesignSystem.swift",
+      "relativeHeader": "@@ -403,0 +419,3 @@ enum DS {",
+      "hunk_sha256": "3cf21c1007a06c2c23fd73f3aec4b824e908aa0b159951069427361fe2ff123d",
+      "artifact": "../settings-display-boundaries/hunks/DesignSystem-15.hunk.txt",
+      "artifact_sha256": "c1ff043023274d2ffa3e3cde46ebbbbbaf4fb4961f5b9d38d31435135d9e1859",
+      "observed_source_sha256": "4834688eb005804071731afa6a359aa68434cdc3fd99cd62f5ac444bf57c1fe4",
+      "observed_HEAD_sha256": "0554e3afe6c23c6739355fb30077ff01b3a782fa5fc3bf6b81e0a9ac9ca9ac8a",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "140pt shared real app/header label floor, coordinated canonical owner, historical app41 bounded widths accepted.",
+      "acceptance_evidence": [
+        "../settings-display-independent-review/manifest.json"
+      ]
+    },
+    {
+      "id": "packaging:font-copy-only.patch.txt",
+      "source": "Makefile",
+      "artifact": "../packaging-boundaries/font-copy-only.patch.txt",
+      "artifact_sha256": "fdf1d8f2fb13d6cc7f4b92caa0695fa05f37c856fbabbdbeadd96748526a81d4",
+      "observed_source_sha256": "65442072cef3e700e4b1adfe84e223690fc2278705eaa23a81d0f58599ef64dd",
+      "observed_HEAD_sha256": "db53a4b40362e97ca69adfc5a839bbc706aa917145d7f7280eaf38fbb03186ca",
+      "selected_postimage_sha256": "98e1de69a12efe474cd1aaa638b4bfe6a8bbc3b1a199b7831946588a13ef5720",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "Nearby OpenPeeps comment and copy remain illustration/root-owned, excluded; do not remove from canonical file or absorb via whole-file staging.",
+      "acceptance_evidence": [
+        "../parent-boundary-independent-review/manifest.json"
+      ]
+    },
+    {
+      "id": "packaging:mac-font-notice-only.patch.txt",
+      "source": "THIRD-PARTY-NOTICES.md",
+      "artifact": "../packaging-boundaries/mac-font-notice-only.patch.txt",
+      "artifact_sha256": "d3cda3eb16f7763add9f4c3c3ecf5b72e311e8306cfcadacab25f6d24eb064be",
+      "observed_source_sha256": "20e65bec0bf59e3d8d155e1b587d5915e57fe5ec08bcc722d763cc8e6308e318",
+      "observed_HEAD_sha256": "c7d4b97bc7690df1b96a9ec6e3119eff73cb44b7e625a3b5c971bec647221767",
+      "selected_postimage_sha256": "687358e081eafd4cf64a8c4a0299ef52600100ce440c1227f8476b54f3b940dd",
+      "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+      "boundary": "Website border-beam/voice-glow MIT attribution hunk is independently owned, excluded; preserve it in canonical file.",
+      "acceptance_evidence": [
+        "../parent-boundary-independent-review/manifest.json"
+      ]
+    }
+  ],
+  "accepted_source_only": 87,
+  "held": [
+    "theme:AgentView-08",
+    "theme:AgentView-26"
+  ]
+}

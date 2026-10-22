@@ -1,0 +1,9 @@
+{
+  "scope": "text replacement/diff replay only; not Swift parse/compile/run",
+  "producer_path": "Sources/NextNotes/Support/Settings.swift",
+  "preimage_sha256": "884f7a297f68d588a7ae2de962432049682c478d4f53464dba6c92e0a01ee3c4",
+  "candidate_postimage_sha256": "faa8f0e1dd16992db6a3f255e3564534a16d77407452ada17fca96d634bbaff6",
+  "matching_producer_hunks": 1,
+  "patch_sha256": "fffec19c923b7ae64586764799f66c4c53b9e8f34d926111947eedd57b4dbaee",
+  "byte_identical_before_and_after_outside_exact_hunk": true
+}

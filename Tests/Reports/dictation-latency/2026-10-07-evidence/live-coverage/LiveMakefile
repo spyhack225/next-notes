@@ -1,0 +1,9 @@
+SWIFTC := xcrun swiftc
+SHARED := AudioConversion.swift TranscriptionEngine.swift ParakeetInput.swift EngineBoundaryTypes.swift LiveCoverageCheck.swift
+live-original: Engine.original-probe.swift DictationSegmenter.original.swift $(SHARED)
+	$(SWIFTC) -swift-version 6 -O $^ -o $@
+live-candidate: Engine.candidate-probe.swift DictationSegmenter.candidate.swift $(SHARED)
+	$(SWIFTC) -swift-version 6 -O $^ -o $@
+
+live-zero-candidate: Engine.zero-guard-probe.swift DictationSegmenter.candidate.swift $(SHARED)
+	$(SWIFTC) -swift-version 6 -O $^ -o $@

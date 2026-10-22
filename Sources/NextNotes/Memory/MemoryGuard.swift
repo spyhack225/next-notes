@@ -289,6 +289,12 @@ enum MemoryGuard {
         }
         let content = contentTokens(text)
         guard !content.isEmpty else { return .notUserWords("there is no fact in it to remember.") }
+        // Token overlap alone loses the subject: “my sister loves jazz” must
+        // never support a proposed “the user loves jazz” preference.
+        if let object = userPreferenceObject(text),
+           !ownPreferenceSupports(object, userText: provenance.userText, remembered: remembered) {
+            return .refused("nothing you said establishes that as your own preference.")
+        }
         let userTokens = Set((provenance.userText + remembered).flatMap(tokens))
         let untrustedTokens = Set(provenance.untrustedText.flatMap(tokens))
 
@@ -317,6 +323,116 @@ enum MemoryGuard {
             return .notUserWords("it isn't what you said. Save the fact in the user's own words.")
         }
         return nil
+    }
+
+    /// Bounded subject binding for explicit affirmative personal preference claims.
+    /// Other fact shapes keep the existing lexical guards; this is not a general
+    /// semantic parser. A stored personal preference remains its original evidence.
+    private static func userPreferenceObject(_ text: String) -> String? {
+        capturePreference(#"^\s*(?:the\s+)?user\s+(?:loves?|likes?|prefers?|enjoys?)\s+(.+?)\s*[.!]?\s*$"#, text)
+    }
+
+    private static func ownPreferenceSupports(_ object: String, userText: [String], remembered: [String]) -> Bool {
+        let wanted = contentTokens(object)
+        guard !wanted.isEmpty else { return false }
+        func supportsObject(_ supplied: String) -> Bool {
+            let pool = Set(tokens(supplied))
+            return wanted.allSatisfy { supports(pool, $0) }
+        }
+        if remembered.contains(where: { entry in
+            userPreferenceObject(entry).map(supportsObject) ?? false
+        }) { return true }
+        // The existing explicit two-fact merge may combine the two retained own
+        // facts. Other people/quoted/reported frames never enter this subject pool.
+        // The bounded compatibility path requires ONE owned input, so review/history
+        // array ordering cannot silently promote an earlier request into current authority.
+        if userText.count == 1, remembered.count == 2, let current = userText.first,
+           current.range(of: #"^\s*(?:please\s+)?merge\s+(?:those|these|the)\s+two(?:\s+(?:memories|facts))?\s*[.!]?\s*$"#,
+                         options: [.regularExpression, .caseInsensitive]) != nil {
+            let ownObjects = remembered.compactMap { entry in
+                userPreferenceObject(entry)
+                    ?? capturePreference(#"^\s*(?:the\s+)?user\s+uses?\s+(.+?)\s*[.!]?\s*$"#, entry)
+            }
+            if ownObjects.count == 2, supportsObject(ownObjects.joined(separator: " ")) { return true }
+        }
+        return userText.contains { turn in
+            // Recognize ONLY the existing deterministic direct-intent grammar.
+            // Its accepted personal output establishes the subject; raw current
+            // words stay untouched and all lexical/untrusted guards still run.
+            if let call = AgentDirectIntent.memorySaveCall(turn),
+               let text = call.arguments["text"],
+               let ownObject = userPreferenceObject(text), supportsObject(ownObject) {
+                return true
+            }
+            var cursor = turn.startIndex
+            var quoteClosers: [Character] = []
+            func advanceQuoteScope(until end: String.Index) {
+                while cursor < end {
+                    let character = turn[cursor]
+                    let next = turn.index(after: cursor)
+                    let beforeIsLetter = cursor > turn.startIndex && turn[turn.index(before: cursor)].isLetter
+                    let afterIsLetter = next < turn.endIndex && turn[next].isLetter
+                    // Names and contractions contain apostrophes, not quote boundaries.
+                    if !(beforeIsLetter && afterIsLetter && "'’".contains(character)) {
+                        if quoteClosers.last == character { quoteClosers.removeLast() }
+                        else {
+                            switch character {
+                            case "\"", "`", "'": quoteClosers.append(character)
+                            case "“": quoteClosers.append("”")
+                            case "‘": quoteClosers.append("’")
+                            case "«": quoteClosers.append("»")
+                            default: break
+                            }
+                        }
+                    }
+                    cursor = next
+                }
+            }
+            for sentence in turn.components(separatedBy: CharacterSet(charactersIn: ".!?;\n\r")) {
+                let separated = sentence.replacingOccurrences(
+                    of: #"\s+(?:and|but)\s+(?=(?:i\b|my\b|he\b|she\b|they\b|we\b))"#,
+                    with: "\n", options: [.regularExpression, .caseInsensitive])
+                var reported = false
+                // Only a bounded answer-length modifier continues the same subject.
+                // Every other comma remains a clause boundary, including named people.
+                let boundedClauses = separated.replacingOccurrences(
+                    of: #",(?!\s*(?:one|two|three|four|five|six|seven|eight|nine|ten|\d+)\s+(?:sentences?|words?|paragraphs?)\s+(?:at\s+most|or\s+less)\s*$)"#,
+                    with: "\n", options: [.regularExpression, .caseInsensitive])
+                for clause in boundedClauses.components(separatedBy: "\n") {
+                    guard !clause.isEmpty,
+                          let original = turn.range(of: clause, range: cursor..<turn.endIndex) else { continue }
+                    // Retain the original quote scope even when punctuation/conjunctions
+                    // split the source. The parser's copied clause is not new evidence.
+                    advanceQuoteScope(until: original.lowerBound)
+                    let quotedSubject = !quoteClosers.isEmpty
+                    advanceQuoteScope(until: original.upperBound)
+                    if !reported, !quotedSubject,
+                       let ownObject = capturePreference(
+                        #"^\s*(?:(?:please\s+)?(?:(?:can|could|would)\s+you\s+)?remember\s+(?:that\s+)?)?(?:(?:honestly|actually)\s+)?i\s+(?:really\s+)?(?:love|like|prefer|enjoy)\s+(.+?)\s*$"#, clause)
+                        ?? userPreferenceObject(clause)
+                        ?? (object.range(of: #"^\s*answers?\b"#,
+                                         options: [.regularExpression, .caseInsensitive]) != nil
+                            ? capturePreference(#"^\s*(?:please\s+)?(?:always\s+)?answer\s+me\s+(.+?)\s*$"#, clause)
+                                .map { "answers " + $0 }
+                            : nil) {
+                        // An own I subject may quote its object, including a word that
+                        // also names a reporting verb. It is not a reported I statement.
+                        if supportsObject(ownObject) { return true }
+                    } else if clause.range(of: #"\b(?:said|says|told|quote|quoted)\b"#,
+                                           options: [.regularExpression, .caseInsensitive]) != nil {
+                        reported = true
+                    }
+                }
+            }
+            return false
+        }
+    }
+
+    private static func capturePreference(_ pattern: String, _ text: String) -> String? {
+        guard let expression = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive),
+              let match = expression.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)),
+              let range = Range(match.range(at: 1), in: text) else { return nil }
+        return String(text[range])
     }
 
     /// The sentence a refusal shows when a word only exists in the untrusted half of a
@@ -400,6 +516,8 @@ enum MemoryGuard {
     /// a content word of it plus a request to drop or correct something; for an update, a
     /// content word of it in the user's words or in the replacement (which already passed
     /// `provenanceProblem`), so "I moved to Lyon" can replace "The user lives in Paris."
+    static let untargetedUpdate = "you didn't say which memory to change."
+
     static func targetProblem(
         _ entry: String, provenance: MemoryProvenance?, replacement: String? = nil
     ) -> String? {
@@ -408,7 +526,7 @@ enum MemoryGuard {
         }
         let userTokens = Set((provenance.userText + [replacement ?? ""]).flatMap(tokens))
         guard contentTokens(entry).contains(where: { supports(userTokens, $0) }) else {
-            return "you didn't say which memory to change."
+            return untargetedUpdate
         }
         guard replacement == nil else { return nil }
         if provenance.origin == .memoryReview {

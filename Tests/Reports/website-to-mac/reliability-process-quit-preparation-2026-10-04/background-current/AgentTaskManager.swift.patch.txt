@@ -1,0 +1,125 @@
+--- a/Sources/NextNotes/Agent/Tasks/AgentTaskManager.swift
++++ b/Sources/NextNotes/Agent/Tasks/AgentTaskManager.swift
+@@ -13,6 +13,19 @@
+         return manager
+     }()
+ 
++    /// AppKit process quit only. Normal conversation Done retains background work.
++    @ObservationIgnored private var processTerminationRequested = false
++
++    /// Close admission and capture the SAME running handles before AppKit yields.
++    /// The returned closure joins those exact handles after all have been cancelled.
++    func beginProcessTermination() -> @MainActor () async -> Void {
++        processTerminationRequested = true
++        let captured = Array(running.values.map(\.handle))
++        for handle in captured { handle.cancel() }
++        return {
++            for handle in captured { await handle.waitForReturn() }
++        }
++    }
+ 
+     @ObservationIgnored private(set) weak var voiceJobOwner: VoiceConversationCoordinator?
+     func bindVoiceJobOwner(_ owner: VoiceConversationCoordinator) -> Bool {
+@@ -56,6 +69,14 @@
+             case .scheduled(let task): task.cancel()
+             }
+         }
++        @MainActor func waitForReturn() async {
++            switch self {
++            case .voice(let value): if let task = value.task { await task.value }
++            case .returnedVoice: break
++            case .worker(let task): await task.value
++            case .scheduled(let task): _ = await task.value
++            }
++        }
+     }
+     /// Observation of the SAME sole live map; does not install or retain an owner.
+     func voiceOwnedOperationForTesting(id: UUID) -> Task<Void, Never>? {
+@@ -69,6 +90,7 @@
+ 
+     private struct RunningWorker {
+         var handle: WorkerHandle
++        var ownerToken: UUID? = nil
+         var binding: TaskWorkerBinding? = nil
+         var primaryObservation: TaskWorkerPrimaryObservation? = nil
+         var toolBackingObservation: TaskWorkerToolBackingObservation? = nil
+@@ -440,9 +462,9 @@
+             backend: backend.rawValue,
+             acpCLI: acpCLI, origin: origin, userWords: userWords
+         )
+-        guard historyReadFailure == nil else {
++        guard historyReadFailure == nil, !processTerminationRequested else {
+             task.status = .failed
+-            task.failure = historyReadFailure
++            task.failure = historyReadFailure ?? "The app is closing."
+             return task // Not inserted, persisted, presented as working or dispatched.
+         }
+         tasks.insert(task, at: 0)
+@@ -467,7 +489,7 @@
+     /// own notification — and never handed to a backend.
+     @discardableResult
+     func beginScheduledRun(_ task: AgentTask) -> Bool {
+-        guard historyReadFailure == nil else { return false }
++        guard historyReadFailure == nil, !processTerminationRequested else { return false }
+         tasks.insert(task, at: 0)
+         guard persist(events: creationEvents(task)).primaryCommitted else {
+             tasks.removeFirst() // SAME synchronous insertion; retain the prior exact order.
+@@ -481,7 +503,7 @@
+ 
+     @discardableResult
+     func beginScheduledRun(_ proposed: AgentTask, executionOwner: Task<ScheduledRunOutcome, Never>) -> Bool {
+-        guard historyReadFailure == nil, !executionOwner.isCancelled,
++        guard historyReadFailure == nil, !processTerminationRequested, !executionOwner.isCancelled,
+               proposed.source == AgentTask.scheduledSource, proposed.scheduleID != nil,
+               proposed.status == .running, ["local", "apple", "openrouter"].contains(proposed.backend),
+               proposed.durability == nil, task(id: proposed.id) == nil else { return false }
+@@ -599,7 +621,7 @@
+     @discardableResult
+     func beginVoiceObjective(id: UUID, objective: String, origin: TaskOrigin? = nil,
+                              userWords: String? = nil) -> Bool {
+-        guard historyReadFailure == nil, task(id: id.uuidString) == nil else { return false }
++        guard historyReadFailure == nil, !processTerminationRequested, task(id: id.uuidString) == nil else { return false }
+         var task = AgentTask(id: id.uuidString, objective: objective, source: "voice",
+                              status: .running, progress: "Working locally", origin: origin,
+                              userWords: userWords)
+@@ -716,7 +738,7 @@
+                           coordinator: VoiceConversationCoordinator, bridge: TaskBridge,
+                           scriptedWorker: (@MainActor (VoiceConversationWork) async -> String)?) -> Bool {
+         let id = work.id.uuidString
+-        guard let row = task(id: id), row.source == "voice", row.status == .running else { return false }
++        guard !processTerminationRequested, let row = task(id: id), row.source == "voice", row.status == .running else { return false }
+         if let existing = running[id] {
+             guard case .voice(let held) = existing.handle,
+                   held.work === work, held.worker === worker, held.coordinator === coordinator, held.bridge === bridge,
+@@ -970,7 +992,11 @@
+         }
+         guard admitted.primaryCommitted else { return }
+         running[id]?.handle.cancel()
+-        if !cancellingScheduled { running[id] = nil }
++        // A cancelled local operation can still be inside backing. Keep the same
++        // Task until its own closure returns; enqueueWorker's token clears it then.
++        if !cancellingScheduled, case .worker? = running[id]?.handle {
++            // Retained until actual return.
++        } else if !cancellingScheduled { running[id] = nil }
+         approvedCompatibilityTaskIDs.remove(id)
+         approvedTaskIDs.remove(id)
+         AgentActivityStore.shared.finish(taskID: id, title: "Cancelled")
+@@ -1294,10 +1320,17 @@
+     }
+ 
+     private func enqueueWorker(_ id: String) {
++        guard !processTerminationRequested else { return }
+         // The same execution slot starts unbound; only primary admission binds it.
++        let ownerToken = UUID()
+         running[id] = RunningWorker(handle: .worker(Task { @MainActor [weak self] in
++            defer {
++                if let self, self.running[id]?.ownerToken == ownerToken {
++                    self.running[id] = nil
++                }
++            }
+             await self?.execute(id)
+-        }))
++        }), ownerToken: ownerToken)
+     }
+ 
+     private func releaseWorker(_ captured: AgentTask) {

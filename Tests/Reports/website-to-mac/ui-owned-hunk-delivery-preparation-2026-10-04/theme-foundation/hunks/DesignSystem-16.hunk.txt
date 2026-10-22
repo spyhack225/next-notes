@@ -1,0 +1,5 @@
+--- a/Sources/NextNotes/UI/DesignSystem.swift
++++ b/Sources/NextNotes/UI/DesignSystem.swift
+@@ -656 +674 @@ enum DS {
+-        static let hudGlass: Glass = .regular
++        static let hudGlass: Glass = Theme.Glass.tinted

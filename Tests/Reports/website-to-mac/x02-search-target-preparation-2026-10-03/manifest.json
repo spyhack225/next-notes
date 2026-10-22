@@ -1,0 +1,46 @@
+{
+  "status": "SOURCE_CONTRACT_AUDIT_ONLY_NO_CODE_PATCH_UNCOMPILED_UNRUN",
+  "documents": {
+    "README.md": "fefd5665810d968a9891fc71bb8eaf2c7287123f75d9111655710dac0fa4906f",
+    "producer-contract.md": "2934292ba934011e8287cf5ce149b418bbd4d815739f2a47f06ddfb564a55d85",
+    "navigation-contract.md": "b536c7dc2852b8141e5f7cf6f36d31f00a1e75b3d3dcdc33dad12638577ab507",
+    "review-notes.md": "60414e99e13fb85532730889c0f68cfcb178a5a21cee394aa7dac832c928600d",
+    "audited-source-pins.json": "d4277104014e4de4ade8d517da3a467d458b0b4b28836e4bdacc4b5599963320"
+  },
+  "auditedSourcePins": {
+    "Sources/NextNotes/Agent/RealtimeAgent.swift": "c80b884e56ed12cb6fd1fa1bcb7a46cf387d44bc3db8dd6798944ee7a4627635",
+    "Sources/NextNotes/Knowledge/Chunker.swift": "0fff156e791b0a4647869d2ec5d5074e5cc646f1e52a6dda094aeea8a57f51b1",
+    "Sources/NextNotes/Knowledge/KnowledgeIndexer.swift": "f29ba6d9b1fbba357479920ab7a8795a82f76ae46de7a98c6a67656ca45816b3",
+    "Sources/NextNotes/Knowledge/KnowledgeStore.swift": "9398c8653ae555dd423ecfac0a86ef0791c76a199de1570b673c3b624e3f29df",
+    "Sources/NextNotes/Knowledge/KnowledgeSearch.swift": "d6bdaadfbd7b78d3dad7a262a2d33eb19e8861a4612570702291f756f64236ce",
+    "Sources/NextNotes/Knowledge/KnowledgeAsk.swift": "1dc54b5de32922fc2db414e7175ae9a3603e3c54bfdc7bdef9ebb35bc0114f2b",
+    "Sources/NextNotes/Knowledge/KnowledgeIndexSelfTest.swift": "ab570f39aedb518e1ba631a06e26a01b0d040f7fbdeb30187674c09ef9e71e4f",
+    "Sources/NextNotes/Knowledge/KnowledgeTypedRouteSelfTest.swift": "538c6f9dc410214a2f0ce589d57096edb41de3b5d470f11a93ea76cc02388084",
+    "Sources/NextNotes/UI/Knowledge/KnowledgeSearchView.swift": "79c9b4ea85e66ec78cc90542419ca4c554c012db1e6cab023766316365f286e8",
+    "Sources/NextNotes/UI/Knowledge/AskView.swift": "64af9a08a0509ad8c351c43ad620b0c94d5b09cc0c55fa7f1a510adc434e93f4",
+    "Sources/NextNotes/UI/Agent/AgentView.swift": "e16690c46235dfe28d69d03351928e4f4b3f2746472bb35815e9976b3c63fc85",
+    "Sources/NextNotes/Support/NavigationState.swift": "9a9c583ae8c6b4e229f3d3d99dc009c5149e28ce5f28fa774f0c6eef457118b6",
+    "Sources/NextNotes/UI/Meetings/MeetingConsoleAskSection.swift": "f1a5923748fbb6870c2fb9a5c4fda81adf7049c2ddfc60f01b7f4be1609d3b00",
+    "Sources/NextNotes/UI/Agent/IdeasView.swift": "79649f94e5607f5882c11f47a9c78d7ab08899cbfd2603dce505e7ebda66cc90",
+    "Sources/NextNotes/UI/Agent/RoutinesView.swift": "4d911a436c66c1a01c868289054690c7af6f200c112381330e72425253a47abd",
+    "Sources/NextNotes/UI/Agent/AgentPaneSwitcher.swift": "273a3d0289a806115cfbbd3750636ce3e4e1d7f03b12c16983323f2f7678b7e7",
+    "Sources/NextNotes/UI/MainWindow.swift": "5f65aea558ea800d47f62d6deb5a9085a0b8fec4790485b6846578dccbc01150"
+  },
+  "sourcePinsMatchedAtPackaging": true,
+  "scope": [
+    "producer identity loss and nullable turn-anchor proposal",
+    "existing source generation/citation/current-row identity boundaries",
+    "actual navigation caller/setter/reset contracts",
+    "existing isolated index/codec proof plan"
+  ],
+  "unproved": [
+    "implementation and nondestructive migration",
+    "original/fixed producer and production caller qualification",
+    "passage consumer and exact jump",
+    "process relaunch, native scroll, correction, keyboard and VoiceOver"
+  ],
+  "unchangedPackets": [
+    "../x02-history-preparation-2026-10-03/manifest.json:a6c03bb917929e87324f4c11b539bfcf18452e2a56737e6aa9304a5903d19dcf",
+    "../x02-history-preparation-2026-10-03/isolation-current/manifest.json:63e98a12898ba86946046f8e90e288c2efd3d19560690b783f3f51932315ea7c"
+  ]
+}

@@ -1,0 +1,262 @@
+import AppKit
+import Foundation
+
+/// COMMON for both introduced-original and producer-fixed Manager variants.
+/// Model-free actual Cocoa continuation-close case; not a native backing drain.
+@MainActor
+enum NativeBackgroundQuitSelfTest {
+    struct Admission: Equatable {
+        let root: URL
+        fileprivate let nonce: UUID
+        var taskFile: URL { root.appendingPathComponent("tasks/agent-tasks.json") }
+    }
+    private static var admitted: Admission?
+    private static var preparedFixture: Fixture?
+    static var isRequested: Bool {
+        SelfTest.requested == "--selftest-native-termination"
+            && CommandLine.arguments.contains("--native-background-case")
+    }
+    static func isAdmitted(_ value: Admission) -> Bool {
+        guard isRequested, SelfTest.isRunning, admitted == value,
+              value.root.resolvingSymlinksInPath().path == value.root.path,
+              let metadata = try? value.root.resourceValues(forKeys: [.isDirectoryKey, .isSymbolicLinkKey]),
+              metadata.isDirectory == true, metadata.isSymbolicLink != true else { return false }
+        return true
+    }
+
+    /// Invoked before NSApplication, AppDelegate, private stores or runtime owners.
+    static func validateArgumentsBeforeOwners() throws {
+        guard isRequested, admitted == nil else { throw CocoaError(.fileReadNoPermission) }
+        let args = Array(CommandLine.arguments.dropFirst())
+        let valueFlags: Set<String> = ["--native-background-case", "--native-background-root",
+            SelfTest.outputFlag, SelfTest.timeoutFlag]
+        var values: [String: String] = [:]
+        var seen = Set<String>()
+        var offset = 0
+        while offset < args.count {
+            let flag = args[offset]
+            guard seen.insert(flag).inserted else { throw CocoaError(.fileReadNoPermission) }
+            if flag == "--selftest-native-termination" { offset += 1; continue }
+            guard valueFlags.contains(flag), args.indices.contains(offset + 1),
+                  !args[offset + 1].hasPrefix("-") else { throw CocoaError(.fileReadNoPermission) }
+            values[flag] = args[offset + 1]
+            offset += 2
+        }
+        guard seen.contains("--selftest-native-termination"),
+              values["--native-background-case"] == "continuation-close",
+              let supplied = values["--native-background-root"] else { throw CocoaError(.fileReadNoPermission) }
+        let root = URL(fileURLWithPath: supplied, isDirectory: true).standardizedFileURL
+        let temp = FileManager.default.temporaryDirectory.standardizedFileURL.resolvingSymlinksInPath()
+        let prefix = "NextNotesBackgroundQuit-"
+        guard root.path == supplied, root.deletingLastPathComponent().path == temp.path,
+              root.lastPathComponent.hasPrefix(prefix),
+              UUID(uuidString: String(root.lastPathComponent.dropFirst(prefix.count))) != nil,
+              root.resolvingSymlinksInPath().path == root.path,
+              !FileManager.default.fileExists(atPath: root.path),
+              (try? FileManager.default.attributesOfItem(atPath: root.path)) == nil else {
+            throw CocoaError(.fileReadNoPermission)
+        }
+        if let output = values[SelfTest.outputFlag] {
+            guard output == root.appendingPathComponent("out.log").path else { throw CocoaError(.fileReadNoPermission) }
+        }
+        if let timeout = values[SelfTest.timeoutFlag] {
+            guard let seconds = Double(timeout), seconds.isFinite, seconds > 0, seconds <= 300 else {
+                throw CocoaError(.fileReadNoPermission)
+            }
+        }
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: false)
+        let value = Admission(root: root, nonce: UUID())
+        admitted = value
+        guard isAdmitted(value) else { admitted = nil; throw CocoaError(.fileReadNoPermission) }
+        // Any seeding/strict-reader failure is rejected before NSApplication exists.
+        preparedFixture = try Fixture(admission: value)
+    }
+    private static func refuseBootstrap() -> Never {
+        SelfTest.failed = true
+        SelfTest.diagnostic("BACKGROUND_QUIT_INVALID: private bootstrap unavailable before native quit")
+        exit(1) // This model-free mode has entered no worker/model/native operation.
+    }
+
+    static func armIfRequested() async throws -> Bool {
+        guard isRequested else { return false }
+        guard let admission = admitted, isAdmitted(admission), let fixture = preparedFixture,
+              let delegate = AppDelegate.current else { refuseBootstrap() }
+        let empty = EmbeddingRuntime(modelURL: nil, displayName: "Empty diagnostic quit owner",
+            tag: "empty-background-quit", notesModelBusy: { false }, mayLoad: { _ in false })
+        let notes = NotesModelRuntime(spec: ModelSpec(displayName: "Empty diagnostic quit owner",
+            fileName: "never-open.gguf", url: admission.root.appendingPathComponent("never-open.gguf"),
+            expectedBytes: 0, expectedSHA256: nil), gpuLayers: 0, openFailureSink: nil,
+            pressureSnapshot: { .init(level: .normal, generation: 0, changedAt: Date(timeIntervalSince1970: 0)) })
+        do {
+            try delegate.configureBackgroundTerminationFixture(
+                manager: fixture.manager, runtime: notes, embedding: empty, admission: admission,
+                reply: { fixture.observe($0) },
+                finalReply: { fixture.finalReply($0) },
+                safetyDrain: { fixture.afterFirstVeto() },
+                willExit: { fixture.willExit() }
+            )
+        } catch { refuseBootstrap() }
+        // Existing run-loop quit admission; no fixed delay or MainActor blocking.
+        SelfTest.diagnostic("BACKGROUND_QUIT_INPUT_OK: retained private pending rows; no live worker or native backing")
+        SelfTest.requestTermination()
+        return true
+    }
+
+    private final class Fixture {
+        let admission: Admission
+        let sql: TaskStore
+        let manager: AgentTaskManager
+        private let baseline: [AgentTask]
+        private let originalAuthority: TaskStoreAuthority
+        private let input: TaskInputRequest
+        private let approval: PermissionRequest
+        private let denial: PermissionRequest
+        private let inputFile: URL
+        private let receipts: ActionReceiptStore
+        private var checks = 0
+        private var failures = 0
+        private var invalid = false
+        private var replies = 0
+        private var finals = 0
+        private var cleanedVeto = false
+
+        init(admission: Admission) throws {
+            guard NativeBackgroundQuitSelfTest.isAdmitted(admission) else { throw CocoaError(.fileReadNoPermission) }
+            let folder = admission.root.appendingPathComponent("tasks", isDirectory: true)
+            try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: false)
+            let fixtureInputFile = admission.root.appendingPathComponent("input.txt")
+            try Data("Synthetic process-quit input.\n".utf8).write(to: fixtureInputFile, options: .atomic)
+            let date = Date(timeIntervalSince1970: 1_700_000_000)
+            let fixtureInput = TaskInputRequest(id: "quit-input-request", taskID: "quit-input", question: "Which file?",
+                createdAt: date, toolID: "filesystem.read", argumentName: "path")
+            let fixtureApproval = PermissionRequest(id: "quit-approval-request", toolID: "filesystem.read",
+                title: "Read the fixture", detail: "Synthetic retained request", risk: .read,
+                arguments: ["path": fixtureInputFile.path], taskID: "quit-approval", createdAt: date)
+            let fixtureDenial = PermissionRequest(id: "quit-denial-request", toolID: "filesystem.read",
+                title: "Read the fixture", detail: "Synthetic retained request", risk: .read,
+                arguments: ["path": fixtureInputFile.path], taskID: "quit-denial", createdAt: date)
+            let fixtureRows = [
+                AgentTask(id: "quit-input", objective: "Read the fixture", source: "selftest", createdAt: date,
+                    status: .waitingForInput, tool: "filesystem.read", pendingInteraction: .input(fixtureInput)),
+                AgentTask(id: "quit-approval", objective: "Read the fixture", source: "selftest", createdAt: date,
+                    status: .waitingForPermission, tool: "filesystem.read", arguments: fixtureApproval.arguments,
+                    pendingInteraction: .permission(request: fixtureApproval, origin: nil)),
+                AgentTask(id: "quit-denial", objective: "Read the fixture", source: "selftest", createdAt: date,
+                    status: .waitingForPermission, tool: "filesystem.read", arguments: fixtureDenial.arguments,
+                    pendingInteraction: .permission(request: fixtureDenial, origin: nil)),
+                AgentTask(id: "quit-compatibility", objective: "Unlaunched synthetic task", source: "selftest",
+                    createdAt: date, status: .waitingForCompatibilityCLI, backend: "acp",
+                    compatibilityCLI: "fixture-never-launch")
+            ]
+            let fixtureSQL = TaskStore(root: folder)
+            let seed = AgentTaskStore(fileURL: admission.taskFile, mirror: fixtureSQL)
+            guard seed.allowsHarnessPersistence, seed.storageURL == admission.taskFile,
+                  seed.save(fixtureRows).primaryCommitted,
+                  let authority = try fixtureSQL.probeAuthority(includeTasks: true)?.authority else { throw TaskStoreError.invalidRecord }
+            let fixtureReceipts = ActionReceiptStore(fileURL: admission.root.appendingPathComponent("receipts.json"))
+            // Real fresh Manager/strict authority reader, not a synthetic in-memory row insertion.
+            let fixtureManager = AgentTaskManager(store: AgentTaskStore(fileURL: admission.taskFile, mirror: fixtureSQL), receiptStore: fixtureReceipts)
+            self.admission = admission
+            inputFile = fixtureInputFile
+            input = fixtureInput
+            approval = fixtureApproval
+            denial = fixtureDenial
+            baseline = fixtureRows
+            sql = fixtureSQL
+            originalAuthority = authority
+            receipts = fixtureReceipts
+            manager = fixtureManager
+            guard manager.historyReadFailure == nil, manager.tasks == baseline,
+                  try sql.load() == baseline,
+                  let snapshot = manager.backgroundQuitSnapshotForTesting(admission: admission),
+                  !snapshot.closed, snapshot.runningIDs.isEmpty,
+                  snapshot.approvedIDs.isEmpty, snapshot.compatibilityIDs.isEmpty,
+                  snapshot.backendStarts == 0, receipts.count == 0,
+                  manager.canRespondInput(taskID: input.taskID, requestID: input.id),
+                  manager.inputAnswerProblem(taskID: input.taskID, requestID: input.id, text: inputFile.path) == nil,
+                  ACPCompatibilityCLIBackend.request(for: baseline[3]) != nil else { throw TaskStoreError.invalidRecord }
+        }
+        private func check(_ value: Bool, _ label: String) {
+            checks += 1
+            if !value {
+                failures += 1
+                SelfTest.failed = true
+                SelfTest.diagnostic("BACKGROUND_QUIT_ASSERT_FAILED: " + label)
+            }
+        }
+        func observe(_ reply: NSApplication.TerminateReply) {
+            replies += 1
+            check(reply == .terminateLater, "actual Cocoa caller returns later")
+            guard replies == 1 else { return }
+            guard NativeBackgroundQuitSelfTest.isAdmitted(admission),
+                  let before = manager.backgroundQuitSnapshotForTesting(admission: admission),
+                  before.closed, before.runningIDs.isEmpty, before.backendStarts == 0 else {
+                invalid = true; SelfTest.failed = true
+                SelfTest.diagnostic("BACKGROUND_QUIT_INVALID: missing actual close-before-reply or empty-owner input")
+                return
+            }
+            // Actual producer calls, in Cocoa's synchronous observation AFTER close.
+            check(!manager.respondInput(taskID: input.taskID, text: inputFile.path, requestID: input.id),
+                "post-close input returns false before primary mutation")
+            check(!manager.respondRestoredPermission(taskID: approval.taskID!, requestID: approval.id,
+                approved: true, arguments: approval.arguments), "post-close approval returns false")
+            manager.approveCompatibilityCLI(taskID: "quit-compatibility")
+            do {
+                let fresh = AgentTaskStore(fileURL: admission.taskFile, mirror: sql)
+                check(try fresh.load() == baseline, "all three exact pending primary rows remain unchanged")
+                check(manager.tasks == baseline, "all three pending in-memory rows remain unchanged")
+                check(try sql.probeAuthority(includeTasks: false)?.authority == originalAuthority,
+                    "refused continuations do not advance primary identity/generation")
+            } catch {
+                invalid = true; SelfTest.failed = true
+                SelfTest.diagnostic("BACKGROUND_QUIT_INVALID: actual primary reader unavailable")
+            }
+            guard let after = manager.backgroundQuitSnapshotForTesting(admission: admission) else {
+                invalid = true; SelfTest.failed = true; return
+            }
+            check(after.closed && after.runningIDs.isEmpty && after.backendStarts == 0,
+                "no worker or backend accepted after close")
+            check(after.approvedIDs.isEmpty && after.compatibilityIDs.isEmpty,
+                "no one-shot approval token minted after close")
+            check(receipts.count == 0, "no receipt created by refused continuation")
+            // Denial has a distinct row and remains permitted; never consumes a token.
+            check(manager.respondRestoredPermission(taskID: denial.taskID!, requestID: denial.id,
+                approved: false, arguments: denial.arguments), "explicit denial remains admitted")
+            do {
+                let rows = try AgentTaskStore(fileURL: admission.taskFile, mirror: sql).load()
+                check(rows.first(where: { $0.id == denial.taskID })?.status == .cancelled
+                    && rows.first(where: { $0.id == denial.taskID })?.pendingInteraction == nil,
+                    "explicit denial commits cancellation through actual primary reader")
+                check(rows.filter { $0.id != denial.taskID } == baseline.filter { $0.id != denial.taskID },
+                    "denial preserves the other exact waiting rows")
+            } catch {
+                invalid = true; SelfTest.failed = true
+                SelfTest.diagnostic("BACKGROUND_QUIT_INVALID: denial primary reader unavailable")
+            }
+        }
+        func finalReply(_ drained: Bool) -> Bool {
+            finals += 1
+            check(drained, "real existing App backend drain permits a final proposal")
+            check(replies >= 1, "actual later reply preceded final proposal")
+            if finals == 1 { return false } // Veto-only; same App task owns safetyDrain.
+            check(cleanedVeto && finals == 2, "one-shot same-task safety drain precedes second proposal")
+            return drained
+        }
+        func afterFirstVeto() {
+            check(finals == 1 && !cleanedVeto, "safety continuation consumed exactly once")
+            cleanedVeto = true
+        }
+        func willExit() {
+            check(finals == 2 && replies == 2 && cleanedVeto, "actual Cocoa retry and willTerminate reached once")
+            if let snapshot = manager.backgroundQuitSnapshotForTesting(admission: admission) {
+                check(snapshot.closed && snapshot.runningIDs.isEmpty && snapshot.backendStarts == 0,
+                    "empty registered Manager remains closed at physical process exit callback")
+            } else { invalid = true; SelfTest.failed = true }
+            sql.close()
+            // Retain ONLY private fixture files for the serial owner's report; no owner data.
+            if invalid { SelfTest.diagnostic("BACKGROUND_QUIT_INVALID: " + String(checks) + " checks; contract input unavailable") }
+            else if failures == 0 { SelfTest.diagnostic("BACKGROUND_QUIT_OK: " + String(checks) + " checks; continuation-close only") }
+            else { SelfTest.diagnostic("BACKGROUND_QUIT_FAILED: " + String(failures) + "/" + String(checks)) }
+        }
+    }
+}

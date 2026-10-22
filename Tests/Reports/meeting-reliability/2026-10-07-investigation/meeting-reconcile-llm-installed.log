@@ -1,0 +1,3 @@
+2026-10-07 11:52:04.628 NextNotes[8203:63977] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+MEETING_RECONCILE_RESOURCE_CHECKS: 46 checks; 0 wrong
+MEETING_RECONCILE_LLM_OK: existing grounding and optional pressure admission

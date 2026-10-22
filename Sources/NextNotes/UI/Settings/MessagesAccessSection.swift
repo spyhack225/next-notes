@@ -98,6 +98,9 @@ struct MessagesAccessSection: View {
     }
 
     private func probe(force: Bool) {
+        // A visual fixture has no system grant to verify. Keep the actual
+        // ungranted presentation and refuse the owner's database read.
+        guard SelfTest.requested != "--selftest-settings-sheet" else { return }
         isProbing = true
         Task { @MainActor in
             // A forced check has to actually re-read. `messagesAccessState()` is cached for

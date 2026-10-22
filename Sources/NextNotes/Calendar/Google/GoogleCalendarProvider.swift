@@ -122,6 +122,7 @@ actor GoogleCalendarProvider: CalendarProvider {
         var collected: [MeetingEvent] = []
         var successfulCalendars = 0
         var firstFailure: (any Error)?
+        partialFailures = []
         for calendarID in ids {
             do {
                 collected.append(contentsOf: try await events(
@@ -133,10 +134,15 @@ actor GoogleCalendarProvider: CalendarProvider {
                 successfulCalendars += 1
             } catch {
                 if firstFailure == nil { firstFailure = error }
+                // The calendar that failed, and why. The DISPLAY name, never
+                // the id: a Google calendar's id is the account's address, and
+                // that does not belong in a string a person reads.
+                let name = calendarNames[calendarID] ?? "another calendar"
+                partialFailures.append(CalendarPartialFailure(name: name, error: error))
                 // One inaccessible calendar — a shared one whose access was revoked — must
                 // not cost the user every other calendar on the account.
                 Log.calendar.error("""
-                    Google calendar \(calendarID, privacy: .public) failed: \
+                    Google calendar \(name, privacy: .public) failed: \
                     \(error.localizedDescription)
                     """)
             }
@@ -147,6 +153,13 @@ actor GoogleCalendarProvider: CalendarProvider {
         if successfulCalendars == 0, let firstFailure { throw firstFailure }
         return collected
     }
+
+    /// The calendars that failed during the last read, in the order they were
+    /// read. Cleared at the start of every read, so it describes the last
+    /// answer and not an accumulation of every answer.
+    private var partialFailures: [CalendarPartialFailure] = []
+
+    func partialFetchFailures() async -> [CalendarPartialFailure] { partialFailures }
 
     // MARK: - Requests
 
@@ -184,6 +197,11 @@ actor GoogleCalendarProvider: CalendarProvider {
             URLQueryItem(name: "singleEvents", value: "true"),
             URLQueryItem(name: "orderBy", value: "startTime"),
             URLQueryItem(name: "maxResults", value: "\(Self.maxEventsPerCalendar)"),
+            // Join links live in conferenceData, and Google strips the whole block
+            // unless the request opts in to this version — without it the field the
+            // title matcher reads arrives null on every event that has one, and a
+            // call's meeting link can never name the event it is on.
+            URLQueryItem(name: "conferenceDataVersion", value: "1"),
         ]
         guard let url = components?.url else { throw GoogleCalendarError.badAuthorizationURL }
 

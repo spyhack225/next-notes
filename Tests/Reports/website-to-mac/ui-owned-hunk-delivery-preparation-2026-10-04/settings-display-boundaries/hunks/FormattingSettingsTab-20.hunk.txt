@@ -1,0 +1,21 @@
+--- a/Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift
++++ b/Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift
+@@ -185,0 +213,18 @@ struct FormattingSettingsTab: View {
++        ViewThatFits(in: .horizontal) {
++            HStack(spacing: DS.Space.xs) {
++                appHeader.fixedSize(horizontal: true, vertical: true)
++                    .frame(minWidth: DS.Size.formatAppLabelMinimum, alignment: .leading)
++                Spacer(minLength: DS.Space.xs)
++                capabilityHeader.fixedSize(horizontal: true, vertical: true)
++            }
++            appHeader.fixedSize(horizontal: false, vertical: true)
++        }
++    }
++
++    private var appHeader: some View {
++        Text("App and formatting")
++            .font(DS.Font.caption)
++            .foregroundStyle(DS.Color.textSecondary)
++    }
++
++    private var capabilityHeader: some View {

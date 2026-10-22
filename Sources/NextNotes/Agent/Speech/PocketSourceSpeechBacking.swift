@@ -16,6 +16,21 @@ final class PocketSourceSpeechBacking: AgentSpeechBacking {
         channels: 1
     )!
 
+    typealias Synthesis = @MainActor (String, @escaping @MainActor ([Float]) async throws -> Void) async throws -> Void
+    private let synthesis: Synthesis
+    private let automaticPreparation: Bool
+
+    init(synthesis: Synthesis? = nil) {
+        automaticPreparation = synthesis != nil
+        self.synthesis = synthesis ?? { text, consume in
+            let frames = try await PocketAgentVoice.shared.frames(for: text, voice: Settings.shared.agentPocketVoice)
+            for try await frame in frames {
+                try Task.checkCancellation()
+                try await consume(frame.samples)
+            }
+        }
+    }
+
     private var task: Task<Void, Never>?
     private var prepared = false
     private var speaking = false
@@ -27,7 +42,7 @@ final class PocketSourceSpeechBacking: AgentSpeechBacking {
     /// The renderer token is deliberately independent of the synthesizer's
     /// caller token. Callers may reuse their token (the voice self-tests do),
     /// while renderer callbacks can arrive after a prior clause was stopped.
-    private var generationCounter: UInt64 = 0
+    private static var generationCounter: UInt64 = 0
     private var generation: UInt64 = 0
     private var callerToken: UInt64 = 0
 
@@ -36,12 +51,17 @@ final class PocketSourceSpeechBacking: AgentSpeechBacking {
     var onFailure: ((String, Float, UInt64) -> Void)?
 
     var isSpeaking: Bool { speaking }
+    private var gain: Float = 1
+    var outputGain: Float { gain }
+    func setOutputGain(_ value: Float) {
+        gain = max(0, min(1, value))
+        if generation != 0 { renderer.setOutputGain(gain) }
+    }
 
     /// Starts the source-node graph once for the lifetime of a voice session.
     /// Root owns the session boundary and should call `endSession()` when the
     /// voice session is no longer needed.
     func prepare() throws {
-        guard !prepared else { return }
 
         renderer.onFirstSample = { [weak self] token in
             self?.firstSample(token: token)
@@ -71,6 +91,7 @@ final class PocketSourceSpeechBacking: AgentSpeechBacking {
     /// down the source-node graph. Callback removal precedes teardown because
     /// a receipt poll may already be queued on the main actor.
     func endSession() {
+        guard prepared else { return }
         stop()
         renderer.onFirstSample = nil
         renderer.onDrained = nil
@@ -81,6 +102,10 @@ final class PocketSourceSpeechBacking: AgentSpeechBacking {
     }
 
     func speak(_ text: String, volume: Float, token: UInt64) {
+        if automaticPreparation {
+            do { try prepare() }
+            catch { onFailure?(text, volume, token); return }
+        }
         guard prepared, token != 0 else {
             onFailure?(text, volume, token)
             return
@@ -89,6 +114,7 @@ final class PocketSourceSpeechBacking: AgentSpeechBacking {
         stop()
         let rendererToken = nextGeneration()
         generation = rendererToken
+        renderer.setOutputGain(gain)
         callerToken = token
         currentText = text
         currentVolume = volume
@@ -96,48 +122,28 @@ final class PocketSourceSpeechBacking: AgentSpeechBacking {
         speaking = true
         pausedForListening = false
 
-        let voice = Settings.shared.agentPocketVoice
         task = Task { @MainActor [weak self] in
             guard let self else { return }
             do {
-                let frames = try await PocketAgentVoice.shared.frames(
-                    for: text,
-                    voice: voice
-                )
                 var enqueuedBuffers = 0
 
-                for try await frame in frames {
+                try await synthesis(text) { [self] frameSamples in
                     try Task.checkCancellation()
-                    guard generation == rendererToken else { return }
+                    guard generation == rendererToken else { throw CancellationError() }
 
-                    let sampleCount = frame.samples.count
-                    // Empty frames do not establish that the stream produced
-                    // playable audio and must not be sent to the converter.
-                    guard sampleCount > 0 else { continue }
-                    guard let buffer = AVAudioPCMBuffer(
-                        pcmFormat: pocketFormat,
-                        frameCapacity: AVAudioFrameCount(sampleCount)
-                    ), let samples = buffer.floatChannelData?[0] else {
-                        throw PocketSourcePlaybackError.bufferAllocationFailed
+                    for offset in stride(from: 0, to: frameSamples.count, by: 1_920) {
+                        let count = min(1_920, frameSamples.count - offset)
+                        guard let buffer = AVAudioPCMBuffer(pcmFormat: pocketFormat, frameCapacity: AVAudioFrameCount(count)),
+                              let samples = buffer.floatChannelData?[0] else {
+                            throw PocketSourcePlaybackError.bufferAllocationFailed
+                        }
+                        buffer.frameLength = AVAudioFrameCount(count)
+                        frameSamples.withUnsafeBufferPointer { source in
+                            samples.update(from: source.baseAddress!.advanced(by: offset), count: count)
+                        }
+                        try await renderer.enqueue(buffer, token: rendererToken, volume: volume)
+                        enqueuedBuffers += 1
                     }
-                    buffer.frameLength = AVAudioFrameCount(sampleCount)
-                    frame.samples.withUnsafeBufferPointer { source in
-                        samples.update(
-                            from: source.baseAddress!,
-                            count: sampleCount
-                        )
-                    }
-
-                    // AgentPCMRenderer bounds both its token handshake and
-                    // ring backpressure. Renderer failures reach the catch
-                    // below unless this producer task was explicitly
-                    // cancelled by stop().
-                    try await renderer.enqueue(
-                        buffer,
-                        token: rendererToken,
-                        volume: volume
-                    )
-                    enqueuedBuffers += 1
                 }
 
                 guard generation == rendererToken else { return }
@@ -207,9 +213,9 @@ final class PocketSourceSpeechBacking: AgentSpeechBacking {
     }
 
     private func nextGeneration() -> UInt64 {
-        generationCounter &+= 1
-        if generationCounter == 0 { generationCounter = 1 }
-        return generationCounter
+        Self.generationCounter &+= 1
+        if Self.generationCounter == 0 { Self.generationCounter = 1 }
+        return Self.generationCounter
     }
 
     private func firstSample(token: UInt64) {

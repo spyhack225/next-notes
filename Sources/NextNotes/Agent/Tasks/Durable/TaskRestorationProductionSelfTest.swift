@@ -383,6 +383,12 @@ enum TaskRestorationProductionSelfTest {
                 "restart reset supplied authority, retained a card or fired an effect")
             cases += 1
         } catch { failures.append("real production restoration fixture: \(error)") }
+        let textInput = await TaskTextInputRestorationSelfTest.run()
+        cases += textInput.checks
+        failures += textInput.failures
+        let directoryInput = await TaskDirectoryInputRestorationSelfTest.run()
+        cases += directoryInput.checks
+        failures += directoryInput.failures
         failures += SelfTestStoreGuard.diff(before, SelfTestStoreGuard.take()).map { "owner changed: \($0)" }
         for failure in failures { SelfTest.diagnostic("TASK_RESTORATION_WRONG: \(failure)") }
         return failures.isEmpty ? "TASK_RESTORATION_OK: \(baseCount + cases + inputCount) cases"
@@ -655,11 +661,19 @@ enum TaskRestorationProductionSelfTest {
                 let rejected = unsupported.submit(objective: "Keep unsupported clarification explicit",
                     tool: tool, arguments: arguments, source: "text")
                 check(await settled(unsupported, rejected.id), "unsupported missing-argument producer did not settle: \(name)")
-                check(try unsupported.task(id: rejected.id)?.status == .failed && unsupported.pendingInputs.isEmpty
+                let directoryQuestion = unsupported.pendingInputs.first
+                let retainedDirectory = name == "directory-without-path"
+                    && unsupported.task(id: rejected.id)?.status == .waitingForInput
+                    && directoryQuestion?.toolID == "filesystem.tree" && directoryQuestion?.argumentName == "path"
+                    && directoryQuestion?.question == "Which folder?"
+                    && unsupported.task(id: rejected.id)?.pendingInteraction == directoryQuestion.map { TaskPendingInteraction.input($0) }
+                let unsupportedJournal = try unsupportedSQL.journal(taskID: rejected.id)
+                let refusedUnsupported = unsupported.task(id: rejected.id)?.status == .failed && unsupported.pendingInputs.isEmpty
                     && unsupported.task(id: rejected.id)?.pendingInteraction == nil
-                    && unsupportedSQL.journal(taskID: rejected.id).allSatisfy { $0.draft.kind != .inputRequested }
-                    && fires == initialFires && unsupported.backendStartsForTesting == 1,
-                    "unsupported incomplete read parked an unanswerable file question: \(name)")
+                    && unsupportedJournal.allSatisfy { $0.draft.kind != .inputRequested }
+                check((retainedDirectory || refusedUnsupported) && fires == initialFires
+                    && unsupported.backendStartsForTesting == 1,
+                    "exact directory question or unsupported refusal missing: \(name)")
             }
 
             let (cancelStore, cancelSQL, _) = try fixture("cancel")

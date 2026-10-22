@@ -1,0 +1,14 @@
+{
+  "at": "2026-10-07T16:21:27.185053+00:00",
+  "owner_pid": 1529,
+  "status": "Owner authorized force-quit; verified PID 1529 exited. See authorized-force-quit.json.",
+  "source_sha256": "7d22787269d1017a43d11ecfb2463f2e2713f80fee72bb1df5969b3dd6cbacbd",
+  "symbol": "NeedleServer.ensureRunning(_:)",
+  "source_line": 227,
+  "repeated_startup_frames": 512,
+  "observed_footprint_bytes_before_pause": 8912003976,
+  "paused_sample_footprint": "10.1G",
+  "guard_failure": "full footprint command timed out after 4 seconds, ending original sampler; replacement uses proc_pid_rusage v0",
+  "query_test_milliseconds": 0.026,
+  "original_source_git_ref": "422ba5f^:Sources/NextNotes/Agent/FunctionCalling/NeedleServer.swift"
+}

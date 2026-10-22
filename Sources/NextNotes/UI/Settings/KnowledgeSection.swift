@@ -239,6 +239,7 @@ struct IndexedFoldersSection: View {
             )
         }
         .onAppear {
+            guard SelfTest.requested != "--selftest-settings-sheet" else { return }
             index.refreshStats()
             folders.refreshAccessProblems()
             if folders.isEnabled { index.start() }

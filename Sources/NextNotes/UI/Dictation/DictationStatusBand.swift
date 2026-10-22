@@ -26,6 +26,8 @@ struct DictationStatusBand: View {
     let elapsed: TimeInterval
     /// What to hold, spelled out, so an idle band is an instruction rather than a label.
     let holdKey: String
+    /// Actual insertion/clipboard outcome from the controller, cleared on the next hold.
+    var delivery: DictationController.Delivery? = nil
     /// Whether this band carries the screen's one animating orb.
     ///
     /// With no rows the empty state's orb is the screen's, and it is already saying
@@ -103,7 +105,12 @@ struct DictationStatusBand: View {
 
     private var title: String {
         switch state {
-        case .idle: "Ready"
+        case .idle:
+            switch delivery?.kind {
+            case .inserted: "Text inserted"
+            case .copied: "Copied to clipboard"
+            case nil: "Ready"
+            }
         // The pre-roll can open the microphone before the engine leaves `.starting`.
         // Name the capture that is actually happening, not just the engine stage.
         case .starting: isCapturingAudio ? "Recording" : "Getting ready…"

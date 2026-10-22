@@ -1,0 +1,13 @@
+{
+  "status": "PREPARATION_ONLY_NO_MEASUREMENTS",
+  "record_count": 8,
+  "source_inputs": {
+    "Sources/NextNotes/UI/HUDPanel.swift": "32eb66d02fb37f8a235bd49624a2dc18d08870de56fcd9e025e3d23441327b66",
+    "Sources/NextNotes/UI/Island/IslandPanel.swift": "5b6f2f5daf29f9bef2d325aeaed8bb2065af3abfdecc6e97d1b45065bc631a02",
+    "Sources/NextNotes/Core/DictationController.swift": "881bff421bc879a2d96b6f8051a0410d1a5eb32b0863648df6166349d8e76a4b",
+    "Sources/NextNotes/NextNotesApp.swift": "347b0f19eff7dcdcb58b9b6d64749bdcc27075c337129286ce17fe47915411fd",
+    "Sources/NextNotes/Support/LatencyTrace.swift": "b330ec2bf75f1f3af44246a8b3da0eb1d2913b25668b5b03ba9c33f2f510bcb0",
+    "Sources/NextNotes/Agent/Voice/VoiceLatencyTimeline.swift": "bc2d80d98c0bee4a810d29f1da6e9a9395e66bcad9198818d3ed1b7d77ad569b"
+  },
+  "records_sha256": "2dfd4502a9b651a01e9cf01916f799d845ff3afdab48060a0f6bbdcf72405d49"
+}

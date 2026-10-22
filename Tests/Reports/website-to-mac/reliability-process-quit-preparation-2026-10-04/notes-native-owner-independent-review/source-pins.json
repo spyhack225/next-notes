@@ -1,0 +1,15 @@
+{
+  "status": "SOURCE_ONLY_UNRUN",
+  "sha256": {
+    "Sources/NextNotes/Meetings/NotesService.swift": "c1577429843cd4f2a50bca738a8afe95ed574e7faea29153de38fe8264c79652",
+    "Sources/NextNotes/Support/NativeTerminationSelfTest.swift": "a1c1d30f8198e63758dde34abd8812b236c281a191cd9168383eff95a47aa4f5",
+    "Sources/NextNotes/Support/NativeOtherLlamaQuitSelfTest.swift": "c413fae2d882e334634030b8601a7719dbc3ee476cc1c130c5eae83100d16704",
+    "Sources/NextNotes/Support/NativeStartupTerminationSelfTest.swift": "08efb6837d52bd8f216ec3d21ee7d1367d9791472c65f2e162c52bcbc77b73c2",
+    "Sources/NextNotes/Formatting/LLM/NotesModelRuntime.swift": "45ef55fe4afed62847932bd9fdf36f8819f093fb030a3f461af754b52deaef88",
+    "Sources/NextNotes/Formatting/LLM/LlamaBackend.swift": "a5093f80bcd746a37e5f5aaaa437eb9607cd218711d8221668e436c4dc20f95d",
+    "Sources/NextNotes/Knowledge/EmbeddingRuntime.swift": "85f147396dbec90865b75978004da8b8b7618b2634aa538e9860136cc6ace85a",
+    "Sources/NextNotes/Meetings/MeetingStore.swift": "085f6b60395192c230d80ac429e84f98cd0c79f2fce0300f10fd4bb0cbc52c6b",
+    "Sources/NextNotes/NextNotesApp.swift": "bc01a27f48478a297d07a1d35669c313615cc7c182c0c6d113b4899e792a1b61",
+    "Sources/NextNotes/Support/ModelDownloader.swift": "dd3ff581ae28606a62ea2ea5f424282fb07325eef99fd829164f677c4d665e07"
+  }
+}

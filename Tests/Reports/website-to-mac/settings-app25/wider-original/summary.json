@@ -1,0 +1,44 @@
+{
+  "installedBinarySHA256": "0b5cd2efc8db1308e0ed568348a6b2297ef0d37ec50786f9032bab628e9e5875",
+  "results": [
+    {
+      "pane": "computer",
+      "width": 560,
+      "checks": {
+        "exit0": true,
+        "fourPNG": true,
+        "constructor": true,
+        "consumer": true,
+        "finalOK": true,
+        "binaryUnchanged": true
+      },
+      "elapsed": 0.965
+    },
+    {
+      "pane": "formatting",
+      "width": 560,
+      "checks": {
+        "exit0": true,
+        "fourPNG": true,
+        "constructor": true,
+        "consumer": true,
+        "finalOK": true,
+        "binaryUnchanged": true
+      },
+      "elapsed": 0.683
+    },
+    {
+      "pane": "agent",
+      "width": 320,
+      "checks": {
+        "exit0": true,
+        "fourPNG": true,
+        "constructor": true,
+        "consumer": true,
+        "finalOK": true,
+        "binaryUnchanged": true
+      },
+      "elapsed": 0.797
+    }
+  ]
+}

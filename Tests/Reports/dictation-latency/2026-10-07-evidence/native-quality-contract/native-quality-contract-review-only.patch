@@ -1,0 +1,142 @@
+--- a/Sources/NextNotes/Transcription/DictationSegmentsSelfTest.swift
++++ b/Sources/NextNotes/Transcription/DictationSegmentsSelfTest.swift
+@@ -21,14 +21,30 @@
+         failures += await precleanCases()
+         for failure in failures { log("DICTATION_SEGMENTS_WRONG: \(failure)") }
+ 
++        let maxWER: Double?
++        if let value = SelfTest.value(after: "--dictation-max-wer") {
++            guard let parsed = Double(value), parsed.isFinite, parsed >= 0,
++                  SelfTest.value(after: "--dictation-gold") != nil else {
++                log("DICTATION_SEGMENTS_REPLAY_WRONG: max WER requires a nonnegative finite number and independent gold")
++                return false
++            }
++            maxWER = parsed
++        } else {
++            maxWER = nil
++        }
++
++        if maxWER != nil, wavPath == nil {
++            log("DICTATION_SEGMENTS_FAILED: an independent word-error gate requires an audio replay")
++            return false
++        }
+         var replayOK = true
+         if let wavPath {
+             if let polish = SelfTest.value(after: "--dictation-polish") {
+                 replayOK = await DictationController.runPolishingReplay(
+                     path: wavPath, choice: polish == "apple" ? .apple : .miniCPM,
+-                    warmFirst: CommandLine.arguments.contains("--dictation-polish-warm"), log: log)
++                    warmFirst: CommandLine.arguments.contains("--dictation-polish-warm"), maximumWER: maxWER, log: log)
+             } else {
+-                replayOK = await replay(path: wavPath, goldPath: SelfTest.value(after: "--dictation-gold"), log: log)
++                replayOK = await replay(path: wavPath, goldPath: SelfTest.value(after: "--dictation-gold"), maxWER: maxWER, log: log)
+             }
+         }
+         let ok = failures.isEmpty && replayOK
+@@ -145,6 +161,17 @@
+         var quiet = DictationSegmenter()
+         if quiet.advance(over: silence(2)).speechEnded || quiet.lastSpeechEnd != 0 {
+             failures.append("silence alone reported speech")
++        }
++        // Entirely quiet accepted PCM has no proven pause boundary. A three-second
++        // silence run must not halve a quiet spoken clause and freeze its first words.
++        let quietTurn = tone(3.3, amplitude: 0.002)
++        let quietCuts = cuts(quietTurn, step: 1_600).cuts
++        if !quietCuts.isEmpty {
++            failures.append("entire below-floor turn cut at [\(seconds(quietCuts))] without a speech-to-pause boundary")
++        }
++        let zeroCuts = cuts(silence(3.3), step: 1_600).cuts
++        if !zeroCuts.isEmpty {
++            failures.append("digital silence produced a pause cut without preceding speech")
+         }
+         return failures
+     }
+@@ -295,7 +322,7 @@
+     // MARK: - Real-time replay through the production engine
+ 
+     @MainActor
+-    private static func replay(path: String, goldPath: String?, log: @MainActor (String) -> Void) async -> Bool {
++    private static func replay(path: String, goldPath: String?, maxWER: Double?, log: @MainActor (String) -> Void) async -> Bool {
+         let url = URL(fileURLWithPath: (path as NSString).expandingTildeInPath)
+         guard let audio = try? AudioConversion.monoSamples(fromFileAt: url, sampleRate: Double(rate)),
+               audio.count > rate else {
+@@ -330,7 +357,7 @@
+         let gold: String?
+         if let goldPath {
+             guard let text = try? String(contentsOfFile: (goldPath as NSString).expandingTildeInPath,
+-                                         encoding: .utf8), !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
++                                         encoding: .utf8), maxWER != nil || !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                 log("DICTATION_SEGMENTS_REPLAY_ABSENT: could not read the independent transcript")
+                 return false
+             }
+@@ -353,13 +380,20 @@
+                 ok = false
+                 continue
+             }
+-            log("DICTATION_SEGMENTS_REPLAY: \(name) \(line)")
++            log("DICTATION_SEGMENTS_REPLAY: \(name) \(line.summary)")
++            if let maxWER, let gold {
++                let actual = wordErrorRate(reference: gold, hypothesis: line.finalText)
++                if actual > maxWER {
++                    log("DICTATION_SEGMENTS_REPLAY_WRONG: \(name) independent WER \(actual) exceeds required \(maxWER)")
++                    ok = false
++                }
++            }
+         }
+         return ok
+     }
+ 
+     private static func replayOnce(_ audio: [Float], reference: String, gold: String?,
+-        output: String? = nil) async -> String? {
++        output: String? = nil) async -> (summary: String, finalText: String)? {
+         let engine = ParakeetEngine()
+         guard let stream = try? await engine.start(),
+               let format = await engine.preferredInputFormat() else { return nil }
+@@ -413,7 +447,7 @@
+         if let gold {
+             result += String(format: ", independent WER %.3f", wordErrorRate(reference: gold, hypothesis: final))
+         }
+-        return result
++        return (result, final)
+     }
+ 
+     static func wordErrorRate(reference: String, hypothesis: String) -> Double {
+--- a/Sources/NextNotes/Core/DictationController.swift
++++ b/Sources/NextNotes/Core/DictationController.swift
+@@ -1051,7 +1051,7 @@
+     /// isolated. This measures text ready for insertion, not an Accessibility delivery.
+     static func runPolishingReplay(
+         path: String, choice: CleanupEngineChoice, warmFirst: Bool,
+-        log: @MainActor (String) -> Void
++        maximumWER: Double? = nil, log: @MainActor (String) -> Void
+     ) async -> Bool {
+         guard SelfTest.isRunning, Settings.shared.usesHarnessPreferencesForTesting else { return false }
+         let rate = 16_000
+@@ -1063,6 +1063,10 @@
+         }
+         let gold = SelfTest.value(after: "--dictation-gold").flatMap {
+             try? String(contentsOfFile: ($0 as NSString).expandingTildeInPath, encoding: .utf8)
++        }
++        if maximumWER != nil, gold == nil {
++            log("DICTATION_POLISH_FAILED: could not read the required independent transcript")
++            return false
+         }
+         let settings = Settings.shared
+         let old = (settings.cleanupEnabled, settings.cleanupEngine, settings.cleanupFixesGrammar,
+@@ -1163,9 +1167,14 @@
+                        round, startupMs, String(readyMs <= 2_000), String(visibleWords > 0),
+                        record?.structurePlanRejected ?? "accepted or not requested"))
+             if let gold {
++                let rawWER = DictationSegmentsSelfTest.wordErrorRate(reference: gold, hypothesis: finalASR)
++                let finalWER = DictationSegmentsSelfTest.wordErrorRate(reference: gold, hypothesis: delivered)
+                 log(String(format: "DICTATION_POLISH_WER: round=%d raw=%.3f final=%.3f",
+-                    round, DictationSegmentsSelfTest.wordErrorRate(reference: gold, hypothesis: finalASR),
+-                    DictationSegmentsSelfTest.wordErrorRate(reference: gold, hypothesis: delivered)))
++                    round, rawWER, finalWER))
++                if let maximumWER, rawWER > maximumWER || finalWER > maximumWER {
++                    log("DICTATION_POLISH_WRONG: round=\(round) raw or final independent WER exceeds required \(maximumWER)")
++                    ok = false
++                }
+             }
+             if let output = SelfTest.value(after: "--dictation-asr-output") {
+                 try? finalASR.write(toFile: output + ".\(round).txt", atomically: true, encoding: .utf8)

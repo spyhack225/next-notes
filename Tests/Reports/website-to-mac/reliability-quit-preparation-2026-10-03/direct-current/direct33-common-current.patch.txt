@@ -1,0 +1,634 @@
+--- a/Sources/NextNotes/Core/DictationController.swift
++++ b/Sources/NextNotes/Core/DictationController.swift
+@@ -620,6 +620,92 @@
+             """)
+         return harvested.rankLimited()
+     }
++
++
++    // COMMON nil diagnostic hooks observe the SAME created task/result. They do
++    // not join, delay or change default work. Exact flag guard is checked here.
++    var nativeFinishCreatedForTesting: (@MainActor (Task<Void, Never>) -> Void)?
++    var nativeFinishResultForTesting: (@MainActor (Bool?) -> Void)?
++    var nativeFinishEndedForTesting: (@MainActor () -> Void)?
++    var nativeFinishCapturedForTesting: (@MainActor (Bool) -> Void)?
++
++    /// Confined synthetic-native fixture only: no microphone, key tap, focused
++    /// app, capture target, run history or final text injection is constructed.
++    /// runTail's real native leg executes; its post-native session guard refuses
++    /// unrelated cleanup/output because this is explicitly not a user's hold.
++    func installNativeTerminationEngineForTesting(
++        _ engine: ParakeetEngine,
++        stream: AsyncThrowingStream<TranscriptionChunk, Error>?
++    ) throws {
++        guard SelfTest.isRunning, NativeDirectDictationQuitSelfTest.isRequested,
++              self.engine == nil, self.consumeTask == nil else {
++            throw CocoaError(.fileReadNoPermission)
++        }
++        self.engine = engine
++        if let stream {
++            consumeTask = Task { do { for try await _ in stream {} } catch {} }
++            // Stream failures are recorded by the actual native bracket; this
++            // private harness consumer must not route a result to owner UI.
++        }
++    }
++    func runNativeTerminationTailForTesting() async throws {
++        guard SelfTest.isRunning, NativeDirectDictationQuitSelfTest.isRequested else {
++            throw CocoaError(.fileReadNoPermission)
++        }
++        await runTail(session: self.session &- 1, audio: nil)
++    }
++
++    private func makeNativeFinishJob(
++        priority: TaskPriority? = nil,
++        _ work: @escaping @Sendable () async -> Void
++    ) -> Task<Void, Never> {
++        let job = Task(priority: priority) {
++            await work()
++            if SelfTest.isRunning && NativeDirectDictationQuitSelfTest.isRequested {
++                self.nativeFinishEndedForTesting?()
++            }
++        }
++        if SelfTest.isRunning && NativeDirectDictationQuitSelfTest.isRequested {
++            nativeFinishCreatedForTesting?(job)
++        }
++        return job
++    }
++
++    // Exact old RaceGate semantics specialized only to the runTail native leg.
++    // The timer and current-result arbitration are unchanged.
++    private func withOwnedTranscriptionWait(
++        _ limit: Duration,
++        _ work: @escaping @Sendable () async -> Bool
++    ) async -> Bool? {
++        let gate = RaceGate<Bool>()
++        let job = makeNativeFinishJob(priority: .userInitiated) { await gate.settle(await work()) }
++        let timer = Task {
++            try? await Task.sleep(for: limit)
++            await gate.settle(nil)
++        }
++        return await withTaskCancellationHandler {
++            let result = await gate.value()
++            timer.cancel()
++            if result == nil { job.cancel() }
++            if SelfTest.isRunning && NativeDirectDictationQuitSelfTest.isRequested {
++                nativeFinishResultForTesting?(result)
++            }
++            return result
++        } onCancel: {
++            job.cancel()
++            timer.cancel()
++            Task { await gate.settle(nil) }
++        }
++    }
++
++    // Missing-feature scaffold. Original retains no retired native handle.
++    func beginTermination() -> Task<Void, Never>? {
++        if SelfTest.isRunning && NativeDirectDictationQuitSelfTest.isRequested {
++            nativeFinishCapturedForTesting?(false)
++        }
++        return nil
++    }
++    func finishTermination(_ owned: Task<Void, Never>?) async {}
+ 
+     private var engine: (any TranscriptionEngine)?
+     private var consumeTask: Task<Void, Never>?
+@@ -1142,7 +1228,7 @@
+                 // process — so a mismatch is refused here, with the audio left kept.
+                 if let keptFormat = kept.format, !Self.sameInputFormat(format, keptFormat) {
+                     if self.session == session { self.engine = nil }
+-                    Task { await engine.finish() }
++                    _ = makeNativeFinishJob { await engine.finish() }
+                     fail("That recording doesn\u{2019}t fit the speech model you are using now. Hold the key and say it again.",
+                          result: .failed(.startup))
+                     return
+@@ -1177,7 +1263,7 @@
+                     return
+                 case nil:
+                     self.engine = nil
+-                    Task { await engine.finish() }
++                    _ = makeNativeFinishJob { await engine.finish() }
+                     fail("The speech model didn\u{2019}t finish loading in time. If it is still downloading, let Settings \u{25B8} Models finish first.",
+                          result: .failed(.startupTimeout))
+                     return
+@@ -1517,7 +1603,7 @@
+                     return
+                 case nil:
+                     self.engine = nil
+-                    Task { await engine.finish() }
++                    _ = makeNativeFinishJob { await engine.finish() }
+                     fail("The speech model didn't finish loading in time. If it is still downloading, let Settings ▸ Models finish first.",
+                          result: .failed(.startupTimeout))
+                     return
+@@ -1732,7 +1818,7 @@
+         // engine the transcription happens inside `finish()` and the stream yields once
+         // at the end of it, so bounding them separately would only mean two ways to hang.
+         // With near-streaming Parakeet, finish often reuses the last partial.
+-        let transcribed = await withBoundedWait(limits.transcribe) { () -> Bool in
++        let transcribed = await withOwnedTranscriptionWait(limits.transcribe) { () -> Bool in
+             await engine?.finish()
+             await consumeTask?.value
+             return true
+@@ -2200,7 +2286,7 @@
+ 
+         let engine = self.engine
+         self.engine = nil
+-        Task { @MainActor in
++        _ = makeNativeFinishJob {
+             await engine?.finish()
+             await self.releaseASRLane(for: releasing)
+         }
+@@ -2382,7 +2468,7 @@
+         let engine = self.engine
+         self.engine = nil
+         if let engine {
+-            Task { @MainActor in
++            _ = makeNativeFinishJob {
+                 await engine.finish()
+                 await self.releaseASRLane(for: releasing)
+             }
+--- a/Sources/NextNotes/Transcription/ParakeetEngine.swift
++++ b/Sources/NextNotes/Transcription/ParakeetEngine.swift
+@@ -54,6 +54,20 @@
+     /// recognition session has already started.
+     private var runtimeGeneration: UInt64?
+     private var runtimeLoaded = false
++
++    private let models: ParakeetModels
++    private let nativeFinishTraceForTesting: DirectDictationNativeTrace?
++    init() {
++        models = .shared
++        nativeFinishTraceForTesting = nil
++    }
++    init(terminationFixtureModels: ParakeetModels, trace: DirectDictationNativeTrace) throws {
++        guard SelfTest.isRunning, NativeDirectDictationQuitSelfTest.isRequested else {
++            throw CocoaError(.fileReadNoPermission)
++        }
++        models = terminationFixtureModels
++        nativeFinishTraceForTesting = trace
++    }
+ 
+     private let converter = AudioConverter()
+ 
+@@ -113,7 +127,7 @@
+         do {
+             // Force the (possibly very slow) first load to happen here rather than on release,
+             // so the user waits before speaking instead of losing an utterance to a timeout.
+-            _ = try await ParakeetModels.shared.manager()
++            _ = try await models.manager()
+             runtimeLoaded = true
+             _ = await ModelRuntimeManager.shared.markReady(
+                 .parakeetASR,
+@@ -132,7 +146,7 @@
+             // The model cache is process-wide. A superseded engine must not
+             // call it unloaded when another session (or the shared load task)
+             // still owns resident weights.
+-            if await ParakeetModels.shared.isLoaded {
++            if await models.isLoaded {
+                 _ = await ModelRuntimeManager.shared.markReady(
+                     .parakeetASR,
+                     generation: runtimeGeneration
+@@ -239,7 +253,7 @@
+                     leftover \(Double(leftover) / 16_000, format: .fixed(precision: 2))s)
+                     """)
+             } else {
+-                let manager = try await ParakeetModels.shared.manager()
++                let manager = try await models.manager()
+                 var decoderState = try TdtDecoderState()
+                 let started = Date()
+                 // D-04: 0.1–0.3 s of audio is zero-padded to the model's 0.3 s
+@@ -247,10 +261,16 @@
+                 // near-empty tap, so a long answer from almost no audio is
+                 // treated as empty.
+                 let realSamples = samples.count
+-                let result = try await manager.transcribe(
+-                    ParakeetInput.padded(samples), decoderState: &decoderState)
++                nativeFinishTraceForTesting?.entered()
++                do {
++                    var succeeded = false
++                    defer { nativeFinishTraceForTesting?.returned(succeeded: succeeded) }
++                    let result = try await manager.transcribe(
++                        ParakeetInput.padded(samples), decoderState: &decoderState)
++                    succeeded = true
++                    text = result.text.trimmingCharacters(in: .whitespacesAndNewlines)
++                }
+                 elapsed = Date().timeIntervalSince(started)
+-                text = result.text.trimmingCharacters(in: .whitespacesAndNewlines)
+                 if realSamples < 3_200, text.split(whereSeparator: \.isWhitespace).count > 2 {
+                     Log.speech.info("Parakeet: padded short audio produced words from noise — treating as empty")
+                     text = ""
+@@ -328,10 +348,17 @@
+     private func runPartial(snapshot: [Float], at: Int, generation: Int) async {
+         guard generation == recognitionGeneration, !Task.isCancelled else { return }
+         do {
+-            let manager = try await ParakeetModels.shared.manager()
++            let manager = try await models.manager()
+             var decoderState = try TdtDecoderState()
+-            let result = try await manager.transcribe(snapshot, decoderState: &decoderState)
+-            let text = result.text.trimmingCharacters(in: .whitespacesAndNewlines)
++            nativeFinishTraceForTesting?.entered()
++            let text: String
++            do {
++                var succeeded = false
++                defer { nativeFinishTraceForTesting?.returned(succeeded: succeeded) }
++                let result = try await manager.transcribe(snapshot, decoderState: &decoderState)
++                succeeded = true
++                text = result.text.trimmingCharacters(in: .whitespacesAndNewlines)
++            }
+             guard generation == recognitionGeneration, !Task.isCancelled else { return }
+             guard !text.isEmpty else { return }
+             lastPartialText = text
+--- a/Sources/NextNotes/Support/NativeStartupTerminationSelfTest.swift
++++ b/Sources/NextNotes/Support/NativeStartupTerminationSelfTest.swift
+@@ -24,7 +24,8 @@
+                "asr-queue-active", "asr-queue-queued", "asr-queue-closed",
+                "final-pass-active", "final-pass-cancel", "final-pass-closed",
+                "diarizer-active", "diarizer-cancel", "diarizer-closed", "diarizer-stall",
+-               "diarizer-stall-cancel", "diarizer-stall-quit"].contains(mode) else {
++               "diarizer-stall-cancel", "diarizer-stall-quit",
++               "dictation-cancel-retired", "dictation-tail-retired"].contains(mode) else {
+             throw CocoaError(.fileReadNoPermission)
+         }
+         let root = try (NativeDiarizationQuitSelfTest.modes.contains(mode)
+@@ -43,6 +44,7 @@
+     }
+ 
+     static func armIfRequested() async throws -> Bool {
++        if try await NativeDirectDictationQuitSelfTest.armIfRequested() { return true }
+         if try await NativeDiarizationQuitSelfTest.armIfRequested() { return true }
+         if try await NativeFinalTranscriptQuitSelfTest.armIfRequested() { return true }
+         if try await ASRQueueTerminationSelfTest.armIfRequested() { return true }
+--- a/Sources/NextNotes/NextNotesApp.swift
++++ b/Sources/NextNotes/NextNotesApp.swift
+@@ -443,11 +443,39 @@
+         otherLlamaTerminationFixtureForTesting = (s1, embedding, library, finalReply, safetyDrain, reply, willExit)
+     }
+ 
++    private var directDictationTerminationFixtureForTesting: (
++        controller: DictationController,
++        reply: @MainActor (NSApplication.TerminateReply) -> Void,
++        finalReply: @MainActor (Bool) -> Bool,
++        safetyDrain: (@MainActor () async -> Void)?,
++        willExit: @MainActor () -> Void
++    )?
++    func configureDirectDictationTerminationFixture(
++        controller: DictationController,
++        reply: @escaping @MainActor (NSApplication.TerminateReply) -> Void,
++        finalReply: @escaping @MainActor (Bool) -> Bool,
++        safetyDrain: (@MainActor () async -> Void)? = nil,
++        willExit: @escaping @MainActor () -> Void
++    ) throws {
++        guard SelfTest.isRunning, NativeDirectDictationQuitSelfTest.isRequested,
++              directDictationTerminationFixtureForTesting == nil,
++              startupTerminationFixtureForTesting?.parakeet != nil,
++              startupTerminationFixtureForTesting?.pocket == nil,
++              startupTerminationFixtureForTesting?.queue == nil,
++              startupTerminationFixtureForTesting?.diarizer == nil,
++              recordingQuitFixtureForTesting == nil, terminationFixtureForTesting == nil,
++              otherLlamaTerminationFixtureForTesting == nil else {
++            throw CocoaError(.fileReadNoPermission)
++        }
++        directDictationTerminationFixtureForTesting = (controller, reply, finalReply, safetyDrain, willExit)
++    }
++
+     private func observedTerminationReply(_ reply: NSApplication.TerminateReply) -> NSApplication.TerminateReply {
+         terminationFixtureForTesting?.reply(reply)
+         startupTerminationFixtureForTesting?.reply(reply)
+         recordingQuitFixtureForTesting?.reply(reply)
+         otherLlamaTerminationFixtureForTesting?.reply(reply)
++        directDictationTerminationFixtureForTesting?.reply(reply)
+         return reply
+     }
+ 
+@@ -9647,6 +9675,10 @@
+                 return observedTerminationReply(.terminateCancel)
+             }
+         }
++        // COMMON same direct-owner routing before either producer variant.
++        // Original controller does not retain or drain retired native tasks.
++        let dictationOwner = directDictationTerminationFixtureForTesting?.controller ?? controller
++        let ownedDictation = dictationOwner.beginTermination()
+         // Do not initialize the notes singleton merely because an idle app quits.
+         let service = terminationFixtureForTesting?.service
+             ?? (stopRecording ? NotesService.shared : NotesService.sharedIfLoaded)
+@@ -9720,14 +9752,17 @@
+             await diarization.finishTermination(ownedDiarizationTasks)
+             await diarizer.finishTermination()
+             await pocket.finishTermination()
++            await dictationOwner.finishTermination(ownedDictation)
+             await parakeet.finishTermination()
+             let drained = await runtime.finishTermination()
+             let diagnosticDrain = self.otherLlamaTerminationFixtureForTesting?.safetyDrain
++                ?? self.directDictationTerminationFixtureForTesting?.safetyDrain
+             // Preserve the ordinary nil path's existing release/reply ordering.
+             if diagnosticDrain == nil { self.nativeTerminationTask = nil }
+             // Veto-only diagnostic callbacks cannot promote a false real result.
+             let allowExit = drained && (self.startupTerminationFixtureForTesting?.finalReply?(drained) ?? true)
+                 && (self.otherLlamaTerminationFixtureForTesting?.finalReply?(drained) ?? true)
++                && (self.directDictationTerminationFixtureForTesting?.finalReply(drained) ?? true)
+             if allowExit { self.nativeTerminationTask = nil }
+             sender.reply(toApplicationShouldTerminate: allowExit)
+             guard !allowExit, drained, let diagnosticDrain else {
+@@ -9739,6 +9774,7 @@
+             // Consume the diagnostic continuation once. A failed safety predicate
+             // after cleanup cannot schedule an unbounded Cocoa re-quit loop.
+             self.otherLlamaTerminationFixtureForTesting?.safetyDrain = nil
++            self.directDictationTerminationFixtureForTesting?.safetyDrain = nil
+             await diagnosticDrain()
+             self.nativeTerminationTask = nil
+             SelfTest.requestTermination()
+@@ -9751,6 +9787,7 @@
+         startupTerminationFixtureForTesting?.willExit()
+         recordingQuitFixtureForTesting?.willExit()
+         otherLlamaTerminationFixtureForTesting?.willExit()
++        directDictationTerminationFixtureForTesting?.willExit()
+         controller.deactivate()
+         // The resident fast-listening engine is a child process and nothing kills it for us.
+         // Synchronous on purpose: this method cannot await, and a `Task` here would be
+--- /dev/null
++++ b/Sources/NextNotes/Support/NativeDirectDictationQuitSelfTest.swift
+@@ -0,0 +1,284 @@
++import AppKit
++import AVFoundation
++import FluidAudio
++import Foundation
++
++/// OFF-SOURCE DRAFT, UNCOMPILED. Real copied Parakeet + tracked synthetic WAV;
++/// actual controller cancel and runTail native leg; no physical microphone/AX.
++@MainActor
++enum NativeDirectDictationQuitSelfTest {
++    nonisolated static let modes = ["dictation-cancel-retired", "dictation-tail-retired"]
++    nonisolated static var isRequested: Bool {
++        let args = CommandLine.arguments
++        guard SelfTest.requested == "--selftest-native-termination",
++              let i = args.firstIndex(of: "--native-startup-case"), args.indices.contains(i + 1) else { return false }
++        return modes.contains(args[i + 1])
++    }
++    private static var conductor: DirectDictationConductor?
++    static func armIfRequested() async throws -> Bool {
++        guard isRequested else { return false }
++        let args = CommandLine.arguments
++        guard let i = args.firstIndex(of: "--native-startup-case"), args.indices.contains(i + 1),
++              let a = args.firstIndex(of: "--native-startup-assets"), args.indices.contains(a + 1),
++              let delegate = AppDelegate.current else { throw CocoaError(.fileReadNoPermission) }
++        let root = try NativeStartupTerminationSelfTest.validateAssets(URL(fileURLWithPath: args[a + 1]), pocket: false)
++        let input = root.appendingPathComponent("fr-dialogue.wav")
++        let metadata = try input.resourceValues(forKeys: [.isRegularFileKey, .isSymbolicLinkKey, .fileSizeKey])
++        guard input.standardizedFileURL.path == input.resolvingSymlinksInPath().path,
++              metadata.isRegularFile == true, metadata.isSymbolicLink != true,
++              (metadata.fileSize ?? 0) > 1_000_000 else { throw CocoaError(.fileReadNoPermission) }
++        let samples = try AudioConversion.samples(fromFileAt: input, sampleRate: 16_000, channel: nil)
++        guard samples.count > 800_000, ChunkedTranscriber.containsSpeech(samples) else { throw CocoaError(.fileReadCorruptFile) }
++        // A unique harness-only usage root, never the supplied model root or an
++        // owner history directory. Only synthetic numerical rows can be filed.
++        let usageRoot = FileManager.default.temporaryDirectory.standardizedFileURL.resolvingSymlinksInPath()
++            .appendingPathComponent("NextNotesDictationNativeTest-" + UUID().uuidString, isDirectory: true)
++        guard usageRoot.deletingLastPathComponent().path == FileManager.default.temporaryDirectory.standardizedFileURL.resolvingSymlinksInPath().path,
++              usageRoot.path == usageRoot.resolvingSymlinksInPath().path,
++              !FileManager.default.fileExists(atPath: usageRoot.path) else { throw CocoaError(.fileWriteNoPermission) }
++        ModelHub.offlineMode = true
++        let owner = try DirectDictationConductor(mode: args[i + 1], assets: root, samples: samples, usageRoot: usageRoot)
++        conductor = owner
++        try owner.configure(delegate)
++        try await owner.start()
++        return true
++    }
++}
++
++@MainActor
++private final class DirectDictationConductor {
++    let mode: String
++    let samples: [Float]
++    let usageRoot: URL
++    let models: ParakeetModels
++    let controller: DictationController
++    private(set) var checks = 0
++    private(set) var failures = 0
++    private(set) var invalid = false
++    private var native: DirectDictationNativeTrace!
++    private var retired: Task<Void, Never>?
++    private var current: Task<Void, Never>?
++    private var assigned = 0
++    private var ended = 0
++    private var ownerCaptured = false
++    private var retiredResultObserved = false
++    private var currentResultObserved = false
++    private var resultBeforeRetiredEnd = false
++    private var currentBegan: Date?
++    private var phase = 0
++    private var firstVerdict = false
++    private var vetoes = 0
++    private var parent: Task<Void, Never>?
++    private let output: DirectDictationOutputTrace
++
++    init(mode: String, assets: URL, samples: [Float], usageRoot: URL) throws {
++        self.mode = mode
++        self.samples = samples
++        self.usageRoot = usageRoot
++        models = try ParakeetModels(terminationFixtureRoot: assets, trace: StartupTerminationTrace(autoQuit: false))
++        var limits = DictationController.Limits.standard
++        // Existing injected deadline, not a production timeout adjustment.
++        if mode == "dictation-tail-retired" { limits.transcribe = .milliseconds(20) }
++        let output = DirectDictationOutputTrace()
++        self.output = output
++        controller = DictationController(formatter: RuleBasedFormatter(), limits: limits,
++            insert: { _, _ in output.insertCalls += 1; return .inserted },
++            record: { _ in output.recordCalls += 1 }, log: .selfTest,
++            outcome: { _ in output.outcomeCalls += 1 }, usage: UsageLog(directory: usageRoot),
++            captureSelection: { nil }, requestMicrophone: { false })
++        native = DirectDictationNativeTrace { [weak self] ordinal in
++            Task { @MainActor in self?.nativeEntered(ordinal) }
++        }
++        controller.nativeFinishCreatedForTesting = { [weak self] task in
++            guard let self else { return }
++            assigned += 1
++            if assigned == 1 { retired = task }
++            else if assigned == 2 { current = task }
++        }
++        controller.nativeFinishEndedForTesting = { [weak self] in self?.ended += 1 }
++        controller.nativeFinishCapturedForTesting = { [weak self] in self?.ownerCaptured = $0 }
++        controller.nativeFinishResultForTesting = { [weak self] in self?.nativeResult($0) }
++    }
++    private func check(_ label: String, _ value: Bool) {
++        checks += 1
++        if !value { failures += 1; SelfTest.failed = true; SelfTest.diagnostic("DIRECT_DICTATION_TERMINATION_ASSERT_FAILED: \(label)") }
++    }
++    private func require(_ label: String, _ value: Bool) -> Bool {
++        check(label, value)
++        if !value { invalid = true }
++        return value
++    }
++    func configure(_ delegate: AppDelegate) throws {
++        // SAME existing model owner closes prep without substituting its drain
++        // for the engine's caller-owned actual native Task.
++        try delegate.configureStartupTerminationFixture(parakeet: models, pocket: nil, reply: { _ in }, willExit: {})
++        try delegate.configureDirectDictationTerminationFixture(controller: controller,
++            reply: { [weak self] reply in self?.reply(reply) },
++            finalReply: { [weak self] drained in self?.finalReply(drained) ?? false },
++            safetyDrain: { [weak self] in await self?.safetyDrain() },
++            willExit: { [weak self] in self?.willExit() })
++    }
++    func start() async throws {
++        guard SelfTest.isRunning, NativeDirectDictationQuitSelfTest.isRequested else { throw CocoaError(.fileReadNoPermission) }
++        check("I01 confined synthetic input and explicit controller sinks", true)
++        // Qualification uses SAME actual engine/models and native API. A short
++        // one-second chunk stays below partial cadence and finish transcribes it.
++        let qualification = try ParakeetEngine(terminationFixtureModels: models, trace: native)
++        let stream = try await qualification.start()
++        let consume = Task { do { for try await _ in stream {} } catch {} }
++        await qualification.feed(try chunk(Array(samples.prefix(16_000))))
++        await qualification.finish()
++        await consume.value
++        let before = native.snapshot()
++        guard require("C01 first actual engine/native pass succeeds and returns", before.starts == 1 && before.ends == 1 && before.successes == 1 && before.active == 0) else { throw CocoaError(.fileReadCorruptFile) }
++        let subject = try ParakeetEngine(terminationFixtureModels: models, trace: native)
++        let subjectStream = try await subject.start()
++        try controller.installNativeTerminationEngineForTesting(subject, stream: subjectStream)
++        phase = 1
++        // Real near-streaming partial, launched by normal feed. No task pause,
++        // model replacement, synthesized ASR result or injected native wrapper.
++        await subject.feed(try chunk(samples))
++    }
++    private func nativeEntered(_ ordinal: Int) {
++        guard phase == 1, ordinal == 2 else { return }
++        phase = 2
++        let snapshot = native.snapshot()
++        guard require("C02 actual second native API pending before retire", snapshot.active == 1 && snapshot.ends == 1 && snapshot.successes == 1) else {
++            safelyQuitInvalid(); return
++        }
++        if mode == "dictation-cancel-retired" {
++            controller.cancelDictation()
++            check("C03 ordinary cancel returns immediate idle", controller.state == .idle)
++            check("C04 actual cancel creates one existing cleanup task", assigned == 1 && retired != nil)
++            launchCurrent()
++        } else {
++            parent = Task { @MainActor [weak self] in
++                guard let self else { return }
++                do { try await controller.runNativeTerminationTailForTesting() }
++                catch { invalid = true; safelyQuitInvalid() }
++            }
++        }
++    }
++    private func nativeResult(_ result: Bool?) {
++        if mode == "dictation-tail-retired" && !retiredResultObserved {
++            retiredResultObserved = true
++            guard require("C03 actual transcription deadline settles nil while native pending", result == nil && native.snapshot().active == 1 && assigned == 1 && retired != nil) else {
++                safelyQuitInvalid(); return
++            }
++            launchCurrent()
++            return
++        }
++        guard !currentResultObserved else { return }
++        currentResultObserved = true
++        // Global finish-job end count may already include the CURRENT empty
++        // job when its settled RaceGate resumes this caller. Pin the exact
++        // second native operation instead: only the qualification has returned,
++        // and no final/third native API has entered. SAME control before both.
++        let atCurrentResult = native.snapshot()
++        resultBeforeRetiredEnd = atCurrentResult.starts == 2 && atCurrentResult.ends == 1 && atCurrentResult.active == 1
++        // Current no-audio finish must not await prior native cleanup. This is a
++        // scheduling/result control, not full healthy spoken-turn latency proof.
++        guard require("C05 current real empty engine finish settles true before predecessor", result == true && resultBeforeRetiredEnd && assigned == 2 && current != nil) else {
++            safelyQuitInvalid(); return
++        }
++        check("C06 supplied user-output sinks remain unused", output.insertCalls == 0 && output.recordCalls == 0 && output.outcomeCalls == 0)
++        SelfTest.diagnostic("DIRECT_DICTATION_CURRENT_RESULT_TRACE mode=\(mode) nativeStarts=\(atCurrentResult.starts) nativeEnds=\(atCurrentResult.ends) nativeActive=\(atCurrentResult.active) assigned=\(assigned) ended=\(ended) result=true beforeRetiredEnd=\(resultBeforeRetiredEnd) currentSeconds=\(currentBegan.map { Date().timeIntervalSince($0) } ?? -1)")
++        SelfTest.requestTermination()
++    }
++    private func launchCurrent() {
++        currentBegan = Date()
++        parent = Task { @MainActor [weak self] in
++            guard let self else { return }
++            do {
++                let empty = try ParakeetEngine(terminationFixtureModels: models, trace: native)
++                try controller.installNativeTerminationEngineForTesting(empty, stream: nil)
++                try await controller.runNativeTerminationTailForTesting()
++            } catch { invalid = true; safelyQuitInvalid() }
++        }
++    }
++    private func reply(_ reply: NSApplication.TerminateReply) {
++        if firstVerdict { return }
++        check("Q01 actual Cocoa quit replies later", reply == .terminateLater)
++        _ = require("Q02 actual current result returned while retired native pending", currentResultObserved && resultBeforeRetiredEnd)
++    }
++    private func finalReply(_ drained: Bool) -> Bool {
++        guard !firstVerdict else { return drained }
++        firstVerdict = true
++        let at = native.snapshot()
++        check("F01 actual retired native has returned before positive quit", at.active == 0 && at.ends >= 2)
++        check("F02 controller captured same retained native owner", ownerCaptured)
++        check("F03 retained finish bodies have ended before positive quit", ended == assigned)
++        check("C07 actual native success still retained", at.successes >= 1)
++        SelfTest.diagnostic("DIRECT_DICTATION_FIRST_FINAL_REPLY_TRACE mode=\(mode) nativeActive=\(at.active) starts=\(at.starts) ends=\(at.ends) assigned=\(assigned) ended=\(ended) captured=\(ownerCaptured) resultBeforeRetiredEnd=\(resultBeforeRetiredEnd)")
++        // Veto-only safe original cleanup AFTER measured first product verdict;
++        // neither variant can promote false or release entered native early.
++        if at.active != 0 || ended != assigned {
++            vetoes += 1
++            return false
++        }
++        return drained
++    }
++    private func safelyQuitInvalid() {
++        invalid = true
++        // Safety still owns the actual engine on a prerequisite failure; never
++        // accept process exit with an unjoined model API just because INVALID.
++        controller.cancelDictation()
++        SelfTest.requestTermination()
++    }
++    private func safetyDrain() async {
++        // SAME delegate nativeTerminationTask invokes this ONLY after measured
++        // first verdict and actual reply(false). No fixture waiter Task.
++        await retired?.value
++        await current?.value
++        await parent?.value
++        let ended = native.snapshot()
++        if ended.active != 0 || assigned != self.ended {
++            invalid = true
++            SelfTest.diagnostic("DIRECT_DICTATION_TERMINATION_INVALID: unsafe captured cleanup")
++        }
++        SelfTest.diagnostic("DIRECT_DICTATION_CLEANUP_JOIN_TRACE mode=\(mode) nativeActive=\(ended.active) nativeEnds=\(ended.ends) assigned=\(assigned) ended=\(self.ended)")
++    }
++    private func willExit() {
++        let at = native.snapshot()
++        check("J01 actual native API fully returned at real process exit", at.active == 0 && at.starts == at.ends)
++        check("J02 existing finish task bodies fully returned", assigned == ended)
++        check("J03 current result did not wait for retired native", resultBeforeRetiredEnd)
++        check("J04 no owner injection/history calls", output.insertCalls == 0 && output.recordCalls == 0 && output.outcomeCalls == 0)
++        SelfTest.diagnostic("DIRECT_DICTATION_TERMINATION_EXIT_TRACE mode=\(mode) starts=\(at.starts) ends=\(at.ends) successes=\(at.successes) active=\(at.active) assigned=\(assigned) ended=\(ended) vetoes=\(vetoes) checks=\(checks) failures=\(failures) invalid=\(invalid)")
++        SelfTest.diagnostic(invalid ? "DIRECT_DICTATION_TERMINATION_INVALID: prerequisites" : failures == 0 ? "DIRECT_DICTATION_TERMINATION_OK: \(checks) checks" : "DIRECT_DICTATION_TERMINATION_FAILED: \(failures)/\(checks) assertions")
++        try? FileManager.default.removeItem(at: usageRoot)
++    }
++    private func chunk(_ samples: [Float]) throws -> AudioChunk {
++        guard let format = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: 16_000, channels: 1, interleaved: false),
++              let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(samples.count)),
++              let floats = buffer.floatChannelData?[0] else { throw CocoaError(.fileReadCorruptFile) }
++        buffer.frameLength = AVAudioFrameCount(samples.count)
++        samples.withUnsafeBufferPointer { floats.update(from: $0.baseAddress!, count: samples.count) }
++        return AudioChunk(buffer: buffer)
++    }
++}
++
++/// No retained samples/transcript/model result. Immutable callback plus locked
++/// counters only; entry does not delay or hold the actual vendor operation.
++final class DirectDictationNativeTrace: @unchecked Sendable {
++    struct Snapshot: Sendable { var starts = 0; var ends = 0; var successes = 0; var active = 0 }
++    private let lock = NSLock()
++    private var value = Snapshot()
++    private let onEntry: @Sendable (Int) -> Void
++    init(onEntry: @escaping @Sendable (Int) -> Void) { self.onEntry = onEntry }
++    func entered() {
++        lock.lock(); value.starts += 1; value.active += 1; let ordinal = value.starts; lock.unlock()
++        onEntry(ordinal)
++    }
++    func returned(succeeded: Bool) {
++        lock.lock(); value.ends += 1; value.active -= 1; if succeeded { value.successes += 1 }; lock.unlock()
++    }
++    func snapshot() -> Snapshot { lock.lock(); defer { lock.unlock() }; return value }
++}
++
++@MainActor
++private final class DirectDictationOutputTrace {
++    var insertCalls = 0
++    var recordCalls = 0
++    var outcomeCalls = 0
++}

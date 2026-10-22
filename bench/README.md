@@ -1,5 +1,7 @@
 # Speech engine benchmark
 
+The project-wide [benchmark hub](../Benchmarks/README.md) catalogs results from this harness and other model/workflow suites. [Save a result](../Benchmarks/FORMAT.md).
+
 Apple's macOS 26 `SpeechTranscriber` vs NVIDIA's **Parakeet TDT 0.6B** running on the
 Neural Engine, on the same audio, scored the same way.
 

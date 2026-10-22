@@ -1,0 +1,11 @@
+{
+  "status": "SOURCE_ONLY_EXPLICIT_FONT_HUNKS_REVIEWED_ROOT_RECONCILIATION_HELD",
+  "head_observed": "f4d2a162ba7e337572d13c90b4449bef30ab44c5",
+  "artifacts": {
+    "font-copy-only.patch.txt": "fdf1d8f2fb13d6cc7f4b92caa0695fa05f37c856fbabbdbeadd96748526a81d4",
+    "mac-font-notice-only.patch.txt": "d3cda3eb16f7763add9f4c3c3ecf5b72e311e8306cfcadacab25f6d24eb064be",
+    "owned-hunks.json": "7bf599e62657823b449b26792207580023d73fe32450838d6aed79af6fdbfc4c",
+    "font-prerequisites.json": "3857e394ca53d590d323175f7ff5fd739cc58d0522b74ce2d81c50f2b9e16b26",
+    "README.md": "46835f2f8394616eeb56958b0aab1d4d01a0e530564ce8f6e7d2fa7867474603"
+  }
+}

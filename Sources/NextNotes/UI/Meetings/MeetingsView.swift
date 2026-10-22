@@ -331,7 +331,7 @@ enum MeetingSelection: Hashable {
 }
 
 /// One meeting in the list.
-private struct MeetingRow: View {
+struct MeetingRow: View {
     let meeting: Meeting
     var isLive = false
     var elapsed: TimeInterval = 0

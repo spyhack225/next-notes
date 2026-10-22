@@ -1,0 +1,58 @@
+{
+  "scope": "Five genuinely NEW pure-theme source units; conditional declaration review, canonical/root selects and adds exact bytes only after prerequisite reconciliation",
+  "files": [
+    {
+      "path": "Sources/NextNotes/UI/ThemeFixed.swift",
+      "currentSHA256": "4d6aaef3329387a33d8ef95a6e1c641ec8f3eb428abc7b0d3670e4554c3bdd06",
+      "HEADSHA256": null,
+      "tracked": false,
+      "historicalHandoffSHA256": "4d6aaef3329387a33d8ef95a6e1c641ec8f3eb428abc7b0d3670e4554c3bdd06",
+      "sameAsHistoricalHandoff": true,
+      "currentFreeze": "observation only; no source lease",
+      "ownerBoundary": "Canonical theme/root; full NEW file is a theme-only review unit, not an authorization to add it."
+    },
+    {
+      "path": "Sources/NextNotes/UI/Components/Theme/ThemeHeadline.swift",
+      "currentSHA256": "7e6706c5f839cd5aef673083f2ad4ee1d8c29803f79e2199c39ca3040e57a1fe",
+      "HEADSHA256": null,
+      "tracked": false,
+      "historicalHandoffSHA256": "7e6706c5f839cd5aef673083f2ad4ee1d8c29803f79e2199c39ca3040e57a1fe",
+      "sameAsHistoricalHandoff": true,
+      "currentFreeze": "observation only; no source lease",
+      "ownerBoundary": "Canonical theme/root; full NEW file is a theme-only review unit, not an authorization to add it."
+    },
+    {
+      "path": "Sources/NextNotes/UI/Components/Theme/ThemeGlass.swift",
+      "currentSHA256": "43bf1deea72e9929ce2d1ad88d0538be4ba7f75f46e3e89548ec709f298a2619",
+      "HEADSHA256": null,
+      "tracked": false,
+      "historicalHandoffSHA256": "43bf1deea72e9929ce2d1ad88d0538be4ba7f75f46e3e89548ec709f298a2619",
+      "sameAsHistoricalHandoff": true,
+      "currentFreeze": "observation only; no source lease",
+      "ownerBoundary": "Canonical theme/root; full NEW file is a theme-only review unit, not an authorization to add it."
+    },
+    {
+      "path": "Sources/NextNotes/UI/Components/Theme/ThemeBorderBeam.swift",
+      "currentSHA256": "07abde63ff092072216a55a6bfbdc269d5d739eb92dc0153b6ba1ab83c05db3d",
+      "HEADSHA256": null,
+      "tracked": false,
+      "historicalHandoffSHA256": "07abde63ff092072216a55a6bfbdc269d5d739eb92dc0153b6ba1ab83c05db3d",
+      "sameAsHistoricalHandoff": true,
+      "currentFreeze": "observation only; no source lease",
+      "ownerBoundary": "Canonical theme/root; full NEW file is a theme-only review unit, not an authorization to add it."
+    },
+    {
+      "path": "Sources/NextNotes/UI/Components/Theme/ThemeVoiceGlow.swift",
+      "currentSHA256": "4d628c5596a5562d483ccc7aecdb739b51f2260e50e68a68f89be79ba4ee186a",
+      "HEADSHA256": null,
+      "tracked": false,
+      "historicalHandoffSHA256": "4d628c5596a5562d483ccc7aecdb739b51f2260e50e68a68f89be79ba4ee186a",
+      "sameAsHistoricalHandoff": true,
+      "currentFreeze": "observation only; no source lease",
+      "ownerBoundary": "Canonical theme/root; full NEW file is a theme-only review unit, not an authorization to add it."
+    }
+  ],
+  "source_review": "ACCEPTED_SOURCE_ONLY_CONDITIONAL_ROOT_RECONCILIATION",
+  "evidence": "../foundation-independent-review/manifest.json",
+  "whole_file_staging_grant": false
+}

@@ -1,0 +1,546 @@
+[
+  {
+    "width": 320,
+    "checks": {
+      "eightTables": true,
+      "eightSingleRootScrolls": true,
+      "positiveViewport": true,
+      "materializedRows": true,
+      "exactKnownStoreCount15": true
+    },
+    "rootViewportHeights": [
+      978.0
+    ],
+    "visibleRows": [
+      11
+    ],
+    "materializedRows": [
+      25
+    ],
+    "firstVariantNativeRowFrames": [
+      {
+        "index": 7,
+        "parent": 6,
+        "frame": [
+          0.0,
+          38.0,
+          320.0,
+          24.0
+        ]
+      },
+      {
+        "index": 12,
+        "parent": 6,
+        "frame": [
+          0.0,
+          62.0,
+          320.0,
+          114.0
+        ]
+      },
+      {
+        "index": 27,
+        "parent": 6,
+        "frame": [
+          0.0,
+          176.0,
+          320.0,
+          114.0
+        ]
+      },
+      {
+        "index": 42,
+        "parent": 6,
+        "frame": [
+          0.0,
+          290.0,
+          320.0,
+          114.0
+        ]
+      },
+      {
+        "index": 57,
+        "parent": 6,
+        "frame": [
+          0.0,
+          404.0,
+          320.0,
+          114.0
+        ]
+      },
+      {
+        "index": 72,
+        "parent": 6,
+        "frame": [
+          0.0,
+          518.0,
+          320.0,
+          114.0
+        ]
+      },
+      {
+        "index": 87,
+        "parent": 6,
+        "frame": [
+          0.0,
+          632.0,
+          320.0,
+          114.0
+        ]
+      },
+      {
+        "index": 102,
+        "parent": 6,
+        "frame": [
+          0.0,
+          746.0,
+          320.0,
+          114.0
+        ]
+      },
+      {
+        "index": 117,
+        "parent": 6,
+        "frame": [
+          0.0,
+          860.0,
+          320.0,
+          42.0
+        ]
+      },
+      {
+        "index": 130,
+        "parent": 6,
+        "frame": [
+          0.0,
+          902.0,
+          320.0,
+          114.0
+        ]
+      },
+      {
+        "index": 145,
+        "parent": 6,
+        "frame": [
+          0.0,
+          1016.0,
+          320.0,
+          114.0
+        ]
+      },
+      {
+        "index": 160,
+        "parent": 6,
+        "frame": [
+          0.0,
+          1130.0,
+          320.0,
+          114.0
+        ]
+      },
+      {
+        "index": 175,
+        "parent": 6,
+        "frame": [
+          0.0,
+          1244.0,
+          320.0,
+          114.0
+        ]
+      },
+      {
+        "index": 190,
+        "parent": 6,
+        "frame": [
+          0.0,
+          1358.0,
+          320.0,
+          114.0
+        ]
+      },
+      {
+        "index": 205,
+        "parent": 6,
+        "frame": [
+          0.0,
+          1472.0,
+          320.0,
+          114.0
+        ]
+      },
+      {
+        "index": 220,
+        "parent": 6,
+        "frame": [
+          0.0,
+          1586.0,
+          320.0,
+          114.0
+        ]
+      },
+      {
+        "index": 235,
+        "parent": 6,
+        "frame": [
+          0.0,
+          1700.0,
+          320.0,
+          28.5
+        ]
+      },
+      {
+        "index": 242,
+        "parent": 6,
+        "frame": [
+          0.0,
+          1728.5,
+          320.0,
+          28.0
+        ]
+      },
+      {
+        "index": 246,
+        "parent": 6,
+        "frame": [
+          0.0,
+          1776.5,
+          320.0,
+          28.0
+        ]
+      },
+      {
+        "index": 250,
+        "parent": 6,
+        "frame": [
+          0.0,
+          1804.5,
+          320.0,
+          24.5
+        ]
+      },
+      {
+        "index": 256,
+        "parent": 6,
+        "frame": [
+          0.0,
+          1829.0,
+          320.0,
+          40.0
+        ]
+      },
+      {
+        "index": 260,
+        "parent": 6,
+        "frame": [
+          0.0,
+          1889.0,
+          320.0,
+          0.0
+        ]
+      },
+      {
+        "index": 264,
+        "parent": 6,
+        "frame": [
+          0.0,
+          1889.0,
+          320.0,
+          56.0
+        ]
+      },
+      {
+        "index": 271,
+        "parent": 6,
+        "frame": [
+          0.0,
+          1945.0,
+          320.0,
+          28.0
+        ]
+      },
+      {
+        "index": 293,
+        "parent": 292,
+        "frame": [
+          0.0,
+          0.0,
+          320.0,
+          28.0
+        ]
+      }
+    ],
+    "meaning": "viewport remains correct; row/footer visual verdict partial, no physical scroll or action evidence"
+  },
+  {
+    "width": 560,
+    "checks": {
+      "eightTables": true,
+      "eightSingleRootScrolls": true,
+      "positiveViewport": true,
+      "materializedRows": true,
+      "exactKnownStoreCount15": true
+    },
+    "rootViewportHeights": [
+      1024.0
+    ],
+    "visibleRows": [
+      25
+    ],
+    "materializedRows": [
+      25
+    ],
+    "firstVariantNativeRowFrames": [
+      {
+        "index": 7,
+        "parent": 6,
+        "frame": [
+          0.0,
+          38.0,
+          560.0,
+          24.0
+        ]
+      },
+      {
+        "index": 12,
+        "parent": 6,
+        "frame": [
+          0.0,
+          62.0,
+          560.0,
+          42.0
+        ]
+      },
+      {
+        "index": 25,
+        "parent": 6,
+        "frame": [
+          0.0,
+          104.0,
+          560.0,
+          42.0
+        ]
+      },
+      {
+        "index": 38,
+        "parent": 6,
+        "frame": [
+          0.0,
+          146.0,
+          560.0,
+          42.0
+        ]
+      },
+      {
+        "index": 51,
+        "parent": 6,
+        "frame": [
+          0.0,
+          188.0,
+          560.0,
+          42.0
+        ]
+      },
+      {
+        "index": 64,
+        "parent": 6,
+        "frame": [
+          0.0,
+          230.0,
+          560.0,
+          42.0
+        ]
+      },
+      {
+        "index": 77,
+        "parent": 6,
+        "frame": [
+          0.0,
+          272.0,
+          560.0,
+          42.0
+        ]
+      },
+      {
+        "index": 90,
+        "parent": 6,
+        "frame": [
+          0.0,
+          314.0,
+          560.0,
+          42.0
+        ]
+      },
+      {
+        "index": 103,
+        "parent": 6,
+        "frame": [
+          0.0,
+          356.0,
+          560.0,
+          42.0
+        ]
+      },
+      {
+        "index": 116,
+        "parent": 6,
+        "frame": [
+          0.0,
+          398.0,
+          560.0,
+          42.0
+        ]
+      },
+      {
+        "index": 129,
+        "parent": 6,
+        "frame": [
+          0.0,
+          440.0,
+          560.0,
+          42.0
+        ]
+      },
+      {
+        "index": 142,
+        "parent": 6,
+        "frame": [
+          0.0,
+          482.0,
+          560.0,
+          42.0
+        ]
+      },
+      {
+        "index": 155,
+        "parent": 6,
+        "frame": [
+          0.0,
+          524.0,
+          560.0,
+          42.0
+        ]
+      },
+      {
+        "index": 168,
+        "parent": 6,
+        "frame": [
+          0.0,
+          566.0,
+          560.0,
+          42.0
+        ]
+      },
+      {
+        "index": 181,
+        "parent": 6,
+        "frame": [
+          0.0,
+          608.0,
+          560.0,
+          42.0
+        ]
+      },
+      {
+        "index": 194,
+        "parent": 6,
+        "frame": [
+          0.0,
+          650.0,
+          560.0,
+          42.0
+        ]
+      },
+      {
+        "index": 207,
+        "parent": 6,
+        "frame": [
+          0.0,
+          692.0,
+          560.0,
+          28.5
+        ]
+      },
+      {
+        "index": 214,
+        "parent": 6,
+        "frame": [
+          0.0,
+          720.5,
+          560.0,
+          28.0
+        ]
+      },
+      {
+        "index": 218,
+        "parent": 6,
+        "frame": [
+          0.0,
+          768.5,
+          560.0,
+          28.0
+        ]
+      },
+      {
+        "index": 222,
+        "parent": 6,
+        "frame": [
+          0.0,
+          796.5,
+          560.0,
+          24.5
+        ]
+      },
+      {
+        "index": 228,
+        "parent": 6,
+        "frame": [
+          0.0,
+          821.0,
+          560.0,
+          40.0
+        ]
+      },
+      {
+        "index": 232,
+        "parent": 6,
+        "frame": [
+          0.0,
+          881.0,
+          560.0,
+          0.0
+        ]
+      },
+      {
+        "index": 236,
+        "parent": 6,
+        "frame": [
+          0.0,
+          881.0,
+          560.0,
+          32.0
+        ]
+      },
+      {
+        "index": 243,
+        "parent": 6,
+        "frame": [
+          0.0,
+          913.0,
+          560.0,
+          28.0
+        ]
+      },
+      {
+        "index": 265,
+        "parent": 264,
+        "frame": [
+          0.0,
+          0.0,
+          560.0,
+          28.0
+        ]
+      }
+    ],
+    "meaning": "viewport remains correct; row/footer visual verdict partial, no physical scroll or action evidence"
+  }
+]

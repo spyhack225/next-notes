@@ -1,0 +1,10 @@
+{
+  "cause": "Handwritten README doubled reference-word and edit counts. Native scoring and comparison.json were correct.",
+  "confirmed_reference_words": {
+    "en": 136,
+    "fr": 151
+  },
+  "phonon_and_qwen_06b_english_edits": 1,
+  "qwen_17b_french_edits": 6,
+  "wer_and_rankings_unchanged": true
+}

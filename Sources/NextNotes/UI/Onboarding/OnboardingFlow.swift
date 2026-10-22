@@ -36,6 +36,20 @@ enum OnboardingStep: String, CaseIterable, Sendable, Identifiable, Codable {
         case .welcome, .dictation, .shortcut, .brain, .allSet: false
         }
     }
+
+    /// Journey name for the dots caption ("Permissions", "Your key", …). Pure
+    /// display — the order contract above is untouched.
+    var phaseName: String {
+        switch self {
+        case .welcome: "Meet"
+        case .dictation: "Permissions"
+        case .shortcut: "Your key"
+        case .meetings: "Meetings"
+        case .files: "Files"
+        case .brain: "Assistant"
+        case .allSet: "Done"
+        }
+    }
 }
 
 /// Where a first run has got to. A value, with no storage, no views and no side effects, so

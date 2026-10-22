@@ -1,0 +1,33 @@
+{
+  "status": "APPLIED_SOURCE_ONLY_UNCOMPILED_UNRUN_REFROZEN",
+  "time_utc": "2026-10-02T08:58:25.672719+00:00",
+  "authorization": "runtime root explicit three-file Source-only lease after final35; root owns next36 build/install; no UI native/model/staging",
+  "root_installed_before": "4215fcde67392b6d52a751f2250be868c316fd487a65562e55b9752eba3fc31c",
+  "patchSHA256": "b88afd58fe045313ef9b905c6e1911fc05f97787d03482f3a64d51f968829ba0",
+  "sources": [
+    {
+      "path": "Sources/NextNotes/UI/Settings/ComputerBrowserReadiness.swift",
+      "beforeSHA256": "2fa02ba0dc88ea8d426888dd968bcfa6c489c52f30f1d0e0fd6fb102963f19bf",
+      "proposedSHA256": "513e885becca8306b95a13bde2fea217106d0fddaa086f55766ac30ca1b6f5df"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift",
+      "beforeSHA256": "c750e16bd51c4f8f40875d2122b3a89d57dfe3a02f40cd2a08ec7f0c4eb64d69",
+      "proposedSHA256": "dbf3a77207f535b35ed69e7d02bbc5415765f4dd61af4465c90ce582ff0f1b54"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Settings/AgentSettingsTab.swift",
+      "beforeSHA256": "b31f0440dd9f45ccd8112f4aebb1c0ce8b2d1094fde8ba302d64c1d1db2ecf02",
+      "proposedSHA256": "e7432003a343b2e9a7901cae4676b78216098823bad4d142cb640f4f9e341f31"
+    }
+  ],
+  "before_checks": "exact actual/baseline/proposed and patch hashes pass; git apply --check pass",
+  "after_checks": "all actual Sources equal proposed SHA; scoped whitespace pass",
+  "not_run": [
+    "compilation",
+    "native capture",
+    "model",
+    "staging"
+  ],
+  "original_failure_report": "../../settings-app33-profile/README.md"
+}

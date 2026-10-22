@@ -1,0 +1,4 @@
+run-selftest: open -n /Applications/Next Notes.app --args --selftest-dictation --selftest-timeout 300 --selftest-out /tmp/nextnotes-agent-closure-checks-17/dictation-current.out
+  DICTATION_NOTE: pre-roll fed 39801 frames of ~40000 with a 1.5 s start
+  DICTATION_NOTE: key-down to capture 0.08916199207305908s with a 1.5 s start
+DICTATION_OK: every hold came back to idle

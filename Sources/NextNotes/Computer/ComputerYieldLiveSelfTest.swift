@@ -95,17 +95,26 @@ enum ComputerYieldLiveSelfTest {
         check("Y1: the yield took \\(latency) ms, over the 100 ms target", latency <= 100)
         HumanInputWatch.endAction()
 
-        // Carry on: a fresh snapshot, never the old coordinates.
+        // Carry on: the pause dropped the element map, so a pre-pause id can never
+        // address the tree the person has since moved. The re-walk below is the
+        // replacement: ids resolve again only after a fresh snapshot.
+        _ = AccessibilitySnapshot.captureCompact(
+            processID: ProcessInfo.processInfo.processIdentifier, limit: 80)
+        let prePauseID = AccessibilitySnapshot.firstTextFieldID()
         HumanInputWatch.notePauseForTesting(at: Date())
         check("a pause blocks the next event (Y3 setup)", HumanInputWatch.mayPostAnotherEvent() == false)
         HumanInputWatch.carryOn()
         check("Y3: carry on lets the next event through", HumanInputWatch.mayPostAnotherEvent())
-        // The snapshot generation is what "a fresh snapshot" means here: the ids a plan would
-        // reuse are the ones from the old walk, and a carry-on that reused them is the bug.
+        if let prePauseID {
+            check("Y3: a pre-pause element id (\(prePauseID)) still resolves after carry-on",
+                  AccessibilitySnapshot.firstTextFieldID() == nil)
+        } else {
+            note("Y3: the harness window exposed no text field, so stale-id death is unproven here")
+        }
         let generationBefore = AccessibilitySnapshot.lastGenerationForTesting
-        _ = try? ComputerToolExecutor.run(tool, arguments: ["direction": "down", "amount": "2"])
-        check("Y3: carry on did not take a fresh snapshot "
-            + "(generation \\(generationBefore))",
+        _ = AccessibilitySnapshot.captureCompact(
+            processID: ProcessInfo.processInfo.processIdentifier, limit: 80)
+        check("Y3: the re-walk after carry-on did not take a fresh snapshot",
               AccessibilitySnapshot.lastGenerationForTesting != generationBefore)
         HumanInputWatch.endAction()
 

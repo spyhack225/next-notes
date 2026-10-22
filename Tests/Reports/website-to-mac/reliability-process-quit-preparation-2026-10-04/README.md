@@ -1,0 +1,17 @@
+# Process-quit Capture and background preparation
+
+**HELD source-only candidates; no integration or native verdict.** Runtime root requested concrete disjoint off-source preparation while retaining source/build/native/model/index/install/owner-quit control. Two agents prepared relative candidates and independently reviewed each other’s scope. No Coordinator snapshot/change or canonical source was made. Frozen quit packet `e59de055…` remains unchanged.
+
+| Candidate | Concrete prepared seam | Review disposition |
+| --- | --- | --- |
+| [Capture](capture-current/README.md), manifest `c5de80c…` | Loaded-only accessor; synchronous permanent input closure; immutable snapshot of published engine and six existing Tasks; same-operation join from the existing App quit Task. COMMON keeps original behavior, and FIXED preserves normal Done/stopEngine. | Registered handles only; [independent review](capture-current-review.md) leaves unpublished Apple startup, discarded Done and unretained preparation/native owners open. No complete exit verdict. Contextual LocalVoiceFrontend pin drifted. |
+| [Background](background-current/README.md), manifest `b1d201e…` | Captures/cancels existing Manager handle values and returns a same-Task join closure; existing-map retention/token and some admission guards; loaded-only App input patch. | [Independent review](background-independent-review.md) and [producer response](background-current-review.md) HOLD: three continuation producers commit accepted queued state before dispatch refuses; slot overwrite cannot retain an old backing owner; scheduled preflight precedes Manager admission. |
+| [App integration contract](app-integration-contract.md) | One existing quit Task; recording-choice order, loaded-only capture, shutdown signal-before-join dependencies, original final veto/safety drain. | Contract only. No composite App patch, because candidate producer gaps remain and the original hosted fixture is unimplemented. |
+
+## Verification and limits
+
+Parent checked18 current/context/artifact/patch/document pins:17 match and one LocalVoiceFrontend context changed concurrently. `parent-pin-verification.json` retains that mismatch. Capture’s current source and both relative copied-source stages match their frozen packet; Manager’s source and relative patch input hashes match. Independent reviews verify bounded source semantics and known blockers. Copy replay is not Swift compilation, a regression result or an actual process quit.
+
+Actual-original Cocoa/tool/capture overlap, safe confined fixture injection and native/backing return are UNRUN or unimplemented. Do not manufacture overlap with a synchronous MainActor blocker or infer no effect from cancellation/history/receipt absence. Preserve immediate ordinary Stop, normal Done’s background continuity, full duplex, default-false foreground bounded waits, one existing worker/map/ledger/audio channel and all actual final-reply conjunctions plus the same one-shot safety drain. New queued work must not be accepted and then silently undispatched. Do not mount either candidate through stale snapshots.
+
+The runtime owner receives exact retained manifests and source blockers. A subsequent producer revision must retain these candidates, qualify the original actual contract, repair the responsible producer and run identical fixed checks. Native cessation, physical delivery, all-owner safe/fast quit, SIGSEGV, ordinary build and roadmap completion remain open.

@@ -4,6 +4,7 @@ import SwiftUI
 struct GeneralSettingsTab: View {
     @Bindable var controller: DictationController
     @State private var settings = Settings.shared
+    @State private var showingBenchmarks = false
 
     var body: some View {
         Form {
@@ -69,8 +70,16 @@ struct GeneralSettingsTab: View {
                 SettingsNote(text: "Walks through the same questions Next Notes asked the "
                              + "first time. Nothing you have already set up is undone.")
             }
+            Section {
+                Button("View model and workflow results") { showingBenchmarks = true }
+            } header: {
+                Text("Benchmark results")
+            } footer: {
+                SettingsNote(text: "View our published comparisons, test conditions and remaining checks.")
+            }
         }
         .animation(DS.Motion.standard, value: settings.commandModeEnabled)
+        .sheet(isPresented: $showingBenchmarks) { BenchmarkResultsView() }
     }
 
     /// The two hotkeys must never name the same key. `Settings` resolves that collision by

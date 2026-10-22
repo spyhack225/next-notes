@@ -1,0 +1,57 @@
+--- a/Sources/NextNotes/Transcription/ParakeetEngine.swift
++++ b/Sources/NextNotes/Transcription/ParakeetEngine.swift
+@@ -16,6 +16,7 @@
+     nonisolated static let emitsPartialsWhileHeld = true
+ 
+     private var samples: [Float] = []
++    private var acceptingInput = false
+     private var continuation: AsyncThrowingStream<TranscriptionChunk, Error>.Continuation?
+ 
+     /// Sample count at which the last provisional was fired.
+@@ -86,6 +87,7 @@
+     func start() async throws -> AsyncThrowingStream<TranscriptionChunk, Error> {
+         let generation = recognitionGeneration &+ 1
+         recognitionGeneration = generation
++        acceptingInput = false
+ 
+         samples.removeAll(keepingCapacity: true)
+         lastPartialAt = 0
+@@ -163,11 +165,28 @@
+             generation: runtimeGeneration
+         )
+ 
++        // The existing markBusy await is reentrant; finish may have revoked
++        // this start in that hop. Never reopen input for a withdrawn generation.
++        guard recognitionGeneration == generation, !Task.isCancelled else {
++            // This local start may have been superseded while markBusy awaited.
++            // Never release a successor's lane or erase its stream. If this
++            // generation still owns its exact acquired lane, take it before
++            // the release await so a concurrent finish cannot release it twice.
++            if recognitionGeneration == generation, schedulerJobID == jobID {
++                schedulerJobID = nil
++                await ComputeScheduler.shared.release(jobID)
++            }
++            continuation.finish()
++            if recognitionGeneration == generation { self.continuation = nil }
++            throw CancellationError()
++        }
++        acceptingInput = true
+         return stream
+     }
+ 
+     func feed(_ chunk: AudioChunk) async {
+         nativeFinishTraceForTesting?.inputReceived()
++        guard acceptingInput else { return }
+         let buffer = chunk.buffer
+         guard buffer.frameLength > 0 else { return }
+ 
+@@ -186,6 +205,9 @@
+     }
+ 
+     func finish() async {
++        // Close BEFORE the first existing await; late input must not create a
++        // new native partial outside the captured finish handle.
++        acceptingInput = false
+         // Invalidate any in-flight start suspended across acquire / load.
+         recognitionGeneration &+= 1
+ 

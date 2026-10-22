@@ -115,7 +115,12 @@ enum Permissions {
     /// A `func` rather than a `var` because the probe is not free: it opens a file Messages
     /// owns, and `MessagesDatabaseHealth` is what caches it.
     nonisolated static func messagesAccessState() async -> MessagesDatabaseHealth.State {
-        await MessagesDatabaseHealth.probe()
+        if SelfTest.requested == "--selftest-settings-sheet" {
+            // Rendering a fixture cannot establish a real Full Disk Access grant.
+            // Refuse at the wrapper before the health producer opens owner chat.db.
+            return .unreadable(reason: "Messages access is not checked in this visual fixture.")
+        }
+        return await MessagesDatabaseHealth.probe()
     }
 
     /// The convenience form, for the callers that only need the yes or the no. It reads the

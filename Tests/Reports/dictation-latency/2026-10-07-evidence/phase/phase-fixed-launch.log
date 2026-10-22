@@ -1,0 +1,8 @@
+run-selftest: open -n -W /Users/sergekadjo/Library/Caches/NextNotesBuild/install-86781/Next Notes.app --args --selftest-llm-prefix-cache --native-parked-cancellation --native-phase-observation --selftest-timeout 240 --selftest-out /Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-sixth-native-20261008/phase-fixed.log
+NATIVE_PARKED_CANCELLATION_OBSERVATION: joinedWhileASRHeld=true wait=0.002340583 seconds chunks=2 successorRefusal=live speech recognition holds the lane
+NATIVE_COMPLETION_PHASE: name=model.context seconds=3.5e-06 note=app_llm job=26B355F5-7409-4231-ACBE-510120E1F72A complete had_context=true ready=true tokens=2048
+NATIVE_COMPLETION_PHASE: name=model.queue seconds=0.00171575 note=checkpoint job=26B355F5-7409-4231-ACBE-510120E1F72A cancelled=true
+NATIVE_COMPLETION_PHASE: name=model.prefill seconds=0.550974541 note=app_llm job=26B355F5-7409-4231-ACBE-510120E1F72A complete ready=false prompt_tokens=650 counts=unavailable
+NATIVE_COMPLETION_PHASE: name=model.first_token seconds=0.55164425 note=app_llm job=26B355F5-7409-4231-ACBE-510120E1F72A complete no_token=true
+NATIVE_PARKED_CANCELLATION_SUCCESSOR: reused=256 decoded=394 prompt=650
+NATIVE_PARKED_CANCELLATION_OK

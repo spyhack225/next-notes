@@ -1,0 +1,53 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-dictation --selftest-timeout 300 --selftest-out /tmp/nextnotes-agent-closure-dictation-12.out
+2026-10-01 22:29:14.556 NextNotes[70900:844219] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+  DICTATION_WRONG: an ordinary hold was idle rather than listening — microphone access may be missing, so nothing below was really tested
+  DICTATION_WRONG: an ordinary hold injected [] rather than the transcript
+  DICTATION_WRONG: the ordinary hold's outcome was failed(NextNotes.DictationHoldResult.Cause.micPermission), expected inserted
+  DICTATION_WRONG: the ordinary hold's holdMs was 49, expected ≥ 500
+  DICTATION_WRONG: the ordinary hold carried no key-up → outcome time
+  DICTATION_WRONG: the ordinary hold carried no key-down → capture time
+  DICTATION_WRONG: a transcribe timeout kept nothing for retry
+  DICTATION_WRONG: the wedged finish's outcome was failed(NextNotes.DictationHoldResult.Cause.micPermission), expected failed(transcribeTimeout)
+  DICTATION_WRONG: a hold released during start-up went error("Microphone access is off. Enable it in System Settings ▸ Privacy & Security ▸ Microphone.") instead of .finishing for the pre-roll tail
+  DICTATION_WRONG: a hold released during start-up injected [] instead of its pre-roll transcript
+  DICTATION_WRONG: the released-during-start-up hold's outcome was failed(NextNotes.DictationHoldResult.Cause.micPermission), expected inserted (D-02 transcribes the pre-roll)
+  DICTATION_WRONG: the hold after an abandoned start-up injected []
+  DICTATION_WRONG: the failing start's outcome was failed(NextNotes.DictationHoldResult.Cause.micPermission), expected failed(startup)
+  DICTATION_WRONG: a press 500 ms after a failure stayed error("Microphone access is off. Enable it in System Settings ▸ Privacy & Security ▸ Microphone.") instead of starting a new hold
+  DICTATION_WRONG: the second error was not the plain sentence: Microphone access is off. Enable it in System Settings ▸ Privacy & Security ▸ Microphone.
+  DICTATION_WRONG: pre-roll lost: fed -1 frames of ~40000
+  DICTATION_WRONG: a hold past a slow start injected []
+  DICTATION_WRONG: no key-down to capture time recorded for a 2.5 s hold
+  DICTATION_WRONG: the pre-roll hold's outcome carried no keyDownToCaptureMs
+  DICTATION_WRONG: a hold released during start-up went error("Microphone access is off. Enable it in System Settings ▸ Privacy & Security ▸ Microphone.") instead of .finishing for the pre-roll tail
+  DICTATION_WRONG: a hold released during start-up injected [] instead of its pre-roll transcript
+  DICTATION_WRONG: a superseded start-up cut the next hold's microphone: fed -1 frames of ~40000
+  DICTATION_WRONG: the hold after a cancelled start-up injected []
+  DICTATION_WRONG: the cancelled start-up's outcome was failed(NextNotes.DictationHoldResult.Cause.micPermission), expected cancelled
+  DICTATION_WRONG: the hold after a cancelled start-up filed failed(NextNotes.DictationHoldResult.Cause.micPermission), expected inserted
+  DICTATION_WRONG: a tap faster than the subscribe injected []
+  DICTATION_WRONG: empty transcript over speech showed the wrong card: Microphone access is off. Enable it in System Settings ▸ Privacy & Security ▸ Microphone.
+  DICTATION_WRONG: empty transcript over speech kept nothing for retry
+  DICTATION_WRONG: the empty-over-speech hold's outcome was failed(NextNotes.DictationHoldResult.Cause.micPermission), expected emptySpeech
+  DICTATION_WRONG: empty transcript over silence showed an error card: Microphone access is off. Enable it in System Settings ▸ Privacy & Security ▸ Microphone.
+  DICTATION_WRONG: empty transcript over silence never came back to idle
+  DICTATION_WRONG: the silent hold's outcome was failed(NextNotes.DictationHoldResult.Cause.micPermission), expected empty
+  DICTATION_WRONG: a retried hold injected []
+  DICTATION_WRONG: the hold's tail was idle when the refused press was due, expected finishing
+  DICTATION_WRONG: the hold with the refused press filed failed(NextNotes.DictationHoldResult.Cause.micPermission), expected inserted
+  DICTATION_WRONG: the finishing refused press filed 0 row(s), expected 1
+  DICTATION_WRONG: the growing-transcript hold never reached its last partial
+  DICTATION_WRONG: while the key was still down the finished sentence was tidied 0 time(s) (none), expected the one finished sentence
+  DICTATION_WRONG: the key-up pass made 0 tidying call(s), expected 1 — only the tail should reach the model
+  DICTATION_WRONG: the key-up pass tidied nothing, expected only the unfinished tail
+  DICTATION_WRONG: the growing-transcript hold injected []
+  DICTATION_WRONG: the delayed-insert hold never reached injection
+  DICTATION_WRONG: delivery receipt hold identity/output did not match actual run and outcome
+  DICTATION_WRONG: actual injector outcome did not publish the exact delivery receipt
+  DICTATION_WRONG: actual delivery incorrectly certified practice success
+  DICTATION_WRONG: delivery receipt hold identity/output did not match actual run and outcome
+  DICTATION_WRONG: actual injector outcome did not publish the exact delivery receipt
+  DICTATION_WRONG: delivery receipt hold identity/output did not match actual run and outcome
+  DICTATION_WRONG: clipboard recovery was promoted to an insertion success
+  DICTATION_WRONG: holds started 27 but 26 outcome row(s) were filed
+DICTATION_FAILED: 50 problem(s)

@@ -1,0 +1,34 @@
+{
+  "status": "OFF_SOURCE_SOURCE_ONLY_UNCOMPILED_UNRUN",
+  "preimages": {
+    "Sources/NextNotes/UI/Agent/AgentView.swift": "e16690c46235dfe28d69d03351928e4f4b3f2746472bb35815e9976b3c63fc85",
+    "Sources/NextNotes/UI/Agent/AgentPaneSelfTest.swift": "100900d1c8f1d8b11c3ae4f1f244f675ff98be24a719c97e27a4d38a114a2df9"
+  },
+  "postimages": {
+    "COMMON": {
+      "Sources/NextNotes/UI/Agent/AgentPaneSelfTest.swift": "e780f006d17c368c37b44d7526825ba0af80cd04267232111422150be8d0a7c2",
+      "Sources/NextNotes/UI/Agent/AgentConversationHistorySelfTest.swift": "d939e63459d6fedf9381600998481439ba5a726aa3a1a449b18af667ab633bbc"
+    },
+    "FIXED": {
+      "Sources/NextNotes/UI/Agent/AgentView.swift": "2ad002cf4b71c60e79bedc0a8ef42c7e19b8ff08122ab3d35fa79cbc8e3ad2ba"
+    }
+  },
+  "patches": {
+    "COMMON-history-fixture.patch": "2836ae5f86573bee7b26d615490984d1f4cc2c03bc926372603be44ed13bb811",
+    "FIXED-agent-view.patch": "74624f9f4bbf77f7c1b506a8f5b0c800784a50c90399e46c778fa486e00e8e28"
+  },
+  "unmodifiedDependencies": [
+    "Sources/NextNotes/Agent/RealtimeAgent.swift",
+    "Sources/NextNotes/Agent/AgentSessionBoundary.swift"
+  ],
+  "limits": [
+    "No compiler, native, installed or hosted UI run",
+    "No search/jump, meeting/task join or later-answer correction proof"
+  ],
+  "documents": {
+    "README.md": "8c5e2c992ac3eb6ac470584bcd591af1302406c77e6d06def07cd05d6ce507af",
+    "AgentConversationHistorySelfTest.swift.proposed": "d939e63459d6fedf9381600998481439ba5a726aa3a1a449b18af667ab633bbc",
+    "source-only-replay.json": "c5db1e1ee42f74fe51f73725608cde32d6067eaafe790c19d965b20e899750d7",
+    "parent-audit.md": "d2c8a56726c7301ae976002975798986ea7ac8251735de0fb57568285a2c9faf"
+  }
+}

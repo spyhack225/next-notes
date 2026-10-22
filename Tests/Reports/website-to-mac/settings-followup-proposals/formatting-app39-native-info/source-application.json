@@ -1,0 +1,23 @@
+{
+  "status": "APPLIED_SOURCE_ONLY_REFROZEN_FOR_ROOT41",
+  "timeUTC": "2026-10-02T09:52:21.324226+00:00",
+  "authorization": "runtime root Source-only exact Formatting/DS lease after original40 compile; root owns fixed41 packaging and original40 native; no UI build/install/native/model/staging",
+  "patchSHA256": "74c21ae4b6f7cdc0230b2a70837cd79b1eb4bc753b395364fb1040b2801397ea",
+  "sources": {
+    "Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift": {
+      "beforeSHA256": "5cea7730e4467a966f81aa0923fb71c4231bf3d6046f758320c06bde59fa1f4b",
+      "proposedSHA256": "4fcad108cbb67cfbc5abfaefee6520f969b65904a7dad0e839dbc2355b3450a4",
+      "patch": "01-formatting-native-info-menu.patch",
+      "patchSHA256": "93b861bf9e5a0c12a11835a646385e7b2fb87534797e681477cd8c25ad87ae1c"
+    },
+    "Sources/NextNotes/UI/DesignSystem.swift": {
+      "beforeSHA256": "b0335cf423f1366b13195bb530a3ad564a8667bfabb441a5bf35221f86a3de7c",
+      "proposedSHA256": "4834688eb005804071731afa6a359aa68434cdc3fd99cd62f5ac444bf57c1fe4",
+      "patch": "02-designsystem-label-floor.patch",
+      "patchSHA256": "a16c1695de6dd547453cabbc9699e82a14baadefa622568b45f04fdb5aa229f3"
+    }
+  },
+  "checks": "exact actual/baseline/proposed/patch/preapply/final/scoped-whitespace pass",
+  "originalConsumerReport": "../../settings-app39/README.md",
+  "nativeOutcome": "unrun"
+}

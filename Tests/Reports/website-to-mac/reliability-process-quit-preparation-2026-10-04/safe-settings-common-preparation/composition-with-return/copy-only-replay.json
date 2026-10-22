@@ -1,0 +1,71 @@
+{
+  "scope": "relative copied text only; no Swift parser/typecheck/compiler/native/model/default execution",
+  "stages": [
+    {
+      "stage": "settings-metadata/COMMON.patch.txt",
+      "sha256": "d1106085a7ca089c083599ea6c7bfa01bbdd8505228c7698f09f14e0a6bf9036",
+      "relative_copy_replay": "APPLIED"
+    },
+    {
+      "stage": "app-integration/COMMON-app-integration.patch.txt",
+      "sha256": "5609f68df42c5609184aba269dca0dff1ac7de047cba456130b8028bace6330c",
+      "relative_copy_replay": "APPLIED"
+    },
+    {
+      "stage": "admission-notes/COMMON-native-termination.patch.txt",
+      "sha256": "ac3b9d312b173b50883905c494bd4869ee6e4395d4c2a44373b7e2d8f0ee1a5d",
+      "relative_copy_replay": "APPLIED"
+    },
+    {
+      "stage": "admission-notes/COMMON-notes-fixture.patch.txt",
+      "sha256": "7f2c23a3437b7741b98fdece128b2c9b730bdba6420737ccec902443b9156323",
+      "relative_copy_replay": "APPLIED"
+    },
+    {
+      "stage": "admission-notes/selector-revision/COMMON-selector-from-frozen.patch.txt",
+      "sha256": "38ee85cbf8c05ef59c0dcb5763528c1758e7663c2bc2989e2bf591c8586bf356",
+      "relative_copy_replay": "APPLIED"
+    },
+    {
+      "stage": "bootstrap-root-revision/COMMON-app-entry-from-frozen.patch.txt",
+      "sha256": "a52ef3bd5bfe2b6ed8959660ee161e17b793567d603d64f2f37bcb91febd46a0",
+      "relative_copy_replay": "APPLIED"
+    },
+    {
+      "stage": "bootstrap-root-revision/COMMON-meeting-root-from-selector.patch.txt",
+      "sha256": "b51bd4ac346ce72819f26d1a9e0f1c3559a55ae0817ba99a01c6bbb9f2725ed9",
+      "relative_copy_replay": "APPLIED"
+    },
+    {
+      "stage": "notes-return-prerequisite/COMMON-NotesService.patch.txt",
+      "sha256": "d75e62b5cd0faea9fb12ab8ed5c3fc5acb523fb96486c542d1e4ed60c59d287c",
+      "relative_copy_replay": "APPLIED"
+    },
+    {
+      "stage": "notes-return-prerequisite/COMMON-NativeTerminationSelfTest.patch.txt",
+      "sha256": "33311cdac8e5af154237ebd966733c0d848a1dafad1af63a493ab9129e9fb98b",
+      "relative_copy_replay": "APPLIED"
+    },
+    {
+      "stage": "notes-return-prerequisite/COMMON-NativeNotesSettingsSelfTest.patch.txt",
+      "sha256": "75c4a03fa760eeb1794e04491b71297f07191c21f9a573bc7a041fa09b5402ff",
+      "relative_copy_replay": "APPLIED"
+    },
+    {
+      "stage": "notes-return-prerequisite/static-qualification-revision/COMMON-static-qualification.patch.txt",
+      "sha256": "7834d46577c3c2b37d457b17543d34ad206a76e9949e5298943395a049a7367f",
+      "relative_copy_replay": "APPLIED"
+    },
+    {
+      "stage": "settings-metadata/FIXED-from-COMMON.patch.txt",
+      "sha256": "b24f005aea4d45b05708feb643a7ba7ca4c5f5b99d81a842145b975a53a0fc6a",
+      "relative_copy_replay": "APPLIED"
+    }
+  ],
+  "common_exact_known_postimages": 6,
+  "combined_patch_exact_postimages": 6,
+  "only_FIXED_variant_file": "Sources/NextNotes/Support/Settings.swift",
+  "canonical_edits": 0,
+  "canonical_pins_still_match": true,
+  "new_canonical_file_exists": false
+}

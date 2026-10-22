@@ -1,0 +1,26 @@
+{
+  "status": "UNAPPLIED_SOURCE_ONLY",
+  "scope": [
+    "Sources/NextNotes/UI/Settings/ComputerBrowserReadiness.swift",
+    "Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift"
+  ],
+  "sources": {
+    "Sources/NextNotes/UI/Settings/ComputerBrowserReadiness.swift": {
+      "beforeSHA256": "2fa02ba0dc88ea8d426888dd968bcfa6c489c52f30f1d0e0fd6fb102963f19bf",
+      "proposedSHA256": "513e885becca8306b95a13bde2fea217106d0fddaa086f55766ac30ca1b6f5df",
+      "patch": "01-computer-readiness-row.patch",
+      "patchSHA256": "8b2a35c1009577b07dcaff829cf73ee799ecaf8a5bfe91f64f3e59aea3c0b8ac"
+    },
+    "Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift": {
+      "beforeSHA256": "c750e16bd51c4f8f40875d2122b3a89d57dfe3a02f40cd2a08ec7f0c4eb64d69",
+      "proposedSHA256": "a3f2fcaeea4889ed97d6d6eeeec9aaf9614425ed048d07f2c62cf6553117dfb1",
+      "patch": "02-formatting-header-file-controls.patch",
+      "patchSHA256": "2bb56ae15b3824a4ae2828c489d8861566a09e02e6bdf8e0941988bb16bae9b3"
+    }
+  },
+  "originalVisualInputs": {
+    "Tests/Reports/website-to-mac/settings-app29/computer320/settings-computer-320-standard.png": "c8447b2c76973cbc5ac667f75b3e18942aad9a2f8324cc90a04f4f95141ee9a3",
+    "Tests/Reports/website-to-mac/settings-app29/formatting320/settings-formatting-320-standard.png": "bf4719ee2b2600ff3fc2b15f7af40868be827e97a609ad6afb3dc462a4cc47cc"
+  },
+  "combinedPatchSHA256": "e9b96b91d7108367ebdea8df242af36066ff4f2a4242dbd29f7d7a9143017700"
+}

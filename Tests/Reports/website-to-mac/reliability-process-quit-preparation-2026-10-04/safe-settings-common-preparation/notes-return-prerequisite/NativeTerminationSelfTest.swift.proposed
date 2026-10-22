@@ -1,0 +1,300 @@
+import AppKit
+import Foundation
+
+/// COMMON actual native quit regression. This is a process-owning diagnostic:
+/// registration must not issue its usual second NSApp.terminate after arm().
+/// No model download, saved model selection, owner transcript, or native fake.
+@MainActor
+enum NativeTerminationSelfTest {
+    static func runStandalone() {
+        // Force exact accepted-flag validation before constructing any owner.
+        guard SelfTest.requested == "--selftest-native-termination" else { return }
+        if NativeNotesSettingsSelfTest.isRequested {
+            do { try NativeNotesSettingsSelfTest.prepareBeforeOwnersIfRequested() }
+            catch {
+                print("NATIVE_NOTES_SETTINGS_INVALID: confined input or Settings bootstrap unavailable")
+                exit(1)
+            }
+        }
+        if CommandLine.arguments.contains("--native-startup-case") {
+            do { try NativeStartupTerminationSelfTest.validateArgumentsBeforeOwners() }
+            catch {
+                print("STARTUP_TERMINATION_INVALID: confined public model assets or diagnostic path unavailable")
+                exit(1)
+            }
+        }
+        if CommandLine.arguments.contains("--native-llama-owner-case") {
+            do { try NativeOtherLlamaQuitSelfTest.validateArgumentsBeforeOwners() }
+            catch {
+                print("OTHER_LLAMA_TERMINATION_INVALID: confined copied public model unavailable")
+                exit(1)
+            }
+        }
+        let application = NSApplication.shared
+        application.setActivationPolicy(.prohibited)
+        let delegate = AppDelegate()
+        application.delegate = delegate
+        // AppKit calls the actual DidFinish/ShouldTerminate/WillTerminate methods.
+        // A concrete delegate survives the complete run; no SwiftUI owners are built.
+        withExtendedLifetime(delegate) { application.run() }
+    }
+
+    static func arm() async throws {
+        if try await NativeNotesSettingsSelfTest.armIfRequested() { return }
+        if try await NativeOtherLlamaQuitSelfTest.armIfRequested() { return }
+        if try await NativeStartupTerminationSelfTest.armIfRequested() { return }
+        guard SelfTest.isRunning, SelfTest.requested == "--selftest-native-termination",
+              let delegate = AppDelegate.current,
+              let argument = CommandLine.arguments.firstIndex(of: "--native-termination-model"),
+              CommandLine.arguments.indices.contains(argument + 1) else {
+            throw CocoaError(.fileReadNoPermission)
+        }
+        let modelFile = URL(fileURLWithPath: CommandLine.arguments[argument + 1])
+            .standardizedFileURL
+        let temporary = FileManager.default.temporaryDirectory
+            .standardizedFileURL.resolvingSymlinksInPath()
+        let directory = modelFile.deletingLastPathComponent()
+        let prefix = "NextNotesNativeTerminationTest-"
+        // Check confinement BEFORE opening any supplied file metadata.
+        guard modelFile.resolvingSymlinksInPath().path == modelFile.path,
+              directory.deletingLastPathComponent().path == temporary.path,
+              directory.lastPathComponent.hasPrefix(prefix),
+              UUID(uuidString: String(directory.lastPathComponent.dropFirst(prefix.count))) != nil,
+              modelFile.pathExtension == "gguf" else {
+            throw CocoaError(.fileReadNoPermission)
+        }
+        let values = try modelFile.resourceValues(forKeys: [.isRegularFileKey, .isSymbolicLinkKey, .fileSizeKey])
+        guard values.isRegularFile == true, values.isSymbolicLink != true,
+              let bytes = values.fileSize, bytes > 0 else {
+            throw CocoaError(.fileReadCorruptFile)
+        }
+        let runtime = NotesModelRuntime(
+            spec: ModelSpec(displayName: "Synthetic quit fixture", fileName: "fixture.gguf",
+                            url: modelFile, expectedBytes: Int64(bytes), expectedSHA256: nil),
+            gpuLayers: NotesModelRuntime.allGPULayers
+        )
+        let store = MeetingStore.isolated()
+        let meeting = Meeting(title: "Synthetic quit fixture", start: Date(timeIntervalSince1970: 1_700_000_000))
+        // Enough real input to exercise a full prefill chunk; no owner text is read.
+        let line = "The test team agreed to validate the local shutdown boundary. The next step is a synthetic checklist. "
+        let segments = [TranscriptSegment(start: 0, end: 60,
+                                         text: String(repeating: line, count: 64), source: .mic)]
+        guard store.save(meeting), store.saveTranscript(segments, for: meeting.id) else {
+            throw CocoaError(.fileWriteUnknown)
+        }
+        var assembler = MeetingNotesContextAssembler()
+        assembler.memoryEnabled = { false }
+        assembler.recallMemory = { _, _ in ([], []) }
+        assembler.knowledge = { nil }
+        assembler.decisionThreads = { [] }
+        assembler.graphCloudConsent = { false }
+        assembler.relatedNodes = { _ in [] }
+        assembler.files = { EmptyFileRetrieval() }
+        assembler.filesCloudConsent = { false }
+        let service = NotesService(
+            store: store,
+            providerResolver: { _ in LlamaLLMProvider(modelName: "Synthetic quit fixture", runtime: runtime) },
+            contextAssembler: assembler
+        )
+        // Existing backend metadata, before notes admission/quit; no extra model pass.
+        await LlamaBackend.shared.initialize()
+        let metal = await LlamaBackend.shared.isMetalAvailable
+        let gpu = await LlamaBackend.shared.supportsGPUOffload
+        SelfTest.diagnostic("NATIVE_TERMINATION_BACKEND_TRACE metalSetting=\(metal) supportsGPUOffload=\(gpu) requestedGPULayers=\(NotesModelRuntime.allGPULayers)")
+        let trace = NativeQuitTrace()
+        func check(_ label: String, _ condition: Bool) {
+            trace.recordCheck(condition)
+            if !condition {
+                SelfTest.failed = true
+                SelfTest.diagnostic("NATIVE_TERMINATION_ASSERT_FAILED: \(label)")
+            }
+        }
+        try delegate.configureNativeTerminationFixture(
+            service: service, runtime: runtime,
+            reply: { reply in
+                let current = trace.snapshot()
+                // INPUT/control failure cannot be classified as a producer RED.
+                check("actual delegate entered with outstanding real decode bracket after native success", current.inFlight == 1 && current.successes > 0)
+                check("actual NotesService owns its summarize task at quit", service.ownedTaskCountForTerminationTesting == 1)
+                check("native quit returns later before exit", reply == .terminateLater)
+                trace.recordReply(reply == .terminateLater)
+                SelfTest.diagnostic("NATIVE_TERMINATION_REPLY_TRACE active=\(current.inFlight) starts=\(current.starts) ends=\(current.ends) successes=\(current.successes) notes=\(service.ownedTaskCountForTerminationTesting) later=\(reply == .terminateLater)")
+            },
+            willExit: {
+                let current = trace.snapshot()
+                check("actual quit drains all entered decode brackets", current.inFlight == 0 && current.starts == current.ends)
+                check("actual quit joins captured NotesService summarize task", service.ownedTaskCountForTerminationTesting == 0)
+                check("cancelled notes keep resumable summarizing status", store.meeting(id: meeting.id)?.status == .summarizing)
+                check("cancelled notes do not publish generated notes", store.notes(for: meeting.id) == nil)
+                let final = trace.snapshot()
+                SelfTest.diagnostic("NATIVE_TERMINATION_EXIT_TRACE starts=\(final.starts) ends=\(final.ends) successes=\(final.successes) active=\(final.inFlight) notes=\(service.ownedTaskCountForTerminationTesting) checks=\(final.checks) failures=\(final.failures)")
+                SelfTest.diagnostic(final.failures == 0
+                    ? "NATIVE_TERMINATION_OK: \(final.checks) checks"
+                    : "NATIVE_TERMINATION_FAILED: \(final.failures)/\(final.checks)")
+                // Parent retains the copied model directory, raw logs and any crash.
+                // Remove only this fixture's known meeting root after its file checks.
+                try? FileManager.default.removeItem(at: store.directory(for: meeting.id).deletingLastPathComponent())
+            }
+        )
+        try await runtime.configureTerminationNativeFixture(modelFile: modelFile) { entered, status in
+            let scheduleQuit = trace.recordDecode(entered: entered, status: status)
+            guard scheduleQuit else { return }
+            // No callback I/O, sleeps, locks on native objects, or blocked decode.
+            // Match Cocoa's quit entry. Calling terminate inside a Swift MainActor
+            // job keeps that executor occupied while AppKit waits for terminateLater.
+            RunLoop.main.perform(inModes: [.common]) {
+                MainActor.assumeIsolated {
+                    SelfTest.diagnostic("NATIVE_TERMINATION_QUIT_REQUEST: actual NotesService decode bracket")
+                    NSApp.terminate(nil)
+                }
+            }
+        }
+        SelfTest.diagnostic("NATIVE_TERMINATION_INPUT_OK: synthetic transcript and confined regular GGUF")
+        service.summarize(meeting, using: .appLLM, announce: false)
+        // The real hook owns quit. Registry must return without its ordinary quit.
+    }
+}
+
+final class NativeQuitTrace: @unchecked Sendable {
+    private let lock = NSLock()
+    private var inFlight = 0
+    private var starts = 0
+    private var ends = 0
+    private var successes = 0
+    private var quitScheduled = false
+    private var checks = 0
+    private var failures = 0
+    private var later = false
+    private var settingsEntries = 0
+    private var settingsAdmissionInvalid = false
+    private var settingsProbeConfigurationAdmitted = false
+    private var notesInputInvalid = false
+    private var notesReplyCount = 0
+    private var notesVoteCount = 0
+    private var firstVoteWasVeto = false
+    private var secondVoteAllowed = false
+    private var safetyDrained = false
+    private var notesFinalProposals = 0
+    private var notesPrivateMounted = false
+    private var notesSubmitted = false
+    private var notesReturned = false
+
+    struct NotesSnapshot: Sendable {
+        let inFlight: Int
+        let starts: Int
+        let ends: Int
+        let successes: Int
+        let failures: Int
+        let settingsEntries: Int
+        let settingsAdmissionInvalid: Bool
+        let inputInvalid: Bool
+        let replyCount: Int
+        let voteCount: Int
+        let firstVoteWasVeto: Bool
+        let secondVoteAllowed: Bool
+        let safetyDrained: Bool
+        let privateMounted: Bool
+        let submitted: Bool
+        let ownedReturned: Bool
+    }
+
+    var isSettingsProbeConfigurationAdmitted: Bool {
+        lock.withLock { settingsProbeConfigurationAdmitted && !settingsAdmissionInvalid }
+    }
+
+    func admitSettingsProbeConfiguration() {
+        lock.withLock { settingsProbeConfigurationAdmitted = true }
+    }
+
+    func closeSettingsProbeConfiguration() {
+        lock.withLock { settingsProbeConfigurationAdmitted = false }
+    }
+
+    func recordSettingsAvailabilityEntry() {
+        lock.withLock { settingsEntries = min(settingsEntries + 1, 3) }
+    }
+
+    func recordSettingsAdmissionInvalid() {
+        lock.withLock { settingsAdmissionInvalid = true }
+    }
+
+    func recordNotesInputInvalid() {
+        lock.withLock { notesInputInvalid = true }
+    }
+
+    func recordNotesReply(_ isLater: Bool) {
+        lock.withLock { if isLater { notesReplyCount = min(notesReplyCount + 1, 3) } }
+    }
+
+    func markNotesPrivateMounted() {
+        lock.withLock { notesPrivateMounted = true }
+    }
+
+    func markNotesSubmitted() {
+        lock.withLock { notesSubmitted = true }
+    }
+
+    /// Observes the existing Notes Task defer after its map entry was removed.
+    /// The Bool is the same trace's real native quit scheduling, not a cessation claim.
+    func recordNotesReturned() -> Bool {
+        lock.withLock {
+            notesReturned = true
+            return quitScheduled
+        }
+    }
+
+    func nextNotesFinalVetoResult(quiescent: Bool) -> Bool {
+        lock.withLock {
+            notesFinalProposals = min(notesFinalProposals + 1, 3)
+            if notesFinalProposals == 1 { return false } // Deliberate, measured first veto.
+            return notesFinalProposals == 2 && quiescent
+        }
+    }
+
+    func recordNotesVote(realDrained: Bool, allowExit: Bool) {
+        lock.withLock {
+            notesVoteCount = min(notesVoteCount + 1, 3)
+            if notesVoteCount == 1 { firstVoteWasVeto = realDrained && !allowExit }
+            if notesVoteCount == 2 { secondVoteAllowed = realDrained && allowExit }
+        }
+    }
+
+    func recordNotesSafetyDrain() {
+        lock.withLock { safetyDrained = true }
+    }
+
+    func notesSnapshot() -> NotesSnapshot {
+        lock.withLock {
+            NotesSnapshot(inFlight: inFlight, starts: starts, ends: ends, successes: successes,
+                failures: failures, settingsEntries: settingsEntries,
+                settingsAdmissionInvalid: settingsAdmissionInvalid, inputInvalid: notesInputInvalid,
+                replyCount: notesReplyCount, voteCount: notesVoteCount,
+                firstVoteWasVeto: firstVoteWasVeto, secondVoteAllowed: secondVoteAllowed,
+                safetyDrained: safetyDrained, privateMounted: notesPrivateMounted,
+                submitted: notesSubmitted, ownedReturned: notesReturned)
+        }
+    }
+
+    func recordDecode(entered: Bool, status: Int32?) -> Bool {
+        lock.withLock {
+            if entered { inFlight += 1; starts += 1 }
+            else {
+                inFlight -= 1; ends += 1
+                if status == 0 { successes += 1 }
+            }
+            guard entered, successes > 0, !quitScheduled else { return false }
+            quitScheduled = true
+            return true
+        }
+    }
+
+    func recordCheck(_ accepted: Bool) {
+        lock.withLock { checks += 1; if !accepted { failures += 1 } }
+    }
+
+    func recordReply(_ value: Bool) { lock.withLock { later = value } }
+
+    func snapshot() -> (inFlight: Int, starts: Int, ends: Int, successes: Int, checks: Int, failures: Int, later: Bool) {
+        lock.withLock { (inFlight, starts, ends, successes, checks, failures, later) }
+    }
+}

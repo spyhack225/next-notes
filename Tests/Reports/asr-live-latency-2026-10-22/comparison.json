@@ -1,0 +1,246 @@
+{
+  "status": "partial",
+  "scope": "Whistle CPU paced runtime observed under pressure; no cross-model live ranking or default promotion",
+  "rows": [
+    {
+      "id": "parakeet-v3",
+      "model": "Parakeet v3 (cached FluidAudio)",
+      "model_bytes": 483257242,
+      "status": "aborted-during-warmup",
+      "languages": {
+        "en": {
+          "previous_full_fixture_wer": 0.04411764705882353,
+          "previous_reference_words": 136,
+          "live_trials": 0
+        },
+        "fr": {
+          "previous_full_fixture_wer": 0.09933774834437085,
+          "previous_reference_words": 151,
+          "live_trials": 0
+        }
+      }
+    },
+    {
+      "id": "whistle",
+      "model": "Whistle",
+      "model_bytes": 16919407,
+      "status": "measured-under-pressure",
+      "languages": {
+        "en": {
+          "previous_full_fixture_wer": 0.051470588235294115,
+          "previous_reference_words": 136,
+          "live_trials": 3,
+          "short_hold_wer": [
+            0.05,
+            0.05,
+            0.05
+          ],
+          "first_texts": [
+            "Okay.",
+            "OK.",
+            "OK."
+          ],
+          "first_text_ms": {
+            "values": [
+              410.5939169530757,
+              429.25133398966864,
+              420.9605830255896
+            ],
+            "median": 420.9605830255896,
+            "min": 410.5939169530757,
+            "max": 429.25133398966864
+          },
+          "first_correct_reference_word_ms": {
+            "values": [
+              410.5939169530757,
+              1434.6684999763966,
+              1435.859207995236
+            ],
+            "median": 1434.6684999763966,
+            "min": 410.5939169530757,
+            "max": 1435.859207995236
+          },
+          "first_committed_ms": {
+            "values": [
+              2455.0409579533152,
+              2443.270458956249,
+              2437.8038750146516
+            ],
+            "median": 2443.270458956249,
+            "min": 2437.8038750146516,
+            "max": 2455.0409579533152
+          },
+          "release_to_final_ms": {
+            "values": [
+              67.65229196753353,
+              63.969958981033415,
+              70.11445797979832
+            ],
+            "median": 67.65229196753353,
+            "min": 63.969958981033415,
+            "max": 70.11445797979832
+          }
+        },
+        "fr": {
+          "previous_full_fixture_wer": 0.1986754966887417,
+          "previous_reference_words": 151,
+          "live_trials": 3,
+          "short_hold_wer": [
+            0.2727272727272727,
+            0.2727272727272727,
+            0.2727272727272727
+          ],
+          "first_texts": [
+            "Donc on...",
+            "Donc on...",
+            "Donc on..."
+          ],
+          "first_text_ms": {
+            "values": [
+              414.1917500528507,
+              421.14487499929965,
+              419.7414169902913
+            ],
+            "median": 419.7414169902913,
+            "min": 414.1917500528507,
+            "max": 421.14487499929965
+          },
+          "first_correct_reference_word_ms": {
+            "values": [
+              414.1917500528507,
+              421.14487499929965,
+              419.7414169902913
+            ],
+            "median": 419.7414169902913,
+            "min": 414.1917500528507,
+            "max": 421.14487499929965
+          },
+          "first_committed_ms": {
+            "values": [
+              1445.7428750465624,
+              1435.0189580000006,
+              1439.1238749958575
+            ],
+            "median": 1439.1238749958575,
+            "min": 1435.0189580000006,
+            "max": 1445.7428750465624
+          },
+          "release_to_final_ms": {
+            "values": [
+              171.8806250137277,
+              86.20616694679484,
+              82.60383398737758
+            ],
+            "median": 86.20616694679484,
+            "min": 82.60383398737758,
+            "max": 171.8806250137277
+          }
+        }
+      },
+      "source": "whistle.json"
+    },
+    {
+      "id": "redux",
+      "model": "Parakeet Redux (CoreML)",
+      "model_bytes": 220304193,
+      "status": "blocked-not-started",
+      "languages": {
+        "en": {
+          "previous_full_fixture_wer": 0.051470588235294115,
+          "previous_reference_words": 136,
+          "live_trials": 0
+        },
+        "fr": {
+          "previous_full_fixture_wer": 0.12582781456953643,
+          "previous_reference_words": 151,
+          "live_trials": 0
+        }
+      }
+    },
+    {
+      "id": "ultra",
+      "model": "Parakeet Ultra (CoreML)",
+      "model_bytes": 632162964,
+      "status": "blocked-not-started",
+      "languages": {
+        "en": {
+          "previous_full_fixture_wer": 0.04411764705882353,
+          "previous_reference_words": 136,
+          "live_trials": 0
+        },
+        "fr": {
+          "previous_full_fixture_wer": 0.09933774834437085,
+          "previous_reference_words": 151,
+          "live_trials": 0
+        }
+      }
+    },
+    {
+      "id": "phonon",
+      "model": "Phonon-2 (CoreML)",
+      "model_bytes": 344990366,
+      "status": "blocked-not-started",
+      "languages": {
+        "en": {
+          "previous_full_fixture_wer": 0.007352941176470588,
+          "previous_reference_words": 136,
+          "live_trials": 0
+        }
+      }
+    },
+    {
+      "id": "qwen-06b",
+      "model": "Qwen3-ASR 0.6B (4-bit MLX)",
+      "model_bytes": 712778752,
+      "status": "blocked-not-started",
+      "languages": {
+        "en": {
+          "previous_full_fixture_wer": 0.007352941176470588,
+          "previous_reference_words": 136,
+          "live_trials": 0
+        },
+        "fr": {
+          "previous_full_fixture_wer": 0.09271523178807947,
+          "previous_reference_words": 151,
+          "live_trials": 0
+        }
+      }
+    },
+    {
+      "id": "qwen-17b",
+      "model": "Qwen3-ASR 1.7B (4-bit MLX)",
+      "model_bytes": 1607630579,
+      "status": "blocked-not-started",
+      "languages": {
+        "en": {
+          "previous_full_fixture_wer": 0.03676470588235294,
+          "previous_reference_words": 136,
+          "live_trials": 0
+        },
+        "fr": {
+          "previous_full_fixture_wer": 0.039735099337748346,
+          "previous_reference_words": 151,
+          "live_trials": 0
+        }
+      }
+    },
+    {
+      "id": "voz",
+      "model": "Voz (CoreML CLI)",
+      "model_bytes": 336667603,
+      "status": "blocked-not-started",
+      "languages": {
+        "en": {
+          "previous_full_fixture_wer": 0.03676470588235294,
+          "previous_reference_words": 136,
+          "live_trials": 0
+        },
+        "fr": {
+          "previous_full_fixture_wer": 0.11920529801324503,
+          "previous_reference_words": 151,
+          "live_trials": 0
+        }
+      }
+    }
+  ]
+}

@@ -19,9 +19,12 @@ struct ModelsSettingsTab: View {
     @State private var loadNotice = ModelLoadNotice.shared
     @State private var pocket = PocketAgentVoice.shared
     @State private var kokoro = KokoroAgentVoice.shared
+    @State private var qwenVoice = NativeAgentVoice.qwen
+    @State private var phononVoice = NativeAgentVoice.phonon
     @State private var functionCalls = FunctionCallStore.shared
     @State private var isPreviewing = false
     @State private var previewTask: Task<Void, Never>?
+    @State private var previewOutput: OutputHandle?
     @State private var catalog = OpenRouterCatalog.shared
     @State private var openRouterKeyInput = ""
     @State private var openRouterKeyStatus: String?
@@ -121,6 +124,8 @@ struct ModelsSettingsTab: View {
             }
         }
         .onAppear {
+            // A Settings capture does not prepare a voice engine or fetch a catalogue.
+            guard SelfTest.requested != "--selftest-settings-sheet" else { return }
             models.refresh()
             installed.refresh()
             library.refreshHardware()
@@ -139,6 +144,10 @@ struct ModelsSettingsTab: View {
                 Task { await pocket.prepare() }
             } else if settings.agentVoiceEngine == "kokoro", KokoroAgentVoice.isSupportedOS {
                 Task { await kokoro.prepare() }
+            } else if settings.agentVoiceEngine == "qwen" {
+                Task { await qwenVoice.prepare() }
+            } else if settings.agentVoiceEngine == "phonon" {
+                Task { await phononVoice.prepare() }
             }
         }
         .onDisappear { if isPreviewing { stopPreview() } }
@@ -255,7 +264,9 @@ struct ModelsSettingsTab: View {
 
     private var installedModels: some View {
         Section {
-            if !NotesModels.isDownloaded {
+            // Owner decision 2026-10-04: with MiniCPM installed it is the brain every role
+            // defaults to, so the other built-in file is not offered as the next download.
+            if !NotesModels.isDownloaded, roles.sharedLocalModelID == nil {
                 ModelStatusRow(
                     title: "Built-in brain",
                     detail: "\(NotesModels.spec.displayName) · \(NotesModels.spec.displaySize)",
@@ -779,13 +790,15 @@ struct ModelsSettingsTab: View {
     }
 
     private enum VoiceEngine: String, CaseIterable, Identifiable {
-        case apple, pocket, kokoro
+        case apple, pocket, kokoro, qwen, phonon
         var id: String { rawValue }
         var name: String {
             switch self {
             case .apple: "macOS"
             case .pocket: "Pocket"
             case .kokoro: "Kokoro"
+            case .qwen: "Qwen3-TTS"
+            case .phonon: "Phonon"
             }
         }
         var icon: String {
@@ -793,13 +806,14 @@ struct ModelsSettingsTab: View {
             case .apple: "speaker.wave.2"
             case .pocket: "waveform"
             case .kokoro: "waveform.path"
+            case .qwen, .phonon: "waveform"
             }
         }
     }
 
     private var speechSynthesis: some View {
         Section {
-            HStack(spacing: DS.Space.s) {
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 120))], spacing: DS.Space.s) {
                 ForEach(VoiceEngine.allCases) { engine in
                     engineChoice(engine)
                 }
@@ -815,7 +829,17 @@ struct ModelsSettingsTab: View {
                 Text(error).font(DS.Font.caption).foregroundStyle(DS.Color.warning)
             }
 
+            ForEach([qwenVoice, phononVoice], id: \.engine.rawValue) { voice in
+                if voice.isPreparing {
+                    ProgressView("Preparing \(voice.engine == .qwen ? "Qwen3-TTS" : "Phonon")…", value: voice.progress)
+                }
+                if let message = voice.errorMessage {
+                    Text(message).font(DS.Font.caption).foregroundStyle(DS.Color.warning)
+                }
+            }
             switch settings.agentVoiceEngine {
+            case "qwen": LabeledContent("Voice", value: qwenVoice.voiceName)
+            case "phonon": LabeledContent("Voice", value: phononVoice.voiceName)
             case "pocket":
                 HStack(spacing: DS.Space.s) {
                     Text("Voice")
@@ -860,7 +884,7 @@ struct ModelsSettingsTab: View {
                     .foregroundStyle(DS.Color.textSecondary)
             }
 
-            if settings.agentVoiceEngine != "apple" {
+            if settings.agentVoiceEngine == "pocket" || settings.agentVoiceEngine == "kokoro" {
                 ModelTechnicalDetails(
                     modelID: settings.agentVoiceEngine == "pocket"
                         ? "Pocket TTS (FluidAudio)" : "Kokoro-82M (FluidAudio)",
@@ -899,7 +923,7 @@ struct ModelsSettingsTab: View {
             }
         }
         .buttonStyle(.plain)
-        .disabled(unavailable || (engine == .pocket && pocket.isPreparing)
+        .disabled(qwenVoice.isPreparing || phononVoice.isPreparing || unavailable || (engine == .pocket && pocket.isPreparing)
                   || (engine == .kokoro && kokoro.isPreparing))
         .help(unavailable ? KokoroAgentVoice.unavailableMessage : "Use \(engine.name) for Agent speech")
     }
@@ -908,6 +932,8 @@ struct ModelsSettingsTab: View {
         switch engine {
         case .apple: "Built in"
         case .pocket: pocket.isReady ? "4 voices · ready" : "4 voices · download"
+        case .qwen: qwenVoice.isReady ? "Ryan · ready" : "Ryan · 1.7 GB download"
+        case .phonon: phononVoice.isReady ? "Ready" : "137 MB download"
         case .kokoro:
             KokoroAgentVoice.isSupportedOS
                 ? (kokoro.isReady ? "Heart · ready" : "Heart · download")
@@ -918,6 +944,12 @@ struct ModelsSettingsTab: View {
     private func select(_ engine: VoiceEngine) {
         stopPreview()
         switch engine {
+        case .qwen, .phonon:
+            let voice = engine == .qwen ? qwenVoice : phononVoice
+            Task {
+                await voice.prepare(download: true)
+                if voice.isReady { settings.agentVoiceEngine = engine.rawValue }
+            }
         case .apple:
             settings.agentVoiceEngine = engine.rawValue
         case .pocket:
@@ -944,6 +976,8 @@ struct ModelsSettingsTab: View {
         switch settings.agentVoiceEngine {
         case "pocket": settings.agentPocketVoice.capitalized
         case "kokoro": "Kokoro · Heart"
+        case "qwen": "Qwen3-TTS · Ryan"
+        case "phonon": "Phonon · " + phononVoice.voiceName
         default:
             availableVoices.first(where: { $0.identifier == settings.agentVoiceIdentifier })?.name
                 ?? "macOS system default"
@@ -956,13 +990,13 @@ struct ModelsSettingsTab: View {
                 + "because its Core ML runtime can crash; macOS 26.6 is required."
         }
         return "Choose one engine, then a voice, and preview it here. Pocket TTS downloads "
-            + "about 550 MB on first use; Kokoro downloads its Core ML model when selected."
+            + "about 550 MB on first use. Qwen3-TTS needs about 1.7 GB; Phonon downloads 137 MB and uses more space to prepare. Only the voice you choose is downloaded."
     }
 
     private func startPreview() {
         guard canPreviewVoice else { return }
         let synthesizer = AgentSpeechSynthesizer.shared
-        synthesizer.speak("Hi, I'm Next. I can check your calendar and help with your notes.")
+        previewOutput = OutputScheduler.shared.speakSessionless("Hi, I'm Next. I can check your calendar and help with your notes.")
         isPreviewing = true
         previewTask?.cancel()
         previewTask = Task { @MainActor in
@@ -977,6 +1011,8 @@ struct ModelsSettingsTab: View {
         switch settings.agentVoiceEngine {
         case "pocket": pocket.isReady && !pocket.isPreparing
         case "kokoro": kokoro.isReady && !kokoro.isPreparing
+        case "qwen": qwenVoice.isReady && !qwenVoice.isPreparing
+        case "phonon": phononVoice.isReady && !phononVoice.isPreparing
         default: true
         }
     }
@@ -984,7 +1020,8 @@ struct ModelsSettingsTab: View {
     private func stopPreview() {
         previewTask?.cancel()
         previewTask = nil
-        if isPreviewing { AgentSpeechSynthesizer.shared.stop() }
+        if isPreviewing { previewOutput?.cancel() }
+        previewOutput = nil
         isPreviewing = false
     }
 

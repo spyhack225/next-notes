@@ -1,0 +1,163 @@
+--- a/Sources/NextNotes/Formatting/LLM/NotesModelRuntime.swift
++++ b/Sources/NextNotes/Formatting/LLM/NotesModelRuntime.swift
+@@ -1022,7 +1022,8 @@
+         user: String,
+         maxTokens: Int,
+         grammar: GBNFGrammar? = nil,
+-        optional: Bool = false
++        optional: Bool = false,
++        promptCopyLimit: Int = 0
+     ) async throws -> LLMCompletion {
+         let firstTokenTrace = LatencyTrace.start(.modelFirstToken)
+         var reportedFirstToken = false
+@@ -1095,8 +1096,36 @@
+         // the model keeps writing a second turn.
+         let turnEnd = ChatTemplate.stopMarker(family)
+ 
+-        var batch = llama_batch_init(1, 0, 1)
++        // Experimental copying proposes input tokens; the same target sampler must
++        // confirm every delivered token. No proposal enters the sampler's history.
++        let copyLimit = grammar == nil ? min(max(0, promptCopyLimit), 4) : 0
++        let copySource = copyLimit > 0
++            ? try LlamaHelpers.tokenize(user, vocabulary: vocabulary, addSpecial: false) : []
++        var copiedHistory: [llama_token] = []
++        var draft: [llama_token] = []
++        var draftIndex = 0
++        var logitsIndex: Int32 = -1
++        var proposed = 0
++        var accepted = 0
++        var mismatches = 0
++        var nativeBatches = 0
++        var speculativeEnd: llama_pos?
++        let memory = llama_get_memory(context)
++        var batch = llama_batch_init(Int32(1 + copyLimit), 0, 1)
+         defer { llama_batch_free(batch) }
++        defer {
++            // EOG/stop/cancellation must not lend unaccepted future tokens to the
++            // successor. Refused rollback invalidates the cache, never its answer.
++            if let end = speculativeEnd, end > position {
++                if !llama_memory_seq_rm(memory, 0, position, -1) {
++                    llama_memory_clear(memory, true)
++                    kvTokens = []
++                }
++            }
++            if copyLimit > 0 {
++                SelfTest.diagnostic("DICTATION_PROMPT_COPY: proposed=\(proposed) accepted=\(accepted) mismatches=\(mismatches) native_batches=\(nativeBatches) generated=\(generated)")
++            }
++        }
+ 
+         do {
+             while generated < maxTokens {
+@@ -1110,7 +1139,7 @@
+ 
+                 if optional { try checkOptionalAdmission() }
+ 
+-                let token = llama_sampler_sample(sampler, context, -1)
++                let token = llama_sampler_sample(sampler, context, logitsIndex)
+                 if llama_vocab_is_eog(vocabulary, token) { break }
+                 if !reportedFirstToken {
+                     reportedFirstToken = true
+@@ -1123,12 +1152,52 @@
+                     break
+                 }
+ 
+-                batch.n_tokens = 0
+-                LlamaHelpers.add(token, position: position, logits: true, to: &batch)
+-                guard decodeNative(context, batch) == 0 else { throw LlamaError.decodeFailed }
+-                // P0-18: this token's KV entry is at `position`, so the ledger grows with it.
+-                kvTokens.append(token)
+-                position += 1
++                if copyLimit > 0 {
++                    copiedHistory.append(token)
++                    if copiedHistory.count > 8 { copiedHistory.removeFirst() }
++                }
++                if draftIndex < draft.count, token == draft[draftIndex] {
++                    // This exact sampled token was already decoded causally in the
++                    // proposed batch. Its KV entry now becomes accepted authority.
++                    kvTokens.append(token)
++                    position += 1
++                    accepted += 1
++                    draftIndex += 1
++                    if draftIndex == draft.count {
++                        draft = []
++                        speculativeEnd = nil
++                        logitsIndex = -1
++                    } else {
++                        logitsIndex = Int32(draftIndex)
++                    }
++                } else {
++                    if !draft.isEmpty {
++                        mismatches += 1
++                        guard llama_memory_seq_rm(memory, 0, position, -1) else {
++                            // Continuing after a refused native rollback would decode
++                            // against invented future context. Existing failure cleanup
++                            // clears both native memory and the accepted-token ledger.
++                            throw LlamaError.decodeFailed
++                        }
++                        speculativeEnd = nil
++                    }
++                    draft = Self.promptCopyDraft(
++                        source: copySource, history: copiedHistory,
++                        limit: min(copyLimit, maxTokens - generated))
++                    draftIndex = 0
++                    proposed += draft.count
++                    batch.n_tokens = 0
++                    LlamaHelpers.add(token, position: position, logits: true, to: &batch)
++                    for (offset, next) in draft.enumerated() {
++                        LlamaHelpers.add(next, position: position + llama_pos(offset + 1), logits: true, to: &batch)
++                    }
++                    guard decodeNative(context, batch) == 0 else { throw LlamaError.decodeFailed }
++                    nativeBatches += 1
++                    kvTokens.append(token)
++                    position += 1
++                    speculativeEnd = draft.isEmpty ? nil : position + llama_pos(draft.count)
++                    logitsIndex = draft.isEmpty ? -1 : 0
++                }
+             }
+         } catch {
+             // Cooperative cancellation is checked at a token boundary; each successful
+@@ -1138,6 +1207,7 @@
+             if !(error is CancellationError) {
+                 llama_memory_clear(llama_get_memory(context), true)
+                 kvTokens = []
++                speculativeEnd = nil
+             }
+             throw error
+         }
+@@ -1174,6 +1244,25 @@
+             // stop at exactly maxTokens is counted as cut, which costs one retry.
+             finishedByLimit: generated >= maxTokens
+         )
++    }
++
++    /// Request-local continuation proposal only. Matching sampler tokens, not this
++    /// lookup, authorize output. A bounded first prototype measures this scan's cost.
++    nonisolated static func promptCopyDraft(
++        source: [llama_token], history: [llama_token], limit: Int
++    ) -> [llama_token] {
++        guard limit > 0, history.count >= 3, source.count > 3 else { return [] }
++        let width = min(8, history.count, source.count - 1)
++        for count in stride(from: width, through: 3, by: -1) {
++            let suffix = history.suffix(count)
++            for end in stride(from: source.count - 1, through: count, by: -1) {
++                if source[(end - count)..<end].elementsEqual(suffix) {
++                    let length = min(limit, source.count - end)
++                    return Array(source[end..<(end + length)])
++                }
++            }
++        }
++        return []
+     }
+ 
+     /// The streaming twin of `completeWhileScheduled`. Keep token sampling in this actor:
+@@ -1399,7 +1488,9 @@
+             try checkTerminationAdmission()
+             admitted()
+             let completion = try await completeWhileScheduled(
+-                jobID: jobID, system: system, user: user, maxTokens: maxTokens)
++                jobID: jobID, system: system, user: user, maxTokens: maxTokens,
++                promptCopyLimit: SelfTest.isRunning
++                    && CommandLine.arguments.contains("--dictation-prompt-copy-experiment") ? 4 : 0)
+             await ComputeScheduler.shared.release(jobID)
+             return (completion, lastPrefillStats?.promptTokens ?? 0, lastPrefillStats?.reused ?? 0)
+         } catch {

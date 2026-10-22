@@ -1,0 +1,10 @@
+--- a/Sources/NextNotes/UI/Settings/SettingsChrome.swift
++++ b/Sources/NextNotes/UI/Settings/SettingsChrome.swift
+@@ -68 +68,6 @@ struct SettingsPane<Content: View>: View {
+-            SectionHeading(title: tab.heading, eyebrow: tab.title)
++            SectionHeading(
++                title: tab.headingSpans.lead,
++                eyebrow: tab.title,
++                accent: tab.headingSpans.accent,
++                accentLevel: .pane
++            )

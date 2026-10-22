@@ -1,0 +1,43 @@
+--- a/Sources/NextNotes/Support/NativeTerminationSelfTest.swift
++++ b/Sources/NextNotes/Support/NativeTerminationSelfTest.swift
+@@ -177,6 +177,7 @@
+     private var notesFinalProposals = 0
+     private var notesPrivateMounted = false
+     private var notesSubmitted = false
++    private var notesReturned = false
+ 
+     struct NotesSnapshot: Sendable {
+         let inFlight: Int
+@@ -194,6 +195,7 @@
+         let safetyDrained: Bool
+         let privateMounted: Bool
+         let submitted: Bool
++        let ownedReturned: Bool
+     }
+ 
+     var isSettingsProbeConfigurationAdmitted: Bool {
+@@ -230,6 +232,15 @@
+ 
+     func markNotesSubmitted() {
+         lock.withLock { notesSubmitted = true }
++    }
++
++    /// Observes the existing Notes Task defer after its map entry was removed.
++    /// The Bool is the same trace's real native quit scheduling, not a cessation claim.
++    func recordNotesReturned() -> Bool {
++        lock.withLock {
++            notesReturned = true
++            return quitScheduled
++        }
+     }
+ 
+     func nextNotesFinalVetoResult(quiescent: Bool) -> Bool {
+@@ -260,7 +271,7 @@
+                 replyCount: notesReplyCount, voteCount: notesVoteCount,
+                 firstVoteWasVeto: firstVoteWasVeto, secondVoteAllowed: secondVoteAllowed,
+                 safetyDrained: safetyDrained, privateMounted: notesPrivateMounted,
+-                submitted: notesSubmitted)
++                submitted: notesSubmitted, ownedReturned: notesReturned)
+         }
+     }
+ 

@@ -1,0 +1,16 @@
+{
+  "kind": "read-only current source observation, not owner lease",
+  "pins": {
+    "Sources/NextNotes/Support/NativeTerminationSelfTest.swift": "a1c1d30f8198e63758dde34abd8812b236c281a191cd9168383eff95a47aa4f5",
+    "Sources/NextNotes/NextNotesApp.swift": "bc01a27f48478a297d07a1d35669c313615cc7c182c0c6d113b4899e792a1b61",
+    "Sources/NextNotes/Support/Settings.swift": "884f7a297f68d588a7ae2de962432049682c478d4f53464dba6c92e0a01ee3c4",
+    "Sources/NextNotes/Meetings/MeetingDiarizer.swift": "bee04c83e4c23c91126482360e891c800f4e27200b930a00cf9dd89cd8cb3f13",
+    "Sources/NextNotes/Meetings/NotesService.swift": "c1577429843cd4f2a50bca738a8afe95ed574e7faea29153de38fe8264c79652",
+    "Sources/NextNotes/Meetings/MeetingStore.swift": "085f6b60395192c230d80ac429e84f98cd0c79f2fce0300f10fd4bb0cbc52c6b",
+    "Sources/NextNotes/Meetings/MeetingModels.swift": "39cacae98ac6fc6ce427d52f99ee88867bb24f73546354a3217116467dd2cbc6",
+    "Sources/NextNotes/Formatting/LLM/NotesModelRuntime.swift": "45ef55fe4afed62847932bd9fdf36f8819f093fb030a3f461af754b52deaef88",
+    "Sources/NextNotes/Formatting/LLM/NotesModels.swift": "b3fc49cfe8886189d25c3f24c86235288d86bfec66e5095b1005db94819a17cc",
+    "Sources/NextNotes/Support/SelfTestStoreGuard.swift": "dc2733998fbb09ce1128d2f5dfeb9ce782e821ec2ef752330dab5c5a2de63eed",
+    "Sources/NextNotes/Support/ModelDownloader.swift": "dd3ff581ae28606a62ea2ea5f424282fb07325eef99fd829164f677c4d665e07"
+  }
+}

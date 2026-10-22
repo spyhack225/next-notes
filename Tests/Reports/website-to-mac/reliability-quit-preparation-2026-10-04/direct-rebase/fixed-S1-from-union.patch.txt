@@ -1,0 +1,162 @@
+--- a/Sources/NextNotes/Formatting/S1MiniFormatter.swift
++++ b/Sources/NextNotes/Formatting/S1MiniFormatter.swift
+@@ -1,4 +1,5 @@
+ import Foundation
++import os
+ import llama
+ 
+ /// S1-mini by Superwhisper, a local 0.6B post-ASR text normalizer.
+@@ -41,7 +42,7 @@
+     }
+ 
+     func format(_ raw: String) async -> String {
+-        guard !refusedFixtureBinding else { return "" }
++        guard !refusedFixtureBinding, !Task.isCancelled else { return "" }
+         let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+         guard !trimmed.isEmpty else { return trimmed }
+         guard runtimeForTesting != nil || S1MiniModels.isDownloaded else {
+@@ -66,6 +67,7 @@
+                 group.cancelAll()
+                 return first
+             }
++            guard !Task.isCancelled else { return "" }
+             // Empty is a documented, valid result for filler-only/noise-only transcripts.
+             if result.isEmpty, Self.hasSubstantiveContent(trimmed) {
+                 Log.speech.info("S1-mini returned empty substantive text — using rule-based cleanup")
+@@ -78,6 +80,9 @@
+             trace?.noteModelAccepted(seconds: Date().timeIntervalSince(began))
+             return result
+         } catch {
++            // Cancelling this cleanup or closing its owned runtime must not publish
++            // stale text. A genuine timeout/model error still uses the rules fallback.
++            guard !Task.isCancelled, !(error is CancellationError) else { return "" }
+             Log.speech.error("S1-mini cleanup failed: \(error.localizedDescription, privacy: .public)")
+             trace?.noteModelFailed(
+                 reason: error.localizedDescription,
+@@ -121,7 +126,7 @@
+     private var model: OpaquePointer?
+     private var context: OpaquePointer?
+     private var vocabulary: OpaquePointer?
+-    private var terminationRequested = false
++    private nonisolated let terminationRequested = OSAllocatedUnfairLock(initialState: false)
+     private var terminationModelURLForTesting: URL?
+     private var terminationTraceForTesting: OtherLlamaTerminationTrace?
+     private var nativeReturnForTesting: (@Sendable (Bool) -> Void)?
+@@ -131,9 +136,11 @@
+               terminationModelURLForTesting != nil else { throw CocoaError(.fileReadNoPermission) }
+         nativeReturnForTesting = observer
+     }
+-    // COMMON missing stop-request scaffold; FIXED closes the SAME owned admission
+-    // synchronously, before waiting for its actor/native work to return.
+-    nonisolated func beginTermination() {}
++    /// Admission closes outside the actor so a synchronous decode loop sees quit
++    /// between its existing native calls. Native objects are freed only by the actor.
++    nonisolated func beginTermination() {
++        terminationRequested.withLock { $0 = true }
++    }
+ 
+     func configureTerminationFixture(modelURL: URL, trace: OtherLlamaTerminationTrace) throws {
+         guard model == nil, context == nil, terminationTraceForTesting == nil else { throw CocoaError(.fileReadNoPermission) }
+@@ -144,14 +151,17 @@
+         guard NativeOtherLlamaQuitSelfTest.isRequested else { return nil }
+         return model != nil || context != nil
+     }
+-    nonisolated func finishTermination() async { await closeForTermination() }
++    nonisolated func finishTermination() async {
++        beginTermination()
++        await closeForTermination()
++    }
+     private func closeForTermination() {
+-        terminationRequested = true
++        beginTermination()
+         shutdown()
+         terminationTraceForTesting?.ownerClosed()
+     }
+     private func checkTerminationAdmission() throws {
+-        guard !terminationRequested else { throw CancellationError() }
++        guard !terminationRequested.withLock({ $0 }) else { throw CancellationError() }
+         try Task.checkCancellation()
+     }
+ 
+@@ -160,6 +170,7 @@
+     func prepare() async throws {
+         try checkTerminationAdmission()
+         try await loadIfNeeded()
++        try checkTerminationAdmission()
+     }
+ 
+     /// Runs one cleanup pass, announcing it to `LlamaBackend` for the duration.
+@@ -171,14 +182,16 @@
+     func normalize(_ transcript: String, preferences: CleanupPreferences) async throws -> String {
+         try checkTerminationAdmission()
+         await LlamaBackend.shared.beginCleanup()
++        let result: String
+         do {
+-            let result = try await performNormalize(transcript, preferences: preferences)
+-            await LlamaBackend.shared.endCleanup()
+-            return result
++            result = try await performNormalize(transcript, preferences: preferences)
+         } catch {
+             await LlamaBackend.shared.endCleanup()
+             throw error
+         }
++        await LlamaBackend.shared.endCleanup()
++        try checkTerminationAdmission()
++        return result
+     }
+ 
+     private func performNormalize(
+@@ -211,6 +224,7 @@
+             throw RuntimeError.tokenizationFailed
+         }
+         guard promptTokens.count < 1_600 else { throw RuntimeError.inputTooLong }
++        try checkTerminationAdmission()
+         llama_memory_clear(llama_get_memory(context), true)
+ 
+         var promptBatch = llama_batch_init(Int32(max(1, promptTokens.count)), 0, 1)
+@@ -219,10 +233,12 @@
+             LlamaHelpers.add(token, position: Int32(index), logits: false, to: &promptBatch)
+         }
+         promptBatch.logits[Int(promptBatch.n_tokens) - 1] = 1
++        try checkTerminationAdmission()
+         terminationTraceForTesting?.nativeEntered()
+         let prefillStatus = llama_decode(context, promptBatch)
+         terminationTraceForTesting?.nativeReturned(succeeded: prefillStatus == 0)
+         nativeReturnForTesting?(prefillStatus == 0)
++        try checkTerminationAdmission()
+         guard prefillStatus == 0 else { throw RuntimeError.decodeFailed }
+ 
+         guard let sampler = llama_sampler_init_greedy() else { throw RuntimeError.samplerFailed }
+@@ -232,6 +248,7 @@
+         var position = Int32(promptTokens.count)
+         let maximumResponseTokens = 1_200
+         for _ in 0..<maximumResponseTokens {
++            try checkTerminationAdmission()
+             let token = llama_sampler_sample(sampler, context, -1)
+             if llama_vocab_is_eog(vocabulary, token) { break }
+             output += LlamaHelpers.piece(token, vocabulary: vocabulary)
+@@ -243,10 +260,12 @@
+             terminationTraceForTesting?.nativeReturned(succeeded: result == 0)
+             nativeReturnForTesting?(result == 0)
+             llama_batch_free(tokenBatch)
++            try checkTerminationAdmission()
+             guard result == 0 else { throw RuntimeError.decodeFailed }
+             position += 1
+         }
+ 
++        try checkTerminationAdmission()
+         return output
+             .replacingOccurrences(of: "<|im_end|>", with: "")
+             .trimmingCharacters(in: .whitespacesAndNewlines)
+--- a/Sources/NextNotes/NextNotesApp.swift
++++ b/Sources/NextNotes/NextNotesApp.swift
+@@ -9714,6 +9714,9 @@
+         // built-in file only on admitted load; this diagnostic injects an empty
+         // private owner for non-embedding modes, avoiding the ORIGINAL eager URL.
+         let s1 = otherLlamaTerminationFixtureForTesting?.s1 ?? S1MiniRuntime.shared
++        // Publish stop before the quit Task can wait behind synchronous S1 decode.
++        // The same actor still frees its native context in finishTermination().
++        s1.beginTermination()
+         let embedding: EmbeddingRuntime
+         if let selected = otherLlamaTerminationFixtureForTesting?.embedding {
+             embedding = selected

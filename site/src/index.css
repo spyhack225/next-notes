@@ -258,3 +258,34 @@
     transition-duration: 0.001ms !important;
   }
 }
+
+/* Benchmark reading surface: existing site palette, normal document flow, no animated work. */
+@utility benchmark-page { max-width: 72rem; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+.benchmark-page a { text-decoration: underline; text-underline-offset: 0.2em; }
+@utility benchmark-nav { display: flex; justify-content: space-between; gap: 1.5rem; margin-bottom: 3rem; }
+.benchmark-page header { max-width: 48rem; margin-bottom: 2rem; }
+.benchmark-page h1 { font-family: var(--font-serif); font-size: 3rem; line-height: 1.15; margin-bottom: 1rem; }
+.benchmark-page h2 { font-size: 1.25rem; font-weight: 600; margin: 0.5rem 0; }
+.benchmark-page p { margin: 0.75rem 0; line-height: 1.6; }
+@utility benchmark-filters { display: flex; flex-wrap: wrap; gap: 1rem; margin: 2rem 0 1rem; }
+.benchmark-filters label { display: flex; flex-direction: column; gap: 0.5rem; flex: 1; min-width: 12rem; }
+.benchmark-filters input, .benchmark-filters select { border: 1px solid hsl(var(--border)); border-radius: 0.375rem; padding: 0.625rem; background: hsl(var(--background)); color: hsl(var(--foreground)); width: 100%; }
+.benchmark-page :focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 3px; }
+@utility benchmark-results {
+  & article { border-top: 1px solid hsl(var(--border)); padding: 1.5rem 0; scroll-margin-top: 1rem; }
+}
+@utility benchmark-run-meta { display: flex; flex-wrap: wrap; gap: 1rem; font-size: 0.875rem; color: hsl(var(--muted-foreground)); }
+.benchmark-page details { margin-top: 1rem; }
+.benchmark-page summary { cursor: pointer; text-decoration: underline; text-underline-offset: 0.2em; }
+.benchmark-page dl { margin: 1rem 0; }
+.benchmark-page dl div { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; padding: 0.25rem 0; }
+.benchmark-page dt { min-width: 8rem; font-weight: 500; }
+.benchmark-page dd { flex: 1; min-width: 12rem; }
+@utility benchmark-table-scroll { overflow-x: auto; margin: 1rem 0; }
+.benchmark-page table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.875rem; }
+.benchmark-page caption { text-align: left; font-weight: 500; padding-bottom: 0.75rem; }
+.benchmark-page th, .benchmark-page td { padding: 0.75rem; border-bottom: 1px solid hsl(var(--border)); vertical-align: top; }
+.benchmark-page th { font-weight: 500; }
+.benchmark-page ul { list-style: disc; padding-left: 1.5rem; margin: 1rem 0; }
+.benchmark-page li { margin: 0.5rem 0; }
+.benchmark-page footer { border-top: 1px solid hsl(var(--border)); margin-top: 2rem; padding-top: 1rem; }

@@ -1,0 +1,646 @@
+{
+  "scope": "Read-only dependency audit; only this new report/manifest written; no Source, roadmap, staging, build or native actions. File groups are review units, not a whole-file staging instruction.",
+  "generatedUTC": "2026-10-02T10:34:31.036219+00:00",
+  "head": "e522aa955e5313fa53ce1d5f4bc84bd406ad66a1",
+  "groups": {
+    "canonical_theme": [
+      "Sources/NextNotes/UI/DesignSystem.swift",
+      "Sources/NextNotes/UI/ThemeFixed.swift",
+      "Sources/NextNotes/UI/Components/GlassSurface.swift",
+      "Sources/NextNotes/UI/Components/SectionHeading.swift",
+      "Sources/NextNotes/UI/Components/Theme/ThemeHeadline.swift",
+      "Sources/NextNotes/UI/Components/Theme/ThemeGlass.swift",
+      "Sources/NextNotes/UI/Components/Theme/ThemeBorderBeam.swift",
+      "Sources/NextNotes/UI/Components/Theme/ThemeVoiceGlow.swift"
+    ],
+    "production_theme_consumers": [
+      "Sources/NextNotes/UI/MainWindow.swift",
+      "Sources/NextNotes/UI/HUDView.swift",
+      "Sources/NextNotes/UI/Island/IslandView.swift",
+      "Sources/NextNotes/UI/Agent/AgentView.swift",
+      "Sources/NextNotes/UI/Agent/AgentPaneLayout.swift",
+      "Sources/NextNotes/UI/Agent/AgentWorkingCard.swift",
+      "Sources/NextNotes/UI/Agent/ActivityView.swift",
+      "Sources/NextNotes/UI/Meetings/MeetingConsoleSheet.swift",
+      "Sources/NextNotes/UI/Meetings/MeetingDetailView.swift",
+      "Sources/NextNotes/UI/Meetings/MeetingLiveView.swift",
+      "Sources/NextNotes/UI/Meetings/MeetingsView.swift",
+      "Sources/NextNotes/UI/Settings/SettingsWindow.swift",
+      "Sources/NextNotes/UI/Settings/SettingsChrome.swift"
+    ],
+    "settings_display_producers": [
+      "Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift",
+      "Sources/NextNotes/UI/Settings/ComputerBrowserReadiness.swift",
+      "Sources/NextNotes/UI/Settings/AgentSettingsTab.swift"
+    ],
+    "onboarding_theme_and_actual_practice_consumers": [
+      "Sources/NextNotes/UI/Onboarding/OnboardingChrome.swift",
+      "Sources/NextNotes/UI/Onboarding/OnboardingWindow.swift",
+      "Sources/NextNotes/UI/Onboarding/OnboardingSteps.swift",
+      "Sources/NextNotes/UI/Onboarding/OnboardingFlow.swift",
+      "Sources/NextNotes/UI/Onboarding/OnboardingSelfTest.swift",
+      "Sources/NextNotes/UI/Onboarding/OnboardingSheet.swift"
+    ],
+    "illustration_owner_dependencies": [
+      "Sources/NextNotes/Agent/Identity/PeepFigure.swift",
+      "Sources/NextNotes/Agent/Identity/NotionAvatarConfig.swift",
+      "Sources/NextNotes/UI/Onboarding/OnboardingFigure.swift",
+      "Sources/NextNotes/UI/Onboarding/OnboardingExampleCard.swift"
+    ],
+    "diagnostics_and_root_shared_files": [
+      "Sources/NextNotes/NextNotesApp.swift",
+      "Sources/NextNotes/UI/ExperienceSheet.swift",
+      "Sources/NextNotes/UI/Meetings/MeetingConsolePreview.swift"
+    ],
+    "core_delivery_owner_separate": [
+      "Sources/NextNotes/Core/DictationController.swift",
+      "Sources/NextNotes/UI/Dictation/DictationView.swift",
+      "Sources/NextNotes/UI/Dictation/DictationStatusBand.swift"
+    ],
+    "packaging_and_policy": [
+      "Makefile",
+      "THIRD-PARTY-NOTICES.md",
+      "AGENTS.md",
+      "site/DESIGN-SYSTEM.md",
+      "Package.swift"
+    ],
+    "font_resources": [
+      "Resources/ThemeFonts/InstrumentSerif-Italic.ttf",
+      "Resources/ThemeFonts/InstrumentSerif-Regular.ttf",
+      "Resources/ThemeFonts/Inter-Bold.ttf",
+      "Resources/ThemeFonts/Inter-Medium.ttf",
+      "Resources/ThemeFonts/Inter-Regular.ttf",
+      "Resources/ThemeFonts/Inter-SemiBold.ttf",
+      "Resources/ThemeFonts/README.md",
+      "Resources/ThemeFonts/instrument-serif-OFL.txt",
+      "Resources/ThemeFonts/inter-OFL.txt",
+      "Resources/ThemeFonts/manifest.json"
+    ],
+    "illustration_resources_preserve": [
+      "Resources/OpenPeeps/ATTRIBUTION.md",
+      "Resources/OpenPeeps/bodies/Button Shirt 1.svg",
+      "Resources/OpenPeeps/bodies/Explaining.svg",
+      "Resources/OpenPeeps/bodies/Hoodie.svg",
+      "Resources/OpenPeeps/bodies/Macbook.svg",
+      "Resources/OpenPeeps/bodies/Paper.svg",
+      "Resources/OpenPeeps/bodies/Pointing Up.svg",
+      "Resources/OpenPeeps/bodies/Polo and Sweater.svg",
+      "Resources/OpenPeeps/face.svg",
+      "Resources/OpenPeeps/head.svg"
+    ],
+    "settings_fixture_isolation_owner_review_required": [
+      "Sources/NextNotes/Agent/Backend/AgentHarnessRouter.swift",
+      "Sources/NextNotes/Agent/GoogleWorkspaceCLI.swift",
+      "Sources/NextNotes/Calendar/CalendarService.swift",
+      "Sources/NextNotes/Calendar/Google/GoogleClientConfig.swift",
+      "Sources/NextNotes/Calendar/Google/GoogleTokenStore.swift",
+      "Sources/NextNotes/Formatting/Targets/OutputProfileStore.swift",
+      "Sources/NextNotes/Integrations/Composio/ComposioCredentialStore.swift",
+      "Sources/NextNotes/Integrations/Composio/ComposioProvider.swift",
+      "Sources/NextNotes/Integrations/MCP/MCPClient.swift",
+      "Sources/NextNotes/Knowledge/Files/IndexedFoldersStore.swift",
+      "Sources/NextNotes/Meetings/MeetingStore.swift",
+      "Sources/NextNotes/Support/AppIdentity.swift",
+      "Sources/NextNotes/Support/LocalModelStore.swift",
+      "Sources/NextNotes/Support/ModelLibrary/InstalledModelLibrary.swift",
+      "Sources/NextNotes/Support/ModelLibrary/ModelLibraryStore.swift",
+      "Sources/NextNotes/Support/ModelRoles/LocalRuntimeDiscovery.swift",
+      "Sources/NextNotes/Support/ModelRoles/ModelRoleStore.swift",
+      "Sources/NextNotes/Support/Permissions.swift",
+      "Sources/NextNotes/Support/RunLog.swift",
+      "Sources/NextNotes/Support/Usage/UsageLog.swift",
+      "Sources/NextNotes/UI/Onboarding/PermissionsChecklist.swift",
+      "Sources/NextNotes/UI/Settings/ComputerBrowserReadiness.swift",
+      "Sources/NextNotes/UI/Settings/IMessageSettingsSection.swift",
+      "Sources/NextNotes/UI/Settings/KnowledgeSection.swift",
+      "Sources/NextNotes/UI/Settings/MessagesAccessSection.swift",
+      "Sources/NextNotes/UI/Settings/ModelsSettingsTab.swift",
+      "Sources/NextNotes/UI/Settings/SettingsSheet.swift"
+    ],
+    "owner_isolation_verdict_instrumentation_separate": [
+      "Sources/NextNotes/Support/StoreIsolationSelfTest.swift"
+    ],
+    "evidence_entry_points": [
+      "Tests/Reports/website-to-mac/settings-app41/README.md",
+      "Tests/Reports/website-to-mac/settings-app41/artifact-manifest.json",
+      "Tests/Reports/website-to-mac/settings-isolation-source-handoff.md",
+      "Tests/Reports/website-to-mac/settings-isolation-source-handoff.json",
+      "Tests/Reports/website-to-mac/ux11-final-adoption.md",
+      "Tests/Reports/website-to-mac/ux11-theme.md",
+      "Tests/Reports/website-to-mac/ux11-motion-admission-audit-2026-10-02.md",
+      "Tests/Reports/website-to-mac/ux10-latency-acceptance-audit.md"
+    ]
+  },
+  "files": {
+    "Sources/NextNotes/UI/DesignSystem.swift": {
+      "sha256": "4834688eb005804071731afa6a359aa68434cdc3fd99cd62f5ac444bf57c1fe4",
+      "headSHA256": "0554e3afe6c23c6739355fb30077ff01b3a782fa5fc3bf6b81e0a9ac9ca9ac8a",
+      "gitStatus": "M Sources/NextNotes/UI/DesignSystem.swift"
+    },
+    "Sources/NextNotes/UI/ThemeFixed.swift": {
+      "sha256": "4d6aaef3329387a33d8ef95a6e1c641ec8f3eb428abc7b0d3670e4554c3bdd06",
+      "headSHA256": null,
+      "gitStatus": "?? Sources/NextNotes/UI/ThemeFixed.swift"
+    },
+    "Sources/NextNotes/UI/Components/GlassSurface.swift": {
+      "sha256": "c296b474b6868c13ef734f2ac54696620f3f3aa8584e393974e6cb1798b8b0e4",
+      "headSHA256": "3b4c6293c72ba9979847eacd900019539ab849f4e6e7088095bfb58d40366434",
+      "gitStatus": "M Sources/NextNotes/UI/Components/GlassSurface.swift"
+    },
+    "Sources/NextNotes/UI/Components/SectionHeading.swift": {
+      "sha256": "68f10152d8be83c8e912c8c297f821daa74cfecac32053dc6584889775e5f435",
+      "headSHA256": "a9d976649beff1c4daa3ed053e5f2364a4d8cf27e2c20dcb6a41b5fdea50fe55",
+      "gitStatus": "M Sources/NextNotes/UI/Components/SectionHeading.swift"
+    },
+    "Sources/NextNotes/UI/Components/Theme/ThemeHeadline.swift": {
+      "sha256": "7e6706c5f839cd5aef673083f2ad4ee1d8c29803f79e2199c39ca3040e57a1fe",
+      "headSHA256": null,
+      "gitStatus": "?? Sources/NextNotes/UI/Components/Theme/ThemeHeadline.swift"
+    },
+    "Sources/NextNotes/UI/Components/Theme/ThemeGlass.swift": {
+      "sha256": "43bf1deea72e9929ce2d1ad88d0538be4ba7f75f46e3e89548ec709f298a2619",
+      "headSHA256": null,
+      "gitStatus": "?? Sources/NextNotes/UI/Components/Theme/ThemeGlass.swift"
+    },
+    "Sources/NextNotes/UI/Components/Theme/ThemeBorderBeam.swift": {
+      "sha256": "07abde63ff092072216a55a6bfbdc269d5d739eb92dc0153b6ba1ab83c05db3d",
+      "headSHA256": null,
+      "gitStatus": "?? Sources/NextNotes/UI/Components/Theme/ThemeBorderBeam.swift"
+    },
+    "Sources/NextNotes/UI/Components/Theme/ThemeVoiceGlow.swift": {
+      "sha256": "4d628c5596a5562d483ccc7aecdb739b51f2260e50e68a68f89be79ba4ee186a",
+      "headSHA256": null,
+      "gitStatus": "?? Sources/NextNotes/UI/Components/Theme/ThemeVoiceGlow.swift"
+    },
+    "Sources/NextNotes/UI/MainWindow.swift": {
+      "sha256": "5f65aea558ea800d47f62d6deb5a9085a0b8fec4790485b6846578dccbc01150",
+      "headSHA256": "19fe38311d9a86d59439eef095f088bf2049a9d4bc2ee0ae4a1bf9acdcf7214d",
+      "gitStatus": "M Sources/NextNotes/UI/MainWindow.swift"
+    },
+    "Sources/NextNotes/UI/HUDView.swift": {
+      "sha256": "0f695e3f4da92e98dbdb7d4ed69ead9643db5e9b497e94278b18d7a8a1d94e13",
+      "headSHA256": "4021b5fe8333c653501a07e2f0fc86c75d02ffc3abd8a4fd73f6615bbffc0058",
+      "gitStatus": "M Sources/NextNotes/UI/HUDView.swift"
+    },
+    "Sources/NextNotes/UI/Island/IslandView.swift": {
+      "sha256": "4d53c60d50e954863ca330961b1bcf5f006899daffce1867d82d567f3aa1bf09",
+      "headSHA256": "0355eb716f992afb95767f00ff4529ca0e15d981045c3f268589744dc8e46ab1",
+      "gitStatus": "M Sources/NextNotes/UI/Island/IslandView.swift"
+    },
+    "Sources/NextNotes/UI/Agent/AgentView.swift": {
+      "sha256": "7e7eed666368a2ea260548de5071b8bdae1243f1cc364c0b1fb6efbe2c29f7c2",
+      "headSHA256": "32e5adcb7771739ca957a131fa3192fe183beecf64e54351f56f8c80a182200b",
+      "gitStatus": "M Sources/NextNotes/UI/Agent/AgentView.swift"
+    },
+    "Sources/NextNotes/UI/Agent/AgentPaneLayout.swift": {
+      "sha256": "15271f90abb694bdceb6a75579d147f8de584a18362c8ed36f98aebf4e41deb4",
+      "headSHA256": "e1a682ae6dd87ae8f3cd35756f528e47bdc373d0429fa941f420cffed0a6e702",
+      "gitStatus": "M Sources/NextNotes/UI/Agent/AgentPaneLayout.swift"
+    },
+    "Sources/NextNotes/UI/Agent/AgentWorkingCard.swift": {
+      "sha256": "90130118f5d69acdded1e72d423cfa0877d740385bbe69119f17d0e8ae0dfb2d",
+      "headSHA256": "755f1c4cf11225c50c6cb4b41cdeaf1cd9c6598339b27207a40733c786a2fed5",
+      "gitStatus": "M Sources/NextNotes/UI/Agent/AgentWorkingCard.swift"
+    },
+    "Sources/NextNotes/UI/Agent/ActivityView.swift": {
+      "sha256": "3b6785726fd7d8c0db5b19aa4624228c21bcaa9ae46bb3f0a17973afbbbd9477",
+      "headSHA256": "ad96426ac59b786c1373a3c5e2157517f015ded13bd5009b420086ccf0587b24",
+      "gitStatus": "M Sources/NextNotes/UI/Agent/ActivityView.swift"
+    },
+    "Sources/NextNotes/UI/Meetings/MeetingConsoleSheet.swift": {
+      "sha256": "6645bac730b41d97de7ad180dd217b69851830cad28915301e44f82b8e1cd507",
+      "headSHA256": "c37410b0391ed81d93bc3ea2914fb0b3ce0e96d3446c16b3ed80adda1d00cbb7",
+      "gitStatus": "M Sources/NextNotes/UI/Meetings/MeetingConsoleSheet.swift"
+    },
+    "Sources/NextNotes/UI/Meetings/MeetingDetailView.swift": {
+      "sha256": "22eb213b0a5c2a714b0cd8bf2a2381e89cc1c3bca99afc4a595489c76062dc9a",
+      "headSHA256": "705d7bc8342915a54349e0471480ad449756bb852ef7eac78ee633bf4c1af625",
+      "gitStatus": "M Sources/NextNotes/UI/Meetings/MeetingDetailView.swift"
+    },
+    "Sources/NextNotes/UI/Meetings/MeetingLiveView.swift": {
+      "sha256": "b0b7d9f3c4c09ba7852b6728e5f78f236db3bff6a8cd04e40dd81f9c12bf51a7",
+      "headSHA256": "618abee9ec68ad08a6bc1e5a2ea24d5104f1617fe4813456ed8e210b80bd396a",
+      "gitStatus": "M Sources/NextNotes/UI/Meetings/MeetingLiveView.swift"
+    },
+    "Sources/NextNotes/UI/Meetings/MeetingsView.swift": {
+      "sha256": "5b47d7374b6ab1ee4cdc185e6819306c317153450711408a7f30ed277d84ab23",
+      "headSHA256": "fba3c07bc5880e716544356b764e3229603442752bc80752aa70f2fed3261e81",
+      "gitStatus": "M Sources/NextNotes/UI/Meetings/MeetingsView.swift"
+    },
+    "Sources/NextNotes/UI/Settings/SettingsWindow.swift": {
+      "sha256": "d9c854b3b6d9f0a80e310f525d3cc9f3c99f89be8af5a5e7cd480214a54d39f6",
+      "headSHA256": "59b5a13b898cac4389066264766109d44ae52cf5aab4c3b4c565424ae0178f8d",
+      "gitStatus": "M Sources/NextNotes/UI/Settings/SettingsWindow.swift"
+    },
+    "Sources/NextNotes/UI/Settings/SettingsChrome.swift": {
+      "sha256": "f4677c14514b8092b6aaf002ba1dfd6151ecee6f4eeb12a1a61220b40278e1ad",
+      "headSHA256": "b89503d92cc98647ef22fee929cab1e43fd6115ef08b4ad8822aab0d7fc1f42a",
+      "gitStatus": "M Sources/NextNotes/UI/Settings/SettingsChrome.swift"
+    },
+    "Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift": {
+      "sha256": "4fcad108cbb67cfbc5abfaefee6520f969b65904a7dad0e839dbc2355b3450a4",
+      "headSHA256": "c750e16bd51c4f8f40875d2122b3a89d57dfe3a02f40cd2a08ec7f0c4eb64d69",
+      "gitStatus": "M Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift"
+    },
+    "Sources/NextNotes/UI/Settings/ComputerBrowserReadiness.swift": {
+      "sha256": "513e885becca8306b95a13bde2fea217106d0fddaa086f55766ac30ca1b6f5df",
+      "headSHA256": "5d49ce2ef6d0f34e8fa6508e236d91203d6357f0ebeba9f4dc49d964de73a23a",
+      "gitStatus": "M Sources/NextNotes/UI/Settings/ComputerBrowserReadiness.swift"
+    },
+    "Sources/NextNotes/UI/Settings/AgentSettingsTab.swift": {
+      "sha256": "e7432003a343b2e9a7901cae4676b78216098823bad4d142cb640f4f9e341f31",
+      "headSHA256": "b31f0440dd9f45ccd8112f4aebb1c0ce8b2d1094fde8ba302d64c1d1db2ecf02",
+      "gitStatus": "M Sources/NextNotes/UI/Settings/AgentSettingsTab.swift"
+    },
+    "Sources/NextNotes/UI/Onboarding/OnboardingChrome.swift": {
+      "sha256": "2c7d5f15efae8ae66d56ea443ae2118533db880165f4f8b9b43890fdf8105b3a",
+      "headSHA256": "91b6cfcedaab4f87e6c21b4173dad15ed7df3fe5d4ff22f791392c0dabb76932",
+      "gitStatus": "M Sources/NextNotes/UI/Onboarding/OnboardingChrome.swift"
+    },
+    "Sources/NextNotes/UI/Onboarding/OnboardingWindow.swift": {
+      "sha256": "99e0f48f64e001953b18c3aba3ce6e968cf5f4a9341b124f8f31bf699729897e",
+      "headSHA256": "78149a3347a29732afebb97c68a1f455a53c3ff49b2fb63d63d3c66152911b7e",
+      "gitStatus": "M Sources/NextNotes/UI/Onboarding/OnboardingWindow.swift"
+    },
+    "Sources/NextNotes/UI/Onboarding/OnboardingSteps.swift": {
+      "sha256": "125dcacf5485293784be0dbe6fc710ee34e02bb3e6b0d9040cc0c348cf4f9274",
+      "headSHA256": "cd710d1c038a1fc0bda529f0f6bb7afa990bec01cef25bda496165bdd4146f64",
+      "gitStatus": "M Sources/NextNotes/UI/Onboarding/OnboardingSteps.swift"
+    },
+    "Sources/NextNotes/UI/Onboarding/OnboardingFlow.swift": {
+      "sha256": "3bb4babc68a6243adb51c09eb4367d9a9e1745943840aeb1904e397fe2fefa8f",
+      "headSHA256": "0db2db83996ecf3db22e087d2351a75b12705dd2db58853b9daa2fabf450de9b",
+      "gitStatus": "M Sources/NextNotes/UI/Onboarding/OnboardingFlow.swift"
+    },
+    "Sources/NextNotes/UI/Onboarding/OnboardingSelfTest.swift": {
+      "sha256": "7de35b6649bdd5fdcd22ccc426d7bac86944fbf1876bd51f28dc62705cefdddc",
+      "headSHA256": "ab72da9f2e892679dd46d7cc316ffa56b012c36f2607c115051f3b5a4f85b675",
+      "gitStatus": "M Sources/NextNotes/UI/Onboarding/OnboardingSelfTest.swift"
+    },
+    "Sources/NextNotes/UI/Onboarding/OnboardingSheet.swift": {
+      "sha256": "5010b47a5eafa5e17f07e8578890b33a56fea56c34d1684a2c5413d74c44dbdd",
+      "headSHA256": null,
+      "gitStatus": "?? Sources/NextNotes/UI/Onboarding/OnboardingSheet.swift"
+    },
+    "Sources/NextNotes/Agent/Identity/PeepFigure.swift": {
+      "sha256": "16e8d77daae16a2b3d85feb06709bab06d80dd8d82e8b233ec01a5d6ea997d9f",
+      "headSHA256": null,
+      "gitStatus": "?? Sources/NextNotes/Agent/Identity/PeepFigure.swift"
+    },
+    "Sources/NextNotes/Agent/Identity/NotionAvatarConfig.swift": {
+      "sha256": "a8788e6bc129333c0bdf6fc331f68fc3d6dfdaaf36f9decfb00eca6937c8d702",
+      "headSHA256": "402976a1250b07f320f32dba701630cf45210f180b1316bede05f2fa0312287f",
+      "gitStatus": "M Sources/NextNotes/Agent/Identity/NotionAvatarConfig.swift"
+    },
+    "Sources/NextNotes/UI/Onboarding/OnboardingFigure.swift": {
+      "sha256": "fbfd004cacd7ef5dbbe4b19a911d7d32e52dd58cf81bbc8e69b2916f55aab815",
+      "headSHA256": null,
+      "gitStatus": "?? Sources/NextNotes/UI/Onboarding/OnboardingFigure.swift"
+    },
+    "Sources/NextNotes/UI/Onboarding/OnboardingExampleCard.swift": {
+      "sha256": "cc2c7ca36e48fb077a9c26d17555ee644a0b6cda2519f5da7854225efd13b719",
+      "headSHA256": null,
+      "gitStatus": "?? Sources/NextNotes/UI/Onboarding/OnboardingExampleCard.swift"
+    },
+    "Sources/NextNotes/NextNotesApp.swift": {
+      "sha256": "bdc62ae293975b47dd19c704af32c7ed9fcf0fcd52aa18f13cda7c39b62af973",
+      "headSHA256": "e31c5e6d0c93900ba3afd7429e049122a9542b25d1d22b37ff9ad729be26e1b1",
+      "gitStatus": "M Sources/NextNotes/NextNotesApp.swift"
+    },
+    "Sources/NextNotes/UI/ExperienceSheet.swift": {
+      "sha256": "17ecee4dd6f01f96c965b7fced9844eadac312216450d8f75545fb7f6b88ccaa",
+      "headSHA256": "2c17b0732be5f3098364e10dc88bd74cc27716e61659eecdaa1cf4e7289f81ab",
+      "gitStatus": "M Sources/NextNotes/UI/ExperienceSheet.swift"
+    },
+    "Sources/NextNotes/UI/Meetings/MeetingConsolePreview.swift": {
+      "sha256": "1c5dc48f29f0a3635f40f126ea44454883a3b0ec2b6b5c490b724af2a7bc8af4",
+      "headSHA256": "d2958a0175dd74ebbcea32959ec8cff925feed6503d3fd2cdc66f6ba0db73f9b",
+      "gitStatus": "M Sources/NextNotes/UI/Meetings/MeetingConsolePreview.swift"
+    },
+    "Sources/NextNotes/Core/DictationController.swift": {
+      "sha256": "881bff421bc879a2d96b6f8051a0410d1a5eb32b0863648df6166349d8e76a4b",
+      "headSHA256": "881bff421bc879a2d96b6f8051a0410d1a5eb32b0863648df6166349d8e76a4b",
+      "gitStatus": "tracked unchanged"
+    },
+    "Sources/NextNotes/UI/Dictation/DictationView.swift": {
+      "sha256": "8c749a0edb0d63b4be7bb128b3655e7fe5c81c376a90b58b41846f9a7e85813f",
+      "headSHA256": "77a9f18b652846c80cac2f58febd7b718db3b7f9f05904aac64d0ee50dc5e8d4",
+      "gitStatus": "M Sources/NextNotes/UI/Dictation/DictationView.swift"
+    },
+    "Sources/NextNotes/UI/Dictation/DictationStatusBand.swift": {
+      "sha256": "30b4cc460ea4c597ef88340930db89b602e3320701b089582ac92a54ef363412",
+      "headSHA256": "d5792393d589f6a9138f6cc73910be7de437e993a1f921549c0467b9b7f3d689",
+      "gitStatus": "M Sources/NextNotes/UI/Dictation/DictationStatusBand.swift"
+    },
+    "Makefile": {
+      "sha256": "65442072cef3e700e4b1adfe84e223690fc2278705eaa23a81d0f58599ef64dd",
+      "headSHA256": "db53a4b40362e97ca69adfc5a839bbc706aa917145d7f7280eaf38fbb03186ca",
+      "gitStatus": "M Makefile"
+    },
+    "THIRD-PARTY-NOTICES.md": {
+      "sha256": "20e65bec0bf59e3d8d155e1b587d5915e57fe5ec08bcc722d763cc8e6308e318",
+      "headSHA256": "c7d4b97bc7690df1b96a9ec6e3119eff73cb44b7e625a3b5c971bec647221767",
+      "gitStatus": "M THIRD-PARTY-NOTICES.md"
+    },
+    "AGENTS.md": {
+      "sha256": "6d9c47e9319616cbc1902da171acccf2c657381a24ad7ac2d7d83b4376d00b70",
+      "headSHA256": "0f418812e17d30b2d874a878df059ac31cd97b3cb198c8ffcd0576c93b256d87",
+      "gitStatus": "M AGENTS.md"
+    },
+    "site/DESIGN-SYSTEM.md": {
+      "sha256": "b904d6d08ac9517462d93e0ed5ef96ecd48780ef9cd71d9ec3b3a559081fd0c6",
+      "headSHA256": null,
+      "gitStatus": "?? site/DESIGN-SYSTEM.md"
+    },
+    "Package.swift": {
+      "sha256": "d0d5806a3efd36fb250657b71a3ea681dbd57a603999241ba6273f92838eabaa",
+      "headSHA256": "d0d5806a3efd36fb250657b71a3ea681dbd57a603999241ba6273f92838eabaa",
+      "gitStatus": "tracked unchanged"
+    },
+    "Resources/ThemeFonts/InstrumentSerif-Italic.ttf": {
+      "sha256": "8564755a783a6b6e337c2f19c90fd4acf7bb94d62eaf51a47f7ada320ad78f6f",
+      "headSHA256": null,
+      "gitStatus": "?? Resources/ThemeFonts/InstrumentSerif-Italic.ttf"
+    },
+    "Resources/ThemeFonts/InstrumentSerif-Regular.ttf": {
+      "sha256": "aaf1ca921710639b1e685b1a7c9cfdbc7daf0d1aa47818309bedd6ed6c3cd387",
+      "headSHA256": null,
+      "gitStatus": "?? Resources/ThemeFonts/InstrumentSerif-Regular.ttf"
+    },
+    "Resources/ThemeFonts/Inter-Bold.ttf": {
+      "sha256": "50d2e7434b31e6a1092030b07255ac68ff3a7764f2038d0e465454db464e1aae",
+      "headSHA256": null,
+      "gitStatus": "?? Resources/ThemeFonts/Inter-Bold.ttf"
+    },
+    "Resources/ThemeFonts/Inter-Medium.ttf": {
+      "sha256": "8d2df172662ea8b727793c752296f21ed3384b565b49ebd20378fb10393ebd69",
+      "headSHA256": null,
+      "gitStatus": "?? Resources/ThemeFonts/Inter-Medium.ttf"
+    },
+    "Resources/ThemeFonts/Inter-Regular.ttf": {
+      "sha256": "ee5db7d9709c84d3a013d780e4ff436fc81c8d2c618d99bfdec0e678bbf33446",
+      "headSHA256": null,
+      "gitStatus": "?? Resources/ThemeFonts/Inter-Regular.ttf"
+    },
+    "Resources/ThemeFonts/Inter-SemiBold.ttf": {
+      "sha256": "fc17ae28f958f5826e903510926d3aed86240e948c59df337a2d68b95a481247",
+      "headSHA256": null,
+      "gitStatus": "?? Resources/ThemeFonts/Inter-SemiBold.ttf"
+    },
+    "Resources/ThemeFonts/README.md": {
+      "sha256": "e682e120182ec30e32fd400d27faaa3734b41573534f09909f5d1d59e4f7be63",
+      "headSHA256": null,
+      "gitStatus": "?? Resources/ThemeFonts/README.md"
+    },
+    "Resources/ThemeFonts/instrument-serif-OFL.txt": {
+      "sha256": "b6106a757902d2d412e09d94dc4a226fe3da80485208a98003969f1b8b6b1d74",
+      "headSHA256": null,
+      "gitStatus": "?? Resources/ThemeFonts/instrument-serif-OFL.txt"
+    },
+    "Resources/ThemeFonts/inter-OFL.txt": {
+      "sha256": "3b0a5fca3d17942cde889069889dedbbbd075e9b599968c82a95f4d944e9b345",
+      "headSHA256": null,
+      "gitStatus": "?? Resources/ThemeFonts/inter-OFL.txt"
+    },
+    "Resources/ThemeFonts/manifest.json": {
+      "sha256": "75326b2537f588165ecf1174eba2c40b1af0600391503cefb12407d28b64285c",
+      "headSHA256": null,
+      "gitStatus": "?? Resources/ThemeFonts/manifest.json"
+    },
+    "Resources/OpenPeeps/ATTRIBUTION.md": {
+      "sha256": "7037ab40b95f9807bb950a03582fbef46dfb6e00c6d6ccd38a55c8e4dbfc9156",
+      "headSHA256": null,
+      "gitStatus": "?? Resources/OpenPeeps/ATTRIBUTION.md"
+    },
+    "Resources/OpenPeeps/bodies/Button Shirt 1.svg": {
+      "sha256": "85d1ec41a8e5c59065c92eb13fd32caefbaea02b625c5770eb098bf9bc2a02db",
+      "headSHA256": null,
+      "gitStatus": "?? \"Resources/OpenPeeps/bodies/Button Shirt 1.svg\""
+    },
+    "Resources/OpenPeeps/bodies/Explaining.svg": {
+      "sha256": "981828ab45a717466ce35dc713c008981084de027e9134e0a2a32e52543f34d1",
+      "headSHA256": null,
+      "gitStatus": "?? Resources/OpenPeeps/bodies/Explaining.svg"
+    },
+    "Resources/OpenPeeps/bodies/Hoodie.svg": {
+      "sha256": "b5462b2b4be0338b0c4367e5eb0443a267237dc7d68f4dc0752b29cc3fba23e0",
+      "headSHA256": null,
+      "gitStatus": "?? Resources/OpenPeeps/bodies/Hoodie.svg"
+    },
+    "Resources/OpenPeeps/bodies/Macbook.svg": {
+      "sha256": "4acd36e9cb49641c9ec09deecaee41710e83c3e7a71513d405694f7715a33f26",
+      "headSHA256": null,
+      "gitStatus": "?? Resources/OpenPeeps/bodies/Macbook.svg"
+    },
+    "Resources/OpenPeeps/bodies/Paper.svg": {
+      "sha256": "52007e522459c38ee80d2e8fac553abeaa7698a6b8260b6d953279c58befd661",
+      "headSHA256": null,
+      "gitStatus": "?? Resources/OpenPeeps/bodies/Paper.svg"
+    },
+    "Resources/OpenPeeps/bodies/Pointing Up.svg": {
+      "sha256": "1cb09bfce96937f0667091ef07d3ad0f5072d8692078ac6d9e50b2d79be03eb7",
+      "headSHA256": null,
+      "gitStatus": "?? \"Resources/OpenPeeps/bodies/Pointing Up.svg\""
+    },
+    "Resources/OpenPeeps/bodies/Polo and Sweater.svg": {
+      "sha256": "dc5ddc8ccdc12ab23165b61394813a870f38dc646947c31026bd4416f8cc9f2d",
+      "headSHA256": null,
+      "gitStatus": "?? \"Resources/OpenPeeps/bodies/Polo and Sweater.svg\""
+    },
+    "Resources/OpenPeeps/face.svg": {
+      "sha256": "9b655d01702a58379c4cfaec9c82901d2844d151ad2f643f8ec64f6923d9c8ea",
+      "headSHA256": null,
+      "gitStatus": "?? Resources/OpenPeeps/face.svg"
+    },
+    "Resources/OpenPeeps/head.svg": {
+      "sha256": "55fa6825bc2a438c8e57b5d228377c7a5cd25d052c0e2a46a6e933acdb083e18",
+      "headSHA256": null,
+      "gitStatus": "?? Resources/OpenPeeps/head.svg"
+    },
+    "Sources/NextNotes/Agent/Backend/AgentHarnessRouter.swift": {
+      "sha256": "4e4a17ca04b3719efe3518c4882803da4e20c2e5ae3dcf03afc001320b0da1a0",
+      "headSHA256": "04834e7532d585263089b34da044498bd83e9fd519cb7fdbe93652f9aa8e5c15",
+      "gitStatus": "M Sources/NextNotes/Agent/Backend/AgentHarnessRouter.swift"
+    },
+    "Sources/NextNotes/Agent/GoogleWorkspaceCLI.swift": {
+      "sha256": "67a3453c46f7743cddb7706756e27bbfa4e8bddad21d60a9a28cc0e8c9b28f6c",
+      "headSHA256": "fa58753eab248d4473939ed4494343e3cc697925d9e0e814d90f7c57dcf52434",
+      "gitStatus": "M Sources/NextNotes/Agent/GoogleWorkspaceCLI.swift"
+    },
+    "Sources/NextNotes/Calendar/CalendarService.swift": {
+      "sha256": "d0e2a10ec3e9a556f4525454bfcc029d8f7cdbc852a21f938252167532ff9025",
+      "headSHA256": "fa53d2bc8129a56b3ccbf95f84d40280146eeee4ac94d402576334b4936b1fa9",
+      "gitStatus": "M Sources/NextNotes/Calendar/CalendarService.swift"
+    },
+    "Sources/NextNotes/Calendar/Google/GoogleClientConfig.swift": {
+      "sha256": "8681035543e6ff0356b8503780a8ba4f75342c91a25fa627d3b1a60be6f1fc48",
+      "headSHA256": "56726cdda833b1ea3ad776ea8ee160c7f42af2b58c6a2b4549ffd903db6bcb8f",
+      "gitStatus": "M Sources/NextNotes/Calendar/Google/GoogleClientConfig.swift"
+    },
+    "Sources/NextNotes/Calendar/Google/GoogleTokenStore.swift": {
+      "sha256": "c062250896e961cf606fce23d8e3d3ad22485f1b17c12dbf2087174106f6acb5",
+      "headSHA256": "11829f19dbff25649b14b9fee27cb613a33a517b23ca4880f57775a6a03359e4",
+      "gitStatus": "M Sources/NextNotes/Calendar/Google/GoogleTokenStore.swift"
+    },
+    "Sources/NextNotes/Formatting/Targets/OutputProfileStore.swift": {
+      "sha256": "414d9bf84985e27c8e99fad5ad06d54138a7455b6b6103b0374672dc520c6e73",
+      "headSHA256": "fb3081c643092a1eda8aa5d62ac1b20e7376a71cf8972bc2b5fb351f38958eee",
+      "gitStatus": "M Sources/NextNotes/Formatting/Targets/OutputProfileStore.swift"
+    },
+    "Sources/NextNotes/Integrations/Composio/ComposioCredentialStore.swift": {
+      "sha256": "d64cc22fcff73841d148ef620a9e7379f72e4d303db769c92e0ca515a6cfad4d",
+      "headSHA256": "ac8ecb5bfaae0a042a845671e49240313630f51255a6273504447e5def528248",
+      "gitStatus": "M Sources/NextNotes/Integrations/Composio/ComposioCredentialStore.swift"
+    },
+    "Sources/NextNotes/Integrations/Composio/ComposioProvider.swift": {
+      "sha256": "af2ea6d7654093c6479ea38b17b36deb41fa1f4a50047e5334f3ff460f0b4d4e",
+      "headSHA256": "ea20eeb605241fa120afe041fd1baf4fd0912eea297a3c9b0e3d437eb2e09db9",
+      "gitStatus": "M Sources/NextNotes/Integrations/Composio/ComposioProvider.swift"
+    },
+    "Sources/NextNotes/Integrations/MCP/MCPClient.swift": {
+      "sha256": "a3a7bad7575d6e8ba3e1f74b7a152196d1a188d739cc171eca9aec8689d528de",
+      "headSHA256": "43a26851b8184615bf00bde49bdfdd41799220924c7927cd46a6c66ad0eaf17c",
+      "gitStatus": "M Sources/NextNotes/Integrations/MCP/MCPClient.swift"
+    },
+    "Sources/NextNotes/Knowledge/Files/IndexedFoldersStore.swift": {
+      "sha256": "9a2bbf1b05c7867a3b971c75a18a863f6ffc6b3893c798b165c636a3062cb09e",
+      "headSHA256": "479ec7dffc47edca5485f25b52823b8e622149f1d4fe82b789b44bfff398ab89",
+      "gitStatus": "M Sources/NextNotes/Knowledge/Files/IndexedFoldersStore.swift"
+    },
+    "Sources/NextNotes/Meetings/MeetingStore.swift": {
+      "sha256": "057c61928b57c8b52d36923d63af46b0bffc29a77aeab8fbe5603bd8c4fdd8a2",
+      "headSHA256": "37873ccad529751d773370506425da3e01d66ba92b3b57a09fa1d37ed053deec",
+      "gitStatus": "M Sources/NextNotes/Meetings/MeetingStore.swift"
+    },
+    "Sources/NextNotes/Support/AppIdentity.swift": {
+      "sha256": "80423623fae48a3ff215aba50139019eea903d5ad5ae7f8eff9775094e546682",
+      "headSHA256": "34eba0540aa9f22afbea76697912553b2d45e501d1baf8ab227fdef3d5db50c3",
+      "gitStatus": "M Sources/NextNotes/Support/AppIdentity.swift"
+    },
+    "Sources/NextNotes/Support/LocalModelStore.swift": {
+      "sha256": "c734aa7678acc650e891d49b3ac601e884716b12d066df4e184e457b717b66eb",
+      "headSHA256": "e321c5b9df47963255914a17f48f4c28940f2f5987af9c519c4465890e5b5fb4",
+      "gitStatus": "M Sources/NextNotes/Support/LocalModelStore.swift"
+    },
+    "Sources/NextNotes/Support/ModelLibrary/InstalledModelLibrary.swift": {
+      "sha256": "3106fc33e400112227d580148084d32079df615383de70b96732e928376036a2",
+      "headSHA256": "9db5973ad673ba1d2204f07944064064ae1d1741117d67604e6f8a546e1778d7",
+      "gitStatus": "M Sources/NextNotes/Support/ModelLibrary/InstalledModelLibrary.swift"
+    },
+    "Sources/NextNotes/Support/ModelLibrary/ModelLibraryStore.swift": {
+      "sha256": "4778490e1b4ef210c1d8d08d6cf6acb5187a524bd96f22c4980e8ca9b6022662",
+      "headSHA256": "ce558c7fa7aa1a65ba564802299f7562bf7dc7ef7069e1cee0e9fcf960c5d4cc",
+      "gitStatus": "M Sources/NextNotes/Support/ModelLibrary/ModelLibraryStore.swift"
+    },
+    "Sources/NextNotes/Support/ModelRoles/LocalRuntimeDiscovery.swift": {
+      "sha256": "fdecd4da97017aa6b7180e87c5c568925ff6a443637f33c80c70b395a393e230",
+      "headSHA256": "8b0cb27e4d8bda0780035cedfa8d5746c28837f233a23958c4461b868f5940ee",
+      "gitStatus": "M Sources/NextNotes/Support/ModelRoles/LocalRuntimeDiscovery.swift"
+    },
+    "Sources/NextNotes/Support/ModelRoles/ModelRoleStore.swift": {
+      "sha256": "dd236beac67bd354fbde206fcb7d688bb8c8d3273ac75e3fc0ee282ed2c59004",
+      "headSHA256": "ce25ef8ed46936c144d77ce42f7b4595b777beb1e537c92ce5bb6fbd7248c108",
+      "gitStatus": "M Sources/NextNotes/Support/ModelRoles/ModelRoleStore.swift"
+    },
+    "Sources/NextNotes/Support/Permissions.swift": {
+      "sha256": "8155e5aa15905e0367d4adc73e3696cd8fa581fab94ca57cbb2b5fc2a5cf0c5b",
+      "headSHA256": "2a517fd8ac86f40b722b614d8ec12870ad852aa038b123189769537500118ec3",
+      "gitStatus": "M Sources/NextNotes/Support/Permissions.swift"
+    },
+    "Sources/NextNotes/Support/RunLog.swift": {
+      "sha256": "245fc710be68dab5a7c255a20bbdad80bba81d7c08e1349081e69d1f3e1986fb",
+      "headSHA256": "665a69178df5d26af0d472a47e334c47e5663f8e02a3b3501e9ce9acb304f2df",
+      "gitStatus": "M Sources/NextNotes/Support/RunLog.swift"
+    },
+    "Sources/NextNotes/Support/Usage/UsageLog.swift": {
+      "sha256": "8ae6b23d969428b7848ee8489a9ed2c6b059da79d6167b1b69c44650883f4914",
+      "headSHA256": "9f67266e50f9cf29a8b64795ba76d1f6d95edc2e975515ea663e3f9c3baaf2a6",
+      "gitStatus": "M Sources/NextNotes/Support/Usage/UsageLog.swift"
+    },
+    "Sources/NextNotes/UI/Onboarding/PermissionsChecklist.swift": {
+      "sha256": "73fe9ed331d211fbb152a19089e1633540ca4c0be036ec9f32cd1ffd8272d768",
+      "headSHA256": "b8a9a1c0b099221d3a0c0f8bb0d8b036e387650784cf916ca95c15d605b68924",
+      "gitStatus": "M Sources/NextNotes/UI/Onboarding/PermissionsChecklist.swift"
+    },
+    "Sources/NextNotes/UI/Settings/IMessageSettingsSection.swift": {
+      "sha256": "598240cf88112bdb802e984f918193de8c8ee309b7fc3864c671cb245057b1de",
+      "headSHA256": "1a9d0f469d54a2fc321e74ee58b7577e7c1f216e72d4d685c797c3a397f2ae75",
+      "gitStatus": "M Sources/NextNotes/UI/Settings/IMessageSettingsSection.swift"
+    },
+    "Sources/NextNotes/UI/Settings/KnowledgeSection.swift": {
+      "sha256": "b217abe08133ce2686e42916dc5f9533b2ca7dc8c0f9dddb504148a87ac9575b",
+      "headSHA256": "6850a019aa1d4b8d387c1bf262865b76e1b6a8f553a821fc299a34191f87116f",
+      "gitStatus": "M Sources/NextNotes/UI/Settings/KnowledgeSection.swift"
+    },
+    "Sources/NextNotes/UI/Settings/MessagesAccessSection.swift": {
+      "sha256": "bd2a20bb4deef4c278a3498cc697c7901e829e5885cd85cb7500f1c6a4b566d2",
+      "headSHA256": "ba215a9d62d1b7e79f0339b150a0eca4526b6b2e31d3efb47dad00a35f1aaa73",
+      "gitStatus": "M Sources/NextNotes/UI/Settings/MessagesAccessSection.swift"
+    },
+    "Sources/NextNotes/UI/Settings/ModelsSettingsTab.swift": {
+      "sha256": "c7149061e368bd11960561d20c0040bda3fd14a6e62582debdab42fe739bb359",
+      "headSHA256": "989e62bdefaef4342e76255ceae63db62d143f9eb8ab80e22351761ced725c51",
+      "gitStatus": "M Sources/NextNotes/UI/Settings/ModelsSettingsTab.swift"
+    },
+    "Sources/NextNotes/UI/Settings/SettingsSheet.swift": {
+      "sha256": "2f85f3911ec7fa0cbf867ad8eb03b257a79656e52ebd02515a7e739af402af39",
+      "headSHA256": "7a2e17175410f14ffa15fdcad9d16aac99688864f9c29b1c587474848771afba",
+      "gitStatus": "M Sources/NextNotes/UI/Settings/SettingsSheet.swift"
+    },
+    "Sources/NextNotes/Support/StoreIsolationSelfTest.swift": {
+      "sha256": "c250852308694648c0382577f6bcf9b917d99d22477962c36b903d0b84717d92",
+      "headSHA256": "96c29e3440fc4e6fd3e2d0d55d97dffec9ca5309e1af5b19564ad54091a715cf",
+      "gitStatus": "M Sources/NextNotes/Support/StoreIsolationSelfTest.swift"
+    },
+    "Tests/Reports/website-to-mac/settings-app41/README.md": {
+      "sha256": "6dae6df2064bedd4e89a10b88d0cc45e41559015431ee1aa31a0f60cd3984103",
+      "headSHA256": null,
+      "gitStatus": "?? Tests/Reports/website-to-mac/settings-app41/README.md"
+    },
+    "Tests/Reports/website-to-mac/settings-app41/artifact-manifest.json": {
+      "sha256": "1106ca2cd28fb94c4eb653d7d3e06b9800f935f93912c51a0532e38f4788ca09",
+      "headSHA256": null,
+      "gitStatus": "?? Tests/Reports/website-to-mac/settings-app41/artifact-manifest.json"
+    },
+    "Tests/Reports/website-to-mac/settings-isolation-source-handoff.md": {
+      "sha256": "09b4b0530ea32444a2483ed0a55a8068ef17a6ee38e431f896cb9b3c36f88603",
+      "headSHA256": null,
+      "gitStatus": "?? Tests/Reports/website-to-mac/settings-isolation-source-handoff.md"
+    },
+    "Tests/Reports/website-to-mac/settings-isolation-source-handoff.json": {
+      "sha256": "78a82a3c478bf5a2d6af80daa6fe57e1ba7981252a0b17ab4ac77372024182f7",
+      "headSHA256": null,
+      "gitStatus": "?? Tests/Reports/website-to-mac/settings-isolation-source-handoff.json"
+    },
+    "Tests/Reports/website-to-mac/ux11-final-adoption.md": {
+      "sha256": "bdd48b5a47e6948914722370ac65bc5b03cd3eb4a51bc0bb5009b4374d87360d",
+      "headSHA256": null,
+      "gitStatus": "?? Tests/Reports/website-to-mac/ux11-final-adoption.md"
+    },
+    "Tests/Reports/website-to-mac/ux11-theme.md": {
+      "sha256": "1e51a23a51a4bc2d7b162fee18227784bb02d1c4878625da128bf409311f8b9b",
+      "headSHA256": null,
+      "gitStatus": "?? Tests/Reports/website-to-mac/ux11-theme.md"
+    },
+    "Tests/Reports/website-to-mac/ux11-motion-admission-audit-2026-10-02.md": {
+      "sha256": "5db4fc1ba9d00369375c5f1fa1623d9c58fe17573e5615737c6c3741f2a06e83",
+      "headSHA256": null,
+      "gitStatus": "?? Tests/Reports/website-to-mac/ux11-motion-admission-audit-2026-10-02.md"
+    },
+    "Tests/Reports/website-to-mac/ux10-latency-acceptance-audit.md": {
+      "sha256": "daec90bd09a269cc2c61b70f196c4aa7b662851d709710a858317e6489ad8497",
+      "headSHA256": null,
+      "gitStatus": "?? Tests/Reports/website-to-mac/ux10-latency-acceptance-audit.md"
+    }
+  },
+  "changedSince27FileIsolationHandoff": {
+    "Sources/NextNotes/UI/Settings/ComputerBrowserReadiness.swift": {
+      "earlier": "2fa02ba0dc88ea8d426888dd968bcfa6c489c52f30f1d0e0fd6fb102963f19bf",
+      "current": "513e885becca8306b95a13bde2fea217106d0fddaa086f55766ac30ca1b6f5df"
+    },
+    "Sources/NextNotes/UI/Settings/SettingsSheet.swift": {
+      "earlier": "051716947c1f12eb3df243d9bdc58cb9f5268541bf2ca1b36f7dba5c09dedb7a",
+      "current": "2f85f3911ec7fa0cbf867ad8eb03b257a79656e52ebd02515a7e739af402af39"
+    }
+  }
+}

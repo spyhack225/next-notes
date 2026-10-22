@@ -1,0 +1,30 @@
+{
+  "status": "HELD_PAIRED_SOURCE_ONLY_UNCOMPILED_NATIVE_UNRUN",
+  "frozenB1DManifestSHA256": "b1d201e466385c52e88e6e20d9d2ebc4e0fdd5a83bba8030f2e5ffeb542d83ea",
+  "currentManagerSHA256": "a1578f79294f73d9b4fb7761df394b334e4fe3f71ec30d994975d278a4c0f9e8",
+  "stagePostimagesSHA256": {
+    "COMMON": "04c6f5f98332eb8853a1197a850e4fe513f40f8e92c87285ccb214bf793e97ab",
+    "FIXED": "f16e02b896bddc5bb3314f01ce69cacc20025950ebe43fade697f543bc933e68"
+  },
+  "artifactsSHA256": {
+    "AgentTaskManager.current.swift.txt": "a1578f79294f73d9b4fb7761df394b334e4fe3f71ec30d994975d278a4c0f9e8",
+    "AgentTaskManager.COMMON.swift.txt": "04c6f5f98332eb8853a1197a850e4fe513f40f8e92c87285ccb214bf793e97ab",
+    "AgentTaskManager.FIXED.swift.txt": "f16e02b896bddc5bb3314f01ce69cacc20025950ebe43fade697f543bc933e68",
+    "COMMON-from-current.patch.txt": "ff12c86f1ff366fb29eeac87ecd0a67f3ab7cbbcd1148613cb80ac66911957af",
+    "FIXED-from-COMMON.patch.txt": "7da71b4c6c545fc592365d2b12cee894c9ee9115bd6b49415e53d364f8f0d9bc",
+    "README.md": "a10d0944d54bd3b55ea41fd3cd62f133f189895108e11790a90ac573349e95e2",
+    "source-only-replay.json": "c62907d80ac35980d5f5547641058d018befaee69be37b75a6da514c593598a7"
+  },
+  "producerContract": [
+    "actual same-map captured Task handles",
+    "precommit refusal for three typed continuation producers and voice resume",
+    "denial/cancel preserved",
+    "root ACP-by-voice cancel branch unchanged"
+  ],
+  "limits": [
+    "actual original/fixed production path unrun",
+    "private Manager/Cocoa/temporary backing fixture external and unimplemented here",
+    "scheduled preadmission outside Manager map",
+    "Capture/App composite held"
+  ]
+}

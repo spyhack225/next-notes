@@ -1,0 +1,7 @@
+NATIVE_PARKED_CANCELLATION_OBSERVATION: joinedWhileASRHeld=true wait=0.002279583 seconds chunks=2 successorRefusal=live speech recognition holds the lane
+NATIVE_PARKED_CANCELLATION_SUCCESSOR: reused=256 decoded=394 prompt=650
+NATIVE_PARKED_CANCELLATION_WRONG: actual admitted completion omitted its context phase
+NATIVE_PARKED_CANCELLATION_WRONG: cancelled actual prefill omitted its phase or borrowed stale counts
+NATIVE_PARKED_CANCELLATION_WRONG: cancelled actual completion omitted its no-token observation
+NATIVE_PARKED_CANCELLATION_WRONG: actual parked checkpoint omitted its single cancellation span
+NATIVE_PARKED_CANCELLATION_FAILED: 4 problem(s)

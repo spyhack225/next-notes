@@ -30,6 +30,27 @@ actor MeetingAudioWriter {
         let writeStartedAt: Date?
         let missingSavedMicFrames: Int
         let missingSavedSystemFrames: Int
+        /// Real (non-silence) samples each track has had accepted into the
+        /// writer, after alignment trimming. The offered-versus-file difference
+        /// is the trim; this is the offered side of it.
+        let micRealQueuedFrames: Int
+        let systemRealQueuedFrames: Int
+        /// Silence the writer wrote on each channel because the other track had
+        /// nothing to pair with it. Not a loss of what arrived — the audio that
+        /// arrived is on the channel — but the only way the writer knows the
+        /// channel was not carrying that track.
+        let silenceFilledMicFrames: Int
+        let silenceFilledSystemFrames: Int
+        /// Silence the lead-branch fill invented on the side that ran behind:
+        /// the subset of the silence-filled frames where the other track
+        /// stalled past the pairing bound and the writer stopped waiting.
+        let leadFillMicFrames: Int
+        let leadFillSystemFrames: Int
+        /// The saved-sample index after which the channel carries nothing but
+        /// that silence. Nil when the track never ran short, and nil before the
+        /// first write — "unknown", never "complete".
+        let systemSilentAfterSample: Int64?
+        let micSilentAfterSample: Int64?
     }
 
     /// How far one track may run ahead before the other is written off as silent. Five
@@ -51,6 +72,17 @@ actor MeetingAudioWriter {
 
     private var micQueue: [Float] = []
     private var systemQueue: [Float] = []
+    /// The silence runs inside each queue, in order. The writer needs them to
+    /// answer one question the audit asked: on which frames did a channel carry
+    /// real audio, and from which frame on was it only silence the writer had
+    /// to invent? The runs are consumed from the front with the samples.
+    private var micPadding = PaddingRuns()
+    private var systemPadding = PaddingRuns()
+    /// The last written frame that carried real audio on each channel. A frame
+    /// that carried only invented silence is not audio, and the boundary it
+    /// leaves is the point of the coverage fact.
+    private var lastRealMicFrame: Int?
+    private var lastRealSystemFrame: Int?
     /// Number of stereo frames already written. Together with each queue length this
     /// gives that track's next absolute frame on the recording clock.
     private var writtenFrames = 0
@@ -64,6 +96,12 @@ actor MeetingAudioWriter {
     /// authority for this track. Two bounded facts, not a per-packet history.
     private var missingSavedMicFrames = 0
     private var missingSavedSystemFrames = 0
+    /// Real samples each track has had accepted, after alignment trimming.
+    private var micRealQueuedFrames = 0
+    private var systemRealQueuedFrames = 0
+    /// Silence the lead-branch fill invented on the side that ran behind.
+    private var leadFillMicFrames = 0
+    private var leadFillSystemFrames = 0
 
     /// Called once, on the first write failure (M-10). The session surfaces the
     /// message; the writer stops trying after it.
@@ -96,9 +134,45 @@ actor MeetingAudioWriter {
             writeInFlight: writeInFlight,
             writeStartedAt: writeStartedAt,
             missingSavedMicFrames: missingSavedMicFrames,
-            missingSavedSystemFrames: missingSavedSystemFrames
+            missingSavedSystemFrames: missingSavedSystemFrames,
+            micRealQueuedFrames: micRealQueuedFrames,
+            systemRealQueuedFrames: systemRealQueuedFrames,
+            silenceFilledMicFrames: micPadding.written,
+            silenceFilledSystemFrames: systemPadding.written,
+            leadFillMicFrames: leadFillMicFrames,
+            leadFillSystemFrames: leadFillSystemFrames,
+            systemSilentAfterSample: MeetingAudioWriter.silentAfter(
+                lastRealFrame: lastRealSystemFrame, writtenFrames: writtenFrames),
+            micSilentAfterSample: MeetingAudioWriter.silentAfter(
+                lastRealFrame: lastRealMicFrame, writtenFrames: writtenFrames)
         ))
     }
+
+    /// The frame from which a channel carries nothing but invented silence, or nil
+    /// when it carried real audio to the end of the file.
+    ///
+    /// Nil is the honest answer for a track that ran to the end: a boundary
+    /// there would claim a loss that did not happen, and a meeting that
+    /// recorded everybody is not a meeting with a gap.
+    private static func silentAfter(lastRealFrame: Int?, writtenFrames: Int) -> Int64? {
+        // Nothing written yet: unknown.
+        guard writtenFrames > 0 else { return nil }
+        // The channel never carried real audio: the whole file is invented
+        // silence on it, and the boundary is the first frame.
+        guard let lastRealFrame else { return 0 }
+        let boundary = lastRealFrame + 1
+        // Real audio to the end: no boundary, and no loss.
+        guard boundary < writtenFrames else { return nil }
+        // A channel's audio always ends a little before the file does, because
+        // the OTHER track's tail is written as padding. That pairing artefact is
+        // not a loss; a channel that went quiet for a second or more is.
+        guard writtenFrames - boundary >= Self.minimumSilenceFrames else { return nil }
+        return Int64(boundary)
+    }
+
+    /// The shortest silence on a channel that is a loss rather than the other
+    /// track's tail padding: one second.
+    private static let minimumSilenceFrames = Int(ChunkedTranscriber.sampleRate)
 
     /// 16-bit on disk, float in memory: `AVAudioFile` converts on write, and int16 halves
     /// what an hour of meeting costs on a machine with ten gigabytes free.
@@ -168,12 +242,18 @@ actor MeetingAudioWriter {
             micNextCaptureFrame = packetStart.map { $0 + samples.count }
             let aligned = alignedSamples(samples, from: .mic, startFrame: packetStart)
             micQueue.append(contentsOf: aligned)
+            micPadding.noteRealSamples(aligned.count)
+            let micQueued = micRealQueuedFrames.addingReportingOverflow(aligned.count)
+            micRealQueuedFrames = micQueued.overflow ? .max : micQueued.partialValue
         case .system:
             let packetStart = systemNextCaptureFrame ?? startFrame
             packetEnd = max(0, packetStart ?? (writtenFrames + systemQueue.count)) + samples.count
             systemNextCaptureFrame = packetStart.map { $0 + samples.count }
             let aligned = alignedSamples(samples, from: .system, startFrame: packetStart)
             systemQueue.append(contentsOf: aligned)
+            systemPadding.noteRealSamples(aligned.count)
+            let systemQueued = systemRealQueuedFrames.addingReportingOverflow(aligned.count)
+            systemRealQueuedFrames = systemQueued.overflow ? .max : systemQueued.partialValue
         }
         guard writeError == nil else { return false }
         writePairedFrames()
@@ -199,8 +279,12 @@ actor MeetingAudioWriter {
             while gap > 0, writeError == nil {
                 let count = min(gap, Self.maxWriteFrames)
                 switch source {
-                case .mic: micQueue.append(contentsOf: repeatElement(0, count: count))
-                case .system: systemQueue.append(contentsOf: repeatElement(0, count: count))
+                case .mic:
+                    micQueue.append(contentsOf: repeatElement(0, count: count))
+                    micPadding.add(count)
+                case .system:
+                    systemQueue.append(contentsOf: repeatElement(0, count: count))
+                    systemPadding.add(count)
                 }
                 writePairedFrames()
                 gap -= count
@@ -250,19 +334,33 @@ actor MeetingAudioWriter {
             // The other side is stalled or was never there. Give it the full allowance to
             // catch up and write everything older than that as silence on its channel.
             frames = max(micQueue.count, systemQueue.count) - Self.maxLeadFrames
-            padQueues(to: frames)
+            padQueues(to: frames, leadFilling: true)
         }
         guard frames > 0 else { return }
         write(frames: frames)
     }
 
-    /// Brings both queues up to `frames` with digital silence.
-    private func padQueues(to frames: Int) {
+    /// Brings both queues up to `frames` with digital silence. The lead-branch
+    /// caller marks its fill so the snapshot can separate "the other track
+    /// stalled past the pairing bound" from "a track joined late".
+    private func padQueues(to frames: Int, leadFilling: Bool = false) {
         if micQueue.count < frames {
-            micQueue.append(contentsOf: repeatElement(0, count: frames - micQueue.count))
+            let count = frames - micQueue.count
+            micQueue.append(contentsOf: repeatElement(0, count: count))
+            micPadding.add(count)
+            if leadFilling {
+                let sum = leadFillMicFrames.addingReportingOverflow(count)
+                leadFillMicFrames = sum.overflow ? .max : sum.partialValue
+            }
         }
         if systemQueue.count < frames {
-            systemQueue.append(contentsOf: repeatElement(0, count: frames - systemQueue.count))
+            let count = frames - systemQueue.count
+            systemQueue.append(contentsOf: repeatElement(0, count: count))
+            systemPadding.add(count)
+            if leadFilling {
+                let sum = leadFillSystemFrames.addingReportingOverflow(count)
+                leadFillSystemFrames = sum.overflow ? .max : sum.partialValue
+            }
         }
     }
 
@@ -295,6 +393,19 @@ actor MeetingAudioWriter {
         }
         micQueue.removeFirst(frames)
         systemQueue.removeFirst(frames)
+        // The silence this chunk carried is the writer's own invention, not a
+        // track that had nothing to say. The last frame that carried real
+        // audio is the last frame before the chunk's TRAILING silence: a chunk
+        // shaped [real, silence] ends in silence, and counting the whole
+        // chunk's silence would point the boundary at a silent frame.
+        let micConsumed = micPadding.consume(frames)
+        let systemConsumed = systemPadding.consume(frames)
+        if frames - micConsumed.trailingSilence > 0 {
+            lastRealMicFrame = writtenFrames + (frames - micConsumed.trailingSilence) - 1
+        }
+        if frames - systemConsumed.trailingSilence > 0 {
+            lastRealSystemFrame = writtenFrames + (frames - systemConsumed.trailingSilence) - 1
+        }
 
         writeInFlight = true
         writeStartedAt = Date()
@@ -335,7 +446,11 @@ actor MeetingAudioWriter {
         private var value = ResourceSnapshot(
             queuedBytes: 0, queueCapacityBytes: 0, writtenFrames: 0,
             writeFailed: false, writeInFlight: false, writeStartedAt: nil,
-            missingSavedMicFrames: 0, missingSavedSystemFrames: 0)
+            missingSavedMicFrames: 0, missingSavedSystemFrames: 0,
+            micRealQueuedFrames: 0, systemRealQueuedFrames: 0,
+            silenceFilledMicFrames: 0, silenceFilledSystemFrames: 0,
+            leadFillMicFrames: 0, leadFillSystemFrames: 0,
+            systemSilentAfterSample: nil, micSilentAfterSample: nil)
 
         func read() -> ResourceSnapshot {
             lock.lock()
@@ -358,5 +473,99 @@ enum MeetingAudioWriterError: LocalizedError {
         switch self {
         case .unsupportedFormat: "Couldn't create the meeting audio file format."
         }
+    }
+}
+
+/// The silence runs inside one track's queue, in order.
+///
+/// The writer invents silence whenever one track runs behind the other, and
+/// that invented silence is the difference between "this channel carries the
+/// conversation" and "this channel carries nothing from here on". Tracking the
+/// runs — rather than the samples — is what lets the writer say which frames
+/// were real audio, and it costs one integer per run.
+private struct PaddingRuns {
+    /// The queue's content, in order: a run of silence or a run of real audio.
+    /// Both kinds are listed, because real frames can sit between two silence
+    /// runs — a track that was padded, then spoke, then was padded again — and a
+    /// list of silence runs alone cannot say how much of a window was silence.
+    private enum Run {
+        case silence(Int)
+        case real(Int)
+    }
+    private var runs: [Run] = []
+    /// Whether the tail of the queue is currently a silence run, so a second
+    /// silence joins the first rather than starting a new one.
+    private var tailIsSilence = false
+    /// Every silence frame this track has ever been given.
+    private(set) var written = 0
+
+    /// A run of silence, appended at the tail of the queue.
+    mutating func add(_ count: Int) {
+        guard count > 0 else { return }
+        written += count
+        if tailIsSilence, case .silence(let last) = runs.last {
+            runs[runs.count - 1] = .silence(last + count)
+        } else {
+            runs.append(.silence(count))
+        }
+        tailIsSilence = true
+    }
+
+    /// Real audio appended at the tail of the queue.
+    mutating func noteRealSamples(_ count: Int) {
+        guard count > 0 else { return }
+        if case .real(let last)? = runs.last {
+            runs[runs.count - 1] = .real(last + count)
+        } else {
+            runs.append(.real(count))
+        }
+        tailIsSilence = false
+    }
+
+    /// What a window of the queue carried.
+    struct Consumed {
+        /// How many of the frames were silence.
+        var silence: Int
+        /// How many of the LAST frames were silence. A window that ends in
+        /// silence ends in the writer's invention, and the last real frame is
+        /// before it.
+        var trailingSilence: Int
+    }
+
+    /// Consumes `frames` from the head of the queue and describes them.
+    mutating func consume(_ frames: Int) -> Consumed {
+        var remaining = frames
+        var silence = 0
+        var trailingSilence = 0
+        while remaining > 0, !runs.isEmpty {
+            let take: Int
+            let wasSilence: Bool
+            switch runs[0] {
+            case .silence(let count):
+                take = min(count, remaining)
+                silence += take
+                wasSilence = true
+            case .real(let count):
+                take = min(count, remaining)
+                wasSilence = false
+            }
+            // The window ends in whatever it ended in: silence if the last
+            // run it touched was silence, real audio otherwise.
+            trailingSilence = wasSilence ? take : 0
+            remaining -= take
+            if take == 0 {
+                runs.removeFirst()
+                continue
+            }
+            switch runs[0] {
+            case .silence(let count):
+                runs[0] = count == take ? .silence(0) : .silence(count - take)
+            case .real(let count):
+                runs[0] = count == take ? .real(0) : .real(count - take)
+            }
+            if case .silence(0) = runs.first { runs.removeFirst() }
+            if case .real(0) = runs.first { runs.removeFirst() }
+        }
+        return Consumed(silence: silence, trailingSilence: trailingSilence)
     }
 }

@@ -1,0 +1,61 @@
+{
+  "status": "COPY_ONLY_REPLAY_UNCOMPILED_UNRUN",
+  "checks": [
+    {
+      "stage": "unionCommon",
+      "patch": "union-COMMON-current.patch.txt",
+      "exactPostimages": true,
+      "paths": 14
+    },
+    {
+      "stage": "s1Fixed",
+      "patch": "fixed-S1-from-union.patch.txt",
+      "exactPostimages": true,
+      "paths": 14
+    },
+    {
+      "stage": "s1DirectFixed",
+      "patch": "fixed-direct33-after-S1.patch.txt",
+      "exactPostimages": true,
+      "paths": 14
+    },
+    {
+      "stage": "allFixed",
+      "patch": "fixed-Pocket57-after-S1-direct33.patch.txt",
+      "exactPostimages": true,
+      "paths": 14
+    },
+    {
+      "stage": "s1OnlyFixed",
+      "patch": "fixed-S1-from-union.patch.txt",
+      "exactPostimages": true,
+      "paths": 14
+    },
+    {
+      "stage": "directOnlyFixed",
+      "patch": "fixed-direct33-from-union.patch.txt",
+      "exactPostimages": true,
+      "paths": 14
+    },
+    {
+      "stage": "pocketOnlyFixed",
+      "patch": "fixed-Pocket57-from-union.patch.txt",
+      "exactPostimages": true,
+      "paths": 14
+    }
+  ],
+  "staticInvariants": {
+    "recording single approval": true,
+    "notes captured": true,
+    "final and diarization capture": true,
+    "ASR and diarizer drain": true,
+    "other llama veto and drain": true,
+    "direct veto and drain": true,
+    "S1 synchronous begin": true,
+    "direct synchronous begin": true,
+    "Pocket loaded and injected begin": true,
+    "Pocket unavailable before assets": true,
+    "direct and Pocket startup routing": true,
+    "Kokoro untouched": true
+  }
+}

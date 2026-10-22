@@ -59,6 +59,18 @@ final class AudioCaptureHub {
         if !probe { observeEngineConfiguration() }
     }
 
+    /// The meeting consumer's microphone frame-shape facts: one instance for the
+    /// hub, armed by the recording's session. The delivery worker records into
+    /// it, and the session counts stream yields into it — never a second copy.
+    let micFrameShape = MeetingFrameShapeAccumulator()
+
+    /// Arms the microphone frame shape for one recording: the anchor the stall
+    /// window is measured from, and a clean slate for the new session.
+    func beginMicFrameShape(captureStartedHostTime: UInt64) {
+        micFrameShape.reset()
+        micFrameShape.recordCaptureStarted(captureStartedHostTime)
+    }
+
     private func observeEngineConfiguration() {
         if let configurationObserver {
             NotificationCenter.default.removeObserver(configurationObserver)
@@ -127,7 +139,7 @@ final class AudioCaptureHub {
         onLevel: @escaping @Sendable (Float) -> Void,
         onOverflow: @escaping @Sendable (Int) -> Void
     ) throws -> AudioCaptureDeliveryWorker {
-        let converter: AVAudioConverter?
+        let converter: AudioConversionStream?
         if probe {
             converter = nil
         } else {
@@ -138,7 +150,7 @@ final class AudioCaptureHub {
             if native == outputFormat {
                 converter = nil
             } else {
-                guard let created = AVAudioConverter(from: native, to: outputFormat) else {
+                guard let created = AudioConversionStream(from: native, to: outputFormat) else {
                     throw TranscriptionError.noAudioFormat
                 }
                 converter = created
@@ -148,6 +160,7 @@ final class AudioCaptureHub {
             maxPending: consumer == .meeting ? 256 : 8,
             outputFormat: outputFormat,
             converter: converter,
+            frameShape: consumer == .meeting ? micFrameShape : nil,
             onBuffer: onBuffer,
             onLevel: onLevel,
             onOverflow: onOverflow
@@ -265,11 +278,20 @@ final class AudioCaptureHub {
     /// wedged callback from pinning Stop indefinitely; false means the caller must
     /// report an incomplete recording.
     func unsubscribeAndDrain(_ consumer: Consumer) async -> Bool {
+        await stopAndDrain(consumer).value
+    }
+
+    /// Closes capture admission synchronously, then drains the existing delivery worker.
+    /// Key-up must stop the microphone before returning to the event tap, while the
+    /// controller keeps its audio stream open for packets already accepted by this worker.
+    func stopAndDrain(_ consumer: Consumer) -> Task<Bool, Never> {
         let (slot, shouldStop) = takeSlot(consumer)
         slot?.worker.stopAccepting()
         if shouldStop { stopEngine() }
-        guard let slot else { return true }
-        return await slot.worker.drainAndStop(timeout: 3)
+        return Task {
+            guard let slot else { return true }
+            return await slot.worker.drainAndStop(timeout: 3)
+        }
     }
 
     // MARK: - Engine
@@ -431,7 +453,10 @@ private final class AudioCaptureDeliveryWorker: @unchecked Sendable {
     )
     private let lock = NSLock()
     private let outputFormat: AVAudioFormat
-    private let converter: AVAudioConverter?
+    private let converter: AudioConversionStream?
+    /// Frame-shape facts for the meeting consumer; nil for every other
+    /// subscriber, so wake and dictation record nothing extra.
+    private let frameShape: MeetingFrameShapeAccumulator?
     private let onBuffer: @Sendable (AudioChunk) -> Void
     private let onLevel: @Sendable (Float) -> Void
     private let onOverflow: @Sendable (Int) -> Void
@@ -447,7 +472,8 @@ private final class AudioCaptureDeliveryWorker: @unchecked Sendable {
     init(
         maxPending: Int,
         outputFormat: AVAudioFormat,
-        converter: AVAudioConverter?,
+        converter: AudioConversionStream?,
+        frameShape: MeetingFrameShapeAccumulator? = nil,
         onBuffer: @escaping @Sendable (AudioChunk) -> Void,
         onLevel: @escaping @Sendable (Float) -> Void,
         onOverflow: @escaping @Sendable (Int) -> Void
@@ -455,6 +481,7 @@ private final class AudioCaptureDeliveryWorker: @unchecked Sendable {
         self.maxPending = maxPending
         self.outputFormat = outputFormat
         self.converter = converter
+        self.frameShape = frameShape
         self.onBuffer = onBuffer
         self.onLevel = onLevel
         self.onOverflow = onOverflow
@@ -548,14 +575,67 @@ private final class AudioCaptureDeliveryWorker: @unchecked Sendable {
         lock.unlock()
         guard active else { return }
 
+        let shape = frameShape
+        // The input side owns this track's shape: it is the domain inputSamples
+        // are counted in, and the delivered format is a fixed 16 kHz contract —
+        // mixing the two would read one stable converter as a layout change.
+        let signature = shape == nil ? nil : MeetingFrameASBDSignature(
+            item.source.format,
+            numberBuffers: item.source.audioBufferList.pointee.mNumberBuffers
+        )
+        let sourceSamples = Int(item.source.frameLength)
+
+        var outcome: MeetingConversionOutcome = .success
         let delivered: AVAudioPCMBuffer?
         if let converter {
-            delivered = AudioConversion.convert(item.source, to: outputFormat, using: converter)
+            switch converter.convert(item.source) {
+            case .output(let buffer):
+                delivered = buffer
+            case .holding:
+                // The converter is holding a frame or two of lookahead and will
+                // emit them with the next buffer. Nothing is lost.
+                shape?.recordBuffer(
+                    hostTime: item.captureHostTime, signature: signature,
+                    inputSamples: sourceSamples, convertedSamples: 0,
+                    outcome: .incomplete)
+                return
+            case .failed:
+                shape?.recordBuffer(
+                    hostTime: item.captureHostTime, signature: signature,
+                    inputSamples: sourceSamples, convertedSamples: 0,
+                    outcome: .error)
+                return
+            }
         } else {
             // A separate copy per consumer lets the callback retain its chunk safely and
             // preserves the old fan-out ownership guarantee.
-            delivered = AudioConversion.copy(item.source)
+            if let copied = AudioConversion.copy(item.source) {
+                delivered = copied
+                outcome = .passthrough
+            } else {
+                delivered = nil
+                outcome = .error
+            }
         }
+        var convertedSamples = 0
+        if let buffer = delivered {
+            convertedSamples = Int(buffer.frameLength)
+            if outcome == .success {
+                let rate = item.source.format.sampleRate
+                let expected: Int
+                if rate > 0 {
+                    expected = Int((Double(sourceSamples) * outputFormat.sampleRate / rate)
+                        .rounded(.up))
+                } else {
+                    expected = sourceSamples
+                }
+                if convertedSamples < expected * 9 / 10 { outcome = .incomplete }
+            }
+        }
+        shape?.recordBuffer(
+            hostTime: item.captureHostTime, signature: signature,
+            inputSamples: sourceSamples, convertedSamples: convertedSamples,
+            outcome: outcome)
         guard let delivered else { return }
 
         lock.lock()
@@ -563,6 +643,11 @@ private final class AudioCaptureDeliveryWorker: @unchecked Sendable {
         lock.unlock()
         guard stillActive else { return }
         onLevel(item.level)
+        shape?.recordDelivery(
+            hostTime: item.captureHostTime,
+            samples: Int(delivered.frameLength),
+            signature: nil
+        )
         onBuffer(AudioChunk(buffer: delivered, captureHostTime: item.captureHostTime))
     }
 }
@@ -737,6 +822,45 @@ extension AudioCaptureHub {
         // audio queue can return before that report reaches the meeting's loss count.
         // Force overflow in a one-packet worker, then require the exact count at
         // return and no delayed duplicate from its already queued report callback.
+        // The controller's real key-up boundary must retain accepted dictation packets.
+        // Block its first callback so the two final packets are certainly queued at Stop.
+        let dictationDelivery = CaptureSelfTestRecorder()
+        let callbackEntered = CleanupAdmission()
+        let resumeCallback = DispatchSemaphore(value: 0)
+        do {
+            try hub.subscribe(.dictation, outputFormat: format, onBuffer: { chunk in
+                let value = AudioConversion.samples(of: chunk.buffer).first ?? -1
+                if value == 0 {
+                    callbackEntered.admit()
+                    _ = resumeCallback.wait(timeout: .now() + 2)
+                }
+                dictationDelivery.append(value, hostTime: chunk.captureHostTime)
+            })
+            for index in 0..<3 {
+                guard let packet = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 32) else { break }
+                packet.frameLength = 32
+                packet.floatChannelData?[0].initialize(repeating: Float(index), count: 32)
+                hub.feedForTesting(packet, captureHostTime: UInt64(index + 3000))
+                if index == 0,
+                   await withBoundedWait(.seconds(2), { await callbackEntered.wait() }) != true {
+                    failures.append("dictation Stop fixture never entered capture callback")
+                }
+            }
+            let stopped = DictationController.stopDictationCapture(on: hub)
+            if hub.isSubscribed(.dictation) {
+                failures.append("dictation Stop did not close microphone admission immediately")
+            }
+            resumeCallback.signal()
+            let drained = await stopped.value
+            let report = dictationDelivery.snapshot()
+            if !drained || report.values != [0, 1, 2] {
+                failures.append("dictation key-up lost accepted tail packets (\(report.values), drained=\(drained))")
+            }
+        } catch {
+            resumeCallback.signal()
+            failures.append("dictation Stop fixture failed: \(error.localizedDescription)")
+        }
+
         let overflowAtStop = CaptureSelfTestRecorder()
         let overflowWorker = AudioCaptureDeliveryWorker(
             maxPending: 1,

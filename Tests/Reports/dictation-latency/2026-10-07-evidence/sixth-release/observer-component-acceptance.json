@@ -1,0 +1,116 @@
+{
+  "status": "Observer controls PASS",
+  "checks": [
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true
+  ],
+  "frames": [
+    {
+      "monotonic": 55636.771662875,
+      "changedFiles": {},
+      "removedFiles": [],
+      "observedLogicalBytes": 0,
+      "observedAllocatedBytes": 0,
+      "freeDiskBytes": 7809662976,
+      "entriesSeen": 0,
+      "unreadableDirectories": 0,
+      "truncated": false
+    },
+    {
+      "monotonic": 55636.771996041,
+      "changedFiles": {
+        "public-model-copy.bin": [
+          28672,
+          28672,
+          174354731,
+          1791441438014331779
+        ]
+      },
+      "removedFiles": [],
+      "observedLogicalBytes": 28672,
+      "observedAllocatedBytes": 28672,
+      "freeDiskBytes": 7809630208,
+      "entriesSeen": 1,
+      "unreadableDirectories": 0,
+      "truncated": false
+    },
+    {
+      "monotonic": 55636.772051625,
+      "changedFiles": {},
+      "removedFiles": [],
+      "observedLogicalBytes": 28672,
+      "observedAllocatedBytes": 28672,
+      "freeDiskBytes": 7809630208,
+      "entriesSeen": 1,
+      "unreadableDirectories": 0,
+      "truncated": false
+    },
+    {
+      "monotonic": 55636.772181,
+      "changedFiles": {
+        "public-model-copy.bin": [
+          57344,
+          57344,
+          174354731,
+          1791441438014597446
+        ]
+      },
+      "removedFiles": [],
+      "observedLogicalBytes": 57344,
+      "observedAllocatedBytes": 57344,
+      "freeDiskBytes": 7809601536,
+      "entriesSeen": 1,
+      "unreadableDirectories": 0,
+      "truncated": false
+    },
+    {
+      "monotonic": 55636.772292166,
+      "changedFiles": {},
+      "removedFiles": [],
+      "observedLogicalBytes": 57344,
+      "observedAllocatedBytes": 57344,
+      "freeDiskBytes": 7809601536,
+      "entriesSeen": 2,
+      "unreadableDirectories": 0,
+      "truncated": false
+    },
+    {
+      "monotonic": 55636.772370791,
+      "changedFiles": {},
+      "removedFiles": [
+        "public-model-copy.bin"
+      ],
+      "observedLogicalBytes": 0,
+      "observedAllocatedBytes": 0,
+      "freeDiskBytes": 7809658880,
+      "entriesSeen": 1,
+      "unreadableDirectories": 0,
+      "truncated": false
+    }
+  ],
+  "truncationFrame": {
+    "monotonic": 55636.772743041,
+    "changedFiles": {
+      "0": [
+        1,
+        4096,
+        174354733,
+        1791441438014924030
+      ]
+    },
+    "removedFiles": [],
+    "observedLogicalBytes": 1,
+    "observedAllocatedBytes": 4096,
+    "freeDiskBytes": 7809642496,
+    "entriesSeen": 3,
+    "unreadableDirectories": 0,
+    "truncated": true
+  },
+  "scope": "Only disposable authored metadata fixture. No native model launch, service sample, protected-cache attribution or latency proof."
+}

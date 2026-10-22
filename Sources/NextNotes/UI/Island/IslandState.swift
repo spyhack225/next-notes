@@ -119,7 +119,11 @@ final class IslandState {
         /// `.finishing` went on showing the listening orb and the word "Listening…" — which
         /// is what "it looks stuck, it keeps recording in the background" is a description
         /// of. The HUD has always drawn the two apart; this is the island catching up.
-        case dictating(transcript: String, level: Float, isCapturing: Bool)
+        ///
+        /// `isTidying` is the second half of that wait: the words are heard and the cleanup
+        /// pass is writing them up. It defaults to false so every older call site still
+        /// means what it meant.
+        case dictating(transcript: String, level: Float, isCapturing: Bool, isTidying: Bool = false)
         case meetingArmed(MeetingEvent)
         /// M-06: the detected-call question after its 8 s notice expires. A collapsed
         /// pill that lives in `armedCall` until the call ends or is answered — the
@@ -178,6 +182,18 @@ final class IslandState {
 
         var isHidden: Bool { self == .hidden }
 
+        /// Which stage of a hold a dictation card is in, in the vocabulary the bottom
+        /// capsule shares. Nil for every other card.
+        var dictationStage: LiveDictationStage? {
+            guard case .dictating(_, _, let capturing, let tidying) = self else { return nil }
+            return capturing ? .listening : tidying ? .tidying : .writing
+        }
+
+        /// Whether the card has anything a click could reach. A dictation card is words and
+        /// a meter, so while it is open over the top of the screen it lets every click
+        /// through to whatever the person is dictating into.
+        var takesClicks: Bool { dictationStage == nil }
+
         /// Public logging is presentation metadata; associated text/IDs stay private.
         var noticeLogKind: String {
             switch self {
@@ -221,7 +237,12 @@ final class IslandState {
         var identity: String {
             switch self {
             case .hidden: "hidden"
-            case .dictating(_, _, let capturing): capturing ? "dictating" : "dictating.finishing"
+            // Words arriving is a change of card, once: it is what opens the live card, and
+            // the panel only moves (mouse handling, island rectangle) on identity. More words
+            // after that are the same card, so a partial does not restart anything.
+            case .dictating(let transcript, _, let capturing, let tidying):
+                (capturing ? "dictating" : tidying ? "dictating.tidying" : "dictating.finishing")
+                    + (LiveDictationText.hasWords(transcript) ? ".words" : "")
             case .meetingArmed(let event): "armed:\(event.id)"
             case .callQuestion(let event): "call-question:\(event.id)"
             case .meetingRecording: "recording"
@@ -249,6 +270,11 @@ final class IslandState {
             case .meetingArmed, .notesReady, .agentProposal, .agentListening, .agentWorking, .agentReply: true
             // A sentence the user has to read is no use as a badge under the notch.
             case .problem: true
+            // The words a hold has produced so far are the readout the person is waiting
+            // for — the whole answer to "is it hearing me?" — and a badge under the notch
+            // cannot show them. Open while there are words, from the first partial to the
+            // moment they are typed; a hold with nothing heard yet stays a badge.
+            case .dictating(let transcript, _, _, _): LiveDictationText.hasWords(transcript)
             // P1-16: **deliberately false**, and the reason is in the case's own comment. A card
             // that re-expanded itself would sit over the notch for the whole 180 s the Needle
             // watcher's card can live, and a person who had not looked at the island in the
@@ -281,7 +307,7 @@ final class IslandState {
         /// recording; the orb says what *kind* of work is going on beside it.
         var orb: OrbGeometry.State? {
             switch self {
-            case .dictating(_, _, let capturing): capturing ? .listening : .working
+            case .dictating: dictationStage?.orb
             case .meetingRecording: .weaving
             case .meetingArmed, .callQuestion: .breathing
             case .transcribing: .working
@@ -364,7 +390,7 @@ final class IslandState {
     var cardTitle: String {
         switch kind {
         case .hidden: ""
-        case .dictating(_, _, let capturing): capturing ? "Dictating" : "Transcribing"
+        case .dictating: kind.dictationStage?.label ?? ""
         case .meetingArmed(let event), .callQuestion(let event): event.title
         case .meetingRecording: meetings.session?.meeting.title ?? "Recording"
         case .transcribing: MeetingStatus.transcribing.displayName
@@ -394,6 +420,7 @@ final class IslandState {
         var expires: Date?
     }
 
+    @ObservationIgnored private var noticeLogForTesting: ((String) -> Void)?
     private var notice: Notice?
     private var expiry: Task<Void, Never>?
 
@@ -702,9 +729,24 @@ final class IslandState {
     ///
     /// Static and pure so `--selftest-commandkey` can prove the mapping without a
     /// microphone and without depending on which heads-up placement the user has chosen.
-    static func card(for state: DictationController.State, transcript: String, level: Float, isCapturing: Bool) -> Kind {
+    static func card(
+        for state: DictationController.State,
+        transcript: String,
+        level: Float,
+        isCapturing: Bool,
+        isTidying: Bool = false
+    ) -> Kind {
         if case .error(let message) = state { return .problem(message) }
-        return .dictating(transcript: transcript, level: level, isCapturing: isCapturing)
+        // The words have been typed and the hold is over: nothing to read any more. Never
+        // reached from `liveKind`, which only asks while there is a hold to show; stated
+        // here so the whole lifecycle of the card is one pure table the self-test can walk.
+        if state == .idle { return .hidden }
+        return .dictating(
+            transcript: transcript,
+            level: level,
+            isCapturing: isCapturing,
+            isTidying: isTidying && state == .finishing
+        )
     }
 
     /// Which live state wins when more than one is true. Pure, and the self-test grades it
@@ -788,7 +830,8 @@ final class IslandState {
                 for: dictation.state,
                 transcript: dictation.transcript,
                 level: dictation.level,
-                isCapturing: dictation.state == .listening || dictation.isCapturingAudio
+                isCapturing: dictation.state == .listening || dictation.isCapturingAudio,
+                isTidying: dictation.finishingStage == .tidying
             )
         }
         // P1-16: the unanswered approval, which outlives its eight-second notice.
@@ -823,6 +866,7 @@ final class IslandState {
             _ = dictation?.state
             _ = dictation?.transcript
             _ = dictation?.level
+            _ = dictation?.finishingStage
             _ = dictation?.commandMode
             _ = Settings.shared.hudPlacement
             _ = meetings.session
@@ -862,7 +906,7 @@ final class IslandState {
         refresh()
     }
 
-    @ObservationIgnored private var noticeLogForTesting: ((String) -> Void)?
+    // MARK: - Notice plumbing
 
     /// Default nil capture of the exact existing public logger operand, only
     /// for an authored diagnostic in its own canonical system-temp UUID root.

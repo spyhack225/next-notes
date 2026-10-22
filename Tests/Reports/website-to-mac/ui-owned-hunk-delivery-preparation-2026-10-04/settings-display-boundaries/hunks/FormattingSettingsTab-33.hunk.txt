@@ -1,0 +1,34 @@
+--- a/Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift
++++ b/Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift
+@@ -335,5 +393,26 @@ private struct OutputProfileRow: View {
+-    /// A `Picker` nested inside a `Menu` rather than a `Picker` on its own, so the trigger can
+-    /// be the current style's symbol while the options keep their words and their checkmark.
+-    /// A bare menu-style `Picker` shows its selected title, and "Backticked paths" is wider
+-    /// than the app-name column beside it.
+-    private var pathReferenceMenu: some View {
++    private var appLabel: some View {
++        VStack(alignment: .leading, spacing: DS.Space.xxs) {
++            Text(profile.displayName)
++                .font(DS.Font.body)
++            Text(profile.isPlain && !profile.resolvesPaths ? "Plain prose" : profile.bundleID)
++                .font(DS.Font.caption2)
++                .foregroundStyle(DS.Color.textTertiary)
++        }
++        .lineLimit(nil)
++    }
++
++    private func capabilityToggle(_ capability: OutputCapability) -> some View {
++        Toggle(
++            capability.displayName,
++            isOn: Binding(
++                get: { profile.capabilities.contains(capability) },
++                set: { onToggle(capability, $0) }
++            )
++        )
++        .toggleStyle(.checkbox)
++        .help("\(profile.displayName): \(capability.help)")
++    }
++
++    /// Same native menu and picker choices in both layouts. Compact rows label the
++    /// choice explicitly; wide rows keep the established column symbol.
++    private func pathReferenceMenu(compact: Bool) -> some View {

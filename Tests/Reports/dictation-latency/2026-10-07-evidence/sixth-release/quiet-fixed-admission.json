@@ -1,0 +1,16 @@
+{
+  "atUTC": "2026-10-08T06:02:09.956571+00:00",
+  "relayAgreementCursor": "604",
+  "gate": {
+    "ok": true,
+    "swapGb": 8.10052734375,
+    "load": 5.05,
+    "freeGb": 7.3145599365234375,
+    "path": "/",
+    "reasons": [],
+    "unknown": []
+  },
+  "reportedFreeMemoryPercent": 62,
+  "normalGatePassed": false,
+  "scope": "One exact public quiet52566-sample direct+bothEngine endings; native Parakeet only, no Apple/LLM/layout/fullCore/physical owner; scoped8.5/min7/free60/1GB/90s"
+}

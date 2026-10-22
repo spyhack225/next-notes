@@ -1,0 +1,26 @@
+{
+  "status": "UNAPPLIED_SOURCE_ONLY_REVIEW",
+  "sourcePath": "Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift",
+  "sourceBeforeSHA256": "c750e16bd51c4f8f40875d2122b3a89d57dfe3a02f40cd2a08ec7f0c4eb64d69",
+  "mergedResponsiveActionsSHA256": "f0707e87b664f979e7d60f3cfb36b6f182266f5a5932de1aa2a1402d855ac856",
+  "proposedSHA256": "dbf3a77207f535b35ed69e7d02bbc5415765f4dd61af4465c90ce582ff0f1b54",
+  "afterMergedPatchSHA256": "afcd6f3b0a915b6a189d22586e69a7b39bbd4162e686bf637bd75c82b4fa1d45",
+  "combinedSourcePatchSHA256": "db18bb5bbdf06f96a5371302010286277eaae3618e86392ee3a994cf87fbc86c",
+  "verification": {
+    "originalSourceUnchanged": true,
+    "rowEditorSuffixUnchanged": true,
+    "compileNativeTested": false
+  },
+  "originalEvidence": {
+    "capture-formatting320.log": {
+      "SHA256": "2e1cf36f3da06d7d53d76b7c47ce75ac5ce4c2d21bb7f400ea4bfb1d73f2e802",
+      "tableObservations": 8,
+      "allObservedTablesHave15RowsAndZeroVisible": true
+    },
+    "capture-formatting560.log": {
+      "SHA256": "b8ce4cdce78412a43f0fe21d313199c6ccec75d52d72491afcf15b0b385230d0",
+      "tableObservations": 8,
+      "allObservedTablesHave15RowsAndZeroVisible": true
+    }
+  }
+}

@@ -1,0 +1,11 @@
+--- a/Sources/NextNotes/Meetings/NotesService.swift
++++ b/Sources/NextNotes/Meetings/NotesService.swift
+@@ -88,7 +88,7 @@
+               meetingID == bound.admission.meetingID,
+               !terminationRequested, tasks.isEmpty,
+               nativeNotesReturnObserverForTesting == nil,
+-              sharedIfLoaded !== self else { throw CocoaError(.fileWriteNoPermission) }
++              Self.sharedIfLoaded !== self else { throw CocoaError(.fileWriteNoPermission) }
+         let root = store.directory(for: meetingID).deletingLastPathComponent().standardizedFileURL
+         guard root == bound.admission.meetingRoot,
+               root.path == root.resolvingSymlinksInPath().path,

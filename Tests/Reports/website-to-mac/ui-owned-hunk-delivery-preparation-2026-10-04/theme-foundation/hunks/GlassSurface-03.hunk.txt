@@ -1,0 +1,6 @@
+--- a/Sources/NextNotes/UI/Components/GlassSurface.swift
++++ b/Sources/NextNotes/UI/Components/GlassSurface.swift
+@@ -36,2 +38 @@ extension View {
+-        glass: Glass = DS.Material.surfaceGlass,
+-        fallback: SwiftUI.Material = DS.Material.card
++        glass: Glass = DS.Material.surfaceGlass

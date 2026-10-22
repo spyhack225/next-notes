@@ -35,6 +35,9 @@ struct FakeCalendarProvider: CalendarProvider, Sendable {
     @discardableResult
     func authorize() async -> CalendarAuthorizationState { .authorized }
 
+    /// The fake provider always answers, so it has no partial failure to report.
+    func partialFetchFailures() async -> [CalendarPartialFailure] { [] }
+
     func events(from: Date, to: Date) async -> [MeetingEvent] {
         let event = MeetingEvent(
             id: "fake-meeting",

@@ -1,0 +1,47 @@
+{
+  "atUTC": "2026-10-08T06:18:40.313856+00:00",
+  "candidateSHA256": "8d079a72b32223a2c552d0490aa34b599ee6a3dcef18a5db8149a9f3700db6e9",
+  "args": [
+    "--selftest-dictation-segments",
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/action-intent-harness-90400946-c987-4404-80ad-4c6761ac7014/quiet-meeting/quiet-final-source-window.wav",
+    "--dictation-complete-audio",
+    "--dictation-gold",
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/action-intent-harness-90400946-c987-4404-80ad-4c6761ac7014/quiet-meeting/quiet-final-source-window-gold.txt",
+    "--dictation-max-wer",
+    "0",
+    "--dictation-asr-output",
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-sixth-native-20261008/quiet-normal-retry-seven",
+    "--selftest-timeout",
+    "90"
+  ],
+  "exit": 1,
+  "wallSeconds": 22.88637916600419,
+  "guardReason": "ordinaryDiskBelow6.5GB",
+  "sourceInvariant": true,
+  "sourceCount": 1173,
+  "ownedIdentities": {
+    "91622": 1307912594600
+  },
+  "peakSampledFootprintBytes": 199886360,
+  "peakSampledResidentBytes": 651591680,
+  "samples": 48,
+  "launchJoined": true,
+  "nativeProcessesJoined": true,
+  "admission": {
+    "atUTC": "2026-10-08T06:18:17.427127+00:00",
+    "relayAgreementCursor": "613",
+    "gate": {
+      "ok": true,
+      "swapGb": 7.85833984375,
+      "load": 2.26,
+      "freeGb": 7.30987548828125,
+      "path": "/",
+      "reasons": [],
+      "unknown": []
+    },
+    "reportedFreeMemoryPercent": 65,
+    "normalGatePassed": true,
+    "scope": "One exact public quiet52566-sample direct+bothEngine endings; native Parakeet only, no Apple/LLM/layout/fullCore/physical owner; scoped8/min6.5/free60/1GB/90s"
+  },
+  "scope": "Sampled isolated public ASR word/firstpartial/stage observations; ordinary admission only, not owner performance, physical ASR, ASR+voice or full polished latency acceptance"
+}

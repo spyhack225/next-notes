@@ -53,7 +53,25 @@ struct MeetingLiveView: View {
                         .font(DS.Font.title3)
                         .onTapGesture(count: 2) { isRenamingMeeting = true }
                         .help("Double-click to rename")
-                    RecordingIndicator(elapsed: session.elapsed)
+                    // The red dot means capture is running. Between Stop and the last
+                    // transcription window the session still exists but is no longer
+                    // recording, so the dot must go and words must say what is
+                    // happening instead — otherwise the mark, and its VoiceOver label,
+                    // claim a recording that has already stopped.
+                    if session.isRecording {
+                        RecordingIndicator(elapsed: session.elapsed)
+                    } else {
+                        HStack(spacing: DS.Space.s) {
+                            Image(systemName: "hourglass")
+                                .foregroundStyle(DS.Color.textSecondary)
+                                .accessibilityHidden(true)
+                            Text("Finishing this recording.")
+                                .font(DS.Font.subheadline)
+                                .foregroundStyle(DS.Color.textSecondary)
+                        }
+                        .accessibilityElement(children: .combine)
+                        .accessibilityLabel("Finishing this recording.")
+                    }
                 }
                 Spacer()
                 // Grouped rather than left in the row's own spacing: the two controls at
@@ -104,6 +122,14 @@ struct MeetingLiveView: View {
                 Label("Recording continues. Some live transcription may pause.", systemImage: "pause.circle")
                     .font(DS.Font.caption)
                     .foregroundStyle(DS.Color.warning)
+            }
+            // The actionable coverage sentence, when there is one: it names the
+            // channel and the problem, which the generic banner does not.
+            if let coverage = session.coverageWarningMessage {
+                Label(coverage, systemImage: "exclamationmark.triangle")
+                    .font(DS.Font.caption)
+                    .foregroundStyle(DS.Color.warning)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             ForEach(session.healthWarnings.filter { $0.message != session.audioProblem }, id: \.self) { issue in
                 Label(issue.message, systemImage: "exclamationmark.triangle")
@@ -263,13 +289,18 @@ struct MeetingLiveView: View {
     /// the header is already turning a 64pt one four inches above it: the same word said
     /// twice, on a second canvas, on the one screen in the app that is simultaneously
     /// recording two audio streams and running Parakeet over them.
+    ///
+    /// The words follow capture, not colour: once Stop has been pressed the meeting is
+    /// finishing rather than listening, even when no line has arrived yet.
     private var waiting: some View {
         VStack(spacing: DS.Space.s) {
-            Text("Listening")
+            Text(session.isRecording ? "Listening" : "Finishing")
                 .font(DS.Font.emptyStateTitle)
                 .foregroundStyle(DS.Color.text)
-            Text("Speech is transcribed in short windows, so the first lines appear within "
-                 + "a few seconds.")
+            Text(session.isRecording
+                 ? "Speech is transcribed in short windows, so the first lines appear within "
+                   + "a few seconds."
+                 : "Finishing the last windows of audio…")
                 .font(DS.Font.emptyStateMessage)
                 .foregroundStyle(DS.Color.textSecondary)
         }

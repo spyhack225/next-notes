@@ -1,0 +1,5 @@
+--- a/Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift
++++ b/Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift
+@@ -53 +35 @@ struct FormattingSettingsTab: View {
+-            Form {
++            List(selection: $selection) {

@@ -1,0 +1,37 @@
+{
+  "status": "HELD_COMMON_AND_FIXED_SOURCE_ONLY_UNCOMPILED_NATIVE_UNRUN",
+  "currentSourceSHA256": {
+    "Sources/NextNotes/Support/Settings.swift": "884f7a297f68d588a7ae2de962432049682c478d4f53464dba6c92e0a01ee3c4",
+    "Sources/NextNotes/Meetings/MeetingDiarizer.swift": "bee04c83e4c23c91126482360e891c800f4e27200b930a00cf9dd89cd8cb3f13",
+    "Sources/NextNotes/Support/SelfTestStoreGuard.swift": "dc2733998fbb09ce1128d2f5dfeb9ce782e821ec2ef752330dab5c5a2de63eed"
+  },
+  "artifactsSHA256": {
+    "COMMON.patch.txt": "d1106085a7ca089c083599ea6c7bfa01bbdd8505228c7698f09f14e0a6bf9036",
+    "FIXED-from-COMMON.patch.txt": "b24f005aea4d45b05708feb643a7ba7ca4c5f5b99d81a842145b975a53a0fc6a",
+    "MeetingDiarizer.COMMON.swift.proposed": "873c3695e997912718fedb33d694b9034eb36d4aff1aa8e596ec1546c820156e",
+    "MeetingDiarizer.original.swift.txt": "bee04c83e4c23c91126482360e891c800f4e27200b930a00cf9dd89cd8cb3f13",
+    "README.md": "1bc3df0f917113f4af14ed3e692c8b145600873852f26f95379d856f7520a2a5",
+    "Settings.COMMON.swift.proposed": "4622876d2bffd06df07fec68eddfeae52589d71a5b448d9bb54cbbdb81251214",
+    "Settings.FIXED.swift.proposed": "d6110c2839a0cf9885c761f052681d3f52a5a73d9d25aa9c3cc8fd22f4f76146",
+    "Settings.original.swift.txt": "884f7a297f68d588a7ae2de962432049682c478d4f53464dba6c92e0a01ee3c4",
+    "copy-only-replay.json": "82c3f5235504e561cc23a8875ce73782d335ff9b32d31c92f02e4541cd8724dd",
+    "current-source-pins.json": "40b4c23fff8129e5f3672dd69b69821724026f412f0600a82f596167e8772937"
+  },
+  "peerAPIs": {
+    "isRequested": "nonisolated static Bool raw Notes-settings flag",
+    "isProbeConfigurationAdmitted": "@MainActor static Bool SAME trace after binding/suite preparation",
+    "metadataRootForGetter": "nonisolated static func () -> URL?; actual empty root validation; sticky INVALID"
+  },
+  "compilerRuns": 0,
+  "nativeRuns": 0,
+  "canonicalEdits": 0,
+  "defaultsAccesses": 0,
+  "assetReads": 0,
+  "limits": [
+    "peer executable COMMON not included",
+    "parent flags/App callbacks not included",
+    "copy-only replay is not Swift typecheck",
+    "real fresh-singleton original/fixed unrun",
+    "Manager rebase prohibited"
+  ]
+}

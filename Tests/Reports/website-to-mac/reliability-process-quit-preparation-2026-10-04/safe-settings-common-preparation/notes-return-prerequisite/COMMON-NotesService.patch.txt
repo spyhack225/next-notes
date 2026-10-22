@@ -1,0 +1,43 @@
+--- a/Sources/NextNotes/Meetings/NotesService.swift
++++ b/Sources/NextNotes/Meetings/NotesService.swift
+@@ -73,6 +73,28 @@
+ 
+     @ObservationIgnored private var tasks: [UUID: Task<Void, Never>] = [:]
+     @ObservationIgnored private var terminationRequested = false
++    // Nil in production. Exact private Notes/Cocoa fixture observes the existing Task defer.
++    @ObservationIgnored private var nativeNotesReturnObserverForTesting: (
++        meetingID: UUID, observer: @MainActor () -> Void
++    )?
++
++    func configureNativeNotesReturnObserver(
++        meetingID: UUID, observer: @escaping @MainActor () -> Void
++    ) throws {
++        guard SelfTest.isRunning, SelfTest.requested == "--selftest-native-termination",
++              NativeNotesSettingsSelfTest.isRequested,
++              case .success(let bound) = NativeNotesSettingsSelfTest.binding,
++              bound.admission.mode == .notesActiveOff,
++              meetingID == bound.admission.meetingID,
++              !terminationRequested, tasks.isEmpty,
++              nativeNotesReturnObserverForTesting == nil,
++              sharedIfLoaded !== self else { throw CocoaError(.fileWriteNoPermission) }
++        let root = store.directory(for: meetingID).deletingLastPathComponent().standardizedFileURL
++        guard root == bound.admission.meetingRoot,
++              root.path == root.resolvingSymlinksInPath().path,
++              store.meeting(id: meetingID) != nil else { throw CocoaError(.fileWriteNoPermission) }
++        nativeNotesReturnObserverForTesting = (meetingID, observer)
++    }
+ 
+     /// Capture before cancellation: cancel(_:) discards its ordinary UI handle.
+     /// Quit retains and joins these exact handles rather than consulting a later slot.
+@@ -358,6 +380,11 @@
+                 watchdog.cancel()
+                 self.tasks[id] = nil
+                 self.stoppedByWatchdog.remove(id)
++                if let returned = self.nativeNotesReturnObserverForTesting,
++                   returned.meetingID == id {
++                    self.nativeNotesReturnObserverForTesting = nil
++                    returned.observer()
++                }
+             }
+ 
+             guard !terminationRequested, !Task.isCancelled, var updated = store.meeting(id: id) else { return }

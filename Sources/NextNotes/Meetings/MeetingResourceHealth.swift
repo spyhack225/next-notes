@@ -23,6 +23,10 @@ struct MeetingDiskCapacity: Sendable {
 enum MeetingHealthIssue: String, Sendable, Equatable {
     case storageLow, storageUnknown, memoryPressure, microphoneStalled, systemStalled, systemUnavailable
     case savingStalled, captureGap, savedAudioGap, audioWriteFailure, transcriptWriteFailure, metadataWriteFailure
+    /// Not a capture failure: a sticky saved-coverage fact from
+    /// `MeetingCaptureCoverage`, reported once. The richer per-meeting copy
+    /// travels on the caller's alert; this is the plain banner body.
+    case coverageWarning
 
     var message: String {
         switch self {
@@ -38,6 +42,7 @@ enum MeetingHealthIssue: String, Sendable, Equatable {
         case .audioWriteFailure: "This meeting's recording stopped saving. Check your Mac's storage."
         case .transcriptWriteFailure: "This meeting's transcript stopped saving. Check your Mac's storage."
         case .metadataWriteFailure: "This meeting's progress stopped saving. Some changes may be lost if the app closes."
+        case .coverageWarning: "Some of this meeting's audio may be missing. Open the meeting to see what was saved."
         }
     }
 

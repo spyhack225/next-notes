@@ -39,6 +39,10 @@ actor EventKitCalendarProvider: CalendarProvider {
         return authorizationState()
     }
 
+    /// EventKit answers from one collection, so there is no partial failure
+    /// to report: a read that fails throws.
+    func partialFetchFailures() async -> [CalendarPartialFailure] { [] }
+
     func events(from: Date, to: Date) async throws -> [MeetingEvent] {
         guard authorizationState().isAuthorized else { return [] }
 

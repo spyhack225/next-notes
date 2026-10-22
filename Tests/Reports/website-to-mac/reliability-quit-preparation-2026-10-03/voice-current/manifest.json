@@ -1,0 +1,144 @@
+{
+  "status": "OFF_SOURCE_CURRENT_REBASE_UNCOMPILED_UNRUN_HELD",
+  "canonicalChanges": false,
+  "scope": [
+    "Package.swift",
+    "Sources/NextNotes/NextNotesApp.swift",
+    "Sources/NextNotes/Support/NativeStartupTerminationSelfTest.swift",
+    "Sources/NextNotes/Support/NativeTerminationSelfTest.swift",
+    "Sources/NextNotes/Agent/Speech/PocketAgentVoice.swift",
+    "Sources/NextNotes/Agent/Speech/KokoroAgentVoice.swift",
+    "Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift"
+  ],
+  "newFiles": [
+    "Sources/NextNotes/Support/PocketPlaybackTerminationSelfTest.swift"
+  ],
+  "baseline": {
+    "Package.swift": "d0d5806a3efd36fb250657b71a3ea681dbd57a603999241ba6273f92838eabaa",
+    "Sources/NextNotes/NextNotesApp.swift": "bc01a27f48478a297d07a1d35669c313615cc7c182c0c6d113b4899e792a1b61",
+    "Sources/NextNotes/Support/NativeStartupTerminationSelfTest.swift": "08efb6837d52bd8f216ec3d21ee7d1367d9791472c65f2e162c52bcbc77b73c2",
+    "Sources/NextNotes/Support/NativeTerminationSelfTest.swift": "a1c1d30f8198e63758dde34abd8812b236c281a191cd9168383eff95a47aa4f5",
+    "Sources/NextNotes/Agent/Speech/PocketAgentVoice.swift": "9b0c5a9404e5e8ea68f96659cd2ce70e5efabe69db28f1292d4d75a8fa5acf7d",
+    "Sources/NextNotes/Agent/Speech/KokoroAgentVoice.swift": "66bf1d77947a768a6cc18334c07a6d9a9c7b65cba66f2adcf30f4f2f3ca50630",
+    "Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift": "871e02fa01dbf36e46f3e437495640f4fc8b4104f9af2ecf931e930f41b7930f",
+    "Sources/NextNotes/Agent/Speech/PocketSourceSpeechBacking.swift": "0334fa3ad9708e99c1e9088867b3ad19e863433c3fbd1f95915a7e3931698ecd",
+    "Sources/NextNotes/UI/Settings/ModelsSettingsTab.swift": "c7149061e368bd11960561d20c0040bda3fd14a6e62582debdab42fe739bb359"
+  },
+  "artifacts": {
+    "baseline/Package.swift": "d0d5806a3efd36fb250657b71a3ea681dbd57a603999241ba6273f92838eabaa",
+    "baseline/Sources/NextNotes/NextNotesApp.swift": "bc01a27f48478a297d07a1d35669c313615cc7c182c0c6d113b4899e792a1b61",
+    "baseline/Sources/NextNotes/Support/NativeStartupTerminationSelfTest.swift": "08efb6837d52bd8f216ec3d21ee7d1367d9791472c65f2e162c52bcbc77b73c2",
+    "baseline/Sources/NextNotes/Support/NativeTerminationSelfTest.swift": "a1c1d30f8198e63758dde34abd8812b236c281a191cd9168383eff95a47aa4f5",
+    "baseline/Sources/NextNotes/Agent/Speech/PocketAgentVoice.swift": "9b0c5a9404e5e8ea68f96659cd2ce70e5efabe69db28f1292d4d75a8fa5acf7d",
+    "baseline/Sources/NextNotes/Agent/Speech/KokoroAgentVoice.swift": "66bf1d77947a768a6cc18334c07a6d9a9c7b65cba66f2adcf30f4f2f3ca50630",
+    "baseline/Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift": "871e02fa01dbf36e46f3e437495640f4fc8b4104f9af2ecf931e930f41b7930f",
+    "common-original/Package.swift": "36895937b214a131d7b64f9fff5a74988b086b3df577591f51cd03a4c959c0ad",
+    "common-original/Sources/NextNotes/NextNotesApp.swift": "666dcf0f93977e297846569dc6d02dc87f4b5d307085f31838044708853e877c",
+    "common-original/Sources/NextNotes/Support/NativeStartupTerminationSelfTest.swift": "62f6b553e24011efb79d042a9797658bceafb2dd895ae3128a166d08e9a715ec",
+    "common-original/Sources/NextNotes/Support/NativeTerminationSelfTest.swift": "452400e90eb936a600d63d54e883705fb25460a494b56b7585cd14661ed89491",
+    "common-original/Sources/NextNotes/Agent/Speech/PocketAgentVoice.swift": "0386593ac38f307d1c350f527574ec6a7d4f5eaa9327252f163cb389d32e4383",
+    "common-original/Sources/NextNotes/Agent/Speech/KokoroAgentVoice.swift": "d7cd0b0460315b8b0af07e0c0963a63d2bf0307152f43b17410dcb4bce4317eb",
+    "common-original/Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift": "57fd9959010e734290673d08ffd3e284f1c1b1e88e5fef7f66056ee73a6aee93",
+    "common-original/Sources/NextNotes/Support/PocketPlaybackTerminationSelfTest.swift": "61a69fa27e2265f4a92919a7808452477bf8695995f6d91fca49635675e2add5",
+    "proposed-fixed/Package.swift": "36895937b214a131d7b64f9fff5a74988b086b3df577591f51cd03a4c959c0ad",
+    "proposed-fixed/Sources/NextNotes/NextNotesApp.swift": "88fc95282b9b6d3811da2a8a9feb66a1b6921bcc981eca46c224f597d77fe8ed",
+    "proposed-fixed/Sources/NextNotes/Support/NativeStartupTerminationSelfTest.swift": "62f6b553e24011efb79d042a9797658bceafb2dd895ae3128a166d08e9a715ec",
+    "proposed-fixed/Sources/NextNotes/Support/NativeTerminationSelfTest.swift": "452400e90eb936a600d63d54e883705fb25460a494b56b7585cd14661ed89491",
+    "proposed-fixed/Sources/NextNotes/Agent/Speech/PocketAgentVoice.swift": "976f153d7ce8631fa86feb846e587d4e5dfe6aec0c9a54dacc8e3cc80920b1ee",
+    "proposed-fixed/Sources/NextNotes/Agent/Speech/KokoroAgentVoice.swift": "b2ccbeb45e87f624145561f4045ef7ac9e567cda7e36a6f933e7c1d267d5a39e",
+    "proposed-fixed/Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift": "437a3a86e414b2904653b02bdd4acf084653a915845d8f7b22c92a3de125b3e3",
+    "proposed-fixed/Sources/NextNotes/Support/PocketPlaybackTerminationSelfTest.swift": "61a69fa27e2265f4a92919a7808452477bf8695995f6d91fca49635675e2add5",
+    "COMMON-current.patch": "c6b7bcff2acc7bf9500e9977fe2532b6006827a221cc5b1bf0b945beb9c9de70",
+    "producer-current.patch": "a82be0cd58e6242be7f82a5ed5a6d3866547f7039b1f4f5898d32bb900b6b22b",
+    "pocket57-common-original/Package.swift": "36895937b214a131d7b64f9fff5a74988b086b3df577591f51cd03a4c959c0ad",
+    "pocket57-common-original/Sources/NextNotes/NextNotesApp.swift": "666dcf0f93977e297846569dc6d02dc87f4b5d307085f31838044708853e877c",
+    "pocket57-common-original/Sources/NextNotes/Support/NativeStartupTerminationSelfTest.swift": "62f6b553e24011efb79d042a9797658bceafb2dd895ae3128a166d08e9a715ec",
+    "pocket57-common-original/Sources/NextNotes/Support/NativeTerminationSelfTest.swift": "452400e90eb936a600d63d54e883705fb25460a494b56b7585cd14661ed89491",
+    "pocket57-common-original/Sources/NextNotes/Agent/Speech/PocketAgentVoice.swift": "0386593ac38f307d1c350f527574ec6a7d4f5eaa9327252f163cb389d32e4383",
+    "pocket57-common-original/Sources/NextNotes/Agent/Speech/KokoroAgentVoice.swift": "66bf1d77947a768a6cc18334c07a6d9a9c7b65cba66f2adcf30f4f2f3ca50630",
+    "pocket57-common-original/Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift": "871e02fa01dbf36e46f3e437495640f4fc8b4104f9af2ecf931e930f41b7930f",
+    "pocket57-common-original/Sources/NextNotes/Support/PocketPlaybackTerminationSelfTest.swift": "61a69fa27e2265f4a92919a7808452477bf8695995f6d91fca49635675e2add5",
+    "pocket57-proposed-fixed/Package.swift": "36895937b214a131d7b64f9fff5a74988b086b3df577591f51cd03a4c959c0ad",
+    "pocket57-proposed-fixed/Sources/NextNotes/NextNotesApp.swift": "522de15559db6751b570dfd040b19804b7c786fc0d72f84277b8e6b9c78a432b",
+    "pocket57-proposed-fixed/Sources/NextNotes/Support/NativeStartupTerminationSelfTest.swift": "62f6b553e24011efb79d042a9797658bceafb2dd895ae3128a166d08e9a715ec",
+    "pocket57-proposed-fixed/Sources/NextNotes/Support/NativeTerminationSelfTest.swift": "452400e90eb936a600d63d54e883705fb25460a494b56b7585cd14661ed89491",
+    "pocket57-proposed-fixed/Sources/NextNotes/Agent/Speech/PocketAgentVoice.swift": "976f153d7ce8631fa86feb846e587d4e5dfe6aec0c9a54dacc8e3cc80920b1ee",
+    "pocket57-proposed-fixed/Sources/NextNotes/Agent/Speech/KokoroAgentVoice.swift": "66bf1d77947a768a6cc18334c07a6d9a9c7b65cba66f2adcf30f4f2f3ca50630",
+    "pocket57-proposed-fixed/Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift": "7c9d0e85459811e94d0b8a9ee7848069ebc0bf751a3050d7eb17c57e777ca922",
+    "pocket57-proposed-fixed/Sources/NextNotes/Support/PocketPlaybackTerminationSelfTest.swift": "61a69fa27e2265f4a92919a7808452477bf8695995f6d91fca49635675e2add5",
+    "COMMON-pocket57-current.patch": "70552a2c01c0e6d8338ded3b361d80cd5265c02c2e2ee1298ac93214ca900d2d",
+    "producer-pocket57-current.patch": "7b15c2e8dd9d088b77d0a146c273ed88066293124b10118a5d2784a1e65b24aa",
+    "README.md": "11cb2a6319b0db84d36303de34944c8aca32f5d6f18f49cf44242a905f9bdae8",
+    "prepare-candidates.py.txt": "950ed23d94ee386f5169393aed40fd18c9416d65256bb0e6678d244005491dfb"
+  },
+  "frozenReferences": {
+    "PocketCoherence": {
+      "path": "Tests/Reports/agent-overhaul-closure/native-termination-crash-review/2026-10-02-pid41058/active-playback-ownership-review/app-producer-preparation/rebased146/ordinary-build-coherence-amendment",
+      "manifestSHA256": "890d6ef5db1365f852ef01f0ae2ffa7b02d91b4f56ecc016fc66380cf0fa88ce",
+      "pins": 17,
+      "mismatches": [],
+      "checks": 57,
+      "expressions": 18,
+      "fixtureSHA256": "61a69fa27e2265f4a92919a7808452477bf8695995f6d91fca49635675e2add5"
+    },
+    "Kokoro/backing-only-producer.patch.txt": {
+      "path": "Tests/Reports/agent-overhaul-closure/native-termination-crash-review/2026-10-02-pid41058/active-playback-ownership-review/kokoro-owner-preparation/backing-only-producer.patch.txt",
+      "sha256": "fac0160967a14d2f32cf51b5a51695db21e4498c56858e50dc14806458d354c3"
+    },
+    "Kokoro/public-read-boundary.json": {
+      "path": "Tests/Reports/agent-overhaul-closure/native-termination-crash-review/2026-10-02-pid41058/active-playback-ownership-review/kokoro-owner-preparation/public-read-boundary.json",
+      "sha256": "49600613e0e0a540b0d0a1c85cfef4cf34ef47cfbb20a1bd8c2da03aba5008fc"
+    },
+    "Kokoro/actual-source-preparation/README.md": {
+      "path": "Tests/Reports/agent-overhaul-closure/native-termination-crash-review/2026-10-02-pid41058/active-playback-ownership-review/kokoro-owner-preparation/actual-source-preparation/README.md",
+      "sha256": "bd73a61262c9f456659f444cdddb828143ebc5879eef9e38d80ff9e25d56799a"
+    },
+    "Kokoro/actual-source-preparation/package-body-observation.patch.txt": {
+      "path": "Tests/Reports/agent-overhaul-closure/native-termination-crash-review/2026-10-02-pid41058/active-playback-ownership-review/kokoro-owner-preparation/actual-source-preparation/package-body-observation.patch.txt",
+      "sha256": "3745d6ab0db383fa01f60f8fdae92d8af1584ea32cb04924bf33463c808a099a"
+    },
+    "Kokoro/actual-source-preparation/COMMON-NativeKokoroQuitSelfTest.swift.txt": {
+      "path": "Tests/Reports/agent-overhaul-closure/native-termination-crash-review/2026-10-02-pid41058/active-playback-ownership-review/kokoro-owner-preparation/actual-source-preparation/COMMON-NativeKokoroQuitSelfTest.swift.txt",
+      "sha256": "613eee02c079ca28b232a1c179fd0a4a1bf851dc1c50694637c8b6aa81f24ce9"
+    }
+  },
+  "pocket57IndependentAlternative": {
+    "common": "COMMON-pocket57-current.patch",
+    "fixed": "producer-pocket57-current.patch",
+    "fixtureExact": true,
+    "KokoroUnchanged": true,
+    "doesNotComposeWithCombinedPatch": "Choose this pair OR the combined pair, never both",
+    "fixedExistingFiles": [
+      "Sources/NextNotes/Agent/Speech/PocketAgentVoice.swift",
+      "Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift",
+      "Sources/NextNotes/NextNotesApp.swift"
+    ]
+  },
+  "validation": {
+    "copyOnlyApplyChecks": {
+      "combinedCOMMON": "PASS",
+      "combinedFIXED": "PASS",
+      "independentPocketCOMMON": "PASS",
+      "independentPocketFIXED": "PASS"
+    },
+    "currentPreimagesStillMatch": {
+      "Package.swift": true,
+      "Sources/NextNotes/NextNotesApp.swift": true,
+      "Sources/NextNotes/Support/NativeStartupTerminationSelfTest.swift": true,
+      "Sources/NextNotes/Support/NativeTerminationSelfTest.swift": true,
+      "Sources/NextNotes/Agent/Speech/PocketAgentVoice.swift": true,
+      "Sources/NextNotes/Agent/Speech/KokoroAgentVoice.swift": true,
+      "Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift": true,
+      "Sources/NextNotes/Agent/Speech/PocketSourceSpeechBacking.swift": true,
+      "Sources/NextNotes/UI/Settings/ModelsSettingsTab.swift": true
+    },
+    "frozenPocket17Pins": "all exact unchanged",
+    "Pocket57Fixture": "byte-identical both variants and frozen conditional fixture",
+    "compilerParseOrTypecheck": "UNRUN",
+    "ordinaryUpstreamBuild": "UNRUN",
+    "nativeOriginalFixed": "UNRUN",
+    "KokoroAndLoadedPreparationBootstrap": "HELD",
+    "canonicalLeaseGranted": false,
+    "assetOrModelReadsCopies": false
+  }
+}

@@ -1,0 +1,11 @@
+--- a/Sources/NextNotes/UI/Components/SectionHeading.swift
++++ b/Sources/NextNotes/UI/Components/SectionHeading.swift
+@@ -17,0 +18,8 @@ struct SectionHeading: View {
++    /// Optional serif-italic accent span appended to the title ("Be present." +
++    /// "Keep your promises."). Caller supplies lead and accent as separate strings —
++    /// never split by word, punctuation, localized text, tool output, or meeting
++    /// title, and never for dynamic content (titles stay plain). Nil keeps the
++    /// existing plain heading.
++    var accent: String? = nil
++    /// Explicit compact level for pane chrome; dynamic headings keep their plain style.
++    var accentLevel: ThemeHeadline.Level = .section

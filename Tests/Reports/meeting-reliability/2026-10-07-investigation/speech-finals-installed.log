@@ -1,0 +1,34 @@
+2026-10-07 11:49:42.855 NextNotes[7583:59428] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+[11:49:44.687] [INFO] [FluidAudio.AsrModels] Downloading ASR models to: /Users/sergekadjo/Library/Application Support/FluidAudio/Models/parakeet-tdt-0.6b-v3
+[11:49:44.688] [INFO] [FluidAudio.AsrModels] ASR models already present at: /Users/sergekadjo/Library/Application Support/FluidAudio/Models/parakeet-tdt-0.6b-v3
+[11:49:44.688] [INFO] [FluidAudio.AsrModels] Loading ASR models from: /Users/sergekadjo/Library/Application Support/FluidAudio/Models/parakeet-tdt-0.6b-v3
+[11:49:44.688] [INFO] [FluidAudio.DownloadUtils] Host environment: macOS Version 27.2 (Build 26B5091g), arch=arm64, chip=Apple M3, cores=8/8, mem=16 GB, rosetta=false
+[11:49:44.690] [INFO] [FluidAudio.DownloadUtils] Found parakeet-tdt-0.6b-v3 locally, no download needed
+[11:49:44.693] [INFO] [FluidAudio.DownloadUtils] Compiled model Preprocessor.mlmodelc in 3.26 ms :: macOS Version 27.2 (Build 26B5091g), arch=arm64, chip=Apple M3, cores=8/8, mem=16 GB, rosetta=false
+[11:49:44.693] [INFO] [FluidAudio.AsrModels] Loaded Preprocessor.mlmodelc with compute units: cpuOnly
+[11:49:44.693] [INFO] [FluidAudio.DownloadUtils] Found parakeet-tdt-0.6b-v3 locally, no download needed
+[11:49:44.791] [INFO] [FluidAudio.DownloadUtils] Compiled model Encoder.mlmodelc in 98.02 ms :: macOS Version 27.2 (Build 26B5091g), arch=arm64, chip=Apple M3, cores=8/8, mem=16 GB, rosetta=false
+[11:49:44.791] [INFO] [FluidAudio.AsrModels] Loaded Encoder.mlmodelc with compute units: cpuAndNeuralEngine
+[11:49:44.791] [INFO] [FluidAudio.DownloadUtils] Found parakeet-tdt-0.6b-v3 locally, no download needed
+[11:49:44.799] [INFO] [FluidAudio.DownloadUtils] Compiled model Decoder.mlmodelc in 7.14 ms :: macOS Version 27.2 (Build 26B5091g), arch=arm64, chip=Apple M3, cores=8/8, mem=16 GB, rosetta=false
+[11:49:44.799] [INFO] [FluidAudio.DownloadUtils] Found parakeet-tdt-0.6b-v3 locally, no download needed
+[11:49:44.805] [INFO] [FluidAudio.DownloadUtils] Compiled model JointDecisionv3.mlmodelc in 6.13 ms :: macOS Version 27.2 (Build 26B5091g), arch=arm64, chip=Apple M3, cores=8/8, mem=16 GB, rosetta=false
+[11:49:44.805] [INFO] [FluidAudio.AsrModels] Loaded JointDecisionv3.mlmodelc
+[11:49:44.810] [INFO] [FluidAudio.AsrModels] Loaded vocabulary with 8192 tokens from /Users/sergekadjo/Library/Application Support/FluidAudio/Models/parakeet-tdt-0.6b-v3/parakeet_vocab.json
+[11:49:44.810] [INFO] [FluidAudio.AsrModels] Successfully loaded all ASR models with optimized compute units
+[11:49:44.810] [INFO] [FluidAudio.ASR] Loading AsrManager with provided models
+[11:49:44.810] [INFO] [FluidAudio.ASR] AsrManager loaded successfully with provided models
+MEETING_FINALS_LANG fr-dialogue.wav live=0.0% final=0.0%
+MEETING_FINALS_WINDOWS fr-dialogue.wav 10.6,11.7,11.3,10.7,10.5,3.6
+MEETING_FINALS_RECALL fr-dialogue.wav live=0.922 final=0.929
+MEETING_FINALS_LIVE_TO_FINAL_RATIO=fr-dialogue.wav inf
+MEETING_FINALS_LANG fr-dialogue-phone.wav live=0.0% final=0.0%
+MEETING_FINALS_WINDOWS fr-dialogue-phone.wav 10.6,11.7,11.3,10.7,10.5,3.6
+MEETING_FINALS_RECALL fr-dialogue-phone.wav live=0.865 final=0.872
+MEETING_FINALS_LIVE_TO_FINAL_RATIO=fr-dialogue-phone.wav inf
+MEETING_FINALS_LANG en-dialogue.wav live=0.0% final=0.0%
+MEETING_FINALS_WINDOWS en-dialogue.wav 11.2,12.5,11.0,11.5,11.1,3.3
+MEETING_FINALS_RECALL en-dialogue.wav live=0.956 final=0.963
+MEETING_FINALS_LIVE_TO_FINAL_RATIO=en-dialogue.wav inf
+MEETING_FINALS_RTF=0.0287
+MEETING_FINALS_OK: long-window finals hold against the live tier

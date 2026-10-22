@@ -1,0 +1,6 @@
+{"event": "armed", "pid": 14072, "limit_bytes": 100000000, "at": "2026-10-07T16:25:40.661935+00:00", "output": "/Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/meeting-reliability/2026-10-07-investigation/guard-validation"}
+{"at": "2026-10-07T16:25:40.662346+00:00", "bytes": 7029240, "delta_baseline": 0}
+{"at": "2026-10-07T16:25:40.766037+00:00", "bytes": 207159944, "delta_baseline": 200130704}
+{"event": "PAUSED_NEXT_NOTES", "pid": 14072, "bytes": 207159944, "at": "2026-10-07T16:25:40.766592+00:00"}
+{"event": "monitor_finished", "at": "2026-10-07T16:25:43.678902+00:00"}
+GUARD_VALIDATION_OK disposable child paused; owner PID untouched

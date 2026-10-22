@@ -1,0 +1,22 @@
+--- a/Sources/NextNotes/UI/DesignSystem.swift
++++ b/Sources/NextNotes/UI/DesignSystem.swift
+@@ -30,8 +35,11 @@ enum DS {
+-        static let window = SwiftUI.Color(nsColor: .windowBackgroundColor)
+-        static let content = SwiftUI.Color(nsColor: .controlBackgroundColor)
+-        static let groupedFill = SwiftUI.Color(nsColor: .quaternarySystemFill)
+-        static let separator = SwiftUI.Color(nsColor: .separatorColor)
+-        static let selection = SwiftUI.Color(nsColor: .selectedContentBackgroundColor)
+-
+-        // Accent
+-        static let accent = SwiftUI.Color.accentColor
++        static let window = Theme.Palette.background
++        static let content = Theme.Palette.card
++        static let groupedFill = Theme.Palette.muted
++        static let separator = Theme.Palette.border
++        /// Active selection. Dark ink; the system draws alternate selected text over
++        /// it, so selected rows stay readable without a blue accent anywhere.
++        static let selection = Theme.Palette.foreground
++
++        // Accent — the fixed control colour (ink), not the Mac's accent. The site's
++        // teal survives only as `Theme.Palette.accent` for explicitly sparing use.
++        static let accent = Theme.Palette.primary

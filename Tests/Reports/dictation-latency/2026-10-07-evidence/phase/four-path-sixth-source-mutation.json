@@ -1,0 +1,32 @@
+{
+  "atUTC": "2026-10-08T04:53:39.628019+00:00",
+  "status": "AUTHORIZED FOUR-PATH SOURCE APPLIED, FULL APP COMPILE/NATIVE FIXED PENDING",
+  "relayAuthorizationCursor": 562,
+  "ownershipNoticeCursor": 563,
+  "paths": {
+    "Sources/NextNotes/Formatting/LLM/NotesModelRuntime.swift": {
+      "beforeSHA256": "210a4ae7ac7e975219fdbe1da038b3caa7a88a3895b05c74c81cd46c9f13f334",
+      "afterSHA256": "9d872a3db9928018875c0e1141a70baad6d1df25e6a628ac64b08cf4d3095607"
+    },
+    "Sources/NextNotes/Core/Compute/ComputeScheduler.swift": {
+      "beforeSHA256": "ba4edfbc487b0a6a19bf3e2ee9b2fe80f26a56a7eaffd14837c049b2d878bfd0",
+      "afterSHA256": "029d064485194aaa262b22666454ff289bd428516abfbc86b6cbeb34cfb2e09d"
+    },
+    "Sources/NextNotes/Core/DictationController.swift": {
+      "beforeSHA256": "32f9b4ea06d960a9734af2e950d4126d74b8dbe3c21008fcc7a7e4cd088358e1",
+      "afterSHA256": "defe71111c0a1ab8e447aec899abb0ec0a125f5226a1221e416f9e222225a89a"
+    },
+    "Sources/NextNotes/Context/ScreenContext.swift": {
+      "beforeSHA256": "53cda27312ddbfe0f0eae8533544d488afd0a5060792482cae4b902ba87deb68",
+      "afterSHA256": "b960575cf53707e1299c7c496d827e5a9cf0704b335f2470d50ebf978721e11e"
+    }
+  },
+  "nativeOriginal": "phase RED4 with old cancellation/prefix controls green, all1171 source pins invariant at originalnative join",
+  "emptyContextComparison": "582 exact-field cases pass using actual dictionary module; ~1.9ms original public long-input CPU",
+  "quietProductionCandidateApplied": false,
+  "appChanged": false,
+  "ownerInstalled": false,
+  "extraModelPass": false,
+  "extraQueueStoreAwaitTimer": false,
+  "warmOwnerStallFixed": false
+}

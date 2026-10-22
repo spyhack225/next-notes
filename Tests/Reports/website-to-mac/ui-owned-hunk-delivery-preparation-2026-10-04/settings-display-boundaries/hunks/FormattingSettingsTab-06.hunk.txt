@@ -1,0 +1,5 @@
+--- a/Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift
++++ b/Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift
+@@ -65 +50 @@ struct FormattingSettingsTab: View {
+-                withAnimation {
++                withAnimation(reduceMotion ? nil : DS.Motion.standard) {

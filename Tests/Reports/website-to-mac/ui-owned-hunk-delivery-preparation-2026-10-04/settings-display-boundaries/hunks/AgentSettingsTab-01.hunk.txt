@@ -1,0 +1,5 @@
+--- a/Sources/NextNotes/UI/Settings/AgentSettingsTab.swift
++++ b/Sources/NextNotes/UI/Settings/AgentSettingsTab.swift
+@@ -164 +164 @@ struct AgentSettingsTab: View {
+-                Button("Manage in Models") {
++                Button {

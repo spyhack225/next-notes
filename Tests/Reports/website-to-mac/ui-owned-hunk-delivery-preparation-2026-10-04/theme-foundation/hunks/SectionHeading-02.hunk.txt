@@ -1,0 +1,18 @@
+--- a/Sources/NextNotes/UI/Components/SectionHeading.swift
++++ b/Sources/NextNotes/UI/Components/SectionHeading.swift
+@@ -45,5 +53,10 @@ struct SectionHeading: View {
+-                Text(title)
+-                    .font(DS.Font.title3)
+-                    .tracking(DS.Font.wordTracking)
+-                    .foregroundStyle(DS.Color.text)
+-                    .fixedSize(horizontal: false, vertical: true)
++                if let accent {
++                    ThemeHeadline(lead: title, accent: accent, level: accentLevel)
++                        .fixedSize(horizontal: false, vertical: true)
++                } else {
++                    Text(title)
++                        .font(DS.Font.title3)
++                        .tracking(DS.Font.wordTracking)
++                        .foregroundStyle(DS.Color.text)
++                        .fixedSize(horizontal: false, vertical: true)
++                }

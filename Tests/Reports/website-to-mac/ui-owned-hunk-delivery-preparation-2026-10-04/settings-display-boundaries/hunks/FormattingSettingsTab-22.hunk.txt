@@ -1,0 +1,5 @@
+--- a/Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift
++++ b/Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift
+@@ -211 +252 @@ struct FormattingSettingsTab: View {
+-    private var profileList: some View {
++    private var profileRows: some View {

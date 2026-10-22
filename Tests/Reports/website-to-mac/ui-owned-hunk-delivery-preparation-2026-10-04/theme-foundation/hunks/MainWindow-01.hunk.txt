@@ -1,0 +1,5 @@
+--- a/Sources/NextNotes/UI/MainWindow.swift
++++ b/Sources/NextNotes/UI/MainWindow.swift
+@@ -23,0 +24,2 @@ struct MainWindow: View {
++        .tint(DS.Color.accent)
++        .font(DS.Font.body)

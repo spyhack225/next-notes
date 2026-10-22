@@ -1,0 +1,67 @@
+{
+  "source": "ux11-settings-coherent-dependency-handoff-2026-10-02.json",
+  "source_sha256": "581d641444db05c1721dd24404a4bca868939cb0ecb06e421bd55d191a147ec1",
+  "files": [
+    {
+      "path": "Resources/ThemeFonts/InstrumentSerif-Italic.ttf",
+      "historical_2026_10_02_sha256": "8564755a783a6b6e337c2f19c90fd4acf7bb94d62eaf51a47f7ada320ad78f6f",
+      "current_resource_bytes_read": false,
+      "current_identity": "ROOT_TO_REVALIDATE"
+    },
+    {
+      "path": "Resources/ThemeFonts/InstrumentSerif-Regular.ttf",
+      "historical_2026_10_02_sha256": "aaf1ca921710639b1e685b1a7c9cfdbc7daf0d1aa47818309bedd6ed6c3cd387",
+      "current_resource_bytes_read": false,
+      "current_identity": "ROOT_TO_REVALIDATE"
+    },
+    {
+      "path": "Resources/ThemeFonts/Inter-Bold.ttf",
+      "historical_2026_10_02_sha256": "50d2e7434b31e6a1092030b07255ac68ff3a7764f2038d0e465454db464e1aae",
+      "current_resource_bytes_read": false,
+      "current_identity": "ROOT_TO_REVALIDATE"
+    },
+    {
+      "path": "Resources/ThemeFonts/Inter-Medium.ttf",
+      "historical_2026_10_02_sha256": "8d2df172662ea8b727793c752296f21ed3384b565b49ebd20378fb10393ebd69",
+      "current_resource_bytes_read": false,
+      "current_identity": "ROOT_TO_REVALIDATE"
+    },
+    {
+      "path": "Resources/ThemeFonts/Inter-Regular.ttf",
+      "historical_2026_10_02_sha256": "ee5db7d9709c84d3a013d780e4ff436fc81c8d2c618d99bfdec0e678bbf33446",
+      "current_resource_bytes_read": false,
+      "current_identity": "ROOT_TO_REVALIDATE"
+    },
+    {
+      "path": "Resources/ThemeFonts/Inter-SemiBold.ttf",
+      "historical_2026_10_02_sha256": "fc17ae28f958f5826e903510926d3aed86240e948c59df337a2d68b95a481247",
+      "current_resource_bytes_read": false,
+      "current_identity": "ROOT_TO_REVALIDATE"
+    },
+    {
+      "path": "Resources/ThemeFonts/README.md",
+      "historical_2026_10_02_sha256": "e682e120182ec30e32fd400d27faaa3734b41573534f09909f5d1d59e4f7be63",
+      "current_resource_bytes_read": false,
+      "current_identity": "ROOT_TO_REVALIDATE"
+    },
+    {
+      "path": "Resources/ThemeFonts/instrument-serif-OFL.txt",
+      "historical_2026_10_02_sha256": "b6106a757902d2d412e09d94dc4a226fe3da80485208a98003969f1b8b6b1d74",
+      "current_resource_bytes_read": false,
+      "current_identity": "ROOT_TO_REVALIDATE"
+    },
+    {
+      "path": "Resources/ThemeFonts/inter-OFL.txt",
+      "historical_2026_10_02_sha256": "3b0a5fca3d17942cde889069889dedbbbd075e9b599968c82a95f4d944e9b345",
+      "current_resource_bytes_read": false,
+      "current_identity": "ROOT_TO_REVALIDATE"
+    },
+    {
+      "path": "Resources/ThemeFonts/manifest.json",
+      "historical_2026_10_02_sha256": "75326b2537f588165ecf1174eba2c40b1af0600391503cefb12407d28b64285c",
+      "current_resource_bytes_read": false,
+      "current_identity": "ROOT_TO_REVALIDATE"
+    }
+  ],
+  "read_scope": "historical report JSON only; zero font/asset bytes read"
+}

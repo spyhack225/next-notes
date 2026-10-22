@@ -1,0 +1,24 @@
+{
+  "status": "SOURCE_ONLY_UNCOMPILED_UNRUN",
+  "sha256": {
+    "Tests/Reports/website-to-mac/reliability-process-quit-preparation-2026-10-04/fixture-preparation/manifest.json": "04d0396f8716b94090a00b8ed8517b0cac6da6dc306b8d25f5102c232e7196ab",
+    "Tests/Reports/website-to-mac/reliability-process-quit-preparation-2026-10-04/fixture-preparation/NativeBackgroundQuitSelfTest.swift.proposed": "e36f142c47df873d6a7609e285315bc2b105dfa892f085fc79c9ed3c98c3e9ad",
+    "Tests/Reports/website-to-mac/reliability-process-quit-preparation-2026-10-04/fixture-preparation/COMMON-app-integration.patch.txt": "083c8371bf1a2acce237e854b4dafa41c75aa80e026bea76c76077cf765456d2",
+    "Tests/Reports/website-to-mac/reliability-process-quit-preparation-2026-10-04/fixture-preparation/COMMON-manager-probe.patch.txt": "ad86df70a7a36528c81c2a6ecbb73ab054c7872031eaccbb1b019785975587e3",
+    "Tests/Reports/website-to-mac/reliability-process-quit-preparation-2026-10-04/fixture-preparation/COMMON-standalone.patch.txt": "b94e66b27e4e200e9ed2455fa785a504170995f8dda561d07a1e183120423c38",
+    "Tests/Reports/website-to-mac/reliability-process-quit-preparation-2026-10-04/background-revision/AgentTaskManager.COMMON.swift.txt": "04c6f5f98332eb8853a1197a850e4fe513f40f8e92c87285ccb214bf793e97ab",
+    "Tests/Reports/website-to-mac/reliability-process-quit-preparation-2026-10-04/background-revision/AgentTaskManager.FIXED.swift.txt": "f16e02b896bddc5bb3314f01ce69cacc20025950ebe43fade697f543bc933e68",
+    "Sources/NextNotes/NextNotesApp.swift": "bc01a27f48478a297d07a1d35669c313615cc7c182c0c6d113b4899e792a1b61",
+    "Sources/NextNotes/Support/NativeTerminationSelfTest.swift": "a1c1d30f8198e63758dde34abd8812b236c281a191cd9168383eff95a47aa4f5",
+    "Sources/NextNotes/Agent/Tasks/AgentTaskStore.swift": "13561c73e594cd0764026c9a429e82838011c00bed9eef616aa81ad63323a3ad",
+    "Sources/NextNotes/Agent/Tasks/Durable/TaskStore.swift": "401c861d5adec835534ac5eed8a21d29715a837510076b430fb1b0364463a2c8",
+    "Sources/NextNotes/Agent/Tasks/AgentTask.swift": "7b1f3f400d98c7a32edd3fb7f4f3fd8f028c9f680dcdb4578bfa0c845a79a941",
+    "Sources/NextNotes/Agent/Permissions/PermissionRequest.swift": "77ee0901ae81a9f6cfd2989d6ead51fcfb97dc5810bb3c7596050bd0283c77f0",
+    "Sources/NextNotes/Agent/ActionRuntime.swift": "b2d672a12fe95e572fe6a9af4542f184a01dcc88a0167b9a668af78b333adf10",
+    "Sources/NextNotes/Agent/Backend/ACPCompatibilityCLIBackend.swift": "d8d44e346f8045ae700ba6ebb3cf520b0b111be0a816fffdf740a77ff20e259b",
+    "Sources/NextNotes/Formatting/LLM/NotesModelRuntime.swift": "45ef55fe4afed62847932bd9fdf36f8819f093fb030a3f461af754b52deaef88",
+    "Sources/NextNotes/Knowledge/EmbeddingRuntime.swift": "85f147396dbec90865b75978004da8b8b7618b2634aa538e9860136cc6ace85a",
+    "Sources/NextNotes/Support/ModelDownloader.swift": "dd3ff581ae28606a62ea2ea5f424282fb07325eef99fd829164f677c4d665e07",
+    "Sources/NextNotes/Core/Compute/ModelResidencyPolicy.swift": "2a7a01634ae429d890465f7cbb1cb7c28ae1971ddc8b8bdf69883cc138af1cc6"
+  }
+}

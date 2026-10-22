@@ -120,6 +120,12 @@ final class TaskBridge {
         }
         return await operation.value
     }
+    /// Explicit held-row action; the displayed revision is not a retry token.
+    func continueRecoveredRead(id: UUID, displayedRevision: Int, agent: RealtimeAgent) -> Task<AgentTurn, Never>? {
+        guard !SelfTest.isRunning || permitsHarness else { return nil }
+        return manager.continueRecoveredRead(id: id, displayedRevision: displayedRevision,
+            agent: agent, bridge: self, sessionID: AgentSession.shared.sessionID)
+    }
     func ownsTypedEffect(work: VoiceConversationWork, worker: RealtimeAgent) -> Bool {
         manager.ownsTypedEffect(work: work, worker: worker, bridge: self)
     }

@@ -1,0 +1,14 @@
+{
+  "status": "CACHE ONLY UNAPPLIED; COMPONENT PASS, FULL ROUTER/RUNTIME NATIVE UNRUN",
+  "atUTC": "2026-10-08T05:44:13.418462+00:00",
+  "beforeSHA256": "9d872a3db9928018875c0e1141a70baad6d1df25e6a628ac64b08cf4d3095607",
+  "candidateSHA256": "451861fbfad7ff57714babd91b02d161c21960756993f6c6419b21816b60c18a",
+  "optin": "SelfTest.isRunning && explicit --dictation-prompt-copy-experiment at only actual completeForDictationCleanup caller; grammar paths and production default disabled",
+  "algorithm": "Same target sampler accepts actual tokens in indexed native-logit order, caps4 proposals; causal nativebatch + exact KV ledger/rollback onmismatch/stop/EOG/cancel",
+  "nativeCapabilityNotProved": "Refused partial rollback cannot continue; catch invalidates cache. Actual private S1/MiniCPM CPU/Metal and ledger/sampler/cancel quality/duty proof pending.",
+  "limits": "Not acceleration of global layout, not acoustic repair, no 2s claim. Prototype lookup CPU cost must be measured; bounded scan may warrant a request-local index only if measured need.",
+  "sourceWrites": false,
+  "lookupBoundary": "Cap remaining slice length before addition; Int.max limit does not overflow.",
+  "componentChecks": 19138,
+  "componentReceipt": "component-window-receipt.json in dictation-ready-heads-20261008"
+}

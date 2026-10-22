@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "id": "2026-09-30-cleanup-gemma",
+  "title": "Gemma 4 E4B Q4_K_M variability",
+  "date": "2026-09-30",
+  "category": "dictation",
+  "status": "partial",
+  "scope": "Historical cleanup comparison",
+  "summary": "3\u201311 failed assertions; 2.62\u20138.51 s median across retained conditions. No single ranking.",
+  "environment": {
+    "hardware": "Not fully recorded; consult original evidence"
+  },
+  "provenance": {
+    "kind": "historical evidence import",
+    "build": "See original evidence; not re-run by hub"
+  },
+  "metrics": [],
+  "limitations": [
+    "Loaded and quieter runs differ; original report retains ranges.",
+    "No single comparable condition is established by collapsing the range."
+  ],
+  "sources": [
+    "Tests/Reports/MODEL-COMPARE-CLEANUP-2026-09-30.md"
+  ],
+  "publication": {
+    "approved": true,
+    "reviewed_by": "benchmark-hub-20261022",
+    "reviewed_on": "2026-10-22"
+  }
+}

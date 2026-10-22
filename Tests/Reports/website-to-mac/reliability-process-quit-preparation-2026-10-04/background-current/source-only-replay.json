@@ -1,0 +1,14 @@
+{
+  "status": "COPY_ONLY_PATCH_REPLAY_PASS_NO_SWIFT_OR_NATIVE",
+  "preimagesMatch": true,
+  "patchesApplyInOrder": [
+    "AgentTaskManager.swift.patch.txt",
+    "NextNotesApp.swift.patch.txt"
+  ],
+  "postimagesMatchProposedCopies": true,
+  "postimagesSHA256": {
+    "Sources/NextNotes/Agent/Tasks/AgentTaskManager.swift": "5c46a379ae126d877b8aa592ab0d44d7d1b34b430540d7b0592fb698478df98b",
+    "Sources/NextNotes/NextNotesApp.swift": "42b1f228526fceb0a67c08de0d1b08ae164f503f2c52f16331a0e4ad201183e8"
+  },
+  "scope": "Manager and App copied files only; no canonical mutation; fixture unimplemented"
+}

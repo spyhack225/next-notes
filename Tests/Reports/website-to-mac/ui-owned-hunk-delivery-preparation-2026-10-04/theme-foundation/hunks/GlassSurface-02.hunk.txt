@@ -1,0 +1,8 @@
+--- a/Sources/NextNotes/UI/Components/GlassSurface.swift
++++ b/Sources/NextNotes/UI/Components/GlassSurface.swift
+@@ -25 +24,4 @@ struct GlassSurfaceModifier<S: Shape>: ViewModifier {
+-            content.background(material, in: shape)
++            // One renderer owns this rule: the solid theme surface, never a
++            // system material (which would break the fixed look). The old
++            // Material override had no callers and is gone.
++            content.background(DS.Theme.Glass.solidFallback, in: shape)

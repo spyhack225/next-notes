@@ -1,0 +1,1430 @@
+[
+  {
+    "name": "meeting.resources",
+    "startedAt": "2026-10-07T16:12:12Z",
+    "endedAt": "2026-10-07T16:12:12Z",
+    "durationSeconds": 0.030926942825317383,
+    "process": {
+      "physicalFootprintBytes": 1738264344,
+      "residentMemoryBytes": 128925696,
+      "userCPUSeconds": 599.195815,
+      "systemCPUSeconds": 120.954237
+    },
+    "resources": {
+      "queuedBytes": "0",
+      "activeBytes": "0",
+      "writerBytes": "25024",
+      "freeBytes": "14215921664",
+      "swapUsed": "2466250752",
+      "swapAvailable": "754974720",
+      "pressure": "normal",
+      "missedFrames": "0",
+      "missedBuffers": "0",
+      "paused": "0"
+    }
+  },
+  {
+    "name": "meeting.resources",
+    "startedAt": "2026-10-07T16:12:17Z",
+    "endedAt": "2026-10-07T16:12:17Z",
+    "durationSeconds": 0.017341017723083496,
+    "process": {
+      "physicalFootprintBytes": 1743769368,
+      "residentMemoryBytes": 117964800,
+      "userCPUSeconds": 601.579506,
+      "systemCPUSeconds": 121.364548
+    },
+    "resources": {
+      "queuedBytes": "0",
+      "activeBytes": "0",
+      "writerBytes": "357980",
+      "freeBytes": "14213984256",
+      "swapUsed": "2669084672",
+      "swapAvailable": "552140800",
+      "pressure": "normal",
+      "missedFrames": "0",
+      "missedBuffers": "0",
+      "paused": "0"
+    }
+  },
+  {
+    "name": "meeting.resources",
+    "startedAt": "2026-10-07T16:12:22Z",
+    "endedAt": "2026-10-07T16:12:22Z",
+    "durationSeconds": 0.0038460493087768555,
+    "process": {
+      "physicalFootprintBytes": 1753665304,
+      "residentMemoryBytes": 114769920,
+      "userCPUSeconds": 603.879487,
+      "systemCPUSeconds": 121.754626
+    },
+    "resources": {
+      "queuedBytes": "0",
+      "activeBytes": "0",
+      "writerBytes": "677624",
+      "freeBytes": "13101735936",
+      "swapUsed": "3363504128",
+      "swapAvailable": "931463168",
+      "pressure": "normal",
+      "missedFrames": "0",
+      "missedBuffers": "0",
+      "paused": "0"
+    }
+  },
+  {
+    "name": "meeting.speech_to_partial",
+    "startedAt": "2026-10-07T16:12:26Z",
+    "endedAt": "2026-10-07T16:12:27Z",
+    "durationSeconds": 0.8762764768600455,
+    "process": {
+      "physicalFootprintBytes": 1764691760,
+      "residentMemoryBytes": 152322048,
+      "userCPUSeconds": 606.212287,
+      "systemCPUSeconds": 122.285052
+    }
+  },
+  {
+    "name": "meeting.transcript_write",
+    "startedAt": "2026-10-07T16:12:27Z",
+    "endedAt": "2026-10-07T16:12:27Z",
+    "durationSeconds": 0.171020834,
+    "process": {
+      "physicalFootprintBytes": 1764970288,
+      "residentMemoryBytes": 160006144,
+      "userCPUSeconds": 606.267983,
+      "systemCPUSeconds": 122.339084
+    }
+  },
+  {
+    "name": "meeting.speech_to_final",
+    "startedAt": "2026-10-07T16:12:25Z",
+    "endedAt": "2026-10-07T16:12:27Z",
+    "durationSeconds": 2.628473489761351,
+    "process": {
+      "physicalFootprintBytes": 1764970288,
+      "residentMemoryBytes": 160415744,
+      "userCPUSeconds": 606.269159,
+      "systemCPUSeconds": 122.340457
+    }
+  },
+  {
+    "name": "meeting.transcript_to_context",
+    "startedAt": "2026-10-07T16:12:27Z",
+    "endedAt": "2026-10-07T16:12:27Z",
+    "durationSeconds": 0.009821167,
+    "process": {
+      "physicalFootprintBytes": 1764970288,
+      "residentMemoryBytes": 160907264,
+      "userCPUSeconds": 606.273821,
+      "systemCPUSeconds": 122.344474
+    }
+  },
+  {
+    "name": "meeting.resources",
+    "startedAt": "2026-10-07T16:12:27Z",
+    "endedAt": "2026-10-07T16:12:27Z",
+    "durationSeconds": 0.007647037506103516,
+    "process": {
+      "physicalFootprintBytes": 1765396272,
+      "residentMemoryBytes": 162316288,
+      "userCPUSeconds": 606.390242,
+      "systemCPUSeconds": 122.400162
+    },
+    "resources": {
+      "queuedBytes": "0",
+      "activeBytes": "0",
+      "writerBytes": "1003924",
+      "freeBytes": "11938869248",
+      "swapUsed": "4085317632",
+      "swapAvailable": "1283391488",
+      "pressure": "normal",
+      "missedFrames": "0",
+      "missedBuffers": "0",
+      "paused": "0"
+    }
+  },
+  {
+    "name": "meeting.resources",
+    "startedAt": "2026-10-07T16:12:32Z",
+    "endedAt": "2026-10-07T16:12:32Z",
+    "durationSeconds": 0.011234045028686523,
+    "process": {
+      "physicalFootprintBytes": 1773506352,
+      "residentMemoryBytes": 121192448,
+      "userCPUSeconds": 608.894488,
+      "systemCPUSeconds": 122.878229
+    },
+    "resources": {
+      "queuedBytes": "0",
+      "activeBytes": "0",
+      "writerBytes": "1323568",
+      "freeBytes": "11362856960",
+      "swapUsed": "4114808832",
+      "swapAvailable": "1253900288",
+      "pressure": "normal",
+      "missedFrames": "0",
+      "missedBuffers": "0",
+      "paused": "0"
+    }
+  },
+  {
+    "name": "meeting.resources",
+    "startedAt": "2026-10-07T16:12:38Z",
+    "endedAt": "2026-10-07T16:12:38Z",
+    "durationSeconds": 0.009801983833312988,
+    "process": {
+      "physicalFootprintBytes": 1782648624,
+      "residentMemoryBytes": 128614400,
+      "userCPUSeconds": 611.638467,
+      "systemCPUSeconds": 123.343915
+    },
+    "resources": {
+      "queuedBytes": "0",
+      "activeBytes": "0",
+      "writerBytes": "1656524",
+      "freeBytes": "12180201472",
+      "swapUsed": "4106420224",
+      "swapAvailable": "1262288896",
+      "pressure": "normal",
+      "missedFrames": "0",
+      "missedBuffers": "0",
+      "paused": "0"
+    }
+  },
+  {
+    "name": "meeting.resources",
+    "startedAt": "2026-10-07T16:12:43Z",
+    "endedAt": "2026-10-07T16:12:43Z",
+    "durationSeconds": 0.021551012992858887,
+    "process": {
+      "physicalFootprintBytes": 1791905608,
+      "residentMemoryBytes": 134086656,
+      "userCPUSeconds": 614.539366,
+      "systemCPUSeconds": 123.815147
+    },
+    "resources": {
+      "queuedBytes": "0",
+      "activeBytes": "0",
+      "writerBytes": "1989480",
+      "freeBytes": "12177928192",
+      "swapUsed": "4106420224",
+      "swapAvailable": "1262288896",
+      "pressure": "normal",
+      "missedFrames": "0",
+      "missedBuffers": "0",
+      "paused": "0"
+    }
+  },
+  {
+    "name": "meeting.resources",
+    "startedAt": "2026-10-07T16:12:48Z",
+    "endedAt": "2026-10-07T16:12:48Z",
+    "durationSeconds": 0.033944010734558105,
+    "process": {
+      "physicalFootprintBytes": 1799229256,
+      "residentMemoryBytes": 133087232,
+      "userCPUSeconds": 617.678379,
+      "systemCPUSeconds": 124.323337
+    },
+    "resources": {
+      "queuedBytes": "0",
+      "activeBytes": "0",
+      "writerBytes": "2322436",
+      "freeBytes": "12184924160",
+      "swapUsed": "4098031616",
+      "swapAvailable": "1270677504",
+      "pressure": "normal",
+      "missedFrames": "0",
+      "missedBuffers": "0",
+      "paused": "0"
+    }
+  },
+  {
+    "name": "meeting.resources",
+    "startedAt": "2026-10-07T16:12:53Z",
+    "endedAt": "2026-10-07T16:12:53Z",
+    "durationSeconds": 0.07108199596405029,
+    "process": {
+      "physicalFootprintBytes": 1803964232,
+      "residentMemoryBytes": 131022848,
+      "userCPUSeconds": 620.350835,
+      "systemCPUSeconds": 124.774317
+    },
+    "resources": {
+      "queuedBytes": "0",
+      "activeBytes": "0",
+      "writerBytes": "2648736",
+      "freeBytes": "12182740992",
+      "swapUsed": "4109172736",
+      "swapAvailable": "1259536384",
+      "pressure": "normal",
+      "missedFrames": "0",
+      "missedBuffers": "0",
+      "paused": "0"
+    }
+  },
+  {
+    "name": "meeting.resources",
+    "startedAt": "2026-10-07T16:12:58Z",
+    "endedAt": "2026-10-07T16:12:58Z",
+    "durationSeconds": 0.10294699668884277,
+    "process": {
+      "physicalFootprintBytes": 1806946120,
+      "residentMemoryBytes": 140673024,
+      "userCPUSeconds": 623.567509,
+      "systemCPUSeconds": 125.309989
+    },
+    "resources": {
+      "queuedBytes": "0",
+      "activeBytes": "0",
+      "writerBytes": "2975036",
+      "freeBytes": "12222959616",
+      "swapUsed": "4084006912",
+      "swapAvailable": "1284702208",
+      "pressure": "normal",
+      "missedFrames": "0",
+      "missedBuffers": "0",
+      "paused": "0"
+    }
+  },
+  {
+    "name": "meeting.speech_to_partial",
+    "startedAt": "2026-10-07T16:13:00Z",
+    "endedAt": "2026-10-07T16:13:02Z",
+    "durationSeconds": 2.2240634994506863,
+    "process": {
+      "physicalFootprintBytes": 1814744904,
+      "residentMemoryBytes": 174194688,
+      "userCPUSeconds": 626.247344,
+      "systemCPUSeconds": 125.954704
+    }
+  },
+  {
+    "name": "meeting.transcript_write",
+    "startedAt": "2026-10-07T16:13:02Z",
+    "endedAt": "2026-10-07T16:13:02Z",
+    "durationSeconds": 0.011853584,
+    "process": {
+      "physicalFootprintBytes": 1812385608,
+      "residentMemoryBytes": 176078848,
+      "userCPUSeconds": 626.303879,
+      "systemCPUSeconds": 125.975225
+    }
+  },
+  {
+    "name": "meeting.speech_to_final",
+    "startedAt": "2026-10-07T16:12:59Z",
+    "endedAt": "2026-10-07T16:13:02Z",
+    "durationSeconds": 3.4186084060668946,
+    "process": {
+      "physicalFootprintBytes": 1812385608,
+      "residentMemoryBytes": 176144384,
+      "userCPUSeconds": 626.304644,
+      "systemCPUSeconds": 125.976608
+    }
+  },
+  {
+    "name": "meeting.transcript_to_context",
+    "startedAt": "2026-10-07T16:13:02Z",
+    "endedAt": "2026-10-07T16:13:02Z",
+    "durationSeconds": 0.007709667,
+    "process": {
+      "physicalFootprintBytes": 1812385608,
+      "residentMemoryBytes": 176652288,
+      "userCPUSeconds": 626.30567,
+      "systemCPUSeconds": 125.979173
+    }
+  },
+  {
+    "name": "meeting.resources",
+    "startedAt": "2026-10-07T16:13:03Z",
+    "endedAt": "2026-10-07T16:13:03Z",
+    "durationSeconds": 0.1086050271987915,
+    "process": {
+      "physicalFootprintBytes": 1813811016,
+      "residentMemoryBytes": 186564608,
+      "userCPUSeconds": 627.105771,
+      "systemCPUSeconds": 126.12093
+    },
+    "resources": {
+      "queuedBytes": "0",
+      "activeBytes": "0",
+      "writerBytes": "3301336",
+      "freeBytes": "12226752512",
+      "swapUsed": "4084006912",
+      "swapAvailable": "1284702208",
+      "pressure": "normal",
+      "missedFrames": "0",
+      "missedBuffers": "0",
+      "paused": "0"
+    }
+  },
+  {
+    "name": "meeting.resources",
+    "startedAt": "2026-10-07T16:13:08Z",
+    "endedAt": "2026-10-07T16:13:08Z",
+    "durationSeconds": 0.08415305614471436,
+    "process": {
+      "physicalFootprintBytes": 1819004744,
+      "residentMemoryBytes": 188727296,
+      "userCPUSeconds": 630.084113,
+      "systemCPUSeconds": 126.691021
+    },
+    "resources": {
+      "queuedBytes": "0",
+      "activeBytes": "0",
+      "writerBytes": "3622176",
+      "freeBytes": "12225986560",
+      "swapUsed": "4067229696",
+      "swapAvailable": "1301479424",
+      "pressure": "normal",
+      "missedFrames": "0",
+      "missedBuffers": "0",
+      "paused": "0"
+    }
+  },
+  {
+    "name": "meeting.resources",
+    "startedAt": "2026-10-07T16:13:13Z",
+    "endedAt": "2026-10-07T16:13:13Z",
+    "durationSeconds": 0.08077692985534668,
+    "process": {
+      "physicalFootprintBytes": 1827295048,
+      "residentMemoryBytes": 200228864,
+      "userCPUSeconds": 633.764113,
+      "systemCPUSeconds": 127.32737
+    },
+    "resources": {
+      "queuedBytes": "0",
+      "activeBytes": "316160",
+      "writerBytes": "3941820",
+      "freeBytes": "12243161088",
+      "swapUsed": "4058841088",
+      "swapAvailable": "1309868032",
+      "pressure": "normal",
+      "missedFrames": "0",
+      "missedBuffers": "0",
+      "paused": "0"
+    }
+  },
+  {
+    "name": "meeting.speech_to_partial",
+    "startedAt": "2026-10-07T16:13:13Z",
+    "endedAt": "2026-10-07T16:13:14Z",
+    "durationSeconds": 1.0085899829864502,
+    "process": {
+      "physicalFootprintBytes": 1827589960,
+      "residentMemoryBytes": 199852032,
+      "userCPUSeconds": 634.132475,
+      "systemCPUSeconds": 127.371858
+    }
+  },
+  {
+    "name": "meeting.transcript_write",
+    "startedAt": "2026-10-07T16:13:14Z",
+    "endedAt": "2026-10-07T16:13:14Z",
+    "durationSeconds": 0.001582583,
+    "process": {
+      "physicalFootprintBytes": 1827639112,
+      "residentMemoryBytes": 201162752,
+      "userCPUSeconds": 634.164372,
+      "systemCPUSeconds": 127.381497
+    }
+  },
+  {
+    "name": "meeting.speech_to_final",
+    "startedAt": "2026-10-07T16:13:11Z",
+    "endedAt": "2026-10-07T16:13:14Z",
+    "durationSeconds": 2.8053369426727244,
+    "process": {
+      "physicalFootprintBytes": 1827639112,
+      "residentMemoryBytes": 201162752,
+      "userCPUSeconds": 634.164891,
+      "systemCPUSeconds": 127.382576
+    }
+  },
+  {
+    "name": "meeting.transcript_to_context",
+    "startedAt": "2026-10-07T16:13:14Z",
+    "endedAt": "2026-10-07T16:13:14Z",
+    "durationSeconds": 0.002899959,
+    "process": {
+      "physicalFootprintBytes": 1827639112,
+      "residentMemoryBytes": 201342976,
+      "userCPUSeconds": 634.165947,
+      "systemCPUSeconds": 127.384195
+    }
+  },
+  {
+    "name": "meeting.speech_to_final",
+    "startedAt": "2026-10-07T16:13:13Z",
+    "endedAt": "2026-10-07T16:13:14Z",
+    "durationSeconds": 1.270050940513606,
+    "process": {
+      "physicalFootprintBytes": 1827868488,
+      "residentMemoryBytes": 202571776,
+      "userCPUSeconds": 634.26641,
+      "systemCPUSeconds": 127.399738
+    }
+  },
+  {
+    "name": "meeting.transcript_to_context",
+    "startedAt": "2026-10-07T16:13:14Z",
+    "endedAt": "2026-10-07T16:13:14Z",
+    "durationSeconds": 0.002378209,
+    "process": {
+      "physicalFootprintBytes": 1827868488,
+      "residentMemoryBytes": 200900608,
+      "userCPUSeconds": 634.267508,
+      "systemCPUSeconds": 127.401477
+    }
+  },
+  {
+    "name": "meeting.speech_to_partial",
+    "startedAt": "2026-10-07T16:13:14Z",
+    "endedAt": "2026-10-07T16:13:15Z",
+    "durationSeconds": 0.5849754266738927,
+    "process": {
+      "physicalFootprintBytes": 1829064520,
+      "residentMemoryBytes": 202506240,
+      "userCPUSeconds": 634.882321,
+      "systemCPUSeconds": 127.50702
+    }
+  },
+  {
+    "name": "meeting.speech_to_final",
+    "startedAt": "2026-10-07T16:13:13Z",
+    "endedAt": "2026-10-07T16:13:15Z",
+    "durationSeconds": 1.5348204259872489,
+    "process": {
+      "physicalFootprintBytes": 1829162824,
+      "residentMemoryBytes": 202981376,
+      "userCPUSeconds": 634.906086,
+      "systemCPUSeconds": 127.510186
+    }
+  },
+  {
+    "name": "meeting.transcript_to_context",
+    "startedAt": "2026-10-07T16:13:15Z",
+    "endedAt": "2026-10-07T16:13:15Z",
+    "durationSeconds": 0.001222875,
+    "process": {
+      "physicalFootprintBytes": 1829162824,
+      "residentMemoryBytes": 202981376,
+      "userCPUSeconds": 634.906559,
+      "systemCPUSeconds": 127.511211
+    }
+  },
+  {
+    "name": "meeting.speech_to_partial",
+    "startedAt": "2026-10-07T16:13:17Z",
+    "endedAt": "2026-10-07T16:13:18Z",
+    "durationSeconds": 1.1600369596481386,
+    "process": {
+      "physicalFootprintBytes": 1833586504,
+      "residentMemoryBytes": 206602240,
+      "userCPUSeconds": 637.705336,
+      "systemCPUSeconds": 127.966552
+    }
+  },
+  {
+    "name": "meeting.speech_to_final",
+    "startedAt": "2026-10-07T16:13:17Z",
+    "endedAt": "2026-10-07T16:13:18Z",
+    "durationSeconds": 1.3631649541854927,
+    "process": {
+      "physicalFootprintBytes": 1833701192,
+      "residentMemoryBytes": 206929920,
+      "userCPUSeconds": 637.746042,
+      "systemCPUSeconds": 127.97291
+    }
+  },
+  {
+    "name": "meeting.transcript_to_context",
+    "startedAt": "2026-10-07T16:13:18Z",
+    "endedAt": "2026-10-07T16:13:18Z",
+    "durationSeconds": 0.008504916,
+    "process": {
+      "physicalFootprintBytes": 1833701192,
+      "residentMemoryBytes": 206766080,
+      "userCPUSeconds": 637.747042,
+      "systemCPUSeconds": 127.97447
+    }
+  },
+  {
+    "name": "meeting.resources",
+    "startedAt": "2026-10-07T16:13:19Z",
+    "endedAt": "2026-10-07T16:13:19Z",
+    "durationSeconds": 0.09141206741333008,
+    "process": {
+      "physicalFootprintBytes": 1834045256,
+      "residentMemoryBytes": 203456512,
+      "userCPUSeconds": 637.892936,
+      "systemCPUSeconds": 127.99425600000001
+    },
+    "resources": {
+      "queuedBytes": "0",
+      "activeBytes": "0",
+      "writerBytes": "4274776",
+      "freeBytes": "12239454208",
+      "swapUsed": "4042063872",
+      "swapAvailable": "1326645248",
+      "pressure": "normal",
+      "missedFrames": "0",
+      "missedBuffers": "0",
+      "paused": "0"
+    }
+  },
+  {
+    "name": "meeting.transcript_write",
+    "startedAt": "2026-10-07T16:13:19Z",
+    "endedAt": "2026-10-07T16:13:19Z",
+    "durationSeconds": 0.00132525,
+    "process": {
+      "physicalFootprintBytes": 1834061640,
+      "residentMemoryBytes": 203358208,
+      "userCPUSeconds": 638.02054,
+      "systemCPUSeconds": 128.01433
+    }
+  },
+  {
+    "name": "meeting.speech_to_partial",
+    "startedAt": "2026-10-07T16:13:23Z",
+    "endedAt": "2026-10-07T16:13:23Z",
+    "durationSeconds": 0.7450230121612549,
+    "process": {
+      "physicalFootprintBytes": 1840058184,
+      "residentMemoryBytes": 214876160,
+      "userCPUSeconds": 641.546636,
+      "systemCPUSeconds": 128.606759
+    }
+  },
+  {
+    "name": "meeting.speech_to_final",
+    "startedAt": "2026-10-07T16:13:22Z",
+    "endedAt": "2026-10-07T16:13:23Z",
+    "durationSeconds": 1.2872679233551025,
+    "process": {
+      "physicalFootprintBytes": 1840123720,
+      "residentMemoryBytes": 215302144,
+      "userCPUSeconds": 641.58028,
+      "systemCPUSeconds": 128.612076
+    }
+  },
+  {
+    "name": "meeting.transcript_to_context",
+    "startedAt": "2026-10-07T16:13:23Z",
+    "endedAt": "2026-10-07T16:13:23Z",
+    "durationSeconds": 0.001238542,
+    "process": {
+      "physicalFootprintBytes": 1840123720,
+      "residentMemoryBytes": 215302144,
+      "userCPUSeconds": 641.581106,
+      "systemCPUSeconds": 128.612932
+    }
+  },
+  {
+    "name": "meeting.resources",
+    "startedAt": "2026-10-07T16:13:24Z",
+    "endedAt": "2026-10-07T16:13:24Z",
+    "durationSeconds": 0.05344200134277344,
+    "process": {
+      "physicalFootprintBytes": 1840353096,
+      "residentMemoryBytes": 216121344,
+      "userCPUSeconds": 641.710648,
+      "systemCPUSeconds": 128.634163
+    },
+    "resources": {
+      "queuedBytes": "0",
+      "activeBytes": "0",
+      "writerBytes": "4601076",
+      "freeBytes": "12237357056",
+      "swapUsed": "4042063872",
+      "swapAvailable": "1326645248",
+      "pressure": "normal",
+      "missedFrames": "0",
+      "missedBuffers": "0",
+      "paused": "0"
+    }
+  },
+  {
+    "name": "meeting.transcript_write",
+    "startedAt": "2026-10-07T16:13:24Z",
+    "endedAt": "2026-10-07T16:13:24Z",
+    "durationSeconds": 0.001429,
+    "process": {
+      "physicalFootprintBytes": 1842892616,
+      "residentMemoryBytes": 216629248,
+      "userCPUSeconds": 641.886715,
+      "systemCPUSeconds": 128.659298
+    }
+  },
+  {
+    "name": "meeting.speech_to_partial",
+    "startedAt": "2026-10-07T16:13:25Z",
+    "endedAt": "2026-10-07T16:13:26Z",
+    "durationSeconds": 1.535741925239563,
+    "process": {
+      "physicalFootprintBytes": 1840631648,
+      "residentMemoryBytes": 206700544,
+      "userCPUSeconds": 643.662187,
+      "systemCPUSeconds": 128.980714
+    }
+  },
+  {
+    "name": "meeting.speech_to_final",
+    "startedAt": "2026-10-07T16:13:24Z",
+    "endedAt": "2026-10-07T16:13:26Z",
+    "durationSeconds": 2.2171399736404425,
+    "process": {
+      "physicalFootprintBytes": 1840746336,
+      "residentMemoryBytes": 206831616,
+      "userCPUSeconds": 643.694157,
+      "systemCPUSeconds": 128.986055
+    }
+  },
+  {
+    "name": "meeting.transcript_to_context",
+    "startedAt": "2026-10-07T16:13:26Z",
+    "endedAt": "2026-10-07T16:13:26Z",
+    "durationSeconds": 0.001661916,
+    "process": {
+      "physicalFootprintBytes": 1840762720,
+      "residentMemoryBytes": 206848000,
+      "userCPUSeconds": 643.694717,
+      "systemCPUSeconds": 128.987023
+    }
+  },
+  {
+    "name": "meeting.resources",
+    "startedAt": "2026-10-07T16:13:29Z",
+    "endedAt": "2026-10-07T16:13:29Z",
+    "durationSeconds": 0.14177095890045166,
+    "process": {
+      "physicalFootprintBytes": 1845940064,
+      "residentMemoryBytes": 193708032,
+      "userCPUSeconds": 645.365153,
+      "systemCPUSeconds": 129.26224
+    },
+    "resources": {
+      "queuedBytes": "0",
+      "activeBytes": "0",
+      "writerBytes": "4920720",
+      "freeBytes": "12234293248",
+      "swapUsed": "4033675264",
+      "swapAvailable": "1335033856",
+      "pressure": "normal",
+      "missedFrames": "0",
+      "missedBuffers": "0",
+      "paused": "0"
+    }
+  },
+  {
+    "name": "meeting.transcript_write",
+    "startedAt": "2026-10-07T16:13:29Z",
+    "endedAt": "2026-10-07T16:13:29Z",
+    "durationSeconds": 0.00350325,
+    "process": {
+      "physicalFootprintBytes": 1846153056,
+      "residentMemoryBytes": 197230592,
+      "userCPUSeconds": 645.554753,
+      "systemCPUSeconds": 129.29561
+    }
+  },
+  {
+    "name": "meeting.speech_to_partial",
+    "startedAt": "2026-10-07T16:13:29Z",
+    "endedAt": "2026-10-07T16:13:30Z",
+    "durationSeconds": 1.1930100107193056,
+    "process": {
+      "physicalFootprintBytes": 1846660960,
+      "residentMemoryBytes": 201998336,
+      "userCPUSeconds": 646.312926,
+      "systemCPUSeconds": 129.430501
+    }
+  },
+  {
+    "name": "meeting.speech_to_final",
+    "startedAt": "2026-10-07T16:13:29Z",
+    "endedAt": "2026-10-07T16:13:30Z",
+    "durationSeconds": 1.2896819877624495,
+    "process": {
+      "physicalFootprintBytes": 1846759264,
+      "residentMemoryBytes": 202964992,
+      "userCPUSeconds": 646.350906,
+      "systemCPUSeconds": 129.438226
+    }
+  },
+  {
+    "name": "meeting.transcript_to_context",
+    "startedAt": "2026-10-07T16:13:30Z",
+    "endedAt": "2026-10-07T16:13:30Z",
+    "durationSeconds": 0.001629375,
+    "process": {
+      "physicalFootprintBytes": 1846759264,
+      "residentMemoryBytes": 202964992,
+      "userCPUSeconds": 646.351638,
+      "systemCPUSeconds": 129.439299
+    }
+  },
+  {
+    "name": "meeting.resources",
+    "startedAt": "2026-10-07T16:13:34Z",
+    "endedAt": "2026-10-07T16:13:34Z",
+    "durationSeconds": 0.03305506706237793,
+    "process": {
+      "physicalFootprintBytes": 1852133240,
+      "residentMemoryBytes": 195674112,
+      "userCPUSeconds": 649.127248,
+      "systemCPUSeconds": 129.927117
+    },
+    "resources": {
+      "queuedBytes": "0",
+      "activeBytes": "0",
+      "writerBytes": "5240364",
+      "freeBytes": "12202463232",
+      "swapUsed": "4033675264",
+      "swapAvailable": "1335033856",
+      "pressure": "normal",
+      "missedFrames": "0",
+      "missedBuffers": "0",
+      "paused": "0"
+    }
+  },
+  {
+    "name": "meeting.transcript_write",
+    "startedAt": "2026-10-07T16:13:34Z",
+    "endedAt": "2026-10-07T16:13:34Z",
+    "durationSeconds": 0.001631459,
+    "process": {
+      "physicalFootprintBytes": 1852591992,
+      "residentMemoryBytes": 193789952,
+      "userCPUSeconds": 649.409169,
+      "systemCPUSeconds": 129.973063
+    }
+  },
+  {
+    "name": "meeting.resources",
+    "startedAt": "2026-10-07T16:13:39Z",
+    "endedAt": "2026-10-07T16:13:39Z",
+    "durationSeconds": 0.056640028953552246,
+    "process": {
+      "physicalFootprintBytes": 1976569792,
+      "residentMemoryBytes": 223428608,
+      "userCPUSeconds": 652.610865,
+      "systemCPUSeconds": 130.543379
+    },
+    "resources": {
+      "queuedBytes": "0",
+      "activeBytes": "0",
+      "writerBytes": "5573320",
+      "freeBytes": "12238356480",
+      "swapUsed": "4033675264",
+      "swapAvailable": "1335033856",
+      "pressure": "normal",
+      "missedFrames": "0",
+      "missedBuffers": "0",
+      "paused": "0"
+    }
+  },
+  {
+    "name": "meeting.speech_to_partial",
+    "startedAt": "2026-10-07T16:13:39Z",
+    "endedAt": "2026-10-07T16:13:39Z",
+    "durationSeconds": 0.761713981628418,
+    "process": {
+      "physicalFootprintBytes": 2001948656,
+      "residentMemoryBytes": 251117568,
+      "userCPUSeconds": 653.202744,
+      "systemCPUSeconds": 130.652258
+    }
+  },
+  {
+    "name": "meeting.transcript_write",
+    "startedAt": "2026-10-07T16:13:40Z",
+    "endedAt": "2026-10-07T16:13:40Z",
+    "durationSeconds": 0.001228583,
+    "process": {
+      "physicalFootprintBytes": 2002800624,
+      "residentMemoryBytes": 255557632,
+      "userCPUSeconds": 653.234126,
+      "systemCPUSeconds": 130.659107
+    }
+  },
+  {
+    "name": "meeting.speech_to_final",
+    "startedAt": "2026-10-07T16:13:39Z",
+    "endedAt": "2026-10-07T16:13:40Z",
+    "durationSeconds": 0.8824369478225691,
+    "process": {
+      "physicalFootprintBytes": 2002849776,
+      "residentMemoryBytes": 255606784,
+      "userCPUSeconds": 653.234664,
+      "systemCPUSeconds": 130.6599
+    }
+  },
+  {
+    "name": "meeting.transcript_to_context",
+    "startedAt": "2026-10-07T16:13:40Z",
+    "endedAt": "2026-10-07T16:13:40Z",
+    "durationSeconds": 0.002056292,
+    "process": {
+      "physicalFootprintBytes": 2002849776,
+      "residentMemoryBytes": 255721472,
+      "userCPUSeconds": 653.235636,
+      "systemCPUSeconds": 130.661179
+    }
+  },
+  {
+    "name": "meeting.resources",
+    "startedAt": "2026-10-07T16:13:44Z",
+    "endedAt": "2026-10-07T16:13:44Z",
+    "durationSeconds": 0.03949594497680664,
+    "process": {
+      "physicalFootprintBytes": 2158497896,
+      "residentMemoryBytes": 269615104,
+      "userCPUSeconds": 656.303266,
+      "systemCPUSeconds": 131.181944
+    },
+    "resources": {
+      "queuedBytes": "0",
+      "activeBytes": "0",
+      "writerBytes": "5894160",
+      "freeBytes": "12214595584",
+      "swapUsed": "4045209600",
+      "swapAvailable": "1323499520",
+      "pressure": "normal",
+      "missedFrames": "0",
+      "missedBuffers": "0",
+      "paused": "0"
+    }
+  },
+  {
+    "name": "meeting.speech_to_partial",
+    "startedAt": "2026-10-07T16:13:45Z",
+    "endedAt": "2026-10-07T16:13:45Z",
+    "durationSeconds": 0.6571069288253852,
+    "process": {
+      "physicalFootprintBytes": 2265485488,
+      "residentMemoryBytes": 278331392,
+      "userCPUSeconds": 657.327567,
+      "systemCPUSeconds": 131.381286
+    }
+  },
+  {
+    "name": "meeting.transcript_write",
+    "startedAt": "2026-10-07T16:13:45Z",
+    "endedAt": "2026-10-07T16:13:45Z",
+    "durationSeconds": 0.003744291,
+    "process": {
+      "physicalFootprintBytes": 2265583792,
+      "residentMemoryBytes": 254623744,
+      "userCPUSeconds": 657.35916,
+      "systemCPUSeconds": 131.388477
+    }
+  },
+  {
+    "name": "meeting.speech_to_final",
+    "startedAt": "2026-10-07T16:13:44Z",
+    "endedAt": "2026-10-07T16:13:45Z",
+    "durationSeconds": 0.7621449136733958,
+    "process": {
+      "physicalFootprintBytes": 2265583792,
+      "residentMemoryBytes": 254689280,
+      "userCPUSeconds": 657.359833,
+      "systemCPUSeconds": 131.38973
+    }
+  },
+  {
+    "name": "meeting.transcript_to_context",
+    "startedAt": "2026-10-07T16:13:45Z",
+    "endedAt": "2026-10-07T16:13:45Z",
+    "durationSeconds": 0.00195575,
+    "process": {
+      "physicalFootprintBytes": 2265583792,
+      "residentMemoryBytes": 254820352,
+      "userCPUSeconds": 657.360661,
+      "systemCPUSeconds": 131.391032
+    }
+  },
+  {
+    "name": "meeting.resources",
+    "startedAt": "2026-10-07T16:13:49Z",
+    "endedAt": "2026-10-07T16:13:49Z",
+    "durationSeconds": 0.020208001136779785,
+    "process": {
+      "physicalFootprintBytes": 4064187816,
+      "residentMemoryBytes": 725925888,
+      "userCPUSeconds": 660.58059,
+      "systemCPUSeconds": 132.176311
+    },
+    "resources": {
+      "queuedBytes": "0",
+      "activeBytes": "0",
+      "writerBytes": "6220460",
+      "freeBytes": "12358877184",
+      "swapUsed": "4535091200",
+      "swapAvailable": "833617920",
+      "pressure": "normal",
+      "missedFrames": "0",
+      "missedBuffers": "0",
+      "paused": "0"
+    }
+  },
+  {
+    "name": "meeting.speech_to_partial",
+    "startedAt": "2026-10-07T16:13:51Z",
+    "endedAt": "2026-10-07T16:13:52Z",
+    "durationSeconds": 0.6894119071960461,
+    "process": {
+      "physicalFootprintBytes": 4903737344,
+      "residentMemoryBytes": 248512512,
+      "userCPUSeconds": 663.166346,
+      "systemCPUSeconds": 132.729745
+    }
+  },
+  {
+    "name": "meeting.transcript_write",
+    "startedAt": "2026-10-07T16:13:52Z",
+    "endedAt": "2026-10-07T16:13:52Z",
+    "durationSeconds": 0.001098375,
+    "process": {
+      "physicalFootprintBytes": 4918892544,
+      "residentMemoryBytes": 267501568,
+      "userCPUSeconds": 663.200711,
+      "systemCPUSeconds": 132.739812
+    }
+  },
+  {
+    "name": "meeting.speech_to_final",
+    "startedAt": "2026-10-07T16:13:51Z",
+    "endedAt": "2026-10-07T16:13:52Z",
+    "durationSeconds": 1.4700249624252422,
+    "process": {
+      "physicalFootprintBytes": 4920219648,
+      "residentMemoryBytes": 268910592,
+      "userCPUSeconds": 663.201947,
+      "systemCPUSeconds": 132.740872
+    }
+  },
+  {
+    "name": "meeting.transcript_to_context",
+    "startedAt": "2026-10-07T16:13:52Z",
+    "endedAt": "2026-10-07T16:13:52Z",
+    "durationSeconds": 0.001034625,
+    "process": {
+      "physicalFootprintBytes": 4921481216,
+      "residentMemoryBytes": 270352384,
+      "userCPUSeconds": 663.203168,
+      "systemCPUSeconds": 132.741901
+    }
+  },
+  {
+    "name": "meeting.resources",
+    "startedAt": "2026-10-07T16:13:54Z",
+    "endedAt": "2026-10-07T16:13:54Z",
+    "durationSeconds": 0.07044291496276855,
+    "process": {
+      "physicalFootprintBytes": 5896460984,
+      "residentMemoryBytes": 498089984,
+      "userCPUSeconds": 664.954311,
+      "systemCPUSeconds": 133.155282
+    },
+    "resources": {
+      "queuedBytes": "0",
+      "activeBytes": "0",
+      "writerBytes": "6553416",
+      "freeBytes": "12356550656",
+      "swapUsed": "4894162944",
+      "swapAvailable": "474546176",
+      "pressure": "normal",
+      "missedFrames": "0",
+      "missedBuffers": "0",
+      "paused": "0"
+    }
+  },
+  {
+    "name": "meeting.speech_to_partial",
+    "startedAt": "2026-10-07T16:13:54Z",
+    "endedAt": "2026-10-07T16:13:55Z",
+    "durationSeconds": 0.5888839387893654,
+    "process": {
+      "physicalFootprintBytes": 6263823296,
+      "residentMemoryBytes": 599130112,
+      "userCPUSeconds": 665.643646,
+      "systemCPUSeconds": 133.317071
+    }
+  },
+  {
+    "name": "meeting.speech_to_final",
+    "startedAt": "2026-10-07T16:13:54Z",
+    "endedAt": "2026-10-07T16:13:55Z",
+    "durationSeconds": 0.6535439300537149,
+    "process": {
+      "physicalFootprintBytes": 6264249280,
+      "residentMemoryBytes": 591003648,
+      "userCPUSeconds": 665.663397,
+      "systemCPUSeconds": 133.320738
+    }
+  },
+  {
+    "name": "meeting.transcript_to_context",
+    "startedAt": "2026-10-07T16:13:55Z",
+    "endedAt": "2026-10-07T16:13:55Z",
+    "durationSeconds": 0.001690375,
+    "process": {
+      "physicalFootprintBytes": 6264249280,
+      "residentMemoryBytes": 591151104,
+      "userCPUSeconds": 665.663991,
+      "systemCPUSeconds": 133.321776
+    }
+  },
+  {
+    "name": "meeting.transcript_write",
+    "startedAt": "2026-10-07T16:13:57Z",
+    "endedAt": "2026-10-07T16:13:57Z",
+    "durationSeconds": 0.001250875,
+    "process": {
+      "physicalFootprintBytes": 6500031592,
+      "residentMemoryBytes": 354516992,
+      "userCPUSeconds": 667.280194,
+      "systemCPUSeconds": 133.624616
+    }
+  },
+  {
+    "name": "meeting.resources",
+    "startedAt": "2026-10-07T16:14:00Z",
+    "endedAt": "2026-10-07T16:14:00Z",
+    "durationSeconds": 0.27251410484313965,
+    "process": {
+      "physicalFootprintBytes": 7095606808,
+      "residentMemoryBytes": 234536960,
+      "userCPUSeconds": 669.19397,
+      "systemCPUSeconds": 134.0833
+    },
+    "resources": {
+      "queuedBytes": "0",
+      "activeBytes": "0",
+      "writerBytes": "6937228",
+      "freeBytes": "11281555456",
+      "swapUsed": "5491851264",
+      "swapAvailable": "950599680",
+      "pressure": "normal",
+      "missedFrames": "0",
+      "missedBuffers": "0",
+      "paused": "0"
+    }
+  },
+  {
+    "name": "meeting.speech_to_partial",
+    "startedAt": "2026-10-07T16:14:01Z",
+    "endedAt": "2026-10-07T16:14:03Z",
+    "durationSeconds": 1.3475579500198336,
+    "process": {
+      "physicalFootprintBytes": 7809998864,
+      "residentMemoryBytes": 474955776,
+      "userCPUSeconds": 670.411031,
+      "systemCPUSeconds": 134.455231
+    }
+  },
+  {
+    "name": "meeting.transcript_write",
+    "startedAt": "2026-10-07T16:14:03Z",
+    "endedAt": "2026-10-07T16:14:03Z",
+    "durationSeconds": 0.003344875,
+    "process": {
+      "physicalFootprintBytes": 7818371088,
+      "residentMemoryBytes": 454000640,
+      "userCPUSeconds": 670.484668,
+      "systemCPUSeconds": 134.474997
+    }
+  },
+  {
+    "name": "meeting.speech_to_final",
+    "startedAt": "2026-10-07T16:14:01Z",
+    "endedAt": "2026-10-07T16:14:03Z",
+    "durationSeconds": 1.475683994293206,
+    "process": {
+      "physicalFootprintBytes": 7818567696,
+      "residentMemoryBytes": 454246400,
+      "userCPUSeconds": 670.485361,
+      "systemCPUSeconds": 134.476135
+    }
+  },
+  {
+    "name": "meeting.transcript_to_context",
+    "startedAt": "2026-10-07T16:14:03Z",
+    "endedAt": "2026-10-07T16:14:03Z",
+    "durationSeconds": 0.00171325,
+    "process": {
+      "physicalFootprintBytes": 7818584080,
+      "residentMemoryBytes": 454393856,
+      "userCPUSeconds": 670.485959,
+      "systemCPUSeconds": 134.477113
+    }
+  },
+  {
+    "name": "meeting.resources",
+    "startedAt": "2026-10-07T16:14:04Z",
+    "endedAt": "2026-10-07T16:14:04Z",
+    "durationSeconds": 0.06678998470306396,
+    "process": {
+      "physicalFootprintBytes": 8099029224,
+      "residentMemoryBytes": 439304192,
+      "userCPUSeconds": 671.586578,
+      "systemCPUSeconds": 134.695367
+    },
+    "resources": {
+      "queuedBytes": "0",
+      "activeBytes": "0",
+      "writerBytes": "7206016",
+      "freeBytes": "11266445312",
+      "swapUsed": "5802033152",
+      "swapAvailable": "640417792",
+      "pressure": "normal",
+      "missedFrames": "0",
+      "missedBuffers": "0",
+      "paused": "0"
+    }
+  },
+  {
+    "name": "meeting.speech_to_partial",
+    "startedAt": "2026-10-07T16:14:05Z",
+    "endedAt": "2026-10-07T16:14:06Z",
+    "durationSeconds": 0.6987938976287751,
+    "process": {
+      "physicalFootprintBytes": 8396939784,
+      "residentMemoryBytes": 692273152,
+      "userCPUSeconds": 672.354037,
+      "systemCPUSeconds": 134.95875
+    }
+  },
+  {
+    "name": "meeting.speech_to_final",
+    "startedAt": "2026-10-07T16:14:05Z",
+    "endedAt": "2026-10-07T16:14:06Z",
+    "durationSeconds": 0.9955919408798195,
+    "process": {
+      "physicalFootprintBytes": 8506385024,
+      "residentMemoryBytes": 761053184,
+      "userCPUSeconds": 672.44262,
+      "systemCPUSeconds": 134.988459
+    }
+  },
+  {
+    "name": "meeting.transcript_to_context",
+    "startedAt": "2026-10-07T16:14:06Z",
+    "endedAt": "2026-10-07T16:14:06Z",
+    "durationSeconds": 0.003381667,
+    "process": {
+      "physicalFootprintBytes": 8508465792,
+      "residentMemoryBytes": 763232256,
+      "userCPUSeconds": 672.444038,
+      "systemCPUSeconds": 134.990003
+    }
+  },
+  {
+    "name": "meeting.transcript_write",
+    "startedAt": "2026-10-07T16:14:08Z",
+    "endedAt": "2026-10-07T16:14:08Z",
+    "durationSeconds": 0.010134459,
+    "process": {
+      "physicalFootprintBytes": 8788484928,
+      "residentMemoryBytes": 289849344,
+      "userCPUSeconds": 673.869557,
+      "systemCPUSeconds": 135.278499
+    }
+  },
+  {
+    "name": "meeting.speech_to_partial",
+    "startedAt": "2026-10-07T16:14:08Z",
+    "endedAt": "2026-10-07T16:14:08Z",
+    "durationSeconds": 0.4626259469985996,
+    "process": {
+      "physicalFootprintBytes": 8843748184,
+      "residentMemoryBytes": 308903936,
+      "userCPUSeconds": 674.252395,
+      "systemCPUSeconds": 135.361852
+    }
+  },
+  {
+    "name": "meeting.speech_to_final",
+    "startedAt": "2026-10-07T16:14:07Z",
+    "endedAt": "2026-10-07T16:14:08Z",
+    "durationSeconds": 1.2714199781417932,
+    "process": {
+      "physicalFootprintBytes": 8848106352,
+      "residentMemoryBytes": 313950208,
+      "userCPUSeconds": 674.290188,
+      "systemCPUSeconds": 135.36916
+    }
+  },
+  {
+    "name": "meeting.transcript_to_context",
+    "startedAt": "2026-10-07T16:14:08Z",
+    "endedAt": "2026-10-07T16:14:08Z",
+    "durationSeconds": 0.004698292,
+    "process": {
+      "physicalFootprintBytes": 8848221040,
+      "residentMemoryBytes": 314114048,
+      "userCPUSeconds": 674.291292,
+      "systemCPUSeconds": 135.370692
+    }
+  },
+  {
+    "name": "meeting.health_warning",
+    "startedAt": "2026-10-07T16:14:10Z",
+    "endedAt": "2026-10-07T16:14:10Z",
+    "durationSeconds": 0,
+    "process": {
+      "physicalFootprintBytes": 9285050216,
+      "residentMemoryBytes": 311148544,
+      "userCPUSeconds": 675.083116,
+      "systemCPUSeconds": 135.615045
+    }
+  },
+  {
+    "name": "meeting.resources",
+    "startedAt": "2026-10-07T16:14:09Z",
+    "endedAt": "2026-10-07T16:14:10Z",
+    "durationSeconds": 0.19655990600585938,
+    "process": {
+      "physicalFootprintBytes": 9285050216,
+      "residentMemoryBytes": 306167808,
+      "userCPUSeconds": 675.083848,
+      "systemCPUSeconds": 135.616665
+    },
+    "resources": {
+      "queuedBytes": "0",
+      "activeBytes": "0",
+      "writerBytes": "7532316",
+      "freeBytes": "11358056448",
+      "swapUsed": "6099304448",
+      "swapAvailable": "343146496",
+      "pressure": "warning",
+      "missedFrames": "0",
+      "missedBuffers": "0",
+      "paused": "0"
+    }
+  },
+  {
+    "name": "meeting.transcript_write",
+    "startedAt": "2026-10-07T16:14:13Z",
+    "endedAt": "2026-10-07T16:14:13Z",
+    "durationSeconds": 0.001518417,
+    "process": {
+      "physicalFootprintBytes": 9591988288,
+      "residentMemoryBytes": 219938816,
+      "userCPUSeconds": 677.00441,
+      "systemCPUSeconds": 135.998098
+    }
+  },
+  {
+    "name": "meeting.speech_to_partial",
+    "startedAt": "2026-10-07T16:14:13Z",
+    "endedAt": "2026-10-07T16:14:14Z",
+    "durationSeconds": 1.7249139118194563,
+    "process": {
+      "physicalFootprintBytes": 9645613168,
+      "residentMemoryBytes": 254066688,
+      "userCPUSeconds": 677.825253,
+      "systemCPUSeconds": 136.12083
+    }
+  },
+  {
+    "name": "meeting.speech_to_final",
+    "startedAt": "2026-10-07T16:14:11Z",
+    "endedAt": "2026-10-07T16:14:14Z",
+    "durationSeconds": 2.946936001777658,
+    "process": {
+      "physicalFootprintBytes": 9651642480,
+      "residentMemoryBytes": 263143424,
+      "userCPUSeconds": 677.867241,
+      "systemCPUSeconds": 136.129941
+    }
+  },
+  {
+    "name": "meeting.transcript_to_context",
+    "startedAt": "2026-10-07T16:14:14Z",
+    "endedAt": "2026-10-07T16:14:14Z",
+    "durationSeconds": 0.001242917,
+    "process": {
+      "physicalFootprintBytes": 9652101232,
+      "residentMemoryBytes": 263716864,
+      "userCPUSeconds": 677.869942,
+      "systemCPUSeconds": 136.131423
+    }
+  },
+  {
+    "name": "meeting.resources",
+    "startedAt": "2026-10-07T16:14:15Z",
+    "endedAt": "2026-10-07T16:14:15Z",
+    "durationSeconds": 0.06248295307159424,
+    "process": {
+      "physicalFootprintBytes": 9722437792,
+      "residentMemoryBytes": 303284224,
+      "userCPUSeconds": 678.071677,
+      "systemCPUSeconds": 136.177695
+    },
+    "resources": {
+      "queuedBytes": "0",
+      "activeBytes": "0",
+      "writerBytes": "7865272",
+      "freeBytes": "10425335808",
+      "swapUsed": "6665011200",
+      "swapAvailable": "851181568",
+      "pressure": "warning",
+      "missedFrames": "0",
+      "missedBuffers": "0",
+      "paused": "0"
+    }
+  },
+  {
+    "name": "meeting.speech_to_partial",
+    "startedAt": "2026-10-07T16:14:15Z",
+    "endedAt": "2026-10-07T16:14:16Z",
+    "durationSeconds": 0.7891349077224703,
+    "process": {
+      "physicalFootprintBytes": 9976881480,
+      "residentMemoryBytes": 410599424,
+      "userCPUSeconds": 679.294992,
+      "systemCPUSeconds": 136.426476
+    }
+  },
+  {
+    "name": "meeting.speech_to_final",
+    "startedAt": "2026-10-07T16:14:14Z",
+    "endedAt": "2026-10-07T16:14:16Z",
+    "durationSeconds": 1.8810198974609307,
+    "process": {
+      "physicalFootprintBytes": 10016694648,
+      "residentMemoryBytes": 402505728,
+      "userCPUSeconds": 679.351271,
+      "systemCPUSeconds": 136.442665
+    }
+  },
+  {
+    "name": "meeting.transcript_to_context",
+    "startedAt": "2026-10-07T16:14:16Z",
+    "endedAt": "2026-10-07T16:14:16Z",
+    "durationSeconds": 0.001129125,
+    "process": {
+      "physicalFootprintBytes": 10016776568,
+      "residentMemoryBytes": 400506880,
+      "userCPUSeconds": 679.35177,
+      "systemCPUSeconds": 136.443562
+    }
+  },
+  {
+    "name": "meeting.transcript_write",
+    "startedAt": "2026-10-07T16:14:18Z",
+    "endedAt": "2026-10-07T16:14:18Z",
+    "durationSeconds": 0.005001333,
+    "process": {
+      "physicalFootprintBytes": 10731234520,
+      "residentMemoryBytes": 618758144,
+      "userCPUSeconds": 680.784052,
+      "systemCPUSeconds": 136.875585
+    }
+  }
+]

@@ -273,6 +273,8 @@ enum ActionReceiptStatus: String, Codable, Sendable, CaseIterable {
     case waitingPermission
     case approved
     case fired
+    /// The scoped mutation returned; its resulting path is retained before readback.
+    case verifying
     case completed
     case denied
     case failed
@@ -645,6 +647,24 @@ final class ActionOrchestrator {
 
     private init() {}
 
+    // SAME synchronous post-backing boundary, diagnostics only. No normal observer or await.
+    private var resultVerificationBoundaryForTesting: ((UUID) -> Void)?
+    private var resultVerificationRootForTesting: URL?
+    @discardableResult
+    func setResultVerificationBoundaryForTesting(root: URL, _ observe: ((UUID) -> Void)?) -> Bool {
+        let safe = root.resolvingSymlinksInPath().standardizedFileURL
+        let temporary = FileManager.default.temporaryDirectory.resolvingSymlinksInPath().standardizedFileURL
+        var directory: ObjCBool = false
+        guard SelfTest.isRunning, SelfTest.requested == "--selftest-task-worker-attempt",
+              root.isFileURL, root.standardizedFileURL.path == safe.path,
+              safe.path.hasPrefix(temporary.path + "/"), !safe.pathComponents.contains("Application Support"),
+              FileManager.default.fileExists(atPath: safe.path, isDirectory: &directory), directory.boolValue,
+              resultVerificationBoundaryForTesting == nil || resultVerificationRootForTesting == safe else { return false }
+        resultVerificationBoundaryForTesting = observe
+        resultVerificationRootForTesting = observe == nil ? nil : safe
+        return true
+    }
+
     /// Backends with a nested protocol (ACP) can attach permission/update events to the
     /// already persisted prepared action without inventing a second receipt format.
     func appendExternalEvent(actionID: UUID, stage: ActionReceiptStatus, detail: String) {
@@ -841,6 +861,27 @@ final class ActionOrchestrator {
                 throw AgentError.backendUnavailable("Could not save action execution; it was not run.")
             }
             let result = try await fire(prepared)
+            // P6-06 §2.4.1: SAME linked receipt retains the returned scoped path before
+            // readback. This is historical evidence, never permission to retry the mutation.
+            if tool.namespace == .filesystem, tool.risk >= .modify {
+                receipt.result = result.summary
+                if let reference = result.reference { receipt.artifacts.append(reference) }
+                if let link = result.link?.absoluteString { receipt.artifacts.append(link) }
+                guard add(.verifying, "Scoped filesystem mutation returned; checking the result") else {
+                    // The mutation already ran. Keep committed fired evidence and prevent
+                    // catch from inventing a failed-action rewrite or successful delivery.
+                    receipt.status = .couldNotVerify
+                    throw AgentError.backendUnavailable(
+                        "The action ran, but its result could not be saved. Check it before trying again.")
+                }
+            }
+            if SelfTest.isRunning, SelfTest.requested == "--selftest-task-worker-attempt",
+               let root = resultVerificationRootForTesting,
+               let reference = result.reference, reference.hasPrefix(root.path + "/"),
+               let context = TaskEventJournal.current, context.taskID == routing.taskID,
+               context.receiptStore === receiptStore, context.isStillValid != nil {
+                resultVerificationBoundaryForTesting?(prepared.id)
+            }
             guard let verification = await Self.verifyResult(
                 tool: tool, arguments: prepared.executionPlan.arguments, result: result
             ) else {
@@ -864,13 +905,15 @@ final class ActionOrchestrator {
                 throw AgentError.backendUnavailable("The action ran, but its result could not be verified.")
             }
             receipt.result = result.summary
-            if let reference = result.reference { receipt.artifacts.append(reference) }
-            if let link = result.link?.absoluteString { receipt.artifacts.append(link) }
+            if !(tool.namespace == .filesystem && tool.risk >= .modify) {
+                if let reference = result.reference { receipt.artifacts.append(reference) }
+                if let link = result.link?.absoluteString { receipt.artifacts.append(link) }
+            }
             receipt.verification = verification
             receipt.completedAt = Date()
             guard add(.completed, receipt.verification ?? "Verified") else {
-                // The backing already ran. Preserve the store's committed .fired
-                // evidence, and prevent the catch below from labelling it .failed.
+                // The backing already ran. Preserve the last committed receipt stage
+                // (.verifying for a scoped mutation), without labelling the action .failed.
                 receipt.status = .couldNotVerify
                 throw AgentError.backendUnavailable(
                     "The action ran, but its result could not be saved. Check it before trying again.")

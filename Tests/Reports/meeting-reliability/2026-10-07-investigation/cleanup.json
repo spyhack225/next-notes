@@ -1,0 +1,50 @@
+{
+  "at": "2026-10-07T17:41:25.619583+00:00",
+  "removed": [
+    {
+      "path": "/tmp/nextnotes-meeting-ui-probe/probe",
+      "bytes": 690344
+    },
+    {
+      "path": "/tmp/nextnotes-meeting-ui-probe/LevelBar.swift",
+      "bytes": 3579
+    },
+    {
+      "path": "/tmp/nextnotes-meeting-20261006-system.log",
+      "bytes": 44
+    },
+    {
+      "path": "/tmp/nextnotes-meeting-20261007-system.log",
+      "bytes": 264265
+    },
+    {
+      "path": "/tmp/nextnotes-meeting-20261007-owned.log",
+      "bytes": 43968
+    },
+    {
+      "path": "/tmp/nextnotes-meeting-owner-vmmap.txt",
+      "bytes": 10039
+    },
+    {
+      "path": "/tmp/nextnotes-needle-original-20261007.swift",
+      "bytes": 23892
+    },
+    {
+      "path": "/tmp/nextnotes-startup-commit-20261007.txt",
+      "bytes": 764
+    },
+    {
+      "path": "Tests/Reports/meeting-reliability/2026-10-07-investigation/__pycache__/watch_live_memory.cpython-314.pyc",
+      "bytes": 7464
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-14840",
+      "bytes": 139665458,
+      "reason": "Owned staged bundle superseded by byte-identical verified installed release; old process exited and no active process uses this stage.",
+      "allocated_size_before_cleanup": "approximately118 MiB from du -sh; rounded"
+    }
+  ],
+  "reclaimed_bytes": 140709817,
+  "retained": "Installed verified release; explicit original-app rollback in /Users/sergekadjo/Library/Caches/NextNotesBuild/meeting-fix-install-a5151045eb634800bb3fcdffee49dc67/Next Notes.app; committed producer/self-test repair; compact source pins, reports and regression logs. No owner data/settings/models or foreign artifacts removed.",
+  "size_method": "reclaimed_bytes sums recorded logical file sizes; the staged-copy sum includes symlink target sizes. This is not a measured filesystem free-space delta."
+}

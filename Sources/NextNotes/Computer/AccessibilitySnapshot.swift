@@ -38,7 +38,29 @@ enum AccessibilitySnapshot {
     }
 
     /// Honest report: a stub or empty tree says so and invents no controls.
+    struct CaptureCoverage: Codable, Sendable, Equatable {
+        let depthLimit: Int
+        let childrenLimit: Int
+        let usefulControlLimit: Int
+        var depthLimitReached = false
+        var childrenLimitReached = false
+        var usefulControlLimitReached = false
+
+        var limitReached: Bool {
+            depthLimitReached || childrenLimitReached || usefulControlLimitReached
+        }
+    }
+
     static func capture(processID: pid_t, limit: Int) -> String {
+        captureWithCoverage(processID: processID, limit: limit).snapshot
+    }
+
+    /// Reports existing traversal limits; unchanged callers retain the same text.
+    /// No deadline or complete-roster claim is supplied by this metadata.
+    static func captureWithCoverage(processID: pid_t, limit: Int)
+        -> (snapshot: String, coverage: CaptureCoverage) {
+        var coverage = CaptureCoverage(depthLimit: 8, childrenLimit: 40,
+            usefulControlLimit: limit)
         last = [:]
         lastProcessID = processID
         lastGeneration += 1
@@ -48,19 +70,19 @@ enum AccessibilitySnapshot {
         guard AXUIElementCopyAttributeValue(app, kAXFocusedWindowAttribute as CFString, &windowRef) == .success,
               let window = windowRef else {
             lastSnapshot = "no focused window. stub tree, 0 names. No elements were invented."
-            return lastSnapshot
+            return (lastSnapshot, coverage)
         }
         var titleRef: CFTypeRef?
         AXUIElementCopyAttributeValue(window as! AXUIElement, kAXTitleAttribute as CFString, &titleRef)
         let title = titleRef as? String ?? "Window"
         var lines = ["Window: \(title)"]
-        walk(window as! AXUIElement, depth: 0, remaining: limit, prefix: prefix, into: &lines)
+        walk(window as! AXUIElement, depth: 0, remaining: limit, prefix: prefix, into: &lines, coverage: &coverage)
         if last.isEmpty {
             lastSnapshot = "Window: \(title)\nstub tree, 0 names. No elements were invented."
-            return lastSnapshot
+            return (lastSnapshot, coverage)
         }
         lastSnapshot = lines.joined(separator: "\n")
-        return lastSnapshot
+        return (lastSnapshot, coverage)
     }
 
     static func isStub(_ snapshot: String) -> Bool {
@@ -132,6 +154,14 @@ enum AccessibilitySnapshot {
     /// coordinates into a tree the person has since moved.
     static var lastGenerationForTesting: Int { lastGeneration }
 
+    /// Drops the element map without a walk. Called when a human pause latches: every id in
+    /// the map was captured before the person took the Mac, so the next element action must
+    /// re-inspect first instead of posting into a tree they have since moved. The generation
+    /// is untouched — no walk happened here; the re-walk that follows bumps it.
+    static func dropElementsOnHumanPause() {
+        last = [:]
+    }
+
     /// The id of a secure field in the last snapshot, if it has one. P1-23's Y4 needs the id a
     /// plan would actually aim at, not a synthetic one.
     static var lastSecureFieldIDForTesting: String? {
@@ -202,14 +232,33 @@ enum AccessibilitySnapshot {
         post(up)
     }
 
+    // Preserve existing frame/inspect callers and their exact text traversal.
+    private static func walk(
+        _ element: AXUIElement, depth: Int, remaining: Int, prefix: String,
+        into lines: inout [String]
+    ) {
+        var coverage = CaptureCoverage(depthLimit: 8, childrenLimit: 40,
+            usefulControlLimit: remaining)
+        walk(element, depth: depth, remaining: remaining, prefix: prefix,
+            into: &lines, coverage: &coverage)
+    }
+
     private static func walk(
         _ element: AXUIElement,
         depth: Int,
         remaining: Int,
         prefix: String,
-        into lines: inout [String]
+        into lines: inout [String],
+        coverage: inout CaptureCoverage
     ) {
-        guard remaining > last.count, depth < 8 else { return }
+        guard remaining > last.count else {
+            coverage.usefulControlLimitReached = true
+            return
+        }
+        guard depth < coverage.depthLimit else {
+            coverage.depthLimitReached = true
+            return
+        }
         var roleRef: CFTypeRef?
         AXUIElementCopyAttributeValue(element, kAXRoleAttribute as CFString, &roleRef)
         let role = roleRef as? String ?? "Unknown"
@@ -231,9 +280,15 @@ enum AccessibilitySnapshot {
         guard AXUIElementCopyAttributeValue(element, kAXChildrenAttribute as CFString, &childrenRef) == .success,
               let children = childrenRef as? [AXUIElement]
         else { return }
-        for child in children.prefix(40) {
-            walk(child, depth: depth + 1, remaining: remaining, prefix: prefix, into: &lines)
-            if last.count >= remaining { return }
+        if children.count > coverage.childrenLimit { coverage.childrenLimitReached = true }
+        for child in children.prefix(coverage.childrenLimit) {
+            walk(child, depth: depth + 1, remaining: remaining, prefix: prefix, into: &lines, coverage: &coverage)
+            if last.count >= remaining {
+                // Reaching the budget does not prove omitted nodes exist, but it
+                // also cannot certify that the traversal reached every control.
+                coverage.usefulControlLimitReached = true
+                return
+            }
         }
     }
 

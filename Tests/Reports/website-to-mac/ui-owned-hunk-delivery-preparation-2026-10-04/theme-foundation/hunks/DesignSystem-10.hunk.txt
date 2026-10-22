@@ -1,0 +1,25 @@
+--- a/Sources/NextNotes/UI/DesignSystem.swift
++++ b/Sources/NextNotes/UI/DesignSystem.swift
+@@ -123,11 +138,11 @@ enum DS {
+-        static let largeTitle = SwiftUI.Font.largeTitle
+-        static let title = SwiftUI.Font.title
+-        static let title2 = SwiftUI.Font.title2
+-        static let title3 = SwiftUI.Font.title3
+-        static let headline = SwiftUI.Font.headline
+-        static let body = SwiftUI.Font.body
+-        static let callout = SwiftUI.Font.callout
+-        static let subheadline = SwiftUI.Font.subheadline
+-        static let footnote = SwiftUI.Font.footnote
+-        static let caption = SwiftUI.Font.caption
+-        static let caption2 = SwiftUI.Font.caption2
++        static var largeTitle: SwiftUI.Font { Theme.Typography.sans(.largeTitle) }
++        static var title: SwiftUI.Font { Theme.Typography.sans(.title) }
++        static var title2: SwiftUI.Font { Theme.Typography.sans(.title2) }
++        static var title3: SwiftUI.Font { Theme.Typography.sans(.title3) }
++        static var headline: SwiftUI.Font { Theme.Typography.sans(.headline, weight: .semibold) }
++        static var body: SwiftUI.Font { Theme.Typography.sans(.body) }
++        static var callout: SwiftUI.Font { Theme.Typography.sans(.callout) }
++        static var subheadline: SwiftUI.Font { Theme.Typography.sans(.subheadline) }
++        static var footnote: SwiftUI.Font { Theme.Typography.sans(.footnote) }
++        static var caption: SwiftUI.Font { Theme.Typography.sans(.caption) }
++        static var caption2: SwiftUI.Font { Theme.Typography.sans(.caption2) }

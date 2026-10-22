@@ -1,0 +1,21 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-settings-sheet /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/nextnotes-settings-app29-k5zl6l_w/formatting560 --settings-pane formatting --width 560 --selftest-timeout 300
+SETTINGS_SHEET_FIXTURE_GUARD_OK: new isolated persistent key rejected; volatile registration distinguished
+SETTINGS_SHEET_FIXTURE_CONSTRUCTOR_OK: actual injected defaults/adopter overridden before choice read
+SETTINGS_SHEET_FIXTURE_CONSUMER: pane=formatting awaited=true nativeCallbackDelivery=unverified
+SETTINGS_SHEET_FIXTURE_ORIGINAL_TRACE: stage=formatting-560-standard/after-native-window mergedChanges=1 durablePreferencesChanged=false
+SETTINGS_SHEET_FIXTURE_ORIGINAL_DIFF: domain=merged key=METAL_DEVICE_WRAPPER_TYPE changed
+SETTINGS_SHEET_FIXTURE_ORIGINAL_DIFF: domain=registration key=METAL_DEVICE_WRAPPER_TYPE changed
+SETTINGS_SHEET_FIXTURE_IMAGE: settings-formatting-560-standard.png reduceMotion=false reduceTransparency=false elapsed=0.132s
+SETTINGS_SHEET_FIXTURE_IMAGE: settings-formatting-560-reduce-motion.png reduceMotion=true reduceTransparency=false elapsed=0.066s
+SETTINGS_SHEET_FIXTURE_IMAGE: settings-formatting-560-reduce-transparency.png reduceMotion=false reduceTransparency=true elapsed=0.066s
+SETTINGS_SHEET_FIXTURE_IMAGE: settings-formatting-560-reduced.png reduceMotion=true reduceTransparency=true elapsed=0.066s
+SETTINGS_SHEET_FIXTURE_CONSUMER: pane=formatting awaited=true nativeCallbackDelivery=unverified
+SETTINGS_SHEET_FIXTURE_ORIGINAL_DIFF: domain=merged key=METAL_DEVICE_WRAPPER_TYPE changed
+SETTINGS_SHEET_FIXTURE_ORIGINAL_DIFF: domain=merged key=NSHyphenatesAsLastResort changed
+SETTINGS_SHEET_FIXTURE_ORIGINAL_DIFF: domain=merged key=NSUsesCFStringTokenizerForLineBreaks changed
+SETTINGS_SHEET_FIXTURE_ORIGINAL_DIFF: domain=merged key=NSUsesTextStylesForLineBreaks changed
+SETTINGS_SHEET_FIXTURE_PROCESS_DIFF: domain=registration key=METAL_DEVICE_WRAPPER_TYPE changed
+SETTINGS_SHEET_FIXTURE_PROCESS_DIFF: domain=registration key=NSHyphenatesAsLastResort changed
+SETTINGS_SHEET_FIXTURE_PROCESS_DIFF: domain=registration key=NSUsesCFStringTokenizerForLineBreaks changed
+SETTINGS_SHEET_FIXTURE_PROCESS_DIFF: domain=registration key=NSUsesTextStylesForLineBreaks changed
+SETTINGS_SHEET_FIXTURE_OK: 4 fixed-light images; panes=formatting; direct production consumers awaited; native callback delivery, visual and live acceptance unverified

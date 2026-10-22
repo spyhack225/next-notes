@@ -1,0 +1,22 @@
+{
+  "scope": "three existing view files; readiness/header/control fallback and two explicit text action labels; no List row or diagnostic observation changes",
+  "sources": [
+    {
+      "path": "Sources/NextNotes/UI/Settings/ComputerBrowserReadiness.swift",
+      "beforeSHA256": "2fa02ba0dc88ea8d426888dd968bcfa6c489c52f30f1d0e0fd6fb102963f19bf",
+      "proposedSHA256": "513e885becca8306b95a13bde2fea217106d0fddaa086f55766ac30ca1b6f5df"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift",
+      "beforeSHA256": "c750e16bd51c4f8f40875d2122b3a89d57dfe3a02f40cd2a08ec7f0c4eb64d69",
+      "proposedSHA256": "f0707e87b664f979e7d60f3cfb36b6f182266f5a5932de1aa2a1402d855ac856"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Settings/AgentSettingsTab.swift",
+      "beforeSHA256": "b31f0440dd9f45ccd8112f4aebb1c0ce8b2d1094fde8ba302d64c1d1db2ecf02",
+      "proposedSHA256": "e7432003a343b2e9a7901cae4676b78216098823bad4d142cb640f4f9e341f31"
+    }
+  ],
+  "patchSHA256": "455789e3ee2dae21de0603188fe306d003f51e37b5a631290ff9da8dc96af45e",
+  "verification": "applies to baseline copies; no Source/build/native/model/staging"
+}

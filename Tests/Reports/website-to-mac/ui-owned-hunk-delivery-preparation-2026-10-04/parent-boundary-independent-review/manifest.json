@@ -1,0 +1,12 @@
+{
+  "status": "SOURCE_ONLY_PARENT_BOUNDARY_REVIEW_NO_SOURCE_OR_STAGING_LEASE",
+  "inputs": {
+    "packaging-boundaries": "a8879a8e6b5767256494e6da975abf69f2b168cb5adb903dde4d423f523408ec",
+    "prerequisite-boundaries": "5de2762bad32cd9bd823c9b36ccce3c0b4d04f44556e1cf6004ef67081020cfb"
+  },
+  "artifacts": {
+    "README.md": "c031997c709ece8168689ca35f6c3cfd71de0c63c70691f99d1febbdd6c4ada2",
+    "pins.json": "603364ea104730cbba3a8a91956fb1c94b69907f8c9c66ce84c8a6a52e5155cd"
+  },
+  "compilerNativeAssets": "UNRUN/UNREAD"
+}

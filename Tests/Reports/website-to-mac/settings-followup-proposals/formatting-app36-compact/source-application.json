@@ -1,0 +1,12 @@
+{
+  "status": "APPLIED_SOURCE_ONLY_REFROZEN_BEFORE_BUILD39",
+  "timeUTC": "2026-10-02T09:20:52.156781+00:00",
+  "authorization": "runtime root final38 all14 gates; exact Formatting-only Source lease, then single serial build39/install OPEN=0 and two original captures; no staging",
+  "installedBeforeSHA256": "670abcdda9a883dedffbd9d55b1b1d74a2dc75a12d6aa5a928ba1ae40bbf12f8",
+  "sourcePath": "Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift",
+  "beforeSHA256": "dbf3a77207f535b35ed69e7d02bbc5415765f4dd61af4465c90ce582ff0f1b54",
+  "afterSHA256": "5cea7730e4467a966f81aa0923fb71c4231bf3d6046f758320c06bde59fa1f4b",
+  "patchSHA256": "516f91201e67a8fb31e449cb8f42933b56f9fbcb6f206fa42b0ffbfbd3a16f94",
+  "checks": "exact hashes/apply precheck/final Source/scoped whitespace pass",
+  "originalEvidence": "../../settings-app36/README.md"
+}

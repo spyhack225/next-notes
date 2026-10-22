@@ -1,0 +1,35 @@
+{
+  "installedBinarySHA256": "2a144e1f1fca734d9b3b92ca0cce3de36d6be9c37b07f1a62432d0ad7d330a73",
+  "results": [
+    {
+      "pane": "formatting",
+      "width": 320,
+      "checks": {
+        "exit0": true,
+        "fourPNG": true,
+        "constructor": true,
+        "guardNegative": true,
+        "consumer": true,
+        "finalOK": true,
+        "noFailed": true,
+        "binaryUnchanged": true
+      },
+      "elapsed": 2.507
+    },
+    {
+      "pane": "formatting",
+      "width": 560,
+      "checks": {
+        "exit0": true,
+        "fourPNG": true,
+        "constructor": true,
+        "guardNegative": true,
+        "consumer": true,
+        "finalOK": true,
+        "noFailed": true,
+        "binaryUnchanged": true
+      },
+      "elapsed": 1.039
+    }
+  ]
+}

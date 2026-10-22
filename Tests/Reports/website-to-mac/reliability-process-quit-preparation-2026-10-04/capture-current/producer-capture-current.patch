@@ -1,0 +1,136 @@
+--- a/Sources/NextNotes/Activation/AgentCaptureController.swift
++++ b/Sources/NextNotes/Activation/AgentCaptureController.swift
+@@ -111,9 +111,62 @@
+     }
+     private var processTerminationRequested = false
+ 
+-    /// COMMON preserves existing input and task ownership for original qualification.
+-    func beginProcessTermination() -> ProcessTerminationOwnership? { nil }
+-    func finishProcessTermination(_ owned: ProcessTerminationOwnership?) async {}
++    /// Close input permanently and capture registered work before clearing its slots.
++    /// Normal Done remains separate and continues to preserve background work.
++    func beginProcessTermination() -> ProcessTerminationOwnership? {
++        guard !processTerminationRequested else { return nil }
++        processTerminationRequested = true
++        let owned = ProcessTerminationOwnership(
++            engine: engine, fileFeed: fileFeedTask, feed: feedTask,
++            consume: consumeTask, decoder: turnDetectorTask,
++            vad: vadTask, activeTurn: activeTurnTask)
++        let hadCapture = captureAudio && engine != nil
++        isSessionActive = false
++        captureSessionID = nil
++        voiceShadowQueuedTurn = nil
++        turnGeneration &+= 1
++        if hadCapture { AudioCaptureHub.shared.unsubscribe(.agent) }
++        audioContinuation?.finish()
++        audioContinuation = nil
++        turnAudioBacklog?.finish()
++        turnAudioBacklog = nil
++        owned.fileFeed?.cancel()
++        owned.feed?.cancel()
++        owned.consume?.cancel()
++        owned.decoder?.cancel()
++        owned.vad?.cancel()
++        owned.activeTurn?.cancel()
++        fileFeedTask = nil
++        feedTask = nil
++        consumeTask = nil
++        turnDetectorTask = nil
++        vadTask = nil
++        activeTurnTask = nil
++        engine = nil
++        turnDetector = nil
++        deferredFileFeed = nil
++        fileCaptureFormat = nil
++        fileDeliveryForTesting = nil
++        turnDetectorReady = false
++        localDecoderCaughtUp = false
++        localOwnsPartial = false
++        modelEOUAt = nil
++        return owned
++    }
++
++    /// Only the existing process-quit Task may call this; never a captured worker.
++    /// Its return joins these handles, not unpublished/retired or SDK-global work.
++    func finishProcessTermination(_ owned: ProcessTerminationOwnership?) async {
++        guard let owned else { return }
++        await owned.fileFeed?.value
++        // The actual decoder Task calls its same detector.close() after native work.
++        await owned.decoder?.value
++        await owned.feed?.value
++        await owned.engine?.finish()
++        await owned.consume?.value
++        await owned.activeTurn?.value
++        await owned.vad?.value
++    }
+ 
+     enum Limits {
+         static let speechLevel: Float = 0.06
+@@ -276,7 +329,7 @@
+     }
+ 
+     func beginSession(captureAudio: Bool = true) async {
+-        if isSessionActive { return }
++        guard !processTerminationRequested, !isSessionActive else { return }
+         let captureID = UUID()
+         captureSessionID = captureID
+         voiceShadowQueuedTurn = nil
+@@ -373,7 +426,9 @@
+     /// Self-test source: no microphone grant or hub subscription. The decoder
+     /// and all subsequent turn handling are the production instances.
+     func beginFileSession(wav: URL, deferFeed: Bool = false,
+-        appleFastResults: Bool = true, prepareResources: Bool = true) async throws {        await beginSession(captureAudio: false)
++        appleFastResults: Bool = true, prepareResources: Bool = true) async throws {
++        guard !processTerminationRequested else { throw CancellationError() }
++        await beginSession(captureAudio: false)
+         // The file feeder owns the voice marks, so `voice.speech_end_to_endpoint` means the
+         // same thing here as it does for a live microphone: the source level, not the
+         // cleaned one, and stamped where the feeder already keeps its own dates.
+@@ -393,6 +448,7 @@
+     }
+ 
+     private func prepareVoiceFrontend() {
++        guard !processTerminationRequested else { return }
+         Task.detached(priority: .userInitiated) {
+             do {
+                 try await LocalVoiceFrontend.shared.prepare()
+@@ -405,6 +461,7 @@
+     /// Retain the background worker if it becomes loaded during microphone or paced
+     /// file input. Synthetic captureAudio:false policy tests never call this.
+     private func prepareConversationModel() {
++        guard !processTerminationRequested else { return }
+         let conversationID = UUID()
+         modelConversationID = conversationID
+         Task { @MainActor [weak self] in
+@@ -591,6 +648,7 @@
+     private func startEngine(for captureID: UUID, fileURL: URL? = nil,
+         deferFileFeed: Bool = false, appleFastResults: Bool = true,
+         prepareFrontendAfterEOU: Bool = false) async throws {
++        guard !processTerminationRequested else { throw CancellationError() }
+         let engine = AppleSpeechEngine(fastResults: appleFastResults)
+         guard let format = await engine.preferredInputFormat() else {
+             throw TranscriptionError.noAudioFormat
+@@ -893,6 +951,7 @@
+     }
+ 
+     private func startDeferredFileFeed() {
++        guard !processTerminationRequested else { return }
+         guard let (fileURL, format, deliver) = deferredFileFeed else { return }
+         deferredFileFeed = nil
+         fileFeedTask = Task { @MainActor [weak self] in
+@@ -1017,6 +1076,7 @@
+     }
+ 
+     private func startVAD() {
++        guard !processTerminationRequested else { return }
+         vadTask?.cancel()
+         vadTask = Task { @MainActor [weak self] in
+             while let self, self.isSessionActive, !Task.isCancelled {
+@@ -1500,6 +1560,7 @@
+         source: EndpointSource,
+         continueSession: Bool
+     ) async {
++        guard !processTerminationRequested else { return }
+         if let inputProducerProbeForTesting {
+             // Harness-only: text/endpoint eligibility was selected by the real
+             // tick; permit the next file's input to arrive before this commit.

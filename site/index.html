@@ -1,30 +1,13 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="light">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-    <!-- Theme before first paint: a stored choice wins, otherwise the system's. Runs
-         synchronously in the head so the page never flashes the wrong substrate.
-         lib/theme.ts is the same three rules after hydration — keep them in step. -->
-    <script>
-      (function () {
-        var stored = null;
-        try {
-          stored = localStorage.getItem("theme");
-        } catch (e) {}
-        var dark =
-          stored === "dark" ||
-          (stored !== "light" &&
-            window.matchMedia("(prefers-color-scheme: dark)").matches);
-        document.documentElement.classList.add(dark ? "dark" : "light");
-      })();
-    </script>
-
-    <title>Next Notes for Mac | Dictation, Meeting Notes &amp; Follow-Ups</title>
+    <title>Next Notes | Already on it, before you even ask</title>
     <meta
       name="description"
-      content="One companion for Mac dictation, meeting notes, and proposed follow-ups. Speak where you work, stay present in meetings, and review actions before they happen."
+      content="Someone in your corner, on your Mac. It knows your week and your people, and is being built to have things handled before you even ask. Dictation and answers about your calendar and email work today; everything else is clearly labelled. In development."
     />
     <link rel="canonical" href="https://next-notes.com/" />
 
@@ -34,45 +17,45 @@
     <meta property="og:url" content="https://next-notes.com/" />
     <meta property="og:site_name" content="Next Notes" />
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="Next Notes — be present, keep your promises" />
+    <meta property="og:title" content="Next Notes — already on it, before you even ask" />
     <meta
       property="og:description"
       content="One familiar companion on your Mac, helping with family plans, workday replies, and meeting follow-ups."
     />
+    <!-- TODO: og-image.png is the old dictation card (dark, "free and open source"). It needs
+         regenerating to match the current positioning; the alt text below describes what it
+         shows today and should change with it. -->
     <meta property="og:image" content="https://next-notes.com/og-image.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="Next Notes — be present, keep your promises." />
+    <meta property="og:image:alt" content="Next Notes on a dark background: a spoken sentence with filler words and a change of mind is turned into the clean sentence &quot;So I need to send the report by Thursday.&quot;" />
     <meta property="og:locale" content="en_US" />
 
     <!-- summary_large_image needs an image at least 300px wide; the 256px app icon this
          used to point at failed that minimum, so the card fell back to no image at all. -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Next Notes — be present, keep your promises" />
+    <meta name="twitter:title" content="Next Notes — already on it, before you even ask" />
     <meta
       name="twitter:description"
       content="One familiar companion on your Mac, helping with family plans, workday replies, and meeting follow-ups."
     />
     <meta name="twitter:image" content="https://next-notes.com/og-image.png" />
-    <meta name="twitter:image:alt" content="Next Notes — be present, keep your promises." />
+    <meta name="twitter:image:alt" content="Next Notes on a dark background: a spoken sentence with filler words and a change of mind is turned into the clean sentence &quot;So I need to send the report by Thursday.&quot;" />
 
-    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0a0a0b" />
-    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff" />
+    <meta name="theme-color" content="#ffffff" />
     <link rel="icon" href="./favicon.ico" sizes="32x32" />
     <link rel="icon" type="image/png" href="./icon.png" sizes="256x256" />
     <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
     <style>
       /* The initial document stays useful until React replaces this matching summary. */
-      .dark body { background: #0a0a0b; }
-      .light body { background: #fff; }
+      body { background: #fff; }
       #root > .static-fallback { max-width: 72rem; margin: 0 auto; padding: 8rem 2rem 5rem; font: 1.1rem/1.65 system-ui, sans-serif; }
       #root > .static-fallback h1 { max-width: 13ch; font-size: clamp(3rem, 7vw, 6rem); font-weight: 500; line-height: 1.05; letter-spacing: -.055em; }
       #root > .static-fallback h2 { margin-top: 3rem; font-size: clamp(1.75rem, 4vw, 2.75rem); font-weight: 500; line-height: 1.15; }
       #root > .static-fallback p, #root > .static-fallback ul { max-width: 43rem; }
       #root > .static-fallback li { margin-block: .6rem; }
       #root > .static-fallback a { color: inherit; text-underline-offset: .2em; }
-      .dark #root > .static-fallback { color: #f5f5f5; background: #0a0a0b; }
-      .light #root > .static-fallback { color: #161616; background: #fff; }
+      #root > .static-fallback { color: #161616; background: #fff; }
     </style>
 
     <!-- Static structured data matches the product and its current Mac-first scope. -->
@@ -93,22 +76,16 @@
             "name": "Next Notes",
             "url": "https://next-notes.com/",
             "applicationCategory": "BusinessApplication",
-            "applicationSubCategory": "Dictation and meeting notes for Mac",
+            "applicationSubCategory": "Personal assistant for Mac",
             "operatingSystem": "macOS 26 or later on Apple silicon",
             "softwareRequirements": "macOS 26 or later; Apple silicon Mac",
-            "isAccessibleForFree": true,
-            "offers": {
-              "@type": "Offer",
-              "price": "0",
-              "priceCurrency": "USD"
-            },
-            "description": "A Mac companion for dictation, meeting notes, and proposed follow-ups that you review before they are sent.",
+            "description": "An assistant on your Mac for people who keep everything running: say what needs doing, and it answers, prepares the next step, writes in your words, and asks before anything it cannot take back. In development.",
             "featureList": [
-              "Push-to-talk dictation into the app where you were writing",
-              "Automatic meeting recording for eligible calendar events when enabled",
-              "Meeting notes without a bot joining the call",
-              "Optional follow-up proposals for review before sending",
-              "Local speech recognition and local model options"
+              "Spoken conversation that answers out loud while you talk",
+              "Help with calendars, email, files and meetings",
+              "Prepared next steps, held for your approval before anything is sent or changed",
+              "Runs on your Mac, with nothing to set up",
+              "Say it and it is written, tidied up, in any email or document"
             ],
             "downloadUrl": "https://github.com/spyhack225/next-notes/releases/latest/download/NextNotes.dmg",
             "license": "https://github.com/spyhack225/next-notes/blob/main/LICENSE",
@@ -121,31 +98,34 @@
   <body>
     <div id="root">
       <main class="static-fallback">
-        <p>One familiar companion, starting on your Mac</p>
-        <h1>Be present. Keep your promises.</h1>
+        <p>Someone in your corner, on your Mac</p>
+        <h1>It's already on it. Before you even ask.</h1>
         <p>
-          Next Notes helps with a family plan, a reply at work, and the promise you made in a meeting.
-          It is the same companion through each moment. Home helper, office associate, and meeting
-          partner are examples of how it helps, not separate assistants.
+          It knows your week, your people and what's coming. Say what's on your mind, out loud, and
+          it takes it from there, with anything it can't undo held for your OK. So you
+          get to be there for the parts that matter.
         </p>
         <p>
           <a href="https://github.com/spyhack225/next-notes/releases/latest/download/NextNotes.dmg">Download for Mac</a>
-          · Free and open source · Requires macOS 26 on Apple silicon
+          · In development, with what works today marked · Any Apple-silicon Mac · Needs macOS 26
         </p>
-        <h2>Help where you already work</h2>
+        <h2>Off your plate, before it's on your mind</h2>
         <ul>
-          <li><strong>Dictate in your Mac apps.</strong> Hold a key, speak naturally, and your words appear where your cursor was.</li>
-          <li><strong>Ask about your day.</strong> The Mac app can read your calendar when you ask, so you can make a family or work plan.</li>
-          <li><strong>Keep meeting notes.</strong> With calendar recording on, an eligible meeting can be recorded and summarized without a bot joining the call.</li>
-          <li><strong>Review the follow-up.</strong> With connected work apps enabled, Next Notes can propose a next step for your approval.</li>
+          <li><strong>Your catch-up.</strong> In progress: a short, warm spoken catch-up when you want it, in the morning, after a weekend, or when you say "catch me up". What happened, what needs you, what's coming, and what it already got ready.</li>
+          <li><strong>Your family's week, already handled.</strong> For the parent running it all. Available now: answers about the family calendar and email. In progress: noticing the clash before you do. Coming soon: Apple Calendar and Reminders, and keeping track of the forms and bills coming due.</li>
+          <li><strong>Your people, never left waiting.</strong> For the office manager. Available now: what in your inbox needs you, with replies drafted for your OK, and meeting notes. In progress: your new person settled before day one. Coming soon: follow-ups before anyone has to ask.</li>
+          <li><strong>Every deadline, handled long before it's close.</strong> For the person who keeps a law office running. Available now: what's due, when you ask. In progress: every case's deadlines in one view. Coming soon: every shared file kept track of.</li>
+          <li><strong>Your footage, sorted before you ask.</strong> For the filmmaker and editor. Available now: shot notes typed as you say them. Coming soon: footage sorted by shoot date, session and drive, and backups checked against the original.</li>
+          <li><strong>Say it, and it's written.</strong> Available now: in any email or document, in your words, tidied up.</li>
         </ul>
-        <h2>Your choices stay visible</h2>
+        <h2>What's yours stays yours</h2>
         <p>
-          Speech and notes can be handled locally on your Mac. Optional cloud models and connected
-          services send the information needed for the feature you choose. Agent-proposed
-          actions that send or change something are shown for review before they happen.
+          It's built to do its work on your Mac. When something has to go further, like your Google
+          calendar, it tells you first. Anything it can't take back, like sending an email or
+          copying files, waits for your OK. Anyone can check how it's built. Next Notes is still in
+          development.
         </p>
-        <p><a href="https://github.com/spyhack225/next-notes">Read the source and current product status</a></p>
+        <p><a href="https://github.com/spyhack225/next-notes">Check how it's built and where it stands</a></p>
       </main>
     </div>
     <script type="module" src="/src/main.tsx"></script>

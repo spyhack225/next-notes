@@ -1,0 +1,100 @@
+xcrun swiftc -swift-version 6 -O Engine.original-probe.swift DictationSegmenter.original.swift AudioConversion.swift TranscriptionEngine.swift ParakeetInput.swift EngineBoundaryTypes.swift LiveCoverageCheck.swift -o live-original
+Engine.original-probe.swift:166:17: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+164 |             // Force the (possibly very slow) first load to happen here rather than on release,
+165 |             // so the user waits before speaking instead of losing an utterance to a timeout.
+166 |             _ = try await ParakeetModels.shared.manager()
+    |                 `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+167 |             runtimeLoaded = true
+168 |             _ = await ModelRuntimeManager.shared.markReady(
+
+Engine.original-probe.swift:172:11: warning: 'catch' block is unreachable because no errors are thrown in 'do' block
+170 |                 generation: runtimeGeneration
+171 |             )
+172 |         } catch {
+    |           `- warning: 'catch' block is unreachable because no errors are thrown in 'do' block
+173 |             _ = await ModelRuntimeManager.shared.markWedged(
+174 |                 .parakeetASR,
+
+Engine.original-probe.swift:439:27: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+437 |     private func modelPass(_ audio: [Float], isSegment: Bool) async -> String? {
+438 |         do {
+439 |             let manager = try await ParakeetModels.shared.manager()
+    |                           `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+440 |             return try await transcribe(audio, with: manager, isSegment: isSegment)
+441 |         } catch {
+
+Engine.original-probe.swift:453:23: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+451 |     private func keyUpPass(from: Int, to: Int) async throws -> String {
+452 |         let audio = Array(samples[(from - sampleOffset)..<(to - sampleOffset)])
+453 |         let manager = try await ParakeetModels.shared.keyUpManager()
+    |                       `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+454 |         var text = try await transcribe(ParakeetInput.padded(audio), with: manager, isSegment: false)
+455 |         // D-04: 0.1–0.3 s of audio is zero-padded to the model's 0.3 s floor. Padding
+
+[#UnnecessaryEffectMarker]: <https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker>
+LiveCoverageCheck.swift:38:32: error: sending value of non-Sendable type '() async -> Bool' risks causing data races [#RegionIsolation::SendingRisksDataRace]
+36 |                 await engine.feed(chunk(pcm[fed..<end]))
+37 |                 if !held {
+38 |                     if !(await wait({ await engine.workerIsIdleForProbe() })) { failures.append("worker did not join") }
+   |                                |- error: sending value of non-Sendable type '() async -> Bool' risks causing data races [#RegionIsolation::SendingRisksDataRace]
+   |                                `- note: sending main actor-isolated value of non-Sendable type '() async -> Bool' to @concurrent static method 'wait' risks causing races in between main actor-isolated and @concurrent uses
+39 |                 } else {
+40 |                     if !(await engine.workerIsIdleForProbe()) {
+
+LiveCoverageCheck.swift:41:35: error: sending value of non-Sendable type '() async -> Bool' risks causing data races [#RegionIsolation::SendingRisksDataRace]
+39 |                 } else {
+40 |                     if !(await engine.workerIsIdleForProbe()) {
+41 |                         _ = await wait({ await ASRBoundary.shared.count > 0 })
+   |                                   |- error: sending value of non-Sendable type '() async -> Bool' risks causing data races [#RegionIsolation::SendingRisksDataRace]
+   |                                   `- note: sending main actor-isolated value of non-Sendable type '() async -> Bool' to @concurrent static method 'wait' risks causing races in between main actor-isolated and @concurrent uses
+42 |                     }
+43 |                 }
+
+LiveCoverageCheck.swift:50:37: error: sending value of non-Sendable type '() async -> Bool' risks causing data races [#RegionIsolation::SendingRisksDataRace]
+48 |             let final = Task { await engine.finish() }
+49 |             if held {
+50 |                 let entered = await wait({ await ASRBoundary.shared.waiting >= 2 })
+   |                                     |- error: sending value of non-Sendable type '() async -> Bool' risks causing data races [#RegionIsolation::SendingRisksDataRace]
+   |                                     `- note: sending main actor-isolated value of non-Sendable type '() async -> Bool' to @concurrent static method 'wait' risks causing races in between main actor-isolated and @concurrent uses
+51 |                 if !entered { failures.append("fresh final pass queued behind stale held partial") }
+52 |                 await ASRBoundary.shared.release()
+
+LiveCoverageCheck.swift:56:33: error: sending value of non-Sendable type '() async -> Bool' risks causing data races [#RegionIsolation::SendingRisksDataRace]
+54 |             await final.value
+55 |             await consumer.value
+56 |             if held { _ = await wait({ await ASRBoundary.shared.waiting == 0 }) }
+   |                                 |- error: sending value of non-Sendable type '() async -> Bool' risks causing data races [#RegionIsolation::SendingRisksDataRace]
+   |                                 `- note: sending main actor-isolated value of non-Sendable type '() async -> Bool' to @concurrent static method 'wait' risks causing races in between main actor-isolated and @concurrent uses
+57 |             let calls = await ASRBoundary.shared.snapshot()
+58 |             let counts = calls.map(\.count)
+
+LiveCoverageCheck.swift:79:27: error: sending value of non-Sendable type '() async -> Bool' risks causing data races [#RegionIsolation::SendingRisksDataRace]
+77 |                 let end = min(fed+1600,count)
+78 |                 await engine.feed(chunk(zero[fed..<end]))
+79 |                 _ = await wait({ await engine.workerIsIdleForProbe() })
+   |                           |- error: sending value of non-Sendable type '() async -> Bool' risks causing data races [#RegionIsolation::SendingRisksDataRace]
+   |                           `- note: sending main actor-isolated value of non-Sendable type '() async -> Bool' to @concurrent static method 'wait' risks causing races in between main actor-isolated and @concurrent uses
+80 |                 fed = end
+81 |             }
+
+[#RegionIsolation]: <https://docs.swift.org/compiler/documentation/diagnostics/region-isolation>
+[#SendingRisksDataRace]: <https://docs.swift.org/compiler/documentation/diagnostics/sending-risks-data-race>
+make: *** [live-original] Error 1
+        4.11 real         2.42 user         0.82 sys
+           210993152  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+               80375  page reclaims
+               10937  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   1  signals received
+                2543  voluntary context switches
+                5217  involuntary context switches
+            98959584  instructions retired
+            46052872  cycles elapsed
+             1622376  peak memory footprint

@@ -1,0 +1,133 @@
+{
+  "worktrees_verified": 21,
+  "uncommitted_ignored_paths_verified": 1342,
+  "changed_preservation_fields": [],
+  "worktrees": [
+    {
+      "worktree": "/Users/sergekadjo/Library/Caches/NextNotesBuild/agent-delivery",
+      "ordinary_git_status_works": true,
+      "all_preservation_fields_identical": true,
+      "gitlink_target": "/Users/sergekadjo/Documents/Claude/Projects/next-notes/.git/worktrees/agent-delivery"
+    },
+    {
+      "worktree": "/Users/sergekadjo/Library/Caches/NextNotesBuild/claude-worktrees/dictation-perf",
+      "ordinary_git_status_works": true,
+      "all_preservation_fields_identical": true,
+      "gitlink_target": "/Users/sergekadjo/Documents/Claude/Projects/next-notes/.git/worktrees/dictation-perf"
+    },
+    {
+      "worktree": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/bakeoff2",
+      "ordinary_git_status_works": true,
+      "all_preservation_fields_identical": true,
+      "gitlink_target": "/Users/sergekadjo/Documents/Claude/Projects/next-notes/.git/worktrees/bakeoff2"
+    },
+    {
+      "worktree": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/catchup",
+      "ordinary_git_status_works": true,
+      "all_preservation_fields_identical": true,
+      "gitlink_target": "/Users/sergekadjo/Documents/Claude/Projects/next-notes/.git/worktrees/catchup"
+    },
+    {
+      "worktree": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/catchup-audio",
+      "ordinary_git_status_works": true,
+      "all_preservation_fields_identical": true,
+      "gitlink_target": "/Users/sergekadjo/Documents/Claude/Projects/next-notes/.git/worktrees/catchup-audio"
+    },
+    {
+      "worktree": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/catchup-final",
+      "ordinary_git_status_works": true,
+      "all_preservation_fields_identical": true,
+      "gitlink_target": "/Users/sergekadjo/Documents/Claude/Projects/next-notes/.git/worktrees/catchup-final"
+    },
+    {
+      "worktree": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/catchup-port",
+      "ordinary_git_status_works": true,
+      "all_preservation_fields_identical": true,
+      "gitlink_target": "/Users/sergekadjo/Documents/Claude/Projects/next-notes/.git/worktrees/catchup-port"
+    },
+    {
+      "worktree": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/catchup-ui",
+      "ordinary_git_status_works": true,
+      "all_preservation_fields_identical": true,
+      "gitlink_target": "/Users/sergekadjo/Documents/Claude/Projects/next-notes/.git/worktrees/catchup-ui"
+    },
+    {
+      "worktree": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/catchup-ui2",
+      "ordinary_git_status_works": true,
+      "all_preservation_fields_identical": true,
+      "gitlink_target": "/Users/sergekadjo/Documents/Claude/Projects/next-notes/.git/worktrees/catchup-ui2"
+    },
+    {
+      "worktree": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/clockfix",
+      "ordinary_git_status_works": true,
+      "all_preservation_fields_identical": true,
+      "gitlink_target": "/Users/sergekadjo/Documents/Claude/Projects/next-notes/.git/worktrees/clockfix"
+    },
+    {
+      "worktree": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/google",
+      "ordinary_git_status_works": true,
+      "all_preservation_fields_identical": true,
+      "gitlink_target": "/Users/sergekadjo/Documents/Claude/Projects/next-notes/.git/worktrees/google"
+    },
+    {
+      "worktree": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/google-c",
+      "ordinary_git_status_works": true,
+      "all_preservation_fields_identical": true,
+      "gitlink_target": "/Users/sergekadjo/Documents/Claude/Projects/next-notes/.git/worktrees/google-c"
+    },
+    {
+      "worktree": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/listen",
+      "ordinary_git_status_works": true,
+      "all_preservation_fields_identical": true,
+      "gitlink_target": "/Users/sergekadjo/Documents/Claude/Projects/next-notes/.git/worktrees/listen"
+    },
+    {
+      "worktree": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/listen2",
+      "ordinary_git_status_works": true,
+      "all_preservation_fields_identical": true,
+      "gitlink_target": "/Users/sergekadjo/Documents/Claude/Projects/next-notes/.git/worktrees/listen2"
+    },
+    {
+      "worktree": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/no-apple",
+      "ordinary_git_status_works": true,
+      "all_preservation_fields_identical": true,
+      "gitlink_target": "/Users/sergekadjo/Documents/Claude/Projects/next-notes/.git/worktrees/no-apple"
+    },
+    {
+      "worktree": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/thinking",
+      "ordinary_git_status_works": true,
+      "all_preservation_fields_identical": true,
+      "gitlink_target": "/Users/sergekadjo/Documents/Claude/Projects/next-notes/.git/worktrees/thinking"
+    },
+    {
+      "worktree": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/thinking-review",
+      "ordinary_git_status_works": true,
+      "all_preservation_fields_identical": true,
+      "gitlink_target": "/Users/sergekadjo/Documents/Claude/Projects/next-notes/.git/worktrees/thinking-review"
+    },
+    {
+      "worktree": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/tooling",
+      "ordinary_git_status_works": true,
+      "all_preservation_fields_identical": true,
+      "gitlink_target": "/Users/sergekadjo/Documents/Claude/Projects/next-notes/.git/worktrees/tooling"
+    },
+    {
+      "worktree": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/voice-ack",
+      "ordinary_git_status_works": true,
+      "all_preservation_fields_identical": true,
+      "gitlink_target": "/Users/sergekadjo/Documents/Claude/Projects/next-notes/.git/worktrees/voice-ack"
+    },
+    {
+      "worktree": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/voice-mini",
+      "ordinary_git_status_works": true,
+      "all_preservation_fields_identical": true,
+      "gitlink_target": "/Users/sergekadjo/Documents/Claude/Projects/next-notes/.git/worktrees/voice-mini"
+    },
+    {
+      "worktree": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/voice-settings-ui",
+      "ordinary_git_status_works": true,
+      "all_preservation_fields_identical": true,
+      "gitlink_target": "/Users/sergekadjo/Documents/Claude/Projects/next-notes/.git/worktrees/voice-settings-ui"
+    }
+  ]
+}

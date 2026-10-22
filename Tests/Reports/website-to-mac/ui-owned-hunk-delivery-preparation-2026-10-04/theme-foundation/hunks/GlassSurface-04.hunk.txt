@@ -1,0 +1,5 @@
+--- a/Sources/NextNotes/UI/Components/GlassSurface.swift
++++ b/Sources/NextNotes/UI/Components/GlassSurface.swift
+@@ -39 +40 @@ extension View {
+-        modifier(GlassSurfaceModifier(shape: shape, glass: glass, material: fallback))
++        modifier(GlassSurfaceModifier(shape: shape, glass: glass))

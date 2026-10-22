@@ -1,0 +1,36 @@
+# UX-11 / UX-05 moving treatment admission audit
+
+Status: **read-only, off-source audit**. No Source, build, install, model, native UI, Computer Use, or staging action was performed. The current Source hashes below are inputs, not tested outputs.
+
+| Source | SHA-256 |
+|---|---|
+| `UI/Agent/AgentView.swift` | `7e7eed666368a2ea260548de5071b8bdae1243f1cc364c0b1fb6efbe2c29f7c2` |
+| `UI/Agent/AgentWorkingCard.swift` | `90130118f5d69acdded1e72d423cfa0877d740385bbe69119f17d0e8ae0dfb2d` |
+| `UI/Island/IslandView.swift` | `4d53c60d50e954863ca330961b1bcf5f006899daffce1867d82d567f3aa1bf09` |
+| `UI/Components/Theme/ThemeBorderBeam.swift` | `07abde63ff092072216a55a6bfbdc269d5d739eb92dc0153b6ba1ab83c05db3d` |
+| `UI/Components/Theme/ThemeVoiceGlow.swift` | `4d628c5596a5562d483ccc7aecdb739b51f2260e50e68a68f89be79ba4ee186a` |
+| `UI/Components/ThinkingOrbs/ThinkingOrb.swift` | `041cf46816a23b49e50c4528b98831b576eac302e9decea272d0b1778044a475` |
+
+## Current truthful state and motion owners
+
+`AgentWorkingCard` already receives an actual `AgentTask`, task-scoped activity steps and the matching pending review. Its still border rim appears only for `.running` without a yielded preview or inline review. The card's `AgentAvatarView` is the live mark for running/queued/waiting states. `AgentView` passes `animatesActivity` only to the first active task when the turn is not thinking; it is a **priority heuristic**, not viewport admission. The composer has a still `.working` `ThemeVoiceGlow` only for actual `agent.isThinking` while both approval gates are empty. Its `thinkingRow` avatar animates for the same turn. These labels and gates are source backed; the still treatments do not make an extra motion claim.
+
+`AgentView.body` wraps the **whole section** in `ViewThatFits` alternatives. Each candidate contains a conversation, scroll, working cards and composer. Source does not establish whether the unchosen candidate's timelines are admitted during measurement or kept alive. The conversation uses `LazyVStack`, but there is no per-card visible-intersection signal; `onAppear` and the existing scroll-at-bottom Boolean only drive reading continuity. There is also no pane/window presentation Boolean wired to the theme treatment. Setting either current `isAnimated: false` call to true can therefore add a periodic beam clock beside the existing portrait, and may admit work in an inactive layout candidate or an offscreen row. Static leaf captures cannot decide that SwiftUI runtime question.
+
+The island has an existing single character/orb mark, whose `TimelineView` is already driven by actual `IslandState.kind`; pending approval freezes the orb. `IslandState.isExpanded` and `.isHidden` give collapsed/hidden semantics, and `IslandPanel` privately owns its actual `isPresented`/ordering lifecycle. They do not supply a shared presentation admission to a new moving rim. `ThemeBorderBeam` draws a rounded rectangle, while the notched island uses an uneven shape; a direct overlay also requires shape fidelity. The island's `.agentWorking` state already animates its avatar, so a moving beam added there would need an explicit handoff from that avatar. No speaking/output-level producer is connected to `ThemeVoiceGlow`; `.speaking` would be a synthetic claim now.
+
+The components themselves have suitable cheapest-first clocks: `ThemeBorderBeam` and `ThemeVoiceGlow` render a constant treatment for Reduce Motion or `isAnimated: false`; `ThemeVoiceGlow` also does so in `.idle`. `ThinkingOrb` likewise removes its timeline under Reduce Motion. This does **not** prove that an offscreen or unchosen caller passes the false admission value, nor does it prove draw rate, CPU cost, or first displayed frame.
+
+## Decision and smallest missing producer contract
+
+There is **no safe moving beam/glow Source candidate on the current admission inputs alone**. Keep the existing still rim and composer edge until the presentation owner can derive one ephemeral, view-local `liveTreatmentAdmitted` value from the **chosen Agent layout and actual visible viewport/window**, with false for inactive `ViewThatFits` candidates, hidden/minimized pane, offscreen/collapsed rows, terminal/yielded/review states, and Reduce Motion. Its true case must come from real `.running` task work or real `agent.isThinking` only. It must not be a second persisted motion store, global clock, polling loop, actor hop, delay, or audio owner. If the native trace shows the unchosen candidate is already unmounted, preserve that behavior rather than adding a layout layer preemptively.
+
+At the same presentation handoff, select **one** live mark: a moving card rim would freeze that card's avatar with its existing `frozenAt` seam; a moving composer edge would freeze the `thinkingRow` avatar and already-frozen task avatars for that turn. If no treatment is admitted, the current semantic portrait remains live. Stop the treatment immediately when work ends or approval arrives; keep the existing text and action visible throughout. For the island, use its real panel visibility and a shape-matched treatment before considering a moving rim; freeze its avatar/orb only during an admitted visible treatment. The island must remain nonactivating. None of these rules implies a second work state or speaking mode.
+
+## Original/current proof required before adoption
+
+1. With the serial runtime owner, pin exact original and candidate installed executable/source hashes. In a sanitized real turn/task, observe both `ViewThatFits` candidates at the narrow and wide Agent thresholds, first and older active task cards, an offscreen scroll position, window hidden/minimized, approval, yield, terminal result, and Reduce Motion. Count actual `TimelineView`/Canvas updates or frame work by candidate and surface; require **one admitted moving treatment and no competing live portrait**, with zero continuous draws for inactive/offscreen/collapsed/finished cases. A static PNG or source count is not a draw verdict.
+2. Use the same accepted request/work/choice producer events and correlated first **displayed** frames for original and candidate. Compare send → visible row, work update → card/island label, approval → acknowledgement, and key-down → visible HUD listening; none may regress against the UX-00 baseline. `onAppear`, AppKit ordering, offscreen `cacheDisplay` and generated-image elapsed times are not first-visible endpoints. Keep native keyboard, VoiceOver, Stop/review action and floating/notched geometry checks.
+3. Run the unchanged Phase 2 voice gate with the same fixture/model and island on/off comparison under the candidate load: warm speech-end → first audio median ≤0.9 s, onset → duck ≤200 ms, inter-clause gap ≤50 ms, worst voice-turn main-actor stall ≤100 ms. The retained historical median 2.894 s misses the first threshold; its 35 ms stall applies to an older build, not this candidate. Profile drawing while voice, dictation and meeting audio overlap. Report actual marker/verdicts and missing grants rather than promoting a motion or latency green from source.
+
+This audit does not close UX-05, UX-11 moving treatment adoption, or UX-10. The prior still treatment and truthful labels remain the current implemented baseline.

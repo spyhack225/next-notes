@@ -1,0 +1,43 @@
+{
+  "status": "OFF_SOURCE_COPY_ONLY_HELD_UNCOMPILED_UNRUN",
+  "frozenP4ManifestSHA256": "8284488f95950f0ad49fd98305410999ba356ad963f7d28cfb7f5c275e7fe328",
+  "rootPrivacyManifestSHA256": "b85bbe2597de31fda50d96b97d887ee64c1361f7f6a61094fc4ed2ad5fb36d83",
+  "preimages": {
+    "rootPrivacyCommonIsland": "c3fc7961c91195f59e3b5a8ac21c2ecd57aaa58613a1d5b28a2e0c98477a26a4",
+    "rootPrivacyFixedIsland": "395dd955947d227b608e7a229111ecf9c5cc31694ad0761a43368c28b03607db",
+    "frozenFinal169Fixture": "15b09dec0069fa8accbf659a46b7dabf28a40012979f7015b2c6f691986ccb3d"
+  },
+  "postimages": {
+    "heldP4CommonOnPrivacyCommon": "361fc3a8853701a18f39fb46ea75c3bcac398722b9e3f42b4d39f5119f5e5b75",
+    "p4CommonOnPrivacyFixed": "de227516e227fee1611f65c81657c047ec059dde8480e44f4e36ccda6458af6b",
+    "p4FixedOnPrivacyFixed": "c7daea91767d6c4f0ab4d37cf534e5282a17c68b4f2868cb8e850f7d39b30da8",
+    "amendedFinal169Fixture": "653b591d31197f69bb43a9022f513574e400f52aa80b7ab479d3587426af67bc"
+  },
+  "patches": {
+    "HELD-p4-common-after-root-privacy-COMMON.patch": "11b5d9e2c4c361b3f4f998c3fb824553eda702c832cc56b7fc4deeb9fadd0c40",
+    "P4-common-after-root-privacy-FIXED.patch": "bf0bb4cd56330b56ac2fbc53b79cf03fd5881dcd8d4b92efd7ea2a4511256dbe",
+    "P4-fixed-after-combined-COMMON.patch": "e26cccea1fac750f47a517276b72d719ee75b8ba2fd9ec368ea6b44c52e19e38",
+    "ADD-F27-label-on-final169-COMMON.patch": "ad3eb119c3b9e746db29d2fad78e03fb08986d1b93efe431d87cc9c47f9b7048"
+  },
+  "limits": [
+    "root privacy FIXED separately pending acceptance",
+    "P4 final169 original/fixed compiled/native verdict unrun",
+    "frozen P4 and privacy packets unchanged"
+  ],
+  "rootPrivacyInputs": {
+    "producer.patch": "cdc2cf3d1f61826536d72bd14477031ba2f368557aa2c97436e751646f339703",
+    "common/Sources/NextNotes/Agent/Duplex/IslandNoticeLogSelfTest.swift": "69488ab4b7f14bd3c654804d87f13ab10d3cdbdc05e34bdd03cf1e4f101d2e83",
+    "common/Sources/NextNotes/Agent/Duplex/OutputSchedulerSelfTest.swift": "88a8b8a7aa415b9c906d63e73d0550ec0c20e2b7bceeef7d288b5c4800093331"
+  },
+  "fixtureStatic": {
+    "sameCheckCallExpressions": true,
+    "samePrivateCanaryCounts": true,
+    "onlyF27ExpectedOperandChanged": true,
+    "frozenCaseCount": 169
+  },
+  "documents": {
+    "README.md": "f4f69b17ac9802a558fd655d0ca4dec371ef385b802e98c763a1a0815db3c2fc",
+    "source-only-replay.json": "f7a293cfa8f479801317381ef5b4155d0627754162d3eafb00233990ee543bcf",
+    "amended-ProactiveSelfTest.swift.proposed": "653b591d31197f69bb43a9022f513574e400f52aa80b7ab479d3587426af67bc"
+  }
+}

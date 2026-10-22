@@ -1,0 +1,6 @@
+--- a/Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift
++++ b/Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift
+@@ -268,3 +314,0 @@ struct FormattingSettingsTab: View {
+-            Spacer()
+-
+-            addFrontmostButton

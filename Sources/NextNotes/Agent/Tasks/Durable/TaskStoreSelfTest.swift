@@ -458,7 +458,19 @@ enum TaskStoreSelfTest {
         let repeated = try mirror.withConnection { try TaskStore.stringColumn($0,
             "SELECT kind FROM task_event WHERE task_id='journal-real-manager' ORDER BY seq") }
         check(repeated == kinds, "duplicate terminal callback fabricated a second transition")
+        // A completed→failed callback is an illegal state transition. Keep the
+        // completed/duplicate checks above, then exercise the SAME SQL failure
+        // boundary from a separately admitted current running task.
+        let failureTask = AgentTask(id: "journal-real-manager-failure", objective: task.objective,
+            source: task.source, status: .running)
+        guard manager.beginScheduledRun(failureTask) else { throw FixtureError.backingFailure }
+        let failureKinds = try mirror.withConnection { try TaskStore.stringColumn($0,
+            "SELECT kind FROM task_event WHERE task_id='journal-real-manager-failure' ORDER BY seq") }
         let beforeFailure = try mirror.load()
+        guard failureKinds == ["jobCreated", "workerStarted"],
+              beforeFailure.first(where: { $0.id == failureTask.id })?.status == .running else {
+            throw FixtureError.backingFailure
+        }
         let exportBeforeFailure = try Data(contentsOf: json.storageURL)
         try mirror.withConnection { db in
             try TaskStore.exec(db, """
@@ -466,7 +478,7 @@ enum TaskStoreSelfTest {
                 WHEN NEW.kind='jobFailed' BEGIN SELECT RAISE(ABORT,'fixture journal rejection'); END
                 """)
         }
-        manager.finishScheduledRun(id: task.id, status: .failed, result: nil, failure: "Private failure")
+        manager.finishScheduledRun(id: failureTask.id, status: .failed, result: nil, failure: "Private failure")
         check(manager.lastPersistenceResult == .sqlFailed, "failed journal append was invisible to real manager")
         check(try json.load() == beforeFailure && Data(contentsOf: json.storageURL) == exportBeforeFailure,
             "failed primary journal changed committed history or its export")
@@ -474,8 +486,8 @@ enum TaskStoreSelfTest {
         defer { second.close() }
         check(try second.load() == beforeFailure, "state committed without its event after injected journal failure")
         let afterFailureKinds = try second.withConnection { try TaskStore.stringColumn($0,
-            "SELECT kind FROM task_event WHERE task_id='journal-real-manager' ORDER BY seq") }
-        check(afterFailureKinds == kinds, "failed state transaction partially changed the journal")
+            "SELECT kind FROM task_event WHERE task_id='journal-real-manager-failure' ORDER BY seq") }
+        check(afterFailureKinds == failureKinds, "failed state transaction partially changed the journal")
         try mirror.withConnection { try TaskStore.exec($0, "DROP TRIGGER fixture_journal_failure") }
         let input = AgentTask(id: "journal-input", objective: "Fixture input", status: .running, tool: "filesystem.read")
         manager.beginScheduledRun(input)

@@ -1,5 +1,7 @@
 import AVFoundation
 import Foundation
+import FluidAudio
+import Darwin
 
 /// The buffer arithmetic shared by microphone capture and system-audio capture.
 ///
@@ -192,6 +194,102 @@ enum AudioConversion {
             }
         }
         return output
+    }
+
+    /// The existing diarizer sample-source contract, also used by meeting finals.
+    /// Bounded post-Stop PCM is an unaccepted diagnostic experiment. Ordinary
+    /// final/diarization consumers retain the original whole-array API and IO.
+    static let usesBoundedMeetingAudioExperiment = SelfTest.isRunning && (
+        SelfTest.requested == "--selftest-meeting-bounded-audio"
+        || (SelfTest.requested == "--selftest-meeting-quiet-input"
+            && CommandLine.arguments.contains("--meeting-bounded-audio-experiment")))
+
+    /// Native writer CAFs lift the requested channel in bounded reads. Legacy formats
+    /// retain the existing conversion semantics; no stereo-to-mono shortcut is used.
+    static func meetingSampleSource(fromFileAt url: URL, channel: Int) throws -> any AudioSampleSource {
+        guard usesBoundedMeetingAudioExperiment else { throw CocoaError(.fileReadNoPermission) }
+        let identity = try FileIdentity.read(url)
+        let file = try AVAudioFile(forReading: url)
+        let format = file.processingFormat
+        let count = Int(exactly: file.length)
+        let nativeFormat = isNativeMeetingFile(file)
+        guard try FileIdentity.read(url) == identity else { throw CocoaError(.fileReadCorruptFile) }
+        if url.pathExtension.lowercased() == "caf", nativeFormat,
+           (0..<Int(format.channelCount)).contains(channel), let count {
+            return MeetingFileSampleSource(url: url, channel: channel, sampleCount: count, identity: identity)
+        }
+        return ArrayAudioSampleSource(samples: try samples(
+            fromFileAt: url, sampleRate: 16_000, channel: channel))
+    }
+
+    // Random seek parity is scoped to the meeting writer's uncompressed integer CAF.
+    // A Float32 processing format alone also describes compressed audio decoders.
+    private static func isNativeMeetingFile(_ file: AVAudioFile) -> Bool {
+        let disk = file.fileFormat.streamDescription.pointee
+        let processing = file.processingFormat
+        return disk.mFormatID == kAudioFormatLinearPCM && disk.mBitsPerChannel == 16
+            && disk.mFormatFlags & kAudioFormatFlagIsFloat == 0
+            && disk.mSampleRate == 16_000 && disk.mChannelsPerFrame == 2
+            && processing.sampleRate == 16_000 && processing.channelCount == 2
+            && processing.commonFormat == .pcmFormatFloat32
+    }
+
+    /// Immutable range source: the dependency reads segmentation and embedding ranges
+    /// concurrently, so each request owns its AVAudioFile rather than sharing a cursor.
+    private struct MeetingFileSampleSource: AudioSampleSource {
+        let url: URL
+        let channel: Int
+        let sampleCount: Int
+        private let identity: FileIdentity
+
+        init(url: URL, channel: Int, sampleCount: Int, identity: FileIdentity) {
+            self.url = url; self.channel = channel; self.sampleCount = sampleCount
+            self.identity = identity
+        }
+
+        func copySamples(into destination: UnsafeMutablePointer<Float>, offset: Int, count: Int) throws {
+            guard count > 0, sampleCount > 0 else { return }
+            let start = max(0, offset)
+            guard start < sampleCount else { return }
+            guard try FileIdentity.read(url) == identity else { throw CocoaError(.fileReadCorruptFile) }
+            let file = try AVAudioFile(forReading: url)
+            let format = file.processingFormat
+            guard file.length == AVAudioFramePosition(sampleCount), isNativeMeetingFile(file),
+                  let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 16_000) else {
+                throw CocoaError(.fileReadCorruptFile)
+            }
+            file.framePosition = AVAudioFramePosition(start)
+            let available = min(sampleCount - start, count)
+            var copied = 0
+            while copied < available {
+                let frames = min(16_000, available - copied)
+                try file.read(into: buffer, frameCount: AVAudioFrameCount(frames))
+                guard Int(buffer.frameLength) == frames, let channels = buffer.floatChannelData else {
+                    throw CocoaError(.fileReadCorruptFile)
+                }
+                let stride = buffer.stride
+                let selected = stride > 1 ? channels[0] + channel : channels[channel]
+                for frame in 0..<frames { destination[copied + frame] = selected[frame * stride] }
+                copied += frames
+            }
+            guard try FileIdentity.read(url) == identity else { throw CocoaError(.fileReadCorruptFile) }
+        }
+    }
+
+    /// Metadata checks prevent ordinary replacement/truncation across range requests.
+    /// They are not a cross-process compare-and-swap or a power-loss guarantee.
+    private struct FileIdentity: Equatable, Sendable {
+        var device: Int64; var inode: UInt64; var bytes: Int64
+        var modifiedSeconds: Int64; var modifiedNanoseconds: Int64
+        var changedSeconds: Int64; var changedNanoseconds: Int64
+        static func read(_ url: URL) throws -> FileIdentity {
+            var info = stat()
+            guard url.path.withCString({ fstatat(AT_FDCWD, $0, &info, 0) }) == 0,
+                  (info.st_mode & S_IFMT) == S_IFREG else { throw CocoaError(.fileReadNoSuchFile) }
+            return FileIdentity(device: Int64(info.st_dev), inode: UInt64(info.st_ino), bytes: Int64(info.st_size),
+                modifiedSeconds: Int64(info.st_mtimespec.tv_sec), modifiedNanoseconds: Int64(info.st_mtimespec.tv_nsec),
+                changedSeconds: Int64(info.st_ctimespec.tv_sec), changedNanoseconds: Int64(info.st_ctimespec.tv_nsec))
+        }
     }
 
     /// Copies one channel of a buffer into a mono buffer of the same sample rate.

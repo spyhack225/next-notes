@@ -1,0 +1,2 @@
+2026-10-07 11:52:05.871 NextNotes[8208:64040] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+AUDIO_RETENTION_OK: temporary audio keeps 72 h, the disk guards hold, the sweeper spares kept, active and problem meetings

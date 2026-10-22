@@ -1,0 +1,37 @@
+{
+  "scope": "Exact cache recorder AST with substituted gate/machine/file; no OS or child process; previous failed observation remains unavailable",
+  "cases": [
+    {
+      "percent": 54,
+      "gateOK": true,
+      "gateExit": 0,
+      "refused": true,
+      "recordExact": true
+    },
+    {
+      "percent": 55,
+      "gateOK": true,
+      "gateExit": 0,
+      "refused": false,
+      "recordExact": true
+    },
+    {
+      "percent": 56,
+      "gateOK": false,
+      "gateExit": 0,
+      "refused": true,
+      "recordExact": true
+    },
+    {
+      "percent": 56,
+      "gateOK": false,
+      "gateExit": 1,
+      "refused": true,
+      "recordExact": true
+    }
+  ],
+  "checks": 4,
+  "sourcesChanged": false,
+  "thresholdChanged": false,
+  "firstHarnessExtraction": "failed assertion before executing recorder; corrected AST selection; no compiler child"
+}

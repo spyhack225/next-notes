@@ -14,6 +14,7 @@ import SwiftUI
 // MARK: - 1. Welcome
 
 struct OnboardingWelcomeStep: View {
+    @Environment(\.onboardingVisualFixture) private var visualFixture
     let onContinue: () -> Void
 
     @State private var identity = AgentIdentityStore.shared
@@ -24,12 +25,21 @@ struct OnboardingWelcomeStep: View {
     var body: some View {
         OnboardingScreen(
             symbol: "waveform",
-            headline: "A familiar companion, right on your Mac",
-            subhead: "Start by speaking your words into any app. Give your companion a name, "
-                + "then choose what it can help with.",
+            headline: "Your companion.",
+            headlineAccent: "Home and work.",
+            subhead: "One familiar companion on your Mac—for your words, meetings, "
+                + "and the things you want to get done.",
             primaryTitle: "Get started",
             primary: commit
         ) {
+            OnboardingFigure(scene: .welcome)
+            // Put the default privacy promise before the optional identity choices,
+            // so it is readable at the initial scroll position of the setup window.
+            OnboardingHint(
+                text: "No account needed. Your words stay on this Mac by default.",
+                symbol: "lock"
+            )
+
             OnboardingCard {
                 HStack(alignment: .center, spacing: DS.Space.m) {
                     VStack(alignment: .leading, spacing: DS.Space.xxs) {
@@ -37,10 +47,10 @@ struct OnboardingWelcomeStep: View {
                             .font(DS.Font.subheadline.weight(.semibold))
                         Text("You can change this whenever you like.")
                             .font(DS.Font.caption)
-                            .foregroundStyle(DS.Color.textSecondary)
+                            .foregroundStyle(DS.Theme.Palette.mutedForeground)
                     }
                     Spacer(minLength: DS.Space.s)
-                    TextField("Name", text: $name)
+                    TextField("Name", text: visualFixture == nil ? $name : .constant("Next"))
                         .textFieldStyle(.roundedBorder)
                         .frame(width: DS.Size.settingsFieldWidth / 2)
                         .focused($isNameFocused)
@@ -58,13 +68,13 @@ struct OnboardingWelcomeStep: View {
                 // The portrait is the real animated one, idling — so what is generated
                 // here is what will be seen at work.
                 HStack(alignment: .center, spacing: DS.Space.m) {
-                    AgentAvatarView(config: avatar, state: .idle, size: DS.Size.avatarOnboarding)
+                    AgentAvatarView(config: visualFixture == nil ? avatar : .default, state: .idle, size: DS.Size.avatarOnboarding)
                     VStack(alignment: .leading, spacing: DS.Space.xxs) {
                         Text("Give it a face")
                             .font(DS.Font.subheadline.weight(.semibold))
                         Text("Generate one now. You can make another whenever you like.")
                             .font(DS.Font.caption)
-                            .foregroundStyle(DS.Color.textSecondary)
+                            .foregroundStyle(DS.Theme.Palette.mutedForeground)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                     Spacer(minLength: DS.Space.s)
@@ -77,6 +87,7 @@ struct OnboardingWelcomeStep: View {
                 .padding(.vertical, DS.Space.s)
                 .frame(minHeight: DS.Onboarding.rowMinHeight)
             }
+
         }
     }
 
@@ -86,6 +97,13 @@ struct OnboardingWelcomeStep: View {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         if !trimmed.isEmpty, trimmed != identity.name {
             identity.setDisplayName(trimmed)
+            // A fresh name earns its face deterministically: same name, same face,
+            // every launch. An already-chosen face (Generate pressed) is never
+            // overwritten by typing.
+            if avatar == .default {
+                avatar = .forName(trimmed)
+                identity.setAvatar(avatar)
+            }
         }
         onContinue()
     }
@@ -101,6 +119,7 @@ struct OnboardingWelcomeStep: View {
 // MARK: - 2. Dictation
 
 struct OnboardingDictationStep: View {
+    @Environment(\.onboardingVisualFixture) private var visualFixture
     let controller: DictationController
     let onContinue: () -> Void
 
@@ -119,11 +138,13 @@ struct OnboardingDictationStep: View {
     var body: some View {
         OnboardingScreen(
             symbol: "mic.fill",
-            headline: "Let Next Notes hear you, and type for you",
+            headline: "Let Next Notes hear you.",
+            headlineAccent: "And type for you.",
             subhead: "Two switches in macOS. Next Notes asks; you say yes.",
             primary: onContinue
         ) {
             VStack(alignment: .leading, spacing: DS.Space.m) {
+                OnboardingFigure(scene: .dictation)
                 OnboardingCard {
                     OnboardingGrantRow(
                         title: "Microphone",
@@ -148,27 +169,36 @@ struct OnboardingDictationStep: View {
                 }
             }
         }
-        .task { await watch() }
+        .task {
+            guard visualFixture == nil else { return }
+            await watch()
+        }
         // macOS says nothing when a switch is flipped in System Settings, so the answer is
         // re-read when the user comes back — and polled while they are still over there,
         // because on a second display they never "come back" at all.
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            guard visualFixture == nil else { return }
             refresh()
         }
     }
 
     private var microphoneState: OnboardingGrantState {
+        if let visualFixture { return visualFixture.hasPermissions ? .done : .ask }
         if hasMicrophone { return .done }
         return isAskingMicrophone ? .waiting : .ask
     }
 
     private var accessibilityState: OnboardingGrantState {
+        if let visualFixture { return visualFixture.hasPermissions ? .done : .ask }
         if hasAccessibility, !isTrustedButNotArmed { return .done }
         return sentToSettingsAt == nil ? .ask : .waiting
     }
 
     /// The one sentence under the card, or none. Ordered by how stuck the user is.
     private var hint: String? {
+        if let visualFixture {
+            return visualFixture.hasPermissions ? nil : "You can carry on without these — dictation just won’t work until they’re on."
+        }
         if isTrustedButNotArmed {
             return "macOS says Next Notes is allowed, but the key still isn't working. "
                 + Permissions.accessibilityRepairAdvice
@@ -238,6 +268,7 @@ struct OnboardingDictationStep: View {
 // MARK: - 3. Your shortcut
 
 struct OnboardingShortcutStep: View {
+    @Environment(\.onboardingVisualFixture) private var visualFixture
     let controller: DictationController
     let onContinue: () -> Void
 
@@ -246,23 +277,26 @@ struct OnboardingShortcutStep: View {
     @State private var settings = Settings.shared
     @State private var trial = ""
     @State private var practice = OnboardingPracticeReceipt()
+    @State private var practiceObserverID = UUID()
     @FocusState private var isTrialFocused: Bool
 
     var body: some View {
         OnboardingScreen(
             symbol: "keyboard",
-            headline: "Pick your keys",
+            headline: "Pick",
+            headlineAccent: "your keys.",
             subhead: "One to hold while you talk. One to start and stop without holding.",
             primary: onContinue
         ) {
             VStack(alignment: .leading, spacing: DS.Space.m) {
+                OnboardingFigure(scene: .shortcut)
                 OnboardingCard {
                     OnboardingChoiceRow(
                         title: "Hold to talk",
                         detail: "Hold this key, say something, let go."
                     ) {
                         Picker("", selection: Binding(
-                            get: { settings.pushToTalkKey },
+                            get: { visualFixture == nil ? settings.pushToTalkKey : .fn },
                             set: { key in
                                 settings.pushToTalkKey = key
                                 controller.reloadHotkey()
@@ -299,12 +333,23 @@ struct OnboardingShortcutStep: View {
                                 .font(DS.Font.subheadline.weight(.semibold))
                             Spacer()
                             if practice.hasDeliveredWords {
-                                Label("Your words landed here", systemImage: "checkmark.circle.fill")
+                                Label("Nice — your words landed here", systemImage: "checkmark.circle.fill")
                                     .font(DS.Font.caption)
                                     .foregroundStyle(DS.Color.success)
                             } else if controller.state.isActive {
-                                ThinkingOrb(state: .breathing, size: DS.Size.orbBadge)
-                                    .accessibilityHidden(true)
+                                // The hold's real stage, in the same words the dictation pane
+                                // and HUD use for it — never a delivery claim. Success still
+                                // waits on the controller's actual insertion receipt, so this
+                                // is progress, not proof.
+                                HStack(spacing: DS.Space.s) {
+                                    Text(practiceLiveStatus)
+                                        .font(DS.Font.caption)
+                                        .foregroundStyle(DS.Theme.Palette.mutedForeground)
+                                    ThinkingOrb(state: practiceLiveOrb, size: DS.Size.orbBadge)
+                                        .accessibilityHidden(true)
+                                }
+                                .accessibilityElement(children: .combine)
+                                .accessibilityLabel(practiceLiveStatus)
                             }
                         }
                         TextField(trialPrompt, text: $trial, axis: .vertical)
@@ -319,15 +364,34 @@ struct OnboardingShortcutStep: View {
                             Text("You'll be able to try this once macOS lets Next Notes type "
                                  + "for you — the previous step.")
                                 .font(DS.Font.caption)
-                                .foregroundStyle(DS.Color.textSecondary)
+                                .foregroundStyle(DS.Theme.Palette.mutedForeground)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
+                        Text("Every take also lands in History. Find them under Dictation.")
+                            .font(DS.Font.caption)
+                            .foregroundStyle(DS.Theme.Palette.mutedForeground)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                     .padding(.horizontal, DS.Space.m)
                     .padding(.vertical, DS.Space.s)
                 }
             }
-            .onAppear { isTrialFocused = canTry }
+            .onAppear {
+                guard visualFixture == nil else { return }
+                practice.beginObserving(latestDeliveryID: controller.latestDelivery?.id)
+                controller.observeHoldBeginnings(owner: practiceObserverID) { id in
+                    practice.beganHold(
+                        id: id, inPracticeField: isTrialFocused, fieldText: trial
+                    )
+                }
+                isTrialFocused = canTry
+            }
+            .onDisappear {
+                guard visualFixture == nil else { return }
+                controller.stopObservingHoldBeginnings(owner: practiceObserverID)
+            }
+            .onChange(of: controller.latestDelivery) { _, _ in consumePracticeDelivery() }
+            .onChange(of: trial) { _, _ in consumePracticeDelivery() }
             .animation(reduceMotion ? nil : DS.Motion.standard, value: practice.hasDeliveredWords)
         }
     }
@@ -335,17 +399,48 @@ struct OnboardingShortcutStep: View {
     /// Dictation types into whatever has focus, and during this step that is the practice
     /// field — so the test is the real thing rather than a simulation of it. It needs the
     /// same grant the previous step asks for.
-    private var canTry: Bool { Permissions.hasAccessibility && Permissions.hasMicrophone }
+    private var canTry: Bool { visualFixture?.hasPermissions ?? (Permissions.hasAccessibility && Permissions.hasMicrophone) }
+
+    private func consumePracticeDelivery() {
+        guard visualFixture == nil else { return }
+        guard let delivery = controller.latestDelivery else { return }
+        practice.received(
+            id: delivery.id, text: delivery.text, inserted: delivery.kind == .inserted,
+            fieldText: trial
+        )
+    }
 
     private var trialPrompt: String {
-        "Hold \(settings.pushToTalkKey.spokenName) and say something…"
+        "Hold \(visualFixture == nil ? settings.pushToTalkKey.spokenName : PushToTalkKey.fn.spokenName) and say something…"
+    }
+
+    /// What the practice card says while a hold is running: the controller's actual
+    /// stage, with capture (not just `.starting`) deciding between setup and
+    /// listening — the same rule `DictationStatusBand` reads.
+    private var practiceLiveStatus: String {
+        switch controller.state {
+        case .listening: "Listening…"
+        case .starting: controller.isCapturingAudio ? "Listening…" : "Getting ready…"
+        case .finishing: "Finishing…"
+        case .idle, .error: ""
+        }
+    }
+
+    private var practiceLiveOrb: OrbGeometry.State {
+        switch controller.state {
+        case .listening: .listening
+        case .starting: controller.isCapturingAudio ? .listening : .working
+        case .finishing: .working
+        case .idle, .error: .breathing
+        }
     }
 
     /// The two keys must never be the same one; Settings resolves a collision by switching
     /// Command Mode off, which from outside looks like the feature breaking itself. Offering
     /// only the keys that are free makes the collision unreachable instead.
     private var holdChoices: [PushToTalkKey] {
-        PushToTalkKey.allCases.filter {
+        if visualFixture != nil { return PushToTalkKey.allCases }
+        return PushToTalkKey.allCases.filter {
             !settings.commandModeEnabled || $0 != settings.commandModeKey
         }
     }
@@ -353,7 +448,8 @@ struct OnboardingShortcutStep: View {
     /// "No shortcut" is `nil` rather than a fourth case, so the off state is the absence of
     /// a choice rather than a choice that means nothing.
     private var handsFree: Binding<AgentShortcut?> {
-        Binding(
+        if visualFixture != nil { return .constant(nil) }
+        return Binding(
             get: { settings.agentShortcutEnabled ? settings.agentShortcut : nil },
             set: { choice in
                 if let choice {
@@ -374,22 +470,30 @@ struct OnboardingShortcutStep: View {
 struct OnboardingPracticeReceipt: Equatable {
     private(set) var hasDeliveredWords = false
     private var baselineDeliveryID: UUID?
+    private var holdID: UUID?
     private var holdBeganInPractice = false
+    private var fieldTextBeforeHold = ""
 
     mutating func beginObserving(latestDeliveryID: UUID?) {
         baselineDeliveryID = latestDeliveryID
+        holdID = nil
+        holdBeganInPractice = false
+        hasDeliveredWords = false
     }
 
-    mutating func beganHold(inPracticeField: Bool) {
+    mutating func beganHold(id: UUID, inPracticeField: Bool, fieldText: String = "") {
+        holdID = id
         holdBeganInPractice = inPracticeField
+        fieldTextBeforeHold = fieldText
     }
 
     mutating func received(
         id: UUID, text: String, inserted: Bool, fieldText: String
     ) {
         let words = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard id != baselineDeliveryID, holdBeganInPractice, inserted,
-              !words.isEmpty, fieldText.contains(words) else { return }
+        guard id != baselineDeliveryID, id == holdID, holdBeganInPractice, inserted,
+              !words.isEmpty, fieldText != fieldTextBeforeHold,
+              fieldText.contains(text) else { return }
         hasDeliveredWords = true
     }
 }
@@ -397,6 +501,7 @@ struct OnboardingPracticeReceipt: Equatable {
 // MARK: - 4. Meetings
 
 struct OnboardingMeetingsStep: View {
+    @Environment(\.onboardingVisualFixture) private var visualFixture
     let onContinue: () -> Void
     let onSkip: () -> Void
 
@@ -404,21 +509,26 @@ struct OnboardingMeetingsStep: View {
     @State private var hasNotifications = false
     @State private var isAskingCalendar = false
     @State private var didAskForCallAudio = false
+    /// The real calendar store, read for the post-grant beat below. Same pattern as
+    /// the Meetings list — observed, never written from here.
+    @State private var calendar = CalendarService.shared
 
     var body: some View {
         OnboardingScreen(
             symbol: "calendar",
-            headline: "Should it sit in on your meetings?",
+            headline: "Should it sit in on",
+            headlineAccent: "your meetings?",
             subhead: "Next Notes can listen and write the notes, so you don't have to.",
             primary: onContinue,
             skip: onSkip
         ) {
+            OnboardingFigure(scene: .meetings)
             OnboardingCard {
                 OnboardingGrantRow(
                     title: "Your calendar",
                     detail: "So it knows when a meeting is about to start.",
                     symbol: "calendar",
-                    state: hasCalendar ? .done : (isAskingCalendar ? .waiting : .ask),
+                    state: (visualFixture?.hasPermissions ?? hasCalendar) ? .done : (isAskingCalendar ? .waiting : .ask),
                     action: askCalendar
                 )
                 OnboardingRowDivider()
@@ -429,7 +539,7 @@ struct OnboardingMeetingsStep: View {
                     // macOS offers no way to read this one back, and a tick we cannot stand
                     // behind is worse than no tick at all — so the only tick is evidence: a
                     // tap in this app has delivered real sound.
-                    state: Permissions.hasHeardSystemAudio
+                    state: (visualFixture?.hasPermissions ?? Permissions.hasHeardSystemAudio)
                         ? .done : (didAskForCallAudio ? .waiting : .unknowable),
                     actionTitle: "Allow",
                     action: askCallAudio
@@ -440,22 +550,54 @@ struct OnboardingMeetingsStep: View {
                     detail: "A small note when a meeting starts recording, and when its "
                         + "notes are ready.",
                     symbol: "bell",
-                    state: hasNotifications ? .done : .ask,
+                    state: (visualFixture?.hasPermissions ?? hasNotifications) ? .done : .ask,
                     action: askNotifications
                 )
             }
+
+            // Post-grant, and only from the real store: the soonest event
+            // `CalendarService` actually holds. No event, no beat — nothing invented.
+            if let beat {
+                OnboardingHint(text: beat, symbol: "calendar")
+                    .padding(.top, DS.Space.m)
+            }
         }
-        .task { await watch() }
+        .task {
+            guard visualFixture == nil else { return }
+            await watch()
+        }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            guard visualFixture == nil else { return }
             refresh()
         }
+    }
+
+    /// The post-grant beat: the soonest event the real calendar store holds, in
+    /// plain words. Nil unless the grant is in hand, the store has actually been
+    /// read, and an event is there — an empty or unread store shows nothing, so
+    /// this screen can never name a meeting nobody has.
+    private var beat: String? {
+        // Diagnostic captures never display the owner’s calendar events.
+        guard visualFixture == nil else { return nil }
+        guard hasCalendar, calendar.lastRefresh != nil,
+              let next = CalendarService.nextEvent(in: calendar.upcoming)
+        else { return nil }
+        let when = next.start.formatted(date: .abbreviated, time: .shortened)
+        return "Next up: \(next.title) — \(when). Nothing records unless you choose it."
     }
 
     private func askCalendar() {
         isAskingCalendar = true
         Task {
             let granted = await Permissions.requestCalendar()
-            if !granted { Permissions.openCalendarSettings() }
+            if !granted {
+                Permissions.openCalendarSettings()
+            } else {
+                // The beat above reads the real store, so read it: granting usually
+                // refreshes through the store's own observer, but the beat must not
+                // depend on usually.
+                await CalendarService.shared.refresh()
+            }
             isAskingCalendar = false
             refresh()
         }
@@ -493,6 +635,7 @@ struct OnboardingMeetingsStep: View {
 // MARK: - 5. Files
 
 struct OnboardingFilesStep: View {
+    @Environment(\.onboardingVisualFixture) private var visualFixture
     let onContinue: () -> Void
     let onSkip: () -> Void
 
@@ -501,15 +644,17 @@ struct OnboardingFilesStep: View {
     var body: some View {
         OnboardingScreen(
             symbol: "folder",
-            headline: "Let your assistant find your files",
+            headline: "Let your companion find",
+            headlineAccent: "your files.",
             subhead: "Ask for something by name instead of hunting through folders. "
                 + "Nothing is sent anywhere — it all stays on this Mac.",
             primary: onContinue,
             skip: onSkip
         ) {
             VStack(alignment: .leading, spacing: DS.Space.m) {
+                OnboardingFigure(scene: .files)
                 OnboardingCard {
-                    ForEach(Array(IndexedFoldersStore.suggested.enumerated()), id: \.element) { index, folder in
+                    ForEach(Array(suggestedFolders.enumerated()), id: \.element) { index, folder in
                         if index > 0 { OnboardingRowDivider() }
                         OnboardingToggleRow(
                             title: folder.lastPathComponent,
@@ -552,7 +697,12 @@ struct OnboardingFilesStep: View {
 
     /// Folders the user added by hand, kept apart from the three offered by default so the
     /// list does not show the same folder twice.
+    private var suggestedFolders: [URL] {
+        visualFixture?.folders ?? IndexedFoldersStore.suggested
+    }
+
     private var extraFolders: [URL] {
+        if visualFixture != nil { return [] }
         let suggested = Set(IndexedFoldersStore.suggested.map(\.path))
         // `store.revision` is read so the list redraws when a folder is added or removed.
         _ = store.revision
@@ -562,7 +712,8 @@ struct OnboardingFilesStep: View {
     /// One folder's switch. Turning the first one on also turns on the master switch: from
     /// the user's side there is one decision here, not two.
     private func binding(for folder: URL) -> Binding<Bool> {
-        Binding(
+        if visualFixture != nil { return .constant(false) }
+        return Binding(
             get: {
                 _ = store.revision
                 return store.isEnabled && store.folders.contains { $0.path == folder.path }
@@ -594,6 +745,7 @@ struct OnboardingFilesStep: View {
 // MARK: - 6. Your assistant's brain
 
 struct OnboardingBrainStep: View {
+    @Environment(\.onboardingVisualFixture) private var visualFixture
     let onContinue: () -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -607,11 +759,16 @@ struct OnboardingBrainStep: View {
     var body: some View {
         OnboardingScreen(
             symbol: "sparkles",
-            headline: headline,
+            // Once the model is on disk the setup is over even though the screen
+            // is still up: saying "Setting up" beside a full bar and "Ready."
+            // reads as a stuck download. The done headline names the state.
+            headline: isReady ? "Your companion is" : (hasRoom ? "Setting up" : "Your Mac is"),
+            headlineAccent: isReady ? "ready." : (hasRoom ? "your companion." : "nearly full."),
             subhead: subhead,
             primaryTitle: "Continue",
             primary: onContinue
         ) {
+            OnboardingFigure(scene: .brain)
             OnboardingCard {
                 VStack(alignment: .leading, spacing: DS.Space.s) {
                     if hasRoom {
@@ -632,7 +789,7 @@ struct OnboardingBrainStep: View {
 
                     Text(footnote)
                         .font(DS.Font.caption)
-                        .foregroundStyle(DS.Color.textSecondary)
+                        .foregroundStyle(DS.Theme.Palette.mutedForeground)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -640,7 +797,10 @@ struct OnboardingBrainStep: View {
                 .padding(.vertical, DS.Space.m)
             }
         }
-        .task { await watch() }
+        .task {
+            guard visualFixture == nil else { return }
+            await watch()
+        }
         .animation(reduceMotion ? nil : DS.Motion.standard, value: statusLine)
     }
 
@@ -659,19 +819,27 @@ struct OnboardingBrainStep: View {
     /// Whether there is room, in the terms `ModelDownloader` itself refuses on — so the
     /// screen never promises a download that the downloader will then decline.
     private var hasRoom: Bool {
-        isReady || freeBytes >= neededBytes + ModelDownloader.minimumFreeBytesAfterDownload
+        if visualFixture != nil { return true }
+        return isReady || freeBytes >= neededBytes + ModelDownloader.minimumFreeBytesAfterDownload
     }
 
     private var neededBytes: Int64 { NotesModels.spec.expectedBytes }
 
     private var isReady: Bool {
+        if visualFixture != nil { return false }
+        if hasSharedBrain { return true }
         if case .ready = models.notesModelState { return true }
         return false
     }
 
+    /// Owner decision 2026-10-04: the MiniCPM file, when it is already here, is the brain
+    /// every role defaults to — so setup is done and the built-in model is not fetched.
+    private var hasSharedBrain: Bool { ModelRoleStore.shared.sharedLocalModelID != nil }
+
     /// The one line the user reads. Never the store's own message: that one names the model
     /// and its file size, which is exactly the vocabulary this flow exists to avoid.
     private var statusLine: String {
+        if visualFixture != nil { return "Setting up…" }
         if !hasRoom {
             let short = neededBytes + ModelDownloader.minimumFreeBytesAfterDownload - freeBytes
             return "About \(bytes(short)) more free space is needed."
@@ -694,6 +862,7 @@ struct OnboardingBrainStep: View {
     }
 
     private var fraction: Double {
+        if visualFixture != nil { return 0 }
         if isReady { return 1 }
         if case .preparing(let message) = models.notesModelState,
            let percent = Self.percentage(in: message) {
@@ -703,6 +872,7 @@ struct OnboardingBrainStep: View {
     }
 
     private var footnote: String {
+        if visualFixture != nil { return "Carry on — this finishes in the background." }
         if !hasRoom {
             return "Free some space and Next Notes will pick this up on its own. "
                 + "Dictation works in the meantime."
@@ -740,7 +910,7 @@ struct OnboardingBrainStep: View {
     /// machine that only asked a question about a state machine.
     private func start() {
         guard !SelfTest.isRunning, hasRoom else { return }
-        if case .notDownloaded = models.notesModelState {
+        if !hasSharedBrain, case .notDownloaded = models.notesModelState {
             models.prepareNotesModel()
         }
         // The speech model only when it is the one dictation will actually use — the other
@@ -767,6 +937,7 @@ struct OnboardingBrainStep: View {
 // MARK: - 7. All set
 
 struct OnboardingAllSetStep: View {
+    @Environment(\.onboardingVisualFixture) private var visualFixture
     let assistantName: String
     let controller: DictationController
     /// Read for what the user passed over, so the ending never names a thing they declined.
@@ -786,17 +957,45 @@ struct OnboardingAllSetStep: View {
     var body: some View {
         OnboardingScreen(
             symbol: outcome.canDictate ? "checkmark.circle.fill" : "exclamationmark.circle",
-            headline: outcome.headline,
+            headline: outcome.canDictate ? "You’re" : "Nearly",
+            headlineAccent: outcome.canDictate ? "all set." : "there.",
             subhead: outcome.subhead,
             primaryTitle: "Done",
             primary: onDone
         ) {
             VStack(alignment: .leading, spacing: DS.Space.m) {
+                OnboardingFigure(scene: .allSet)
                 OnboardingCard {
                     ForEach(Array(outcome.tips.enumerated()), id: \.element.id) { index, row in
                         if index > 0 { OnboardingRowDivider() }
                         tip(row)
                     }
+                }
+
+                // The follow-through shape: ask → approve → done, labelled as the
+                // example it is. Static — no button here acts, and nothing here is
+                // the owner's data.
+                OnboardingExampleCard()
+
+                // First door: where they want to begin. Setup is done either way —
+                // these finish first run and open the chosen section, so the same
+                // seven screens end at a different door for each person.
+                OnboardingCard {
+                    VStack(alignment: .leading, spacing: DS.Space.xs) {
+                        Text("Where to begin?")
+                            .font(DS.Font.subheadline.weight(.semibold))
+                        Text("Setup is done. Open the door you want first.")
+                            .font(DS.Font.caption)
+                            .foregroundStyle(DS.Theme.Palette.mutedForeground)
+                            .fixedSize(horizontal: false, vertical: true)
+                        HStack(spacing: DS.Space.s) {
+                            intentButton("Dictate", section: .dictation)
+                            intentButton("Ask", section: .agent)
+                            intentButton("Meetings", section: .meetings)
+                        }
+                    }
+                    .padding(.horizontal, DS.Space.m)
+                    .padding(.vertical, DS.Space.s)
                 }
 
                 OnboardingCard {
@@ -805,7 +1004,7 @@ struct OnboardingAllSetStep: View {
                         detail: "So it's ready without you having to think about it.",
                         symbol: "power",
                         isOn: Binding(
-                            get: { settings.agentLaunchAtLogin },
+                            get: { visualFixture == nil ? settings.agentLaunchAtLogin : false },
                             set: { enabled in
                                 settings.agentLaunchAtLogin = enabled
                                 problem = LaunchAtLogin.apply(enabled)
@@ -819,10 +1018,14 @@ struct OnboardingAllSetStep: View {
                 }
             }
         }
-        .task { await watch() }
+        .task {
+            guard visualFixture == nil else { return }
+            await watch()
+        }
         // Somebody who reads the last screen, realises a switch is off and goes to fix it
         // comes back to a screen that already knows.
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            guard visualFixture == nil else { return }
             refresh()
         }
         .animation(reduceMotion ? nil : DS.Motion.standard, value: outcome)
@@ -831,6 +1034,7 @@ struct OnboardingAllSetStep: View {
     /// What setup actually achieved, read rather than assumed. The old version of this
     /// screen congratulated everybody identically — see `OnboardingOutcome`.
     private var outcome: OnboardingOutcome {
+        if let visualFixture { return visualFixture.outcome }
         // Read so this summary follows a folder being added or removed.
         _ = folders.revision
         return .live(
@@ -866,11 +1070,21 @@ struct OnboardingAllSetStep: View {
         isTypingBlocked = controller.hotkeyReady ? false : !controller.activate()
     }
 
-    private func tip(_ row: OnboardingTip) -> some View {
-        HStack(alignment: .center, spacing: DS.Space.m) {
+    /// A first door out of setup: finishes first run and opens the chosen section
+    /// in the main window. Module policy may resolve a disabled section elsewhere —
+    /// that is the honest landing, not a second promise.
+    private func intentButton(_ title: String, section: SidebarSection) -> some View {
+        Button(title) {
+            NavigationState.shared.selectedSection = section
+            onDone()
+        }
+        .buttonStyle(.bordered)
+    }
+
+    private func tip(_ row: OnboardingTip) -> some View {        HStack(alignment: .center, spacing: DS.Space.m) {
             Image(systemName: row.symbol)
                 .font(DS.Font.body)
-                .foregroundStyle(row.isOutstanding ? DS.Color.warning : DS.Color.accent)
+                .foregroundStyle(row.isOutstanding ? DS.Color.warning : DS.Theme.Palette.foreground)
                 .frame(width: DS.Size.iconLarge)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: DS.Space.xxs) {
@@ -878,7 +1092,7 @@ struct OnboardingAllSetStep: View {
                     .font(DS.Font.subheadline.weight(.semibold))
                 Text(row.detail)
                     .font(DS.Font.caption)
-                    .foregroundStyle(DS.Color.textSecondary)
+                    .foregroundStyle(DS.Theme.Palette.mutedForeground)
                     .fixedSize(horizontal: false, vertical: true)
             }
             Spacer(minLength: 0)

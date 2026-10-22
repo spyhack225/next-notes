@@ -1,0 +1,33 @@
+{
+  "status": "SOURCE_ONLY_PATCH_REPLAY_UNCOMPILED_UNRUN",
+  "checks": [
+    {
+      "patch": "s1-common.patch.txt",
+      "checkExit": 0,
+      "checkError": "",
+      "applyExit": 0,
+      "applyError": ""
+    },
+    {
+      "patch": "s1-cocoa-common-after-frozen.patch.txt",
+      "checkExit": 0,
+      "checkError": "",
+      "applyExit": 0,
+      "applyError": ""
+    },
+    {
+      "patch": "s1-cocoa-fixed-after-common.patch.txt",
+      "checkExit": 0,
+      "checkError": "",
+      "applyExit": 0,
+      "applyError": ""
+    }
+  ],
+  "postimages": {
+    "Sources/NextNotes/Formatting/S1MiniFormatter.swift": "1b6f7a907e9971c2e3c003db10482457e15ab61486fe6484a1ca646feaaffd13",
+    "Sources/NextNotes/Support/NativeOtherLlamaQuitSelfTest.swift": "033569635db14ad1e16786619be6fe77cfa0686714258644935964062d7fe553",
+    "Sources/NextNotes/NextNotesApp.swift": "fe5a4d270ee49040a6bd93d4cd628eec5ee79dc48d960f9cb92d2922df6d7ac4",
+    "Sources/NextNotes/Support/NativeS1FormatterCancellationSelfTest.swift": "acc5247ee60a674deaa13a4d0551031068fa04c0b5c405dafa1131e21fb520be",
+    "Sources/NextNotes/Support/NativeS1FormatterCocoaQuitSelfTest.swift": "0ec39ca90a5c6b9921f4d53864cde62f245b690291570df5835bf4208fe1d917"
+  }
+}

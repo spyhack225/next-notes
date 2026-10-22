@@ -1,0 +1,53 @@
+{
+  "installedBinarySHA256": "adc7f6d9848d5ef0355dc989167133a723a77824d52738e1d4e405d2f4b1e8b7",
+  "results": [
+    {
+      "width": 320,
+      "checks": {
+        "exit0": true,
+        "fourPNG": true,
+        "constructor": true,
+        "guardNegative": true,
+        "consumer": true,
+        "finalOK": true,
+        "eightStageObservations": true,
+        "binaryUnchanged": true
+      },
+      "elapsed": 0.906,
+      "probeSummaries": [
+        "stage=2 storeCount=15 defaultCount=15 nodes=41 families=30,4,4,1,0,0,0,2 window=1 windowVisible=0 windowKey=0",
+        "stage=3 storeCount=15 defaultCount=15 nodes=41 families=30,4,4,1,0,0,0,2 window=1 windowVisible=0 windowKey=0",
+        "stage=2 storeCount=15 defaultCount=15 nodes=41 families=30,4,4,1,0,0,0,2 window=1 windowVisible=0 windowKey=0",
+        "stage=3 storeCount=15 defaultCount=15 nodes=41 families=30,4,4,1,0,0,0,2 window=1 windowVisible=0 windowKey=0",
+        "stage=2 storeCount=15 defaultCount=15 nodes=41 families=30,4,4,1,0,0,0,2 window=1 windowVisible=0 windowKey=0",
+        "stage=3 storeCount=15 defaultCount=15 nodes=41 families=30,4,4,1,0,0,0,2 window=1 windowVisible=0 windowKey=0",
+        "stage=2 storeCount=15 defaultCount=15 nodes=41 families=30,4,4,1,0,0,0,2 window=1 windowVisible=0 windowKey=0",
+        "stage=3 storeCount=15 defaultCount=15 nodes=41 families=30,4,4,1,0,0,0,2 window=1 windowVisible=0 windowKey=0"
+      ]
+    },
+    {
+      "width": 560,
+      "checks": {
+        "exit0": true,
+        "fourPNG": true,
+        "constructor": true,
+        "guardNegative": true,
+        "consumer": true,
+        "finalOK": true,
+        "eightStageObservations": true,
+        "binaryUnchanged": true
+      },
+      "elapsed": 0.743,
+      "probeSummaries": [
+        "stage=2 storeCount=15 defaultCount=15 nodes=41 families=30,4,4,1,0,0,0,2 window=1 windowVisible=0 windowKey=0",
+        "stage=3 storeCount=15 defaultCount=15 nodes=41 families=30,4,4,1,0,0,0,2 window=1 windowVisible=0 windowKey=0",
+        "stage=2 storeCount=15 defaultCount=15 nodes=41 families=30,4,4,1,0,0,0,2 window=1 windowVisible=0 windowKey=0",
+        "stage=3 storeCount=15 defaultCount=15 nodes=41 families=30,4,4,1,0,0,0,2 window=1 windowVisible=0 windowKey=0",
+        "stage=2 storeCount=15 defaultCount=15 nodes=41 families=30,4,4,1,0,0,0,2 window=1 windowVisible=0 windowKey=0",
+        "stage=3 storeCount=15 defaultCount=15 nodes=41 families=30,4,4,1,0,0,0,2 window=1 windowVisible=0 windowKey=0",
+        "stage=2 storeCount=15 defaultCount=15 nodes=41 families=30,4,4,1,0,0,0,2 window=1 windowVisible=0 windowKey=0",
+        "stage=3 storeCount=15 defaultCount=15 nodes=41 families=30,4,4,1,0,0,0,2 window=1 windowVisible=0 windowKey=0"
+      ]
+    }
+  ]
+}

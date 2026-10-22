@@ -1,0 +1,17 @@
+{
+  "Sources/NextNotes/NextNotesApp.swift": "bc01a27f48478a297d07a1d35669c313615cc7c182c0c6d113b4899e792a1b61",
+  "Sources/NextNotes/Support/NativeTerminationSelfTest.swift": "a1c1d30f8198e63758dde34abd8812b236c281a191cd9168383eff95a47aa4f5",
+  "Sources/NextNotes/Agent/Tasks/AgentTaskManager.swift": "a1578f79294f73d9b4fb7761df394b334e4fe3f71ec30d994975d278a4c0f9e8",
+  "Sources/NextNotes/Agent/Tasks/AgentTaskStore.swift": "a492097d87b28044e1878093316b762cabb4d5d9f14e5663983a159cafa63310",
+  "Sources/NextNotes/Agent/Tasks/AgentTask.swift": "3c9e5daa76d5bac729b06c7ea1369c14c0749bc575791fad91f060e03bb7d2d2",
+  "Sources/NextNotes/Agent/Tasks/Durable/TaskStore.swift": "401c861d5adec835534ac5eed8a21d29715a837510076b430fb1b0364463a2c8",
+  "Sources/NextNotes/Agent/ActionRuntime.swift": "b2d672a12fe95e572fe6a9af4542f184a01dcc88a0167b9a668af78b333adf10",
+  "Sources/NextNotes/Agent/Permissions/PermissionRequest.swift": "77ee0901ae81a9f6cfd2989d6ead51fcfb97dc5810bb3c7596050bd0283c77f0",
+  "Sources/NextNotes/Agent/Tools/AgentToolRegistry.swift": "b6dd38e9a0c9585a0c83c2ca87d71c180f5ff54f67a6ab1a3f354442071f643e",
+  "Sources/NextNotes/Agent/Tools/FilesystemTools.swift": "82554749242e30faba996a38bdf780cbd614d4ac836d0206d3defda3335278db",
+  "Sources/NextNotes/Agent/Backend/ACPCompatibilityCLIBackend.swift": "d8d44e346f8045ae700ba6ebb3cf520b0b111be0a816fffdf740a77ff20e259b",
+  "Sources/NextNotes/Knowledge/EmbeddingRuntime.swift": "85f147396dbec90865b75978004da8b8b7618b2634aa538e9860136cc6ace85a",
+  "Sources/NextNotes/Formatting/LLM/NotesModelRuntime.swift": "45ef55fe4afed62847932bd9fdf36f8819f093fb030a3f461af754b52deaef88",
+  "Sources/NextNotes/Support/ModelDownloader.swift": "dd3ff581ae28606a62ea2ea5f424282fb07325eef99fd829164f677c4d665e07",
+  "Sources/NextNotes/Core/Compute/ModelResidencyPolicy.swift": "2a7a01634ae429d890465f7cbb1cb7c28ae1971ddc8b8bdf69883cc138af1cc6"
+}

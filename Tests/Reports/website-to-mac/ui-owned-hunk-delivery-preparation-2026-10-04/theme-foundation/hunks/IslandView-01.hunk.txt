@@ -1,0 +1,5 @@
+--- a/Sources/NextNotes/UI/Island/IslandView.swift
++++ b/Sources/NextNotes/UI/Island/IslandView.swift
+@@ -37,0 +38,2 @@ struct IslandView: View {
++            .tint(DS.Color.accent)
++            .font(DS.Font.body)

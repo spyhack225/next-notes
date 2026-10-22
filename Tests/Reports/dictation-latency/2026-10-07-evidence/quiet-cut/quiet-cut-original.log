@@ -1,0 +1,22 @@
+{
+  "candidateCuts" : [
+
+  ],
+  "failures" : [
+    "entire below-floor recognized turn is cut inside quiet PCM",
+    "RMS pause cut lies inside independently rendered spoken turn"
+  ],
+  "inputSamples" : 52566,
+  "lastAboveFloorEnd" : 0,
+  "mode" : "original",
+  "originalCuts" : [
+    24000
+  ],
+  "quiet31sHardCuts" : [
+    231520,
+    463040
+  ],
+  "relatedCases" : 4,
+  "scope" : "Actual AV file conversion\/RMS and segmenter; copied shared floor predicate\/logger boundary only; no recognizer\/model\/controller\/physical flow"
+}
+QUIET_CUT_FAILED

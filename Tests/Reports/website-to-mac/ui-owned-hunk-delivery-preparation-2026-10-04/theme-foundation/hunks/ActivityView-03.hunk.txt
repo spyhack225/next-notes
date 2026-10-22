@@ -1,0 +1,6 @@
+--- a/Sources/NextNotes/UI/Agent/ActivityView.swift
++++ b/Sources/NextNotes/UI/Agent/ActivityView.swift
+@@ -54 +57,2 @@ struct ActivityView: View {
+-                    + "have allowed it to do again."
++                    + "have allowed it to do again.",
++                accent: "activity"

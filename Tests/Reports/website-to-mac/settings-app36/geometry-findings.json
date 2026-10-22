@@ -1,0 +1,60 @@
+[
+  {
+    "width": 320,
+    "checks": {
+      "eightTableRecords": true,
+      "eightRootScrollRecords": true,
+      "positiveViewport": true,
+      "positiveVisibleRows": true,
+      "actualRowMaterialization": true,
+      "storeCount15": true,
+      "oneScrollPerCheckpoint": true,
+      "ownerAndExactConsumerGuard": true
+    },
+    "viewportHeightPoints": [
+      978.0
+    ],
+    "visibleNativeRows": [
+      17
+    ],
+    "materializedNativeRows": [
+      25
+    ],
+    "nativeTotalRows": [
+      25
+    ],
+    "observationsPerWidth": 8,
+    "originalApp33Viewport": 0,
+    "originalApp33VisibleAndMaterializedRows": 0,
+    "meaning": "original collapsed viewport corrected through one native List; total25 includes15 unchanged profiles and section/control rows; physical scrolling/selection unverified"
+  },
+  {
+    "width": 560,
+    "checks": {
+      "eightTableRecords": true,
+      "eightRootScrollRecords": true,
+      "positiveViewport": true,
+      "positiveVisibleRows": true,
+      "actualRowMaterialization": true,
+      "storeCount15": true,
+      "oneScrollPerCheckpoint": true,
+      "ownerAndExactConsumerGuard": true
+    },
+    "viewportHeightPoints": [
+      1024.0
+    ],
+    "visibleNativeRows": [
+      25
+    ],
+    "materializedNativeRows": [
+      25
+    ],
+    "nativeTotalRows": [
+      25
+    ],
+    "observationsPerWidth": 8,
+    "originalApp33Viewport": 0,
+    "originalApp33VisibleAndMaterializedRows": 0,
+    "meaning": "original collapsed viewport corrected through one native List; total25 includes15 unchanged profiles and section/control rows; physical scrolling/selection unverified"
+  }
+]

@@ -57,7 +57,10 @@ network request while a meeting is open.
 React, React DOM, Framer Motion, Tailwind CSS (v4, via `@tailwindcss/vite`), Vite and
 TypeScript are MIT; `lucide-react` is ISC; Oxlint and `@shadcn/lint` (the site's lint
 gate) are MIT; the Fontsource packages redistribute Inter and
-Instrument Serif under the SIL Open Font License 1.1. The fonts keep their OFL terms when
+Instrument Serif under the SIL Open Font License 1.1. `border-beam` and `voice-glow`
+(the hero card's border beam and the demo composer's voice glow, same author as the
+thinking-orbs library the app's orb geometry is ported from) are MIT with zero runtime
+dependencies. The fonts keep their OFL terms when
 the site is copied; the OFL's only real constraint — do not sell the fonts on their own and
 do not rename them — is untouched by the AGPL.
 
@@ -82,7 +85,20 @@ linked in. Verified against the Hub's own metadata on 2026-09-20 (`license: apac
 
 Check a model's own terms before redistributing weights.
 
+## Optional native speech runtimes
+
+- [Phonon / ptts 0.4.0](https://github.com/gradium-ai/xn-ptts/tree/v0.4.0): MIT or Apache-2.0; the selected Phonon 31m English weights are Apache-2.0. The noncommercial Phonon 40m weights are not selected or downloaded.
+- [MLX Audio Swift 0.1.6](https://github.com/Blaizzy/mlx-audio-swift/tree/v0.1.6): MIT; uses Apple's [MLX Swift](https://github.com/ml-explore/mlx-swift), MIT.
+- [Qwen3-TTS](https://github.com/QwenLM/Qwen3-TTS): Apache-2.0; the selected [MLX 0.6B CustomVoice 4-bit conversion](https://huggingface.co/mlx-community/Qwen3-TTS-12Hz-0.6B-CustomVoice-4bit) is pinned by commit, size and SHA-256 in `NativeVoiceAssets.swift`.
+
+These models download only after selection, or one at a time into the benchmark's disposable folder. Runtime packages do not contain model weights.
+
 ## Cloud services
 
 OpenRouter, Google Workspace (`gws`), Composio and any MCP server the user configures are
 optional, opt-in, and reached over the network. They are services, not code in this work.
+
+## Mac app headline fonts
+
+Inter and Instrument Serif (Fontsource packages 5.3.0) are included in the Mac app.
+Local WOFF TrueType outlines were unwrapped into TTF containers without changing glyphs, character maps or PostScript names. The original copyright and SIL Open Font License 1.1 texts are bundled in `Resources/ThemeFonts/`. The provenance manifest records the source and output hashes. These are Latin subsets; the operating system supplies other glyphs. No font is installed into the user’s Fonts directory.

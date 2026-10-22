@@ -1,0 +1,19 @@
+--- a/Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift
++++ b/Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift
+@@ -114,7 +106,9 @@ struct FormattingSettingsTab: View {
+-            HStack {
+-                Button("Add apps Next Notes knows about") { store.addMissingDefaults() }
+-                    .help("Puts back any built-in app you have removed. Your own rows and "
+-                          + "your edits are left alone.")
+-                Spacer()
+-                Button("Reveal formatting.txt") {
+-                    NSWorkspace.shared.activateFileViewerSelecting([OutputProfileStore.fileURL])
++            ViewThatFits(in: .horizontal) {
++                HStack {
++                    addDefaultsButton.fixedSize(horizontal: true, vertical: true)
++                    Spacer(minLength: DS.Space.s)
++                    revealFileButton.fixedSize(horizontal: true, vertical: true)
++                }
++                VStack(alignment: .leading, spacing: DS.Space.s) {
++                    addDefaultsButton.fixedSize(horizontal: false, vertical: true)
++                    revealFileButton.fixedSize(horizontal: false, vertical: true)

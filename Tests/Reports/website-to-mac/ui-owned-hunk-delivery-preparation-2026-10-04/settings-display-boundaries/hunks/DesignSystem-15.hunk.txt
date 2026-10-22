@@ -1,0 +1,6 @@
+--- a/Sources/NextNotes/UI/DesignSystem.swift
++++ b/Sources/NextNotes/UI/DesignSystem.swift
+@@ -403,0 +419,3 @@ enum DS {
++        /// Readable leading label floor for both the formatting table header and app rows.
++        /// Compact controls take over when the visible label and six columns do not fit.
++        static let formatAppLabelMinimum: CGFloat = 140

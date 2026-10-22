@@ -43,7 +43,7 @@ jobs:
       # enough to catch both would also catch the next thing added, and a suite named
       # "SpokenFormsVectorTests" would be matched by "VectorTests" by accident.
       - name: Test the dictionary target
-        run: swift test --filter VectorTests --filter SpokenFormsTests
+        run: swift test --build-system native --filter VectorTests --filter SpokenFormsTests
 
       - name: Confirm the vectors on both sides are identical
         run: |

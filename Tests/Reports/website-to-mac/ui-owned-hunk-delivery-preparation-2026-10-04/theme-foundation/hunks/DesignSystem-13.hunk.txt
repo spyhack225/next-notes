@@ -1,0 +1,5 @@
+--- a/Sources/NextNotes/UI/DesignSystem.swift
++++ b/Sources/NextNotes/UI/DesignSystem.swift
+@@ -151 +166 @@ enum DS {
+-        static let eyebrow = SwiftUI.Font.caption2.weight(.medium)
++        static var eyebrow: SwiftUI.Font { Theme.Typography.sans(.caption2, weight: .medium) }

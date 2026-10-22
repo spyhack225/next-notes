@@ -2,9 +2,9 @@
   "jsPlugins": ["@shadcn/lint"],
   "ignorePatterns": ["docs/**", "dist/**", "node_modules/**"],
   "settings": {
-    "shadcn": {
-      "note": "Site design rules live in AGENTS.md under 'Design system'."
-    }
+      "shadcn": {
+        "note": "Site design rules live in site/DESIGN-SYSTEM.md (normative spec, also read by the Swift redesign); AGENTS.md under 'Design system' records the owner decisions."
+      }
   },
   "rules": {
     "shadcn/no-restyle": "error",

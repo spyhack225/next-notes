@@ -1,0 +1,88 @@
+--- a/Sources/NextNotes/Transcription/ParakeetEngine.swift
++++ b/Sources/NextNotes/Transcription/ParakeetEngine.swift
+@@ -29,6 +29,8 @@
+     nonisolated static let emitsPartialsWhileHeld = true
+ 
+     private var samples: [Float] = []
++    /// Exact digital zero carries no acoustic signal. This is not a speech/RMS decision.
++    private var hasNonzeroPCM = false
+     /// Absolute start of retained uncommitted PCM. Retry audio belongs to AudioCounter.
+     private var sampleOffset = 0
+     private var sampleCount: Int { sampleOffset + samples.count }
+@@ -210,7 +212,9 @@
+         // performs **no resampling and no rate validation**. Feed it the wrong sample rate
+         // and it doesn't throw — it silently transcribes garbage.
+         do {
+-            samples.append(contentsOf: try converter.resampleBuffer(buffer))
++            let pcm = try converter.resampleBuffer(buffer)
++            if !hasNonzeroPCM { hasNonzeroPCM = pcm.contains { $0 != 0 } }
++            samples.append(contentsOf: pcm)
+         } catch {
+             Log.speech.error("Parakeet: audio conversion failed — \(error.localizedDescription, privacy: .public)")
+             return
+@@ -252,6 +256,16 @@
+ 
+         guard sampleCount >= ParakeetInput.minimumCapturedSamples else {
+             Log.speech.info("Parakeet: skipped — only \(self.sampleCount) samples captured")
++            return
++        }
++
++        // Literal zero contains no signal for the recognizer to recover. Short zero
++        // fragments can nevertheless produce invented words; avoid creating those passes.
++        guard hasNonzeroPCM else {
++            diagnostics.keyUpPlan = "digital-zero"
++            diagnostics.keyUpSeconds = Date().timeIntervalSince(keyUp)
++            diagnostics.finalText = ""
++            continuation?.yield(TranscriptionChunk(text: "", isFinal: true, committedText: ""))
+             return
+         }
+ 
+@@ -323,6 +337,7 @@
+ 
+     private func resetSession() {
+         samples.removeAll(keepingCapacity: false)
++        hasNonzeroPCM = false
+         sampleOffset = 0
+         segmenter = DictationSegmenter()
+         pendingCuts = []
+@@ -344,15 +359,15 @@
+ 
+     /// Cuts and tail requests for the audio just fed, and the worker if it is idle.
+     private func schedule() {
+-        guard let session = activeSession, !finishing else { return }
++        guard let session = activeSession, !finishing, hasNonzeroPCM else { return }
+         let scan = segmenter.advance(over: samples, sampleOffset: sampleOffset)
+         pendingCuts += scan.cuts
+-        let spokeSinceRequest = segmenter.lastSpeechEnd > lastTailRequestAt
++        let capturedSinceRequest = sampleCount > lastTailRequestAt
+         let tailLength = sampleCount - committedEnd
+         let interval = diagnostics.partials.isEmpty && lastTailRequestAt == 0
+             ? Int(StreamingASR.dictationFirstPartialSeconds * 16_000)
+             : partialIntervalSamples
+-        if tailLength >= ParakeetInput.minimumModelSamples, spokeSinceRequest,
++        if tailLength >= ParakeetInput.minimumModelSamples, capturedSinceRequest,
+            scan.speechEnded || sampleCount - lastTailRequestAt >= interval {
+             // End of speech starts the tail pass at once: by key-up it is usually done.
+             tailRequested = true
+@@ -393,8 +408,7 @@
+                 // Publish the frozen prefix now, even if another tail pass is needed.
+                 // Hiding this behind that pass delayed both the live UI and pre-cleaning.
+                 emitPartial(end: pass.end)
+-                if segmenter.lastSpeechEnd > committedEnd,
+-                   sampleCount - committedEnd >= ParakeetInput.minimumModelSamples {
++                if sampleCount - committedEnd >= ParakeetInput.minimumModelSamples {
+                     tailRequested = true
+                     lastTailRequestAt = sampleCount
+                 }
+@@ -412,9 +426,8 @@
+         }
+         guard tailRequested else { return nil }
+         tailRequested = false
+-        // A tail with no speech in it (a segment just took the last words) needs no pass.
+-        guard sampleCount - committedEnd >= ParakeetInput.minimumModelSamples,
+-              segmenter.lastSpeechEnd > committedEnd else { return nil }
++        // Accepted quiet PCM may contain words below the pause hint's RMS floor.
++        guard sampleCount - committedEnd >= ParakeetInput.minimumModelSamples else { return nil }
+         return ParakeetKeyUp.Pass(isSegment: false, start: committedEnd, end: sampleCount)
+     }
+ 

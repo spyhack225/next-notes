@@ -10,12 +10,12 @@ enum SpeechEngineChoice: String, CaseIterable, Sendable {
     var displayName: String {
         switch self {
         case .apple: "Apple (streaming)"
-        case .parakeet: "Parakeet (batch)"
+        case .parakeet: "Parakeet (live text)"
         }
     }
 
-    /// Apple shows text while you talk; Parakeet only resolves on release.
-    var showsLiveText: Bool { self == .apple }
+    /// Both engines show text while you talk and finish when the key is released.
+    var showsLiveText: Bool { true }
 }
 
 /// Which local model performs the semantic cleanup pass.

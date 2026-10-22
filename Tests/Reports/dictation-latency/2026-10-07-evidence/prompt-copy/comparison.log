@@ -1,0 +1,22 @@
+LOOKUP_CPU: inputTokens=100 lookups=1000 proposed=4000 duration=0.000954625 seconds
+LOOKUP_CPU: inputTokens=1500 lookups=1000 proposed=4000 duration=0.014358625 seconds
+LOOKUP_CPU: inputTokens=6000 lookups=1000 proposed=4000 duration=0.0458075 seconds
+LOOKUP_OK: checks=19138 failures=0; native sampler/KV/accuracy/performance unrun
+        0.25 real         0.20 user         0.00 sys
+             5963776  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+                 541  page reclaims
+                  15  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   0  voluntary context switches
+                 109  involuntary context switches
+          3970895298  instructions retired
+           750567472  cycles elapsed
+             1999352  peak memory footprint

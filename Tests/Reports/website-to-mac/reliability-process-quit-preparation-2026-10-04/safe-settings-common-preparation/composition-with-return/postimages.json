@@ -1,0 +1,18 @@
+{
+  "COMMON": {
+    "Sources/NextNotes/Support/Settings.swift": "4622876d2bffd06df07fec68eddfeae52589d71a5b448d9bb54cbbdb81251214",
+    "Sources/NextNotes/Meetings/MeetingDiarizer.swift": "873c3695e997912718fedb33d694b9034eb36d4aff1aa8e596ec1546c820156e",
+    "Sources/NextNotes/NextNotesApp.swift": "bbb3e07ca82f5e63c3149c2e1a8dda41a0ad2480270c2b75e91e3f2367cbf50d",
+    "Sources/NextNotes/Support/NativeTerminationSelfTest.swift": "2d51147a0a0e9ddb43bfc6979337853452d62563485d7a428672be36fdbde887",
+    "Sources/NextNotes/Support/NativeNotesSettingsSelfTest.swift": "a280d13f12b4250fbfedbf61f183f5b0a12f7165e64e43126f2add162d1e2d57",
+    "Sources/NextNotes/Meetings/NotesService.swift": "597791365eae696656b62c028dcded322f3af27674e0bb5919f48b573a435dc6"
+  },
+  "FIXED": {
+    "Sources/NextNotes/Support/Settings.swift": "d6110c2839a0cf9885c761f052681d3f52a5a73d9d25aa9c3cc8fd22f4f76146",
+    "Sources/NextNotes/Meetings/MeetingDiarizer.swift": "873c3695e997912718fedb33d694b9034eb36d4aff1aa8e596ec1546c820156e",
+    "Sources/NextNotes/NextNotesApp.swift": "bbb3e07ca82f5e63c3149c2e1a8dda41a0ad2480270c2b75e91e3f2367cbf50d",
+    "Sources/NextNotes/Support/NativeTerminationSelfTest.swift": "2d51147a0a0e9ddb43bfc6979337853452d62563485d7a428672be36fdbde887",
+    "Sources/NextNotes/Support/NativeNotesSettingsSelfTest.swift": "a280d13f12b4250fbfedbf61f183f5b0a12f7165e64e43126f2add162d1e2d57",
+    "Sources/NextNotes/Meetings/NotesService.swift": "597791365eae696656b62c028dcded322f3af27674e0bb5919f48b573a435dc6"
+  }
+}

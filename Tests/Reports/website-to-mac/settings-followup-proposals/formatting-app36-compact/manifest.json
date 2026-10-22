@@ -1,0 +1,27 @@
+{
+  "status": "PACKAGED_APP39_PARTIAL_ROW_READABILITY_FOOTER_MENU_HEADER_FAILURES_OPEN",
+  "sourcePath": "Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift",
+  "beforeSHA256": "dbf3a77207f535b35ed69e7d02bbc5415765f4dd61af4465c90ce582ff0f1b54",
+  "proposedSHA256": "5cea7730e4467a966f81aa0923fb71c4231bf3d6046f758320c06bde59fa1f4b",
+  "patchSHA256": "516f91201e67a8fb31e449cb8f42933b56f9fbcb6f206fa42b0ffbfbd3a16f94",
+  "profileForEachTagsCallbacksUnchanged": true,
+  "pathReferenceEditorSuffixUnchanged": true,
+  "compileNativeVerified": false,
+  "originalImages": {
+    "/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/nextnotes-settings-app36-p7_axwna/formatting320/settings-formatting-320-standard.png": "3fb54891e5e36cd3fb36f4a7d12a44282b6730ccabd6881cc661897dcb880a7d",
+    "/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/nextnotes-settings-app36-p7_axwna/formatting560/settings-formatting-560-standard.png": "a57789c962929f1cec97daef9242af6daeb8f4572ab60bddb930ea10082ee36b"
+  },
+  "compactMenuIndicator": "visible; wide hidden, public Visibility API",
+  "priorStatus": "UNAPPLIED_SOURCE_ONLY",
+  "sourceApplication": "source-application.json",
+  "priorAppliedStatus": "APPLIED_SOURCE_ONLY_REFROZEN_BEFORE_BUILD39",
+  "actualResult": {
+    "report": "../../settings-app39/README.md",
+    "sha256": "2a144e1f1fca734d9b3b92ca0cce3de36d6be9c37b07f1a62432d0ad7d330a73",
+    "compile": true,
+    "sourceStability": [],
+    "originalCaptureCalls": 2,
+    "captureGuardVerdict": "pass",
+    "fullVisualFix": false
+  }
+}

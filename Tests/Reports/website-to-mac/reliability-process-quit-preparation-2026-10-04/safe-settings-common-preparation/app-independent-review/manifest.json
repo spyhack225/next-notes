@@ -1,0 +1,15 @@
+{
+  "status": "CONDITIONAL_APP_FRAGMENT_SOURCE_ONLY_ACCEPTANCE_UNCOMPILED_NATIVE_UNRUN",
+  "reviewedParentManifestSHA256": "6ed8678bc02da7f9e0d9f853dcfb6b52f6fff3941779088f4e479f17651976a1",
+  "reviewedParentPatchSHA256": "5609f68df42c5609184aba269dca0dff1ac7de047cba456130b8028bace6330c",
+  "currentAppSHA256": "bc01a27f48478a297d07a1d35669c313615cc7c182c0c6d113b4899e792a1b61",
+  "pinChecks": 5,
+  "mismatches": 0,
+  "reportSHA256": "3998bfb430d34a8c29d20c647423a0a0a09aab61a09b2d2795e36646dc8c29c1",
+  "limits": [
+    "peer/bootstrap composition pending",
+    "no compiler/typecheck",
+    "native/Cocoa original-fixed unrun",
+    "no source lease"
+  ]
+}

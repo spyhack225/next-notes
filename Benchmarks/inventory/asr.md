@@ -1,0 +1,42 @@
+# Asr evidence
+
+Discovery inventory, not a claim that every file is a benchmark or that its checks passed. Roadmap location does not establish acceptance.
+
+| Evidence |
+|---|
+| [Tests/Reports/asr-candidates-2026-10-22/README.md](../../Tests/Reports/asr-candidates-2026-10-22/README.md) |
+| [Tests/Reports/asr-candidates-2026-10-22/artifact-metadata.json](../../Tests/Reports/asr-candidates-2026-10-22/artifact-metadata.json) |
+| [Tests/Reports/asr-candidates-2026-10-22/cleanup.json](../../Tests/Reports/asr-candidates-2026-10-22/cleanup.json) |
+| [Tests/Reports/asr-candidates-2026-10-22/comparison.json](../../Tests/Reports/asr-candidates-2026-10-22/comparison.json) |
+| [Tests/Reports/asr-candidates-2026-10-22/count-correction.json](../../Tests/Reports/asr-candidates-2026-10-22/count-correction.json) |
+| [Tests/Reports/asr-candidates-2026-10-22/diagnostic-tests.txt](../../Tests/Reports/asr-candidates-2026-10-22/diagnostic-tests.txt) |
+| [Tests/Reports/asr-candidates-2026-10-22/graded-classification.json](../../Tests/Reports/asr-candidates-2026-10-22/graded-classification.json) |
+| [Tests/Reports/asr-candidates-2026-10-22/native-receipts.json](../../Tests/Reports/asr-candidates-2026-10-22/native-receipts.json) |
+| [Tests/Reports/asr-candidates-2026-10-22/parakeet-v3-runtime.json](../../Tests/Reports/asr-candidates-2026-10-22/parakeet-v3-runtime.json) |
+| [Tests/Reports/asr-candidates-2026-10-22/parakeet-v3-runtime.log](../../Tests/Reports/asr-candidates-2026-10-22/parakeet-v3-runtime.log) |
+| [Tests/Reports/asr-candidates-2026-10-22/phonon.json](../../Tests/Reports/asr-candidates-2026-10-22/phonon.json) |
+| [Tests/Reports/asr-candidates-2026-10-22/qwen-06b.json](../../Tests/Reports/asr-candidates-2026-10-22/qwen-06b.json) |
+| [Tests/Reports/asr-candidates-2026-10-22/qwen-17b.json](../../Tests/Reports/asr-candidates-2026-10-22/qwen-17b.json) |
+| [Tests/Reports/asr-candidates-2026-10-22/redux.json](../../Tests/Reports/asr-candidates-2026-10-22/redux.json) |
+| [Tests/Reports/asr-candidates-2026-10-22/run-context.json](../../Tests/Reports/asr-candidates-2026-10-22/run-context.json) |
+| [Tests/Reports/asr-candidates-2026-10-22/runtime-probe-compile.log](../../Tests/Reports/asr-candidates-2026-10-22/runtime-probe-compile.log) |
+| [Tests/Reports/asr-candidates-2026-10-22/settings-swift-parse.txt](../../Tests/Reports/asr-candidates-2026-10-22/settings-swift-parse.txt) |
+| [Tests/Reports/asr-candidates-2026-10-22/settings-validation.json](../../Tests/Reports/asr-candidates-2026-10-22/settings-validation.json) |
+| [Tests/Reports/asr-candidates-2026-10-22/ultra.json](../../Tests/Reports/asr-candidates-2026-10-22/ultra.json) |
+| [Tests/Reports/asr-candidates-2026-10-22/voz.json](../../Tests/Reports/asr-candidates-2026-10-22/voz.json) |
+| [Tests/Reports/asr-candidates-2026-10-22/whistle.json](../../Tests/Reports/asr-candidates-2026-10-22/whistle.json) |
+| [Tests/Reports/asr-live-latency-2026-10-22/README.md](../../Tests/Reports/asr-live-latency-2026-10-22/README.md) |
+| [Tests/Reports/asr-live-latency-2026-10-22/aborted-attempt.json](../../Tests/Reports/asr-live-latency-2026-10-22/aborted-attempt.json) |
+| [Tests/Reports/asr-live-latency-2026-10-22/comparison.json](../../Tests/Reports/asr-live-latency-2026-10-22/comparison.json) |
+| [Tests/Reports/asr-live-latency-2026-10-22/final-validation.json](../../Tests/Reports/asr-live-latency-2026-10-22/final-validation.json) |
+| [Tests/Reports/asr-live-latency-2026-10-22/harness-tests.txt](../../Tests/Reports/asr-live-latency-2026-10-22/harness-tests.txt) |
+| [Tests/Reports/asr-live-latency-2026-10-22/parakeet-v3-context.json](../../Tests/Reports/asr-live-latency-2026-10-22/parakeet-v3-context.json) |
+| [Tests/Reports/asr-live-latency-2026-10-22/preparation-context.json](../../Tests/Reports/asr-live-latency-2026-10-22/preparation-context.json) |
+| [Tests/Reports/asr-live-latency-2026-10-22/probe-build.json](../../Tests/Reports/asr-live-latency-2026-10-22/probe-build.json) |
+| [Tests/Reports/asr-live-latency-2026-10-22/retained-input-parity.json](../../Tests/Reports/asr-live-latency-2026-10-22/retained-input-parity.json) |
+| [Tests/Reports/asr-live-latency-2026-10-22/swift-syntax.txt](../../Tests/Reports/asr-live-latency-2026-10-22/swift-syntax.txt) |
+| [Tests/Reports/asr-live-latency-2026-10-22/whistle-function-source.json](../../Tests/Reports/asr-live-latency-2026-10-22/whistle-function-source.json) |
+| [Tests/Reports/asr-live-latency-2026-10-22/whistle.json](../../Tests/Reports/asr-live-latency-2026-10-22/whistle.json) |
+| [Tests/Reports/dictation-latency/2026-10-07-evidence/asr-continuity/source-review.json](../../Tests/Reports/dictation-latency/2026-10-07-evidence/asr-continuity/source-review.json) |
+| [Tests/Reports/meeting-reliability/2026-10-07-quality-loop/sixth-single-quiet-asr-resource-exception.json](../../Tests/Reports/meeting-reliability/2026-10-07-quality-loop/sixth-single-quiet-asr-resource-exception.json) |
+| [roadmap/in-progress/VOICE-TURN-DETECTION/03-ASR-TTS-ALIGNMENT.md](../../roadmap/in-progress/VOICE-TURN-DETECTION/03-ASR-TTS-ALIGNMENT.md) |

@@ -1,0 +1,16 @@
+[
+  {
+    "publicNativeRowIndex": 214,
+    "observations": 8,
+    "nativeHeightPoints": 28.0,
+    "heightUnchangedAcrossVariantsAndStages": true,
+    "meaning": "actual multiline footer output clips inside this native allocation; identity mapping from actual ordered Section composition and saved image, not loaded text"
+  },
+  {
+    "publicNativeRowIndex": 228,
+    "observations": 8,
+    "nativeHeightPoints": 40.0,
+    "heightUnchangedAcrossVariantsAndStages": true,
+    "meaning": "actual multiline footer output clips inside this native allocation; identity mapping from actual ordered Section composition and saved image, not loaded text"
+  }
+]

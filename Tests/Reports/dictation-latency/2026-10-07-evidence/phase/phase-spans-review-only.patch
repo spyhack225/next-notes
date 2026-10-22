@@ -1,0 +1,103 @@
+--- a/Sources/NextNotes/Formatting/LLM/NotesModelRuntime.swift
++++ b/Sources/NextNotes/Formatting/LLM/NotesModelRuntime.swift
+@@ -1024,6 +1024,13 @@
+         grammar: GBNFGrammar? = nil,
+         optional: Bool = false
+     ) async throws -> LLMCompletion {
++        let firstTokenTrace = LatencyTrace.start(.modelFirstToken)
++        var reportedFirstToken = false
++        defer {
++            if !reportedFirstToken {
++                firstTokenTrace.end(note: "app_llm job=\(jobID) complete no_token=true")
++            }
++        }
+         if optional { try checkOptionalAdmission() }
+         let wasLoaded = model != nil && vocabulary != nil
+         let loadBegan = ContinuousClock.now
+@@ -1049,14 +1056,34 @@
+         }
+ 
+         if optional { try checkOptionalAdmission() }
+-        let context = try ensureContext(promptTokens: promptTokens.count, maxTokens: maxTokens)
++        let contextTrace = LatencyTrace.start(.modelContext)
++        let hadContext = context != nil
++        var contextReady = false
++        let context: OpaquePointer
++        do {
++            defer {
++                contextTrace.end(note: "app_llm job=\(jobID) complete had_context=\(hadContext) ready=\(contextReady) tokens=\(contextSize)")
++            }
++            context = try ensureContext(promptTokens: promptTokens.count, maxTokens: maxTokens)
++            contextReady = true
++        }
+         // Built before the prefill, so a grammar the native parser refuses costs nothing.
+         guard let sampler = try makeSampler(vocabulary: vocabulary, grammar: grammar) else {
+             throw LlamaError.samplerFailed
+         }
+         defer { llama_sampler_free(sampler) }
+ 
+-        _ = try await preparePrefix(promptTokens, context: context, jobID: jobID, optional: optional)
++        let prefillTrace = LatencyTrace.start(.modelPrefill)
++        var prefillReady = false
++        do {
++            defer {
++                // A failed prefill must not borrow counts from the previous pass.
++                let counts = prefillReady ? " reused=\(lastPrefillStats?.reused ?? 0) decoded=\(lastPrefillStats?.decoded ?? 0)" : " counts=unavailable"
++                prefillTrace.end(note: "app_llm job=\(jobID) complete ready=\(prefillReady) prompt_tokens=\(promptTokens.count)" + counts)
++            }
++            _ = try await preparePrefix(promptTokens, context: context, jobID: jobID, optional: optional)
++            prefillReady = true
++        }
+         if optional { try checkOptionalAdmission() }
+ 
+         let began = Date()
+@@ -1085,6 +1112,10 @@
+ 
+                 let token = llama_sampler_sample(sampler, context, -1)
+                 if llama_vocab_is_eog(vocabulary, token) { break }
++                if !reportedFirstToken {
++                    reportedFirstToken = true
++                    firstTokenTrace.end(note: "app_llm job=\(jobID) complete")
++                }
+                 output += LlamaHelpers.piece(token, vocabulary: vocabulary)
+                 generated += 1
+                 if !turnEnd.isEmpty, output.hasSuffix(turnEnd) {
+--- a/Sources/NextNotes/Core/Compute/ComputeScheduler.swift
++++ b/Sources/NextNotes/Core/Compute/ComputeScheduler.swift
+@@ -225,6 +225,11 @@
+         if running?.id == id { return }
+         let known = parked.contains { $0.id == id } || queued.contains { $0.id == id }
+         guard known else { return }
++        // Only a real parked/queued checkpoint is timed; the hot no-op writes nothing.
++        let parkedTrace = LatencyTrace.start(.modelQueue)
++        defer {
++            parkedTrace.end(note: "checkpoint job=\(id) cancelled=\(Task.isCancelled)")
++        }
+         let _: Bool = await withTaskCancellationHandler {
+             await withCheckedContinuation { (continuation: CheckedContinuation<Bool, Never>) in
+                 if Task.isCancelled {
+--- a/Sources/NextNotes/Core/DictationController.swift
++++ b/Sources/NextNotes/Core/DictationController.swift
+@@ -1659,7 +1659,9 @@
+         }
+         transcript = chunk.text
+         if !chunk.isFinal, let producer = incrementalCleanup {
+-            await producer.notePartial(chunk.text, committed: chunk.committedText)
++            await LatencyCorrelation.$current.withValue(LatencyCorrelation(workID: holdID)) {
++                await producer.notePartial(chunk.text, committed: chunk.committedText)
++            }
+         }
+     }
+ 
+@@ -2264,7 +2266,10 @@
+                 }
+             }
+             let finalFormatter = formatter
+-            if let formatted = await withBoundedWait(limits.cleanup, { await finalFormatter.format(raw) }) {
++            let formatted = await LatencyCorrelation.$current.withValue(LatencyCorrelation(workID: runID)) {
++                await withBoundedWait(limits.cleanup) { await finalFormatter.format(raw) }
++            }
++            if let formatted {
+                 cleaned = formatted
+             } else {
+                 cleanupTimedOut = true

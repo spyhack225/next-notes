@@ -1,0 +1,31 @@
+{
+  "id": "5455E6EF-3046-4328-845C-61FDBF34D61C",
+  "start": "2026-10-07T16:53:52Z",
+  "end": "2026-10-07T17:00:27Z",
+  "status": {
+    "state": "done"
+  },
+  "captureIntegrity": {
+    "audioWriteFailed": false,
+    "captureGap": false,
+    "lastCapturedAt": "2026-10-07T17:00:27Z",
+    "missingCaptureFrames": 0,
+    "normalEndAt": "2026-10-07T17:00:27Z"
+  },
+  "transcriptPass": "long-window",
+  "notesModel": "MiniCPM5-2B",
+  "providerID": "detectedCall",
+  "files": {
+    "notes.json": 406,
+    "transcript.live.json": 8776,
+    "transcript.json": 8343,
+    "context.json": 1632,
+    "meeting.json": 815,
+    "audio.caf": 25264688,
+    "notes.md": 579
+  },
+  "segment_count": {
+    "transcript.json": 48,
+    "transcript.live.json": 53
+  }
+}

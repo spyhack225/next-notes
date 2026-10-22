@@ -1,0 +1,233 @@
+{
+  "status": "SOURCE_PIN_VERIFICATION_ONLY_NO_RUNTIME_TEST",
+  "checks": 31,
+  "anchors": 54,
+  "mismatches": [
+    {
+      "audit": "capture-background-pins.json",
+      "path": "Sources/NextNotes/Agent/VoiceConversationCoordinator.swift",
+      "expected": "123b55ca250ce1e7c84933c83c0a7e7b1bcb288ed7a374a4ddd9499f349e4d42",
+      "actual": "1dd5edbd7640ee1d4dfb5b6bdffb699faa708c70343ed0dd00b6809600bddf58",
+      "matches": false
+    }
+  ],
+  "records": [
+    {
+      "audit": "formatter-notes-pins.json",
+      "path": "Sources/NextNotes/NextNotesApp.swift",
+      "expected": "bc01a27f48478a297d07a1d35669c313615cc7c182c0c6d113b4899e792a1b61",
+      "actual": "bc01a27f48478a297d07a1d35669c313615cc7c182c0c6d113b4899e792a1b61",
+      "matches": true
+    },
+    {
+      "audit": "formatter-notes-pins.json",
+      "path": "Sources/NextNotes/Formatting/S1MiniFormatter.swift",
+      "expected": "88347151289217ef343fec9cd1692b0931457a61b7d13f2da2d53125acb429f2",
+      "actual": "88347151289217ef343fec9cd1692b0931457a61b7d13f2da2d53125acb429f2",
+      "matches": true
+    },
+    {
+      "audit": "formatter-notes-pins.json",
+      "path": "Sources/NextNotes/Formatting/LLM/NotesModelRuntime.swift",
+      "expected": "45ef55fe4afed62847932bd9fdf36f8819f093fb030a3f461af754b52deaef88",
+      "actual": "45ef55fe4afed62847932bd9fdf36f8819f093fb030a3f461af754b52deaef88",
+      "matches": true
+    },
+    {
+      "audit": "formatter-notes-pins.json",
+      "path": "Sources/NextNotes/Meetings/NotesService.swift",
+      "expected": "c1577429843cd4f2a50bca738a8afe95ed574e7faea29153de38fe8264c79652",
+      "actual": "c1577429843cd4f2a50bca738a8afe95ed574e7faea29153de38fe8264c79652",
+      "matches": true
+    },
+    {
+      "audit": "formatter-notes-pins.json",
+      "path": "Sources/NextNotes/Formatting/LLM/LlamaBackend.swift",
+      "expected": "a5093f80bcd746a37e5f5aaaa437eb9607cd218711d8221668e436c4dc20f95d",
+      "actual": "a5093f80bcd746a37e5f5aaaa437eb9607cd218711d8221668e436c4dc20f95d",
+      "matches": true
+    },
+    {
+      "audit": "formatter-notes-pins.json",
+      "path": "Sources/NextNotes/Knowledge/EmbeddingRuntime.swift",
+      "expected": "85f147396dbec90865b75978004da8b8b7618b2634aa538e9860136cc6ace85a",
+      "actual": "85f147396dbec90865b75978004da8b8b7618b2634aa538e9860136cc6ace85a",
+      "matches": true
+    },
+    {
+      "audit": "formatter-notes-pins.json",
+      "path": "Sources/NextNotes/Support/ModelLibrary/InstalledModelLibrary.swift",
+      "expected": "7bd54f6f0d94ab963a7d25f61c75e42529e2bde50df62c9401959aafee4c7f97",
+      "actual": "7bd54f6f0d94ab963a7d25f61c75e42529e2bde50df62c9401959aafee4c7f97",
+      "matches": true
+    },
+    {
+      "audit": "formatter-notes-pins.json",
+      "path": "Sources/NextNotes/Support/NativeTerminationSelfTest.swift",
+      "expected": "a1c1d30f8198e63758dde34abd8812b236c281a191cd9168383eff95a47aa4f5",
+      "actual": "a1c1d30f8198e63758dde34abd8812b236c281a191cd9168383eff95a47aa4f5",
+      "matches": true
+    },
+    {
+      "audit": "formatter-notes-pins.json",
+      "path": "Sources/NextNotes/Support/NativeOtherLlamaQuitSelfTest.swift",
+      "expected": "c413fae2d882e334634030b8601a7719dbc3ee476cc1c130c5eae83100d16704",
+      "actual": "c413fae2d882e334634030b8601a7719dbc3ee476cc1c130c5eae83100d16704",
+      "matches": true
+    },
+    {
+      "audit": "speech-preparation-pins.json",
+      "path": "Sources/NextNotes/NextNotesApp.swift",
+      "expected": "bc01a27f48478a297d07a1d35669c313615cc7c182c0c6d113b4899e792a1b61",
+      "actual": "bc01a27f48478a297d07a1d35669c313615cc7c182c0c6d113b4899e792a1b61",
+      "matches": true
+    },
+    {
+      "audit": "speech-preparation-pins.json",
+      "path": "Sources/NextNotes/Core/DictationController.swift",
+      "expected": "971b783422d52841cf3115862943fc68fc5ff548fa717cd5a15744ee5f35fb6b",
+      "actual": "971b783422d52841cf3115862943fc68fc5ff548fa717cd5a15744ee5f35fb6b",
+      "matches": true
+    },
+    {
+      "audit": "speech-preparation-pins.json",
+      "path": "Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift",
+      "expected": "871e02fa01dbf36e46f3e437495640f4fc8b4104f9af2ecf931e930f41b7930f",
+      "actual": "871e02fa01dbf36e46f3e437495640f4fc8b4104f9af2ecf931e930f41b7930f",
+      "matches": true
+    },
+    {
+      "audit": "speech-preparation-pins.json",
+      "path": "Sources/NextNotes/Agent/Speech/PocketAgentVoice.swift",
+      "expected": "9b0c5a9404e5e8ea68f96659cd2ce70e5efabe69db28f1292d4d75a8fa5acf7d",
+      "actual": "9b0c5a9404e5e8ea68f96659cd2ce70e5efabe69db28f1292d4d75a8fa5acf7d",
+      "matches": true
+    },
+    {
+      "audit": "speech-preparation-pins.json",
+      "path": "Sources/NextNotes/Agent/Speech/KokoroAgentVoice.swift",
+      "expected": "66bf1d77947a768a6cc18334c07a6d9a9c7b65cba66f2adcf30f4f2f3ca50630",
+      "actual": "66bf1d77947a768a6cc18334c07a6d9a9c7b65cba66f2adcf30f4f2f3ca50630",
+      "matches": true
+    },
+    {
+      "audit": "speech-preparation-pins.json",
+      "path": "Sources/NextNotes/Agent/Speech/VoicePlaybackReference.swift",
+      "expected": "7bde6a354fc6b80784d03c4198b99b83567b4f216d2e43735f18ae9c5aa67868",
+      "actual": "7bde6a354fc6b80784d03c4198b99b83567b4f216d2e43735f18ae9c5aa67868",
+      "matches": true
+    },
+    {
+      "audit": "speech-preparation-pins.json",
+      "path": "Sources/NextNotes/Agent/RealtimeAudioSession.swift",
+      "expected": "e785ea5eec1b20c808778dcf589cd8fd5512b27fab19972ca0cc28c3e2b313f1",
+      "actual": "e785ea5eec1b20c808778dcf589cd8fd5512b27fab19972ca0cc28c3e2b313f1",
+      "matches": true
+    },
+    {
+      "audit": "speech-preparation-pins.json",
+      "path": "Sources/NextNotes/UI/Settings/ModelsSettingsTab.swift",
+      "expected": "c7149061e368bd11960561d20c0040bda3fd14a6e62582debdab42fe739bb359",
+      "actual": "c7149061e368bd11960561d20c0040bda3fd14a6e62582debdab42fe739bb359",
+      "matches": true
+    },
+    {
+      "audit": "speech-preparation-pins.json",
+      "path": "Sources/NextNotes/Support/NativeStartupTerminationSelfTest.swift",
+      "expected": "08efb6837d52bd8f216ec3d21ee7d1367d9791472c65f2e162c52bcbc77b73c2",
+      "actual": "08efb6837d52bd8f216ec3d21ee7d1367d9791472c65f2e162c52bcbc77b73c2",
+      "matches": true
+    },
+    {
+      "audit": "speech-preparation-pins.json",
+      "path": "Sources/NextNotes/Agent/Duplex/ApplePlaybackTimelineSelfTest.swift",
+      "expected": "67ff416a34093e440f0ff6f03cdae0059ef90eddadd09c561fc0b401fa039321",
+      "actual": "67ff416a34093e440f0ff6f03cdae0059ef90eddadd09c561fc0b401fa039321",
+      "matches": true
+    },
+    {
+      "audit": "speech-preparation-pins.json",
+      "path": "Sources/NextNotes/Agent/Duplex/AppleResumeOwnerSelfTest.swift",
+      "expected": "8b47c89c0092da46ff5503b060ed1ca0b491026f8623cdba5913e90e1d088da6",
+      "actual": "8b47c89c0092da46ff5503b060ed1ca0b491026f8623cdba5913e90e1d088da6",
+      "matches": true
+    },
+    {
+      "audit": "speech-preparation-pins.json",
+      "path": "Tests/Reports/website-to-mac/reliability-quit-preparation-2026-10-04/direct-rebase/manifest.json",
+      "expected": "e59de055911266d8602414dd2fa12f589ef38ac299f8e6dcdea1858695fe1e2b",
+      "actual": "e59de055911266d8602414dd2fa12f589ef38ac299f8e6dcdea1858695fe1e2b",
+      "matches": true
+    },
+    {
+      "audit": "speech-preparation-pins.json",
+      "path": "Tests/Reports/website-to-mac/reliability-quit-preparation-2026-10-03/voice-current/manifest.json",
+      "expected": "52af800c67a2755b22642443c590ba4a6951b926c9b82b5c5dec3950056e3e84",
+      "actual": "52af800c67a2755b22642443c590ba4a6951b926c9b82b5c5dec3950056e3e84",
+      "matches": true
+    },
+    {
+      "audit": "speech-preparation-pins.json",
+      "path": "Tests/Reports/website-to-mac/reliability-quit-preparation-2026-10-03/voice-current/README.md",
+      "expected": "11cb2a6319b0db84d36303de34944c8aca32f5d6f18f49cf44242a905f9bdae8",
+      "actual": "11cb2a6319b0db84d36303de34944c8aca32f5d6f18f49cf44242a905f9bdae8",
+      "matches": true
+    },
+    {
+      "audit": "capture-background-pins.json",
+      "path": "Sources/NextNotes/NextNotesApp.swift",
+      "expected": "bc01a27f48478a297d07a1d35669c313615cc7c182c0c6d113b4899e792a1b61",
+      "actual": "bc01a27f48478a297d07a1d35669c313615cc7c182c0c6d113b4899e792a1b61",
+      "matches": true
+    },
+    {
+      "audit": "capture-background-pins.json",
+      "path": "Sources/NextNotes/Core/DictationController.swift",
+      "expected": "971b783422d52841cf3115862943fc68fc5ff548fa717cd5a15744ee5f35fb6b",
+      "actual": "971b783422d52841cf3115862943fc68fc5ff548fa717cd5a15744ee5f35fb6b",
+      "matches": true
+    },
+    {
+      "audit": "capture-background-pins.json",
+      "path": "Sources/NextNotes/Transcription/ParakeetEngine.swift",
+      "expected": "63d4cc5b03bf0e29d97ada2dcc0851a62d51cd911226e7e55797ab18fd7f693d",
+      "actual": "63d4cc5b03bf0e29d97ada2dcc0851a62d51cd911226e7e55797ab18fd7f693d",
+      "matches": true
+    },
+    {
+      "audit": "capture-background-pins.json",
+      "path": "Sources/NextNotes/Activation/AgentCaptureController.swift",
+      "expected": "5bd0ea27b5e610a668075d6e1521369eeec730a4ff779ae7796cc55629d98128",
+      "actual": "5bd0ea27b5e610a668075d6e1521369eeec730a4ff779ae7796cc55629d98128",
+      "matches": true
+    },
+    {
+      "audit": "capture-background-pins.json",
+      "path": "Sources/NextNotes/Agent/VoiceConversationCoordinator.swift",
+      "expected": "123b55ca250ce1e7c84933c83c0a7e7b1bcb288ed7a374a4ddd9499f349e4d42",
+      "actual": "1dd5edbd7640ee1d4dfb5b6bdffb699faa708c70343ed0dd00b6809600bddf58",
+      "matches": false
+    },
+    {
+      "audit": "capture-background-pins.json",
+      "path": "Sources/NextNotes/Agent/Tasks/AgentTaskManager.swift",
+      "expected": "8ebcd688cfa4b19d62a592ca5c12081f7e1df34225b1a6f45db167522eb6221a",
+      "actual": "8ebcd688cfa4b19d62a592ca5c12081f7e1df34225b1a6f45db167522eb6221a",
+      "matches": true
+    },
+    {
+      "audit": "capture-background-pins.json",
+      "path": "Sources/NextNotes/Agent/RealtimeAgent.swift",
+      "expected": "89803d22cbaeb61b58c5503d7fc48b0729d6d5336e8375855a2fc7ede1df7cd2",
+      "actual": "89803d22cbaeb61b58c5503d7fc48b0729d6d5336e8375855a2fc7ede1df7cd2",
+      "matches": true
+    },
+    {
+      "audit": "capture-background-pins.json",
+      "path": "Sources/NextNotes/Agent/Duplex/VoiceSession.swift",
+      "expected": "36d2cfc07ea184f5954d34c7b0e5976ad3834b67db37ca242b7fdf97c9a58d59",
+      "actual": "36d2cfc07ea184f5954d34c7b0e5976ad3834b67db37ca242b7fdf97c9a58d59",
+      "matches": true
+    }
+  ]
+}

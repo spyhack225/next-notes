@@ -1,0 +1,12 @@
+--- a/Sources/NextNotes/UI/Agent/AgentPaneLayout.swift
++++ b/Sources/NextNotes/UI/Agent/AgentPaneLayout.swift
+@@ -55,2 +57,7 @@ struct AgentPaneHeader<Accessory: View>: View {
+-                Text(title)
+-                    .font(DS.Font.title2)
++                if let accent {
++                    ThemeHeadline(lead: title, accent: accent, level: .pane)
++                        .fixedSize(horizontal: false, vertical: true)
++                } else {
++                    Text(title)
++                        .font(DS.Font.title2)
++                }

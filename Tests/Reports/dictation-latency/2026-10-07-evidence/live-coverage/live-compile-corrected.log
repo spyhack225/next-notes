@@ -1,0 +1,86 @@
+xcrun swiftc -swift-version 6 -O Engine.original-probe.swift DictationSegmenter.original.swift AudioConversion.swift TranscriptionEngine.swift ParakeetInput.swift EngineBoundaryTypes.swift LiveCoverageCheck.swift -o live-original
+Engine.original-probe.swift:167:17: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+165 |             // Force the (possibly very slow) first load to happen here rather than on release,
+166 |             // so the user waits before speaking instead of losing an utterance to a timeout.
+167 |             _ = try await ParakeetModels.shared.manager()
+    |                 `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+168 |             runtimeLoaded = true
+169 |             _ = await ModelRuntimeManager.shared.markReady(
+
+Engine.original-probe.swift:173:11: warning: 'catch' block is unreachable because no errors are thrown in 'do' block
+171 |                 generation: runtimeGeneration
+172 |             )
+173 |         } catch {
+    |           `- warning: 'catch' block is unreachable because no errors are thrown in 'do' block
+174 |             _ = await ModelRuntimeManager.shared.markWedged(
+175 |                 .parakeetASR,
+
+Engine.original-probe.swift:440:27: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+438 |     private func modelPass(_ audio: [Float], isSegment: Bool) async -> String? {
+439 |         do {
+440 |             let manager = try await ParakeetModels.shared.manager()
+    |                           `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+441 |             return try await transcribe(audio, with: manager, isSegment: isSegment)
+442 |         } catch {
+
+Engine.original-probe.swift:454:23: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+452 |     private func keyUpPass(from: Int, to: Int) async throws -> String {
+453 |         let audio = Array(samples[(from - sampleOffset)..<(to - sampleOffset)])
+454 |         let manager = try await ParakeetModels.shared.keyUpManager()
+    |                       `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+455 |         var text = try await transcribe(ParakeetInput.padded(audio), with: manager, isSegment: false)
+456 |         // D-04: 0.1–0.3 s of audio is zero-padded to the model's 0.3 s floor. Padding
+
+[#UnnecessaryEffectMarker]: <https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker>
+xcrun swiftc -swift-version 6 -O Engine.zero-guard-probe.swift DictationSegmenter.candidate.swift AudioConversion.swift TranscriptionEngine.swift ParakeetInput.swift EngineBoundaryTypes.swift LiveCoverageCheck.swift -o live-zero-candidate
+Engine.zero-guard-probe.swift:169:17: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+167 |             // Force the (possibly very slow) first load to happen here rather than on release,
+168 |             // so the user waits before speaking instead of losing an utterance to a timeout.
+169 |             _ = try await ParakeetModels.shared.manager()
+    |                 `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+170 |             runtimeLoaded = true
+171 |             _ = await ModelRuntimeManager.shared.markReady(
+
+Engine.zero-guard-probe.swift:175:11: warning: 'catch' block is unreachable because no errors are thrown in 'do' block
+173 |                 generation: runtimeGeneration
+174 |             )
+175 |         } catch {
+    |           `- warning: 'catch' block is unreachable because no errors are thrown in 'do' block
+176 |             _ = await ModelRuntimeManager.shared.markWedged(
+177 |                 .parakeetASR,
+
+Engine.zero-guard-probe.swift:453:27: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+451 |     private func modelPass(_ audio: [Float], isSegment: Bool) async -> String? {
+452 |         do {
+453 |             let manager = try await ParakeetModels.shared.manager()
+    |                           `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+454 |             return try await transcribe(audio, with: manager, isSegment: isSegment)
+455 |         } catch {
+
+Engine.zero-guard-probe.swift:467:23: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+465 |     private func keyUpPass(from: Int, to: Int) async throws -> String {
+466 |         let audio = Array(samples[(from - sampleOffset)..<(to - sampleOffset)])
+467 |         let manager = try await ParakeetModels.shared.keyUpManager()
+    |                       `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+468 |         var text = try await transcribe(ParakeetInput.padded(audio), with: manager, isSegment: false)
+469 |         // D-04: 0.1–0.3 s of audio is zero-padded to the model's 0.3 s floor. Padding
+
+[#UnnecessaryEffectMarker]: <https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker>
+        8.84 real         7.52 user         1.07 sys
+           245760000  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+              217507  page reclaims
+                7616  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   2  signals received
+                1887  voluntary context switches
+               10765  involuntary context switches
+            88556361  instructions retired
+            45658158  cycles elapsed
+             1687912  peak memory footprint

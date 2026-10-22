@@ -1,0 +1,39 @@
+{
+  "scope": "Pinned whole public quiet input, actual replay outputs only; not microphone/paint/AX/concurrentASR+voice proof",
+  "pins": {
+    "gold": "0b7465741fe4a5fb780a941f78d946935acb6e84bbd26d9d74205af3d5a19e2b",
+    "wav": "76c16c4ffd310a9e9b1b87841a8211a7ae738e92868b02b8141c578a1f726dc4"
+  },
+  "reference": null,
+  "engine": [],
+  "coreRaw": [],
+  "coreFinal": [
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-fourth-native-20261008/original-quiet-final.1.txt",
+      "sha256": "2c01f4881c93babd964e7312512f8146fc175986e21d3651dc2a7280931d3577",
+      "referenceWords": 136,
+      "hypothesisWords": 129,
+      "editDistance": 13,
+      "WER": 0.09558823529411764,
+      "exactFinalClauseCount": 0,
+      "endsWithExactFinalClause": false,
+      "noDuplicatedClause": false,
+      "normalization": "Unicode alphanumeric lowercase; punctuation/whitespace only, no lexical corrections"
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-fourth-native-20261008/original-quiet-final.2.txt",
+      "sha256": "2c01f4881c93babd964e7312512f8146fc175986e21d3651dc2a7280931d3577",
+      "referenceWords": 136,
+      "hypothesisWords": 129,
+      "editDistance": 13,
+      "WER": 0.09558823529411764,
+      "exactFinalClauseCount": 0,
+      "endsWithExactFinalClause": false,
+      "noDuplicatedClause": false,
+      "normalization": "Unicode alphanumeric lowercase; punctuation/whitespace only, no lexical corrections"
+    }
+  ],
+  "fixedNativeAcceptance": false,
+  "allRequestedOutputsKeepExactClauseOnce": false,
+  "completeNativeWordAcceptance": false
+}

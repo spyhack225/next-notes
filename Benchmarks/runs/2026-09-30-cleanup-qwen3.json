@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "id": "2026-09-30-cleanup-qwen3",
+  "title": "Qwen3-4B Instruct 2507 Q4_K_M",
+  "date": "2026-09-30",
+  "category": "dictation",
+  "status": "measured",
+  "scope": "Cleanup model comparison",
+  "summary": "8/42 failed assertions; 1.61 s median cleanup. Historical tested configuration.",
+  "environment": {
+    "hardware": "See historical source report",
+    "workload": "Same CleanupEvalCases corpus; production-faithful compare legs"
+  },
+  "provenance": {
+    "kind": "historical evidence import",
+    "build": "See original evidence; not re-run by hub"
+  },
+  "metrics": [
+    {
+      "name": "Failed assertions",
+      "value": 8,
+      "unit": "of 42",
+      "boundary": "Guarded shipped cleanup text",
+      "samples": 42,
+      "aggregation": "suite result"
+    },
+    {
+      "name": "Median cleanup",
+      "value": 1.61,
+      "unit": "s",
+      "boundary": "Model cleanup comparison; excludes capture and insertion",
+      "samples": 42,
+      "aggregation": "median"
+    }
+  ],
+  "limitations": [
+    "Historical model comparison, not current dictation delivery acceptance.",
+    "Guard and fallback can preserve output despite a model rejection.",
+    "Gemma variability is retained in the source report and is not reduced to one ranking."
+  ],
+  "sources": [
+    "Tests/Reports/MODEL-COMPARE-CLEANUP-2026-09-30.md"
+  ],
+  "publication": {
+    "approved": true,
+    "reviewed_by": "benchmark-hub-20261022",
+    "reviewed_on": "2026-10-22"
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "status": "UNCOMPILED_NATIVE_UNRUN_COPY_ONLY_PATCH_REPLAY",
+  "stages": [
+    {
+      "stage": "COMMON",
+      "copyOnlyGitApplyCheck": true,
+      "postimagesSHA256": {
+        "Sources/NextNotes/Support/Settings.swift": "4622876d2bffd06df07fec68eddfeae52589d71a5b448d9bb54cbbdb81251214",
+        "Sources/NextNotes/Meetings/MeetingDiarizer.swift": "873c3695e997912718fedb33d694b9034eb36d4aff1aa8e596ec1546c820156e"
+      }
+    },
+    {
+      "stage": "FIXED",
+      "copyOnlyGitApplyCheck": true,
+      "postimagesSHA256": {
+        "Sources/NextNotes/Support/Settings.swift": "d6110c2839a0cf9885c761f052681d3f52a5a73d9d25aa9c3cc8fd22f4f76146",
+        "Sources/NextNotes/Meetings/MeetingDiarizer.swift": "873c3695e997912718fedb33d694b9034eb36d4aff1aa8e596ec1546c820156e"
+      }
+    }
+  ],
+  "fixedOnlyProducerChange": "actual constructor helper eager Bool argument replaced with nil-coalescing closure; same RHS observer/getter"
+}

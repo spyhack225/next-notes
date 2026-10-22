@@ -1,0 +1,52 @@
+{
+  "status": "PACKAGED_APP41_ORIGINAL_COMPONENT_FAILURES_CORRECTED_LIVE_GATES_OPEN",
+  "sources": {
+    "Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift": {
+      "beforeSHA256": "5cea7730e4467a966f81aa0923fb71c4231bf3d6046f758320c06bde59fa1f4b",
+      "proposedSHA256": "4fcad108cbb67cfbc5abfaefee6520f969b65904a7dad0e839dbc2355b3450a4",
+      "patch": "01-formatting-native-info-menu.patch",
+      "patchSHA256": "93b861bf9e5a0c12a11835a646385e7b2fb87534797e681477cd8c25ad87ae1c"
+    },
+    "Sources/NextNotes/UI/DesignSystem.swift": {
+      "beforeSHA256": "b0335cf423f1366b13195bb530a3ad564a8667bfabb441a5bf35221f86a3de7c",
+      "proposedSHA256": "4834688eb005804071731afa6a359aa68434cdc3fd99cd62f5ac444bf57c1fe4",
+      "patch": "02-designsystem-label-floor.patch",
+      "patchSHA256": "a16c1695de6dd547453cabbc9699e82a14baadefa622568b45f04fdb5aa229f3"
+    }
+  },
+  "tokenValueStatus": "140 is an owner-reviewed design proposal to validate; not measured native glyph width",
+  "originalImages": {
+    "/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/nextnotes-settings-app39-etctpfpi/formatting320/settings-formatting-320-standard.png": "6f8df60d6690f35ae41a02982e6efa09f36575089308cb6a0343fc5dfadc86e8",
+    "/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/nextnotes-settings-app39-etctpfpi/formatting560/settings-formatting-560-standard.png": "a547c3e6506f52e6e3425068e6e7ca6a4ad10312024b825dfc23c136c7b5875d"
+  },
+  "combinedPatchSHA256": "74c21ae4b6f7cdc0230b2a70837cd79b1eb4bc753b395364fb1040b2801397ea",
+  "original560LogSHA256": "ee59f18a05a942132c0ba91346af956b8e9f9b4f86d1d4e5e3357118e37e59c9",
+  "verification": {
+    "SourcesUnchanged": true,
+    "privacyWordsAndStringFragmentsUnchanged": true,
+    "profileForEachTagsCallbacksUnchanged": true,
+    "copyApplyCheck": "pass; no compilation/native/application",
+    "nativeVerified": false
+  },
+  "priorStatus": "UNAPPLIED_EXPANDED_TWO_FILE_REVIEW",
+  "sourceApplication": "source-application.json",
+  "priorAppliedStatus": "APPLIED_SOURCE_ONLY_REFROZEN_FOR_ROOT41",
+  "actualResult": {
+    "report": "../../settings-app41/README.md",
+    "sha256": "375f58f6d2c3bdd32d5aca54ebda753c86bf2cf03110b402fef4773053fe3f7b",
+    "flags": [
+      "SETTINGS_OK",
+      "UI_STRINGS_OK",
+      "STORE_ISOLATION_OK"
+    ],
+    "originalCaptureCalls": 2,
+    "captureOwnerGuards": "pass",
+    "sourceInvariance": [],
+    "nativeInfoRowsAt560": [
+      68,
+      88
+    ],
+    "actualStandardConsumerVerdict": "full notes/current menu label/consistent narrow mode corrected",
+    "fullRoadmapGate": false
+  }
+}

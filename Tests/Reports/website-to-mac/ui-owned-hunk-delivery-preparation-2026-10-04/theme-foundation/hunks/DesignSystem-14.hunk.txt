@@ -1,0 +1,7 @@
+--- a/Sources/NextNotes/UI/DesignSystem.swift
++++ b/Sources/NextNotes/UI/DesignSystem.swift
+@@ -158,2 +173,2 @@ enum DS {
+-        static let emptyStateTitle = SwiftUI.Font.title3.weight(.semibold)
+-        static let emptyStateMessage = SwiftUI.Font.callout
++        static var emptyStateTitle: SwiftUI.Font { Theme.Typography.sans(.title3, weight: .semibold) }
++        static var emptyStateMessage: SwiftUI.Font { Theme.Typography.sans(.callout) }

@@ -1,0 +1,33 @@
+--- a/Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift
++++ b/Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift
+@@ -125,3 +117,27 @@ struct FormattingSettingsTab: View {
+-        } footer: {
+-            SettingsNote(text: "The table is a plain text file. Edit it in any editor and "
+-                         + "the app picks up the change immediately.")
++            .listRowBackground(DS.Color.groupedFill)
++            fileNote
++                .selectionDisabled(true)
++                .listRowBackground(DS.Color.window)
++        }
++    }
++
++    private var fileNote: some View {
++        SettingsNote(text: "The table is a plain text file. Edit it in any editor and "
++                     + "the app picks up the change immediately.")
++        .lineLimit(nil)
++        .fixedSize(horizontal: false, vertical: true)
++    }
++
++    private var addDefaultsButton: some View {
++        Button("Add apps Next Notes knows about") { store.addMissingDefaults() }
++            .help("Puts back any built-in app you have removed. Your own rows and "
++                  + "your edits are left alone.")
++    }
++
++    private var revealFileButton: some View {
++        Button {
++            NSWorkspace.shared.activateFileViewerSelecting([OutputProfileStore.fileURL])
++        } label: {
++            Text("Reveal formatting.txt")
++                .underline()
++                .foregroundStyle(DS.Color.accent)

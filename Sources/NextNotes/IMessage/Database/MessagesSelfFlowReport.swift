@@ -270,11 +270,16 @@ enum MessagesSelfFlowReport {
             "# if you need a real chat — and do not commit the result. Nothing else here",
             "# identifies anybody.",
             "",
-            "# The body, as the generator's own `blob:` prefix plus hex. This is the one line",
-            "# worth reading before pasting: the first 16 bytes are the version header",
+            "# BLOBBODY_FIRST is the oldest non-empty attributedBody in this window,",
+            "# de-duplicated into one shell variable so the block pastes with one hex copy.",
+            "# The newest self-message moves with every send, so naming a row is the only",
+            "# stable handle — and the self-message row is not necessarily this one:",
+            "# this has pointed at a 219-byte reaction and at third-party rows before.",
+            "# Read the per-row annotations below and inline the row you mean; the variable",
+            "# is a convenience, not a claim. The first 16 bytes are the version header",
             "# TYPEDSTREAM-NOTES.md §2.3 is waiting on, and the length is what settles",
             "# bytes-versus-characters.",
-            "BLOBBODY_REAL=\"\(firstBlobLiteral(rows))\"",
+            "BLOBBODY_FIRST=\"\(firstBlobLiteral(rows))\"",
             "",
             "case_self_flow_real() {",
             "    handle_row ROWID=1 id=REDACTED-HANDLE-1 \\",
@@ -285,7 +290,7 @@ enum MessagesSelfFlowReport {
             "",
         ]
 
-        // The first body is referenced through `BLOBBODY_REAL`, so there is exactly one
+        // The oldest non-empty body is referenced through `BLOBBODY_FIRST`, so there is exactly one
         // place in the block a human copies hex into. A case is nearly always one row, and
         // two spellings of the same idea is one too many.
         var firstBlobUsed = false
@@ -302,7 +307,7 @@ enum MessagesSelfFlowReport {
                 if firstBlobUsed {
                     fields.append("        attributedBody=blob:\(body.hexLiteral)")
                 } else {
-                    fields.append("        attributedBody=\"$BLOBBODY_REAL\"")
+                    fields.append("        attributedBody=\"$BLOBBODY_FIRST\"")
                     firstBlobUsed = true
                 }
             }
@@ -332,8 +337,12 @@ enum MessagesSelfFlowReport {
         return out.joined(separator: "\n") + "\n"
     }
 
-    /// The first row that carries a body, as the generator's own `blob:` prefix plus hex —
+    /// The oldest non-empty attributedBody in the window, as the generator's own `blob:` prefix plus hex —
     /// the one value in the whole roadmap that does not exist yet without a human.
+    ///
+    /// The newest self-message moves with every send, so naming a row is the only stable handle —
+    /// and the self-message row is not necessarily this one. `BLOBBODY_FIRST` is a de-duplication
+    /// convenience for the first such row, not a claim about which row matters.
     private static func firstBlobLiteral(_ rows: [MessageRow]) -> String {
         rows.first { !($0.attributedBody ?? Data()).isEmpty }?.attributedBody
             .map { "blob:\($0.hexLiteral)" } ?? "blob:PASTE-REAL-BODY-HERE"

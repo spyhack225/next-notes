@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "id": "2026-09-13-tts-apple",
+  "title": "Apple short-response synthesis",
+  "date": "2026-09-13",
+  "category": "tts",
+  "status": "measured",
+  "scope": "Generated PCM callback",
+  "summary": "201.8 ms warm median first generated PCM; 450.3 ms first trial.",
+  "environment": {
+    "hardware": "Apple M3, 8 cores, 16 GB RAM",
+    "os": "macOS 26.5.2"
+  },
+  "provenance": {
+    "kind": "historical evidence import",
+    "build": "See original evidence; not re-run by hub"
+  },
+  "metrics": [
+    {
+      "name": "Warm first generated PCM",
+      "value": 201.8,
+      "unit": "ms",
+      "boundary": "Text request to first nonempty AVSpeechSynthesizer PCM callback",
+      "samples": 4,
+      "aggregation": "median of trials 2\u20135"
+    },
+    {
+      "name": "First trial generated PCM",
+      "value": 450.3,
+      "unit": "ms",
+      "boundary": "Text request to first nonempty PCM callback",
+      "samples": 1,
+      "aggregation": "reported observation"
+    }
+  ],
+  "limitations": [
+    "Historical standalone AVFoundation probe; no speaker audio measurement.",
+    "Kokoro ONNX and Piper historical comparisons use different adapters; consult source report."
+  ],
+  "sources": [
+    "Tests/Reports/tts-benchmark-2026-09-13.md"
+  ],
+  "publication": {
+    "approved": true,
+    "reviewed_by": "benchmark-hub-20261022",
+    "reviewed_on": "2026-10-22"
+  }
+}

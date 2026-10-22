@@ -144,6 +144,8 @@ struct MeetingConsoleSheet: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .frame(minWidth: DS.Size.meetingConsoleMinWidth)
+        .tint(DS.Color.accent)
+        .font(DS.Font.body)
         .frame(minHeight: DS.Size.meetingConsoleMinHeight)
         .onPreferenceChange(MeetingConsoleActivityPreference.self) { displayedActivity = $0 }
         .onChange(of: section) { _, _ in displayedActivity = .idle }

@@ -1,0 +1,29 @@
+--- a/Sources/NextNotes/Support/NativeNotesSettingsSelfTest.swift
++++ b/Sources/NextNotes/Support/NativeNotesSettingsSelfTest.swift
+@@ -1,4 +1,5 @@
+ import AppKit
++import Darwin
+ import Foundation
+ 
+ enum NativeNotesSettingsMode: String, Sendable {
+@@ -113,7 +114,19 @@
+         try validateMetadataRoot(bound.admission)
+         let admission = bound.admission
+         let trace = bound.trace
+-        // The admitted root was absent before NSApplication; this existing store creates it.
++        // Do not reopen a directory which appeared after pre-owner admission.
++        // mkdir refuses EEXIST; only then may the existing isolated store use it.
++        guard admission.meetingRoot.path == admission.meetingRoot.resolvingSymlinksInPath().path,
++              admission.meetingRoot.deletingLastPathComponent()
++                == FileManager.default.temporaryDirectory.standardizedFileURL.resolvingSymlinksInPath(),
++              admission.meetingRoot.lastPathComponent == "NextNotesMeetingResumeTest-" + admission.meetingID.uuidString
++        else { throw NativeNotesSettingsAdmissionFailure.invalid }
++        let created = admission.meetingRoot.path.withCString { Darwin.mkdir($0, mode_t(0o700)) }
++        guard created == 0 else { throw NativeNotesSettingsAdmissionFailure.invalid }
++        let rootValues = try admission.meetingRoot.resourceValues(forKeys: [.isDirectoryKey, .isSymbolicLinkKey])
++        guard rootValues.isDirectory == true, rootValues.isSymbolicLink != true,
++              admission.meetingRoot.path == admission.meetingRoot.resolvingSymlinksInPath().path
++        else { throw NativeNotesSettingsAdmissionFailure.invalid }
+         let store = try MeetingStore.isolated(at: admission.meetingRoot)
+         let meeting = Meeting(id: admission.meetingID, title: "Synthetic Notes quit fixture",
+             start: Date(timeIntervalSince1970: 1_700_000_000))

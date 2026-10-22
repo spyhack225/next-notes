@@ -1,0 +1,138 @@
+{
+  "engine": "Phonon-2 CoreML",
+  "repo": "FermionResearch/Phonon-2-CoreML",
+  "revision": "1143812fd4236522232a8c33e3115f0577e3cd7d",
+  "download_bytes_including_source": 345115905,
+  "free_disk_before_bytes": 5483012096,
+  "artifacts": [
+    {
+      "path": "Phonon-2.mlpackage/Data/com.apple.CoreML/model.mlmodel",
+      "bytes": 2500482,
+      "sha256": "4f6790ec94fe4429b10397c013563d0a51119953ff6d3da466bbcb23a25dee2a"
+    },
+    {
+      "path": "Phonon-2.mlpackage/Data/com.apple.CoreML/weights/weight.bin",
+      "bytes": 329186560,
+      "sha256": "93aa991318a00ed492fdbb724e7bca4e6a69c6cf671ab4f14a14ef6101e7648b"
+    },
+    {
+      "path": "Phonon-2.mlpackage/Manifest.json",
+      "bytes": 617,
+      "sha256": "6ebc9309aea0e16bda9c7558521fef6307fac0afba9a5b4959fea45ed7cd0429"
+    },
+    {
+      "path": "decoder.bin",
+      "bytes": 13301279,
+      "sha256": "36fa7202dda85c603af60d930ab88d7e9f0d2a619490aff46f5384db924cfa70"
+    },
+    {
+      "path": "manifest.json",
+      "bytes": 1428,
+      "sha256": "ab3fb5dfd3fc07b1d8a24379d04418f458d0443ba6359d3a5ab2f098a7d64089"
+    },
+    {
+      "path": "phonon-coreml-src.tgz",
+      "bytes": 125539,
+      "sha256": "633e97ca8d0c54b323ade42a3001feb507c4278c7cafe899d92ab30b9fde18ff"
+    }
+  ],
+  "compile_commands": [
+    [
+      "xcrun",
+      "swiftc",
+      "-O",
+      "-emit-library",
+      "-emit-module",
+      "-module-name",
+      "PhononCoreML",
+      "-I",
+      "/Users/sergekadjo/Library/Caches/NextNotesASRBench/phonon-bwmths03/phonon-coreml/Binaries/PhononTDT.xcframework/macos-arm64_x86_64/Headers",
+      "/Users/sergekadjo/Library/Caches/NextNotesASRBench/phonon-bwmths03/phonon-coreml/Sources/PhononCoreML/AudioSource.swift",
+      "/Users/sergekadjo/Library/Caches/NextNotesASRBench/phonon-bwmths03/phonon-coreml/Sources/PhononCoreML/DecoderBin.swift",
+      "/Users/sergekadjo/Library/Caches/NextNotesASRBench/phonon-bwmths03/phonon-coreml/Sources/PhononCoreML/LogMel.swift",
+      "/Users/sergekadjo/Library/Caches/NextNotesASRBench/phonon-bwmths03/phonon-coreml/Sources/PhononCoreML/Segmenter.swift",
+      "/Users/sergekadjo/Library/Caches/NextNotesASRBench/phonon-bwmths03/phonon-coreml/Sources/PhononCoreML/Transcriber.swift",
+      "/Users/sergekadjo/Library/Caches/NextNotesASRBench/phonon-bwmths03/phonon-coreml/Sources/PhononCoreML/Windower.swift",
+      "/Users/sergekadjo/Library/Caches/NextNotesASRBench/phonon-bwmths03/phonon-coreml/Sources/PhononCoreML/Words.swift",
+      "/Users/sergekadjo/Library/Caches/NextNotesASRBench/phonon-bwmths03/phonon-coreml/Binaries/PhononTDT.xcframework/macos-arm64_x86_64/libPhononTDT.a",
+      "-lc++",
+      "-framework",
+      "Accelerate",
+      "-emit-module-path",
+      "/Users/sergekadjo/Library/Caches/NextNotesASRBench/phonon-bwmths03/PhononCoreML.swiftmodule",
+      "-o",
+      "/Users/sergekadjo/Library/Caches/NextNotesASRBench/phonon-bwmths03/libPhononCoreML.dylib"
+    ],
+    [
+      "xcrun",
+      "swiftc",
+      "-O",
+      "-parse-as-library",
+      "-I",
+      "/Users/sergekadjo/Library/Caches/NextNotesASRBench/phonon-bwmths03",
+      "-I",
+      "/Users/sergekadjo/Library/Caches/NextNotesASRBench/phonon-bwmths03/phonon-coreml/Binaries/PhononTDT.xcframework/macos-arm64_x86_64/Headers",
+      "-L",
+      "/Users/sergekadjo/Library/Caches/NextNotesASRBench/phonon-bwmths03",
+      "-lPhononCoreML",
+      "-Xlinker",
+      "-rpath",
+      "-Xlinker",
+      "/Users/sergekadjo/Library/Caches/NextNotesASRBench/phonon-bwmths03",
+      "/Users/sergekadjo/Documents/Claude/Projects/next-notes/Tools/PhononASRRuntimeBenchmark.swift",
+      "-o",
+      "/Users/sergekadjo/Library/Caches/NextNotesASRBench/phonon-bwmths03/probe"
+    ]
+  ],
+  "child_exit": 0,
+  "child_joined": true,
+  "stdout": "",
+  "stderr": "",
+  "benchmark": {
+    "compile_ms": 782.9779386520386,
+    "load_ms": 63755.2649974823,
+    "peak_rss_bytes": 573734912,
+    "rescue_windows": 0,
+    "scope": "vendor CoreML defaults, existing English fixture; French unsupported",
+    "trials": [
+      {
+        "audio_seconds": 60.585375,
+        "fixture": "/Users/sergekadjo/Documents/Claude/Projects/next-notes/Tests/Fixtures/meetings/en-dialogue.wav",
+        "rtfx": 418.9596481387291,
+        "text": "Okay, so the plan is to ship the installer on Friday. Right, and then we write the release note together. We need Sam to approve the budget before Thursday. No wait, that is not the same price as yesterday. We sign the contract next week, no exceptions. Agreed, and we schedule a delivery for the fifteenth. The client wants three copies, not two. Noted, I will tell the team this afternoon. Did you see Priya's report about the delays? Yes, she suggests moving the meeting to Thursday. Perfect. We book the room for nine in the morning. And we invite Jordan for the technical part. There are twelve thousand dollars left for expenses. We keep that for surprises in December. So that is settled. We meet again next Monday. Great. I will send the summary tonight.",
+        "trial": 0,
+        "wall_seconds": 0.14460909366607666,
+        "windows": 5,
+        "edits": 1,
+        "reference_words": 136,
+        "wer": 0.007352941176470588
+      },
+      {
+        "audio_seconds": 60.585375,
+        "fixture": "/Users/sergekadjo/Documents/Claude/Projects/next-notes/Tests/Fixtures/meetings/en-dialogue.wav",
+        "rtfx": 467.56988925750306,
+        "text": "Okay, so the plan is to ship the installer on Friday. Right, and then we write the release note together. We need Sam to approve the budget before Thursday. No wait, that is not the same price as yesterday. We sign the contract next week, no exceptions. Agreed, and we schedule a delivery for the fifteenth. The client wants three copies, not two. Noted, I will tell the team this afternoon. Did you see Priya's report about the delays? Yes, she suggests moving the meeting to Thursday. Perfect. We book the room for nine in the morning. And we invite Jordan for the technical part. There are twelve thousand dollars left for expenses. We keep that for surprises in December. So that is settled. We meet again next Monday. Great. I will send the summary tonight.",
+        "trial": 1,
+        "wall_seconds": 0.12957501411437988,
+        "windows": 5,
+        "edits": 1,
+        "reference_words": 136,
+        "wer": 0.007352941176470588
+      },
+      {
+        "audio_seconds": 60.585375,
+        "fixture": "/Users/sergekadjo/Documents/Claude/Projects/next-notes/Tests/Fixtures/meetings/en-dialogue.wav",
+        "rtfx": 464.44086954948335,
+        "text": "Okay, so the plan is to ship the installer on Friday. Right, and then we write the release note together. We need Sam to approve the budget before Thursday. No wait, that is not the same price as yesterday. We sign the contract next week, no exceptions. Agreed, and we schedule a delivery for the fifteenth. The client wants three copies, not two. Noted, I will tell the team this afternoon. Did you see Priya's report about the delays? Yes, she suggests moving the meeting to Thursday. Perfect. We book the room for nine in the morning. And we invite Jordan for the technical part. There are twelve thousand dollars left for expenses. We keep that for surprises in December. So that is settled. We meet again next Monday. Great. I will send the summary tonight.",
+        "trial": 2,
+        "wall_seconds": 0.13044798374176025,
+        "windows": 5,
+        "edits": 1,
+        "reference_words": 136,
+        "wer": 0.007352941176470588
+      }
+    ]
+  },
+  "temporary_assets_deleted": true,
+  "free_disk_after_bytes": 5812854784
+}

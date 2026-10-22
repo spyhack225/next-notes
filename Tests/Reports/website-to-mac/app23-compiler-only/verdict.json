@@ -1,0 +1,10 @@
+{
+  "scope": "Compiler-only failure, not installed. No native Settings verdict. Concurrent foreign Source edits invalidate all-source freeze.",
+  "exit": 2,
+  "error": "PeepFigure static non-Sendable NSCache has no actor isolation",
+  "duringBuildSourceChanges": [
+    "Sources/NextNotes/UI/Onboarding/OnboardingFigure.swift",
+    "Sources/NextNotes/UI/Onboarding/OnboardingSteps.swift"
+  ],
+  "installedRemains": "app22 dc264d8dfbc0dcba8485595106beff9b365b11f81dbaa6b8df8186933793ff83"
+}

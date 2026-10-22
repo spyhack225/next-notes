@@ -35,6 +35,9 @@ enum MeetingQuietSessionSelfTest {
             write("MEETING_QUIET_SESSION_FAILED: copied UUID root required"); return false
         }
         let experimental = CommandLine.arguments.contains("--meeting-quiet-conservative-admission")
+        let pauseMode = CommandLine.arguments.contains("--meeting-quiet-pause-experiment")
+            ? "digital-zero-experiment" : "legacy-rms"
+        let audioMode = AudioConversion.usesBoundedMeetingAudioExperiment ? "bounded-experiment" : "original-array"
         let fixtures: [Fixture]
         let gold: [String]
         do {
@@ -208,7 +211,7 @@ enum MeetingQuietSessionSelfTest {
                     check(fixture.id, "original-quiet-pre-recognition-refusal", calls.isEmpty)
                 }
                 if fixture.id == "digital-zero" { check(fixture.id, "digital-zero-skip", calls.isEmpty) }
-                write("MEETING_QUIET_SESSION_CALLS case=\(fixture.id) native=\(native) experimental=\(experimental) calls=\(json(calls)) savedAudioSHA256=\(digest(try Data(contentsOf: audio)))")
+                write("MEETING_QUIET_SESSION_CALLS case=\(fixture.id) native=\(native) experimental=\(experimental) pauseMode=\(pauseMode) audioMode=\(audioMode) calls=\(json(calls)) savedAudioSHA256=\(digest(try Data(contentsOf: audio)))")
                 check(fixture.id, "fresh-reader-transcript-parity", fresh.transcript(for: meeting.id) == store.transcript(for: meeting.id))
             } catch {
                 failures += 1
@@ -226,7 +229,7 @@ enum MeetingQuietSessionSelfTest {
                 try? FileManager.default.removeItem(at: ownedRoot)
             }
         }
-        write("MEETING_QUIET_SESSION_SCOPE native=\(native) substitutedASR=\(!native) experimental=\(experimental) selectedCases=\(json(fixtures.map(\.id))) originalQuietMissingStages=\(originalQuietMissingStages) originalQuietAllFourStagesMissing=\(originalQuietMissingStages == 4) independentClauseWords=7 productQualityPass=false productNoiseWorkloadAcceptance=false permissionAuthority=false")
+        write("MEETING_QUIET_SESSION_SCOPE native=\(native) substitutedASR=\(!native) experimental=\(experimental) pauseMode=\(pauseMode) audioMode=\(audioMode) selectedCases=\(json(fixtures.map(\.id))) originalQuietMissingStages=\(originalQuietMissingStages) originalQuietAllFourStagesMissing=\(originalQuietMissingStages == 4) independentClauseWords=7 productQualityPass=false productNoiseWorkloadAcceptance=false permissionAuthority=false")
         write("MEETING_QUIET_SESSION_\(failures == 0 ? "OK" : "FAILED"): \(failures)/\(checks) checks failed")
         return failures == 0
     }

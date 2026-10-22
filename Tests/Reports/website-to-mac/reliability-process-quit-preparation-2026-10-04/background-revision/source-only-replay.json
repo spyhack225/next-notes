@@ -1,0 +1,17 @@
+{
+  "status": "COPY_ONLY_TWO_STAGE_REPLAY_NO_SWIFT_OR_NATIVE",
+  "currentManagerPreimageMatches": true,
+  "rootACPVoiceCancellationBranchByteIdenticalAcrossStages": true,
+  "stages": {
+    "COMMON": {
+      "patchAppliesToPriorStage": true,
+      "postimageSHA256": "04c6f5f98332eb8853a1197a850e4fe513f40f8e92c87285ccb214bf793e97ab",
+      "matchesPinnedCopy": true
+    },
+    "FIXED": {
+      "patchAppliesToPriorStage": true,
+      "postimageSHA256": "f16e02b896bddc5bb3314f01ce69cacc20025950ebe43fade697f543bc933e68",
+      "matchesPinnedCopy": true
+    }
+  }
+}

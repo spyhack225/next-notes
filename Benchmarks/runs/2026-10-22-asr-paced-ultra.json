@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "id": "2026-10-22-asr-paced-ultra",
+  "title": "Parakeet Ultra (CoreML) paced ASR latency",
+  "date": "2026-10-22",
+  "category": "asr",
+  "status": "blocked",
+  "scope": "Paced native runtime first-word and release-to-final; no app integration or physical microphone acceptance",
+  "summary": "Not started: insufficient internal storage after pressure incident; model not downloaded.",
+  "environment": {
+    "hardware": "Apple M3,16GB RAM",
+    "os": "macOS27.2 build26B5091g",
+    "workload": "Normal desktop apps, high retained system swap; no competing native build/model run observed in agreed window",
+    "power_thermal": "Per-attempt logs retained; no recorded thermal warning. Quiet ASR+voice reference workload not qualified."
+  },
+  "provenance": {
+    "model": "Pinned original artifact, see raw report and retained metadata",
+    "source": "Dirty shared checkout; function snapshots and linked-input hashes retained; not installed-app parity",
+    "command": "Tools/run_asr_live_serial.py; stopped after cached-v3 warmup pressure abort",
+    "source_report": "Tests/Reports/asr-live-latency-2026-10-22"
+  },
+  "metrics": [],
+  "limitations": [
+    "One authored excerpt per language, repeated for timing; no independent corpus/physical mic/UI/polish/insertion/duplex acceptance.",
+    "High retained swap and low disk headroom; cannot rank unmeasured candidates or promote a default.",
+    "Original full-file throughput and accuracy belong to a separate experiment."
+  ],
+  "sources": [
+    "Tests/Reports/asr-live-latency-2026-10-22/README.md",
+    "Tests/Reports/asr-live-latency-2026-10-22/comparison.json",
+    "Tests/Reports/asr-live-latency-2026-10-22/aborted-attempt.json"
+  ],
+  "publication": {
+    "approved": false,
+    "reviewed_by": null,
+    "reviewed_on": null
+  }
+}

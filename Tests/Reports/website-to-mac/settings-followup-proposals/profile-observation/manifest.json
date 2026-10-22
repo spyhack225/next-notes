@@ -1,0 +1,61 @@
+{
+  "status": "PACKAGED_APP33_ORIGINAL_CAPTURE_CONFIRMED",
+  "exact_scope": "SelfTest.requested == \"--selftest-settings-sheet\" AND tab == .formatting",
+  "only_proposed_source_file": "Sources/NextNotes/UI/Settings/SettingsSheet.swift",
+  "source_before_sha256": {
+    "Sources/NextNotes/UI/Settings/SettingsSheet.swift": "5f0088724bde7c88789eb3632ac32fc305273e2e851fe1ec735ed7b6eb1c3b40",
+    "Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift": "c750e16bd51c4f8f40875d2122b3a89d57dfe3a02f40cd2a08ec7f0c4eb64d69",
+    "Sources/NextNotes/UI/Settings/SettingsChrome.swift": "f4677c14514b8092b6aaf002ba1dfd6151ecee6f4eeb12a1a61220b40278e1ad",
+    "Sources/NextNotes/Formatting/Targets/OutputProfileStore.swift": "414d9bf84985e27c8e99fad5ad06d54138a7455b6b6103b0374672dc520c6e73",
+    "Sources/NextNotes/Formatting/Targets/OutputProfileDefaults.swift": "02099193b75ec7082b6fb04e574642139ebd0c23a3a6b3180d4e991c4fb22d55",
+    "Sources/NextNotes/UI/Settings/SettingsWindow.swift": "d9c854b3b6d9f0a80e310f525d3cc9f3c99f89be8af5a5e7cd480214a54d39f6"
+  },
+  "source_proposed_sha256": "2f85f3911ec7fa0cbf867ad8eb03b257a79656e52ebd02515a7e739af402af39",
+  "patch_sha256": "fbee297a951d2dbb1db0df70cb40b3f04f01664dce0fc80572642d9f6c0efe40",
+  "app29_executable_sha256": "c7e6468913226d281684ed2fa1fdbfe03a1b218882b4e1d0aa868266602b0eee",
+  "prerequisites": [
+    "root explicit SettingsSheet-only Source lease after runtime30/31 freeze",
+    "existing complete Settings diagnostic isolation and owner invariance guards",
+    "existing constructor/consumer checks and exact font/tint capture correction",
+    "recheck before hashes then root-owned serial build/install/native slot"
+  ],
+  "proof": "numeric native hierarchy observation only; no product fix, pass marker, activation, lifecycle wait or latency result",
+  "local_sdk_header_sha256": {
+    "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks/AppKit.framework/Headers/NSView.h": "83fc9b98554e147593c5d3540eb935e04138a3c2928423ee8a2c685e9511a8db",
+    "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks/AppKit.framework/Headers/NSTableView.h": "3d8cf3bc29ac3703a41552347d175fdbd7f2e759d788f499022c859303cbc929",
+    "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks/AppKit.framework/Headers/NSCollectionView.h": "7b67ed05fbf850f3a85c3b434562c35450b65dee70157f99ff02df855052a11a"
+  },
+  "observation_stages": [
+    2,
+    3
+  ],
+  "collection_geometry_contract": "isViewLoaded gate; loaded view bounds converted into collection coordinates before intersection; unloaded active item count explicit",
+  "api_contract_sources": [
+    "https://developer.apple.com/documentation/appkit/nsview/visiblerect",
+    "https://developer.apple.com/documentation/appkit/nstableview/rowview(atrow:makeifnecessary:)",
+    "https://developer.apple.com/documentation/appkit/nstableview/rows(in:)",
+    "https://developer.apple.com/documentation/appkit/nsview/cachedisplay(in:to:)"
+  ],
+  "source_application_provenance": "source-application.json",
+  "prior_status": "APPLIED_SOURCE_ONLY_UNCOMPILED_UNRUN",
+  "native_original": {
+    "app": "33",
+    "executable_sha256": "adc7f6d9848d5ef0355dc989167133a723a77824d52738e1d4e405d2f4b1e8b7",
+    "report": "../../settings-app33-profile/README.md",
+    "widths": [
+      320,
+      560
+    ],
+    "variants_per_width": 4,
+    "stages": [
+      2,
+      3
+    ],
+    "observations": 16,
+    "declared_profiles": 15,
+    "inner_list_viewport_height_points": 0,
+    "visible_and_materialized_rows": 0,
+    "product_fix": false,
+    "owner_guards": "pass"
+  }
+}

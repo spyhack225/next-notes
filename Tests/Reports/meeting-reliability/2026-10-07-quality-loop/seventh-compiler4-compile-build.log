@@ -1,0 +1,9 @@
+warning: 'speechify': found 1 file(s) which are unhandled; explicitly declare them as resources or exclude from the target
+    /Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/IMessage/Database/TYPEDSTREAM-NOTES.md
+Building for production...
+[Pre-planning 1 / 275]
+[Planning deferred tasks]
+[1 / 2] FluidAudio_FluidAudio
+[1 / 19] SpeexEcho
+[4 / 17] NextNotesDictionary
+[6 / 18] NextNotesDictionary

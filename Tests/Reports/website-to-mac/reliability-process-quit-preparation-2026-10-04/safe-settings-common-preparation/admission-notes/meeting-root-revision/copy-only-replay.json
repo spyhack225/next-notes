@@ -1,0 +1,8 @@
+{
+  "kind": "text-only additive git apply to selector COMMON fixture copy",
+  "baseFixtureSHA256": "24633ea451ba21caff6de79b68dd1e63ed87e3f808a23f6f3e7fc06184797756",
+  "revisedFixtureSHA256": "819a93c8f4611b4bfbfa6b87bdde8085f9d22c54977892b44c7942e02134b2b7",
+  "match": true,
+  "compiler": "UNRUN",
+  "native": "UNRUN"
+}

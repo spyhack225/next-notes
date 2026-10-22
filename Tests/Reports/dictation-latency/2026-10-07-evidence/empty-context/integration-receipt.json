@@ -1,0 +1,25 @@
+{
+  "atUTC": "2026-10-08T04:58:36.922677+00:00",
+  "commit": "6a805d14a720d12f180096551ba53a15dbd2f934",
+  "parent": "4ea0041ddb1e736ab1eb12b407640d5a34b95ea4",
+  "paths": [
+    "Sources/NextNotes/Context/ScreenContext.swift",
+    "Tests/Reports/dictation-latency/2026-10-07-evidence/empty-context/Check.swift",
+    "Tests/Reports/dictation-latency/2026-10-07-evidence/empty-context/Makefile",
+    "Tests/Reports/dictation-latency/2026-10-07-evidence/empty-context/OriginalScreenContext.swift",
+    "Tests/Reports/dictation-latency/2026-10-07-evidence/empty-context/ScreenContext.candidate.swift",
+    "Tests/Reports/dictation-latency/2026-10-07-evidence/empty-context/ScreenContext.original.swift",
+    "Tests/Reports/dictation-latency/2026-10-07-evidence/empty-context/acceptance.json",
+    "Tests/Reports/dictation-latency/2026-10-07-evidence/empty-context/comparison.log",
+    "Tests/Reports/dictation-latency/2026-10-07-evidence/empty-context/compile.log",
+    "Tests/Reports/dictation-latency/2026-10-07-evidence/empty-context/manifest.json",
+    "Tests/Reports/dictation-latency/2026-10-07-evidence/empty-context/run-resource.log"
+  ],
+  "foreignIndexEntriesUnchanged": 3365,
+  "foreignIndexSHA256": "23f08a0ad512ce440647e2b4bdc712c9b1f1d4a70bb0d54617e46efe24f8f868",
+  "sourceSHA256": "b960575cf53707e1299c7c496d827e5a9cf0704b335f2470d50ebf978721e11e",
+  "verified": "Actual standalone producer/dictionary module 582 exact fields + public CPU comparison",
+  "fullAppNativeConsumer": "PENDING",
+  "otherSourceChangesIntegrated": false,
+  "ownerInstalled": false
+}

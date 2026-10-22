@@ -1,0 +1,19 @@
+--- a/Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift
++++ b/Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift
+@@ -164,16 +186,0 @@ struct FormattingSettingsTab: View {
+-        } footer: {
+-            VStack(alignment: .leading, spacing: DS.Space.s) {
+-                SettingsNote(
+-                    text: "While you hold the dictation key, Next Notes reads the names of open "
+-                        + "tabs, files and folders in the app you are dictating into, and uses "
+-                        + "them to recognise a file you say out loud. Nothing is stored, nothing "
+-                        + "leaves your Mac, and no page or document text is read — only names. "
+-                        + "Password fields, number-only fields and browser address bars are "
+-                        + "skipped, and banking and finance apps are never read at all."
+-                )
+-                SettingsNote(
+-                    text: "Needs cleanup set to fix grammar as well as punctuation: the "
+-                        + "punctuation-only model takes no instructions, so it has nowhere to be "
+-                        + "told which names are on screen."
+-                )
+-            }

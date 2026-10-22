@@ -29,6 +29,11 @@ import Network
 ///    and is announced once with no link and no error code, a turn that stays here answers
 ///    with the model the person chose for the Agent, and a remembered window starts no
 ///    hand-off at all — in both states the readiness snapshot can be in.
+/// 8. **(Owner decision 2026-10-04) One local brain.** With the pinned MiniCPM file in the
+///    library and no stored choice, the Agent and Meeting-notes roles resolve to that same
+///    file — the one cleanup pins — and resolving both selects it without a swap or a
+///    full-weight load. A stored `builtin` is read back unchanged, a same-name file of the
+///    wrong size is not adopted, and with no MiniCPM row the floor is unchanged.
 @MainActor
 enum ModelRoleSelfTest {
     static func run() async -> [String] {
@@ -50,6 +55,133 @@ enum ModelRoleSelfTest {
         failures += multiStepRoutesToCloud()
         failures += slowWarningPresent()
         failures += await codexQuotaWindow()
+        failures += await sharedLocalBrain()
+        return failures
+    }
+
+    // MARK: - 8. One local brain (owner decision 2026-10-04)
+
+    private static func sharedLocalBrain() async -> [String] {
+        var failures: [String] = []
+        let pin = MiniCPMModels.spec
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(
+            "NextNotesSelfTest-shared-brain-\(ProcessInfo.processInfo.processIdentifier)",
+            isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        func row(bytes: Int64, id: String) -> InstalledLocalModel? {
+            let fileURL = directory.appendingPathComponent(id).appendingPathComponent(pin.fileName)
+            do {
+                try FileManager.default.createDirectory(
+                    at: fileURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+                guard FileManager.default.createFile(atPath: fileURL.path, contents: nil) else {
+                    return nil
+                }
+                // Sparse: the exact size of the pinned artifact, no real disk.
+                let handle = try FileHandle(forWritingTo: fileURL)
+                try handle.truncate(atOffset: UInt64(bytes))
+                try handle.close()
+            } catch { return nil }
+            return InstalledLocalModel(
+                id: "self-test/shared-brain/\(id)", displayName: pin.displayName,
+                fileURL: fileURL, parameterBillions: 2, quantization: "Q4_K_M",
+                bytes: bytes, isBuiltIn: false,
+                support: LlamaProbeResult(
+                    verdict: .opens, detail: "llama",
+                    llamaBuildTag: LlamaArchitectures.buildTag, fileBytes: bytes))
+        }
+        func store(_ tag: String, rows: [InstalledLocalModel], stored: [String: String] = [:])
+            -> (ModelRoleStore, NotesModelRuntime, UserDefaults, String)? {
+            guard let isolated = isolatedDefaults(tag: "shared-brain-\(tag)") else { return nil }
+            for (key, value) in stored { isolated.defaults.set(value, forKey: key) }
+            let library = InstalledModelLibrary(
+                manifestURL: directory.appendingPathComponent("\(tag)-library.json"),
+                defaults: isolated.defaults)
+            for row in rows { library.add(row) }
+            var availability = ModelRoleAvailability()
+            availability.installedModelIDs = Set(rows.map(\.id))
+            let runtime = NotesModelRuntime(spec: NotesModels.spec, gpuLayers: 0)
+            let roles = ModelRoleStore(
+                defaults: isolated.defaults, availability: availability, library: library,
+                runtime: runtime, failures: ModelOpenFailureStore(defaults: isolated.defaults))
+            return (roles, runtime, isolated.defaults, isolated.domain)
+        }
+
+        guard let brain = row(bytes: pin.expectedBytes, id: "exact") else {
+            return ["MODEL_ROLES_SHARED_BRAIN: the sparse MiniCPM fixture could not be created"]
+        }
+        if !ModelRole.meetingNotes.canUse(.installedModel(id: brain.id)) {
+            failures.append("meeting notes cannot use an installed model file")
+        }
+
+        // Unset roles → the same MiniCPM file as cleanup.
+        guard case let (roles, runtime, defaults, domain)? = store("unset", rows: [brain]) else {
+            return ["MODEL_ROLES_SHARED_BRAIN: isolated defaults unavailable"]
+        }
+        defer { defaults.removePersistentDomain(forName: domain) }
+        let expected = ModelRoleChoice.installedModel(id: brain.id)
+        for role in [ModelRole.agent, .meetingNotes] {
+            if roles.choice(for: role) != expected {
+                failures.append("unset \(role.rawValue) resolved to \(roles.choice(for: role).token), "
+                    + "not the installed MiniCPM file")
+            }
+            if roles.resolution(for: role).effective != expected {
+                failures.append("unset \(role.rawValue) was not honoured on the MiniCPM file")
+            }
+            if roles.hasExplicitChoice(for: role) || defaults.string(forKey: "modelRoles.\(role.rawValue)") != nil {
+                failures.append("the \(role.rawValue) default was written as a stored choice")
+            }
+        }
+        if roles.choice(for: .computerUse) != .app(.codex) || roles.choice(for: .coding) != .app(.claude) {
+            failures.append("the shared brain moved the computer-use or coding defaults")
+        }
+        if brain.fileURL.lastPathComponent != MiniCPMModels.fileURL.lastPathComponent {
+            failures.append("the role file is not the file cleanup pins")
+        }
+        let loadsBefore = LlamaLoadProbe.fullWeightLoadCount()
+        _ = await roles.provider(for: .meetingNotes)
+        let afterNotes = await runtime.activeSpec().fileName
+        _ = await roles.provider(for: .agent)
+        let afterAgent = await runtime.activeSpec().fileName
+        if afterNotes != pin.fileName || afterAgent != pin.fileName {
+            failures.append("resolving notes then agent left the runtime on \(afterNotes) / "
+                + "\(afterAgent), not \(pin.fileName)")
+        }
+        if LlamaLoadProbe.fullWeightLoadCount() != loadsBefore {
+            failures.append("resolving the shared brain for two roles loaded weights")
+        }
+        SelfTest.diagnostic("MODEL_ROLES_SHARED_BRAIN: agent=\(roles.choice(for: .agent).token) "
+            + "meetingNotes=\(roles.choice(for: .meetingNotes).token) cleanupPin=\(pin.fileName) "
+            + "runtime=\(afterAgent)")
+
+        // A stored choice is the person's, `builtin` included.
+        if case let (kept, _, keptDefaults, keptDomain)? = store(
+            "stored", rows: [brain],
+            stored: ["modelRoles.meetingNotes": "builtin", "modelRoles.agent": "cloud"]) {
+            if kept.choice(for: .meetingNotes) != .builtIn || kept.choice(for: .agent) != .cloud {
+                failures.append("a stored notes/agent choice was replaced by the shared-brain default")
+            }
+            if keptDefaults.string(forKey: "modelRoles.meetingNotes") != "builtin" {
+                failures.append("the stored notes choice was rewritten")
+            }
+            keptDefaults.removePersistentDomain(forName: keptDomain)
+        }
+
+        // Same name, wrong size: not the pinned artifact.
+        if let wrong = row(bytes: pin.expectedBytes - 1, id: "wrong-size"),
+           case let (impostor, _, impostorDefaults, impostorDomain)? = store("wrong", rows: [wrong]) {
+            if impostor.choice(for: .agent) != .builtIn || impostor.choice(for: .meetingNotes) != .builtIn {
+                failures.append("a same-name file of the wrong size was adopted as the shared brain")
+            }
+            impostorDefaults.removePersistentDomain(forName: impostorDomain)
+        }
+
+        // No MiniCPM row: the floor is unchanged.
+        if case let (bare, _, bareDefaults, bareDomain)? = store("bare", rows: []) {
+            if bare.choice(for: .agent) != .builtIn || bare.choice(for: .meetingNotes) != .builtIn {
+                failures.append("without MiniCPM the agent/notes default moved off the built-in model")
+            }
+            bareDefaults.removePersistentDomain(forName: bareDomain)
+        }
         return failures
     }
 
@@ -883,6 +1015,7 @@ enum ModelRoleSelfTest {
             (.coding, .app(.claude)),
             (.computerUse, .app(.codex)),
             (.agent, .installedModel(id: "library/Qwen3-8B-Q4_K_M.gguf")),
+            (.meetingNotes, .installedModel(id: "library/Qwen3-8B-Q4_K_M.gguf")),
             (.computerUse, .cloud),
             (.computerUse, .builtIn),
             (.agent, .appleFoundation),

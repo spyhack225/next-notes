@@ -222,6 +222,43 @@ actor NotesModelRuntime {
     /// Test-only signal after a real native prefill chunk has decoded.
     private var prefillChunkObserverForTesting: (@Sendable () -> Void)?
 
+    // MARK: Dictation cleanup: phase probe and its system prefix
+
+    /// The live phase counters of the dictation cleanup pass that owns the native context,
+    /// nil otherwise. Only `completeForDictationCleanup` sets it, while it holds
+    /// `nativeOwner`, so no other pass can be inside the shared bodies that write it.
+    private var cleanupProbe: CleanupPassProbe?
+    /// A cleanup pass holds the context (through its own release).
+    private var cleanupPassActive = false
+    /// The system prompt of the last cleanup pass that answered, and the file it ran on.
+    /// One runtime and one KV sequence serve cleanup, meeting notes, reconcile, the agent
+    /// worker and memory review on this Mac; every one of those overwrites the ~1,300-token
+    /// cleanup prefix, and the next dictation re-decoded all of it on its own clock
+    /// (`usage.jsonl`: `cachedTokens` 0 after notes at 15:33 and 18:49 on 2026-10-07).
+    /// System text only — never the dictated words.
+    private var lastCleanupSystem: String?
+    private var lastCleanupFile: URL?
+    /// The background re-prefill of that prefix, scheduled after a foreign pass.
+    private var cleanupPrefixRestore: Task<Void, Never>?
+    /// The restore holds the native context right now (a dictation may cancel it).
+    private var restoringCleanupPrefix = false
+    /// How long the runtime must be idle before a restore runs, so a multi-round agent
+    /// turn or a notes map step keeps its own prefix between rounds.
+    private var cleanupPrefixRestoreQuiet: Duration = .seconds(5)
+    /// Off under the self-test harness unless a fixture turns it on, so no other fixture's
+    /// reuse counts move.
+    private var cleanupPrefixRestoreEnabledForTesting = false
+
+    func setCleanupPrefixRestoreForTesting(enabled: Bool, quiet: Duration) {
+        cleanupPrefixRestoreEnabledForTesting = enabled
+        cleanupPrefixRestoreQuiet = quiet
+    }
+
+    /// Waits for a scheduled restore, if any, to finish. Test-only.
+    func awaitCleanupPrefixRestoreForTesting() async {
+        await cleanupPrefixRestore?.value
+    }
+
     func setPrefillChunkObserverForTesting(_ observer: (@Sendable () -> Void)?) {
         prefillChunkObserverForTesting = observer
     }
@@ -341,7 +378,9 @@ actor NotesModelRuntime {
     /// `(pendingSpec ?? spec).fileURL` is the chosen model's — applied when nothing was
     /// running, recorded as pending behind the work in flight otherwise.
     func select(_ model: InstalledLocalModel?) async {
-        // An explicit per-role or benchmark choice outranks the startup saved default.
+        // An awaited explicit selection is newer than the saved one: the first load must
+        // not adopt the saved choice over it (the launch MiniCPM warm-up selected its pin
+        // and then loaded whatever the library row named).
         didAdoptSavedSelection = true
         useInstalledModel(model)
     }
@@ -414,8 +453,13 @@ actor NotesModelRuntime {
     private func applyPendingSpec() {
         guard let pendingSpec else { return }
         // P1-28: A model chosen while this runtime held one: the switch, not an idle unload.
-        noteUnload(reason: .switched)
-        if model != nil { shutdownNow() }
+        // Only when weights were actually resident — a fresh process relabelling its
+        // never-loaded placeholder spec used to file "model=Gemma 4 E4B reason=switched"
+        // on every launch, which read as a reload ping-pong that never happened.
+        if model != nil {
+            noteUnload(reason: .switched)
+            shutdownNow()
+        }
         spec = pendingSpec
         self.pendingSpec = nil
         // P0-18: a different file means a different vocabulary, so the cached token ids
@@ -831,6 +875,20 @@ actor NotesModelRuntime {
         }
     }
 
+    /// Live context refinement is optional background work. Keep its admission
+    /// inside the existing native lane so pressure arriving while it waits cannot
+    /// turn a rejected refinement into a required model reload.
+    func completeForOptionalUse(system: String, user: String, maxTokens: Int,
+                                grammar: GBNFGrammar? = nil) async throws -> LLMCompletion {
+        try checkOptionalAdmission()
+        let completion = try await withBackgroundLane { jobID in
+            try await completeWhileScheduled(
+                jobID: jobID, system: system, user: user, maxTokens: maxTokens, grammar: grammar, optional: true)
+        }
+        try checkOptionalAdmission()
+        return completion
+    }
+
     /// Native token stream for interactive agent answers. The task is owned by the
     /// returned sequence, so cancelling a consumer reaches the llama loop between tokens.
     ///
@@ -939,6 +997,7 @@ actor NotesModelRuntime {
             keep = 0
         }
         kvTokens = Array(kvTokens.prefix(keep))
+        cleanupProbe?.notePrefillStarted(promptTokens: prompt.count, reused: keep)
         do {
             try await decodePromptWhileScheduled(
                 Array(prompt[keep...]), startPosition: keep, context: context, jobID: jobID,
@@ -957,6 +1016,7 @@ actor NotesModelRuntime {
             reused: keep,
             decoded: prompt.count - keep,
             seconds: began.duration(to: .now).inSeconds)
+        cleanupProbe?.notePrefillFinished(seconds: began.duration(to: .now).inSeconds)
         return prompt.count
     }
 
@@ -977,7 +1037,7 @@ actor NotesModelRuntime {
         defer { llama_batch_free(batch) }
         var index = 0
         while index < tokens.count {
-            await ComputeScheduler.shared.checkpoint(jobID)
+            await timedCheckpoint(jobID)
             try checkTerminationAdmission()
             try Task.checkCancellation()
             if optional { try checkOptionalAdmission() }
@@ -990,6 +1050,7 @@ actor NotesModelRuntime {
             guard decodeNative(context, batch) == 0 else { throw LlamaError.decodeFailed }
             kvTokens.append(contentsOf: tokens[index..<end])
             index = end
+            cleanupProbe?.notePrefilled(index)
             prefillChunkObserverForTesting?()
         }
     }
@@ -1000,11 +1061,21 @@ actor NotesModelRuntime {
         system: String,
         user: String,
         maxTokens: Int,
-        grammar: GBNFGrammar? = nil
+        grammar: GBNFGrammar? = nil,
+        optional: Bool = false
     ) async throws -> LLMCompletion {
+        let firstTokenTrace = LatencyTrace.start(.modelFirstToken)
+        var reportedFirstToken = false
+        defer {
+            if !reportedFirstToken {
+                firstTokenTrace.end(note: "app_llm job=\(jobID) complete no_token=true")
+            }
+        }
+        if optional { try checkOptionalAdmission() }
         let wasLoaded = model != nil && vocabulary != nil
         let loadBegan = ContinuousClock.now
-        try await loadIfNeeded(schedulerJobID: jobID)
+        try await loadIfNeeded(schedulerJobID: jobID, optional: optional)
+        if optional { try checkOptionalAdmission() }
         Self.reportUsageLoad(warm: wasLoaded, began: loadBegan)
         // On every exit, not just the successful one: a transcript that was too long, a
         // failed decode or a cancelled generation leaves the weights just as resident as a
@@ -1024,14 +1095,39 @@ actor NotesModelRuntime {
             throw LlamaError.inputTooLong
         }
 
-        let context = try ensureContext(promptTokens: promptTokens.count, maxTokens: maxTokens)
+        if optional { try checkOptionalAdmission() }
+        let contextTrace = LatencyTrace.start(.modelContext)
+        let hadContext = context != nil
+        var contextReady = false
+        let context: OpaquePointer
+        do {
+            defer {
+                contextTrace.end(note: "app_llm job=\(jobID) complete had_context=\(hadContext) ready=\(contextReady) tokens=\(contextSize)")
+            }
+            let sizeBefore = contextSize
+            context = try ensureContext(promptTokens: promptTokens.count, maxTokens: maxTokens)
+            contextReady = true
+            // A new or grown context starts empty: every cached prefix entry is gone.
+            cleanupProbe?.noteContext(rebuilt: !hadContext || contextSize != sizeBefore)
+        }
         // Built before the prefill, so a grammar the native parser refuses costs nothing.
         guard let sampler = try makeSampler(vocabulary: vocabulary, grammar: grammar) else {
             throw LlamaError.samplerFailed
         }
         defer { llama_sampler_free(sampler) }
 
-        _ = try await preparePrefix(promptTokens, context: context, jobID: jobID)
+        let prefillTrace = LatencyTrace.start(.modelPrefill)
+        var prefillReady = false
+        do {
+            defer {
+                // A failed prefill must not borrow counts from the previous pass.
+                let counts = prefillReady ? " reused=\(lastPrefillStats?.reused ?? 0) decoded=\(lastPrefillStats?.decoded ?? 0)" : " counts=unavailable"
+                prefillTrace.end(note: "app_llm job=\(jobID) complete ready=\(prefillReady) prompt_tokens=\(promptTokens.count)" + counts)
+            }
+            _ = try await preparePrefix(promptTokens, context: context, jobID: jobID, optional: optional)
+            prefillReady = true
+        }
+        if optional { try checkOptionalAdmission() }
 
         let began = Date()
         var output = ""
@@ -1052,14 +1148,20 @@ actor NotesModelRuntime {
                 // for the notes to finish being written for it.
                 try Task.checkCancellation()
                 // Let a queued realtimeASR job take the lane between tokens.
-                await ComputeScheduler.shared.checkpoint(jobID)
+                await timedCheckpoint(jobID)
                 try checkTerminationAdmission()
 
+                if optional { try checkOptionalAdmission() }
 
                 let token = llama_sampler_sample(sampler, context, -1)
                 if llama_vocab_is_eog(vocabulary, token) { break }
+                if !reportedFirstToken {
+                    reportedFirstToken = true
+                    firstTokenTrace.end(note: "app_llm job=\(jobID) complete")
+                }
                 output += LlamaHelpers.piece(token, vocabulary: vocabulary)
                 generated += 1
+                cleanupProbe?.noteToken()
                 if !turnEnd.isEmpty, output.hasSuffix(turnEnd) {
                     output.removeLast(turnEnd.count)
                     break
@@ -1073,13 +1175,18 @@ actor NotesModelRuntime {
                 position += 1
             }
         } catch {
-            // A failed decode or a cancellation mid-generation leaves the native context in
-            // a state this code did not build; drop both halves of the cache together.
-            llama_memory_clear(llama_get_memory(context), true)
-            kvTokens = []
+            // Cooperative cancellation is checked at a token boundary; each successful
+            // native decode has already appended its exact tokens above. Preserve that
+            // same prefix, as the streaming producer does. An actual decode failure
+            // still leaves unknown state and must clear both native memory and ledger.
+            if !(error is CancellationError) {
+                llama_memory_clear(llama_get_memory(context), true)
+                kvTokens = []
+            }
             throw error
         }
 
+        cleanupProbe?.noteDone()
         // Control markers never reach the notes text: MiniCPM5's `<function …>` and every
         // family's turn markers are vocabulary tokens, not words anyone wrote.
         var text = output.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -1265,6 +1372,206 @@ actor NotesModelRuntime {
             ms: ModelPassRecorder.milliseconds(began.duration(to: .now)))
     }
 
+    // MARK: - Dictation cleanup admission
+
+    /// What is resident, readable without entering this actor.
+    ///
+    /// A cold `load` opens the GGUF synchronously on this actor's executor (14–49 s
+    /// measured for MiniCPM5-2B), so *any* call into the actor during it — even an
+    /// availability question — waits the whole load. Dictation cleanup reads this box
+    /// instead and answers with Apple rather than queueing behind weights.
+    struct Residency: Sendable, Equatable {
+        /// The file whose weights are open, or nil.
+        var loadedFile: URL?
+        /// A load task is in flight (the actor may be blocked inside it).
+        var loading: Bool
+    }
+
+    nonisolated let residency = LockedBox(Residency(loadedFile: nil, loading: false))
+
+    private func publishResidency() {
+        residency.value = Residency(
+            loadedFile: model == nil ? nil : spec.fileURL,
+            loading: loadTask != nil)
+    }
+
+    /// Why a dictation cleanup pass was not admitted. Thrown before anything waits.
+    struct CleanupAdmissionRefused: Error, LocalizedError {
+        let reason: String
+        var errorDescription: String? { reason }
+    }
+
+    /// One dictation cleanup pass that runs **now or not at all**.
+    ///
+    /// Admitted only when `file`'s weights are already resident, no load is in flight,
+    /// nobody owns the native context, and the scheduler grants `.realtimeAgent` without
+    /// queueing (which preempts background work but never live ASR or voice). Every
+    /// refusal is thrown before the first suspension that could wait, so the caller's
+    /// fallback (a staged Apple session) answers at once. `admitted` fires once the lane
+    /// is held — the caller's generation clock starts there, never during a queue wait.
+    /// The one exception is this runtime's own background restore of the cleanup prefix,
+    /// which is cancelled and joined (one chunk at most) rather than treated as other work.
+    ///
+    /// `probe`, when given, receives this pass's phase counters as they happen (context,
+    /// prefill progress, parked time, first token, decode), so a caller that stops waiting
+    /// can still say where the pass stood.
+    ///
+    /// Does not touch `LlamaBackend`'s cleanup gate (see `AppLLMCleanupFormatter`).
+    func completeForDictationCleanup(
+        file: URL,
+        system: String,
+        user: String,
+        maxTokens: Int,
+        probe: CleanupPassProbe? = nil,
+        admitted: @Sendable () -> Void
+    ) async throws -> (completion: LLMCompletion, promptTokens: Int, cachedTokens: Int) {
+        // The one wait before admission: a background re-prefill of this pass's own system
+        // prefix stops at its next chunk boundary (≤128 tokens) and keeps what it decoded.
+        // Refusing instead would hand the dictation to Apple for work done on its behalf.
+        // Bounded on the caller's side by the formatter's admission grace.
+        if nativeOwner, restoringCleanupPrefix, nativeWaiters.isEmpty,
+           let restore = cleanupPrefixRestore {
+            restore.cancel()
+            await restore.value
+            try Task.checkCancellation()
+        }
+        guard !terminationRequested else { throw CleanupAdmissionRefused(reason: "quitting") }
+        guard loadTask == nil else { throw CleanupAdmissionRefused(reason: "the model is still loading") }
+        guard model != nil, vocabulary != nil, spec.fileURL == file else {
+            throw CleanupAdmissionRefused(reason: "the cleanup model is not loaded")
+        }
+        if let pendingSpec, pendingSpec.fileURL != file {
+            throw CleanupAdmissionRefused(reason: "another model is about to replace it")
+        }
+        guard !nativeOwner, nativeWaiters.isEmpty else {
+            throw CleanupAdmissionRefused(reason: "the model is busy with other work")
+        }
+        // Synchronous reservation: no suspension between the checks above and this.
+        nativeOwner = true
+        cleanupPassActive = true
+        cleanupProbe = probe
+        // Declared first, so it runs after the release below: the release must see this
+        // pass as a cleanup and schedule nothing.
+        defer {
+            cleanupPassActive = false
+            cleanupProbe = nil
+        }
+        defer { releaseNativeContext() }
+        activeOperations += 1
+        defer {
+            activeOperations -= 1
+            lastUse = Date()
+        }
+        guard let jobID = await ComputeScheduler.shared.tryAcquire(.realtimeAgent) else {
+            throw CleanupAdmissionRefused(reason: "live speech recognition holds the lane")
+        }
+        do {
+            try checkTerminationAdmission()
+            admitted()
+            let completion = try await completeWhileScheduled(
+                jobID: jobID, system: system, user: user, maxTokens: maxTokens)
+            await ComputeScheduler.shared.release(jobID)
+            lastCleanupSystem = system
+            lastCleanupFile = file
+            return (completion, lastPrefillStats?.promptTokens ?? 0, lastPrefillStats?.reused ?? 0)
+        } catch {
+            await ComputeScheduler.shared.release(jobID)
+            throw error
+        }
+    }
+
+    /// The scheduler checkpoint every decode loop takes, timed for a dictation cleanup pass:
+    /// a park behind more urgent work is the one queue a pass can meet after admission, and
+    /// its budget counts it. A no-op checkpoint records nothing.
+    private func timedCheckpoint(_ jobID: UUID) async {
+        guard let probe = cleanupProbe else {
+            await ComputeScheduler.shared.checkpoint(jobID)
+            return
+        }
+        let began = ContinuousClock.now
+        await ComputeScheduler.shared.checkpoint(jobID)
+        let waited = began.duration(to: .now)
+        if waited > .milliseconds(1) { probe.noteParked(seconds: waited.inSeconds) }
+    }
+
+    private enum CleanupRestoreReadiness { case ready, wait, skip }
+
+    /// After a foreign pass released the context, put the last cleanup system prefix back
+    /// once the runtime has been quiet for `cleanupPrefixRestoreQuiet` — off every clock, on
+    /// the background class, now-or-never (never a native waiter, never a scheduler queue),
+    /// and cancelled by the next dictation, which keeps whatever chunks it already decoded.
+    private func scheduleCleanupPrefixRestoreIfNeeded() {
+        guard !SelfTest.isRunning || cleanupPrefixRestoreEnabledForTesting,
+              !cleanupPassActive, !restoringCleanupPrefix, cleanupPrefixRestore == nil,
+              lastCleanupSystem != nil, model != nil, spec.fileURL == lastCleanupFile,
+              conversationLeases.isEmpty, !terminationRequested else { return }
+        let quiet = cleanupPrefixRestoreQuiet
+        cleanupPrefixRestore = Task(priority: .utility) {
+            // Bounded: a runtime busy for a minute straight is left to the next release.
+            for _ in 0..<12 {
+                try? await Task.sleep(for: quiet)
+                if Task.isCancelled { break }
+                let readiness = await self.cleanupRestoreReadiness(quiet: quiet)
+                if readiness == .wait { continue }
+                if readiness == .ready { await self.restoreCleanupPrefix() }
+                break
+            }
+            await self.clearCleanupPrefixRestore()
+        }
+    }
+
+    private func clearCleanupPrefixRestore() { cleanupPrefixRestore = nil }
+
+    private func cleanupRestoreReadiness(quiet: Duration) -> CleanupRestoreReadiness {
+        guard lastCleanupSystem != nil, model != nil, vocabulary != nil, loadTask == nil,
+              pendingSpec == nil, spec.fileURL == lastCleanupFile, conversationLeases.isEmpty,
+              !terminationRequested,
+              pressureSnapshot().allowsOptionalWork else { return .skip }
+        if nativeOwner || !nativeWaiters.isEmpty || activeOperations > 0
+            || Date().timeIntervalSince(lastUse) < quiet.inSeconds {
+            return .wait
+        }
+        return .ready
+    }
+
+    /// Decodes the last cleanup system prefix into the KV cache when the cache no longer
+    /// starts with it. Does not touch `lastUse`: putting a prefix back is not use, and the
+    /// idle and memory-review clocks must not read it as such.
+    private func restoreCleanupPrefix() async {
+        guard let system = lastCleanupSystem, let vocabulary, model != nil,
+              !nativeOwner, nativeWaiters.isEmpty,
+              let tokens = try? tokenizePrompt(
+                ChatTemplate.renderPrefix(family, system: system), vocabulary: vocabulary),
+              tokens.count > 1, tokens.count + 1 + Self.contextHeadroom <= contextTokens,
+              !kvTokens.starts(with: tokens) else { return }
+        nativeOwner = true
+        restoringCleanupPrefix = true
+        // One block, in order: the release must still see the restore and reschedule nothing.
+        defer {
+            releaseNativeContext()
+            restoringCleanupPrefix = false
+        }
+        activeOperations += 1
+        defer { activeOperations -= 1 }
+        guard let jobID = await ComputeScheduler.shared.tryAcquire(.background) else { return }
+        let began = ContinuousClock.now
+        do {
+            try checkTerminationAdmission()
+            try checkOptionalAdmission()
+            let context = try ensureContext(promptTokens: tokens.count, maxTokens: 1)
+            let reused = PrefixReuse.keepCount(cached: kvTokens, prompt: tokens)
+            _ = try await preparePrefix(tokens, context: context, jobID: jobID, optional: true)
+            Log.llm.info("""
+                dictation cleanup prefix restored after another pass: \(tokens.count - reused) of \
+                \(tokens.count) tokens in \(began.duration(to: .now).inSeconds, format: .fixed(precision: 2))s
+                """)
+        } catch {
+            // A dictation or memory pressure stopped it. Cancellation keeps every chunk that
+            // decoded (`preparePrefix`), so the dictation reuses whatever landed.
+        }
+        await ComputeScheduler.shared.release(jobID)
+    }
+
     /// Acquires the shared background lane for the duration of `body`.
     private func withBackgroundLane<T>(
         _ body: (UUID) async throws -> T
@@ -1335,6 +1642,108 @@ actor NotesModelRuntime {
     }
 
     private var queuedNativeWaiters: Int { nativeWaiters.count }
+
+    /// Real optional completion ownership/admission with only native loading replaced.
+    static func optionalCompletionAdmissionChecksForTesting() async -> [(String, Bool)] {
+        guard SelfTest.isRunning else { return [("optional completion isolation", false)] }
+        var checks: [(String, Bool)] = []
+        let guardian = ModelResidencyGuardian(releaseForTesting: {})
+        let missing = ModelSpec(displayName: "Admission fixture", fileName: "missing-\(UUID().uuidString).gguf",
+            url: URL(string: "http://127.0.0.1:1/no-fetch")!, expectedBytes: 1, expectedSHA256: nil)
+        let missingSelection = InstalledLocalModel(id: "admission-fixture", displayName: missing.displayName,
+            fileURL: missing.fileURL, parameterBillions: nil, quantization: nil,
+            bytes: missing.expectedBytes, isBuiltIn: false)
+        let nativeLoadsBefore = LlamaLoadProbe.fullWeightLoadCount()
+        let runtime = NotesModelRuntime(spec: missing, gpuLayers: 0, pressureSnapshot: { guardian.snapshot })
+        let loads = NativeReservationProbe()
+        await runtime.setOptionalLoadProbeForTesting { await loads.append("load") }
+        let provider = LlamaLLMProvider(modelName: "Admission fixture", runtime: runtime)
+        func request(_ id: UUID) async -> Bool {
+            // A missing custom file resets the runtime to its built-in fallback.
+            // Re-select the absent fixture for every request, including mutations
+            // of admission, so none can load an installed model on the next call.
+            await runtime.useInstalledModel(missingSelection)
+            do {
+                _ = try await MeetingContextReconciler.ModelCompleter.recordedComplete(
+                    system: "fixture", user: "fixture", provider: provider, meetingID: id,
+                    maxTokens: 1, optionalAdmission: { true })
+                return false
+            } catch is CancellationError { return true }
+            catch { return false }
+        }
+        let immediateID = UUID()
+        guardian.receive(.warning)
+        checks.append(("actual local reconcile denied under pressure", await request(immediateID)))
+        checks.append(("pressure reached native optional loader", await loads.values.isEmpty))
+        let deniedRows = UsageLog.shared.load().filter { $0.meetingID == immediateID }
+        checks.append(("denied reconcile emitted success usage", deniedRows.count == 1
+            && deniedRows.allSatisfy { $0.finishReason == "cancelled" && $0.errorClass != nil }))
+
+        guardian.receive(.normal)
+        let asr = await ComputeScheduler.shared.acquire(.realtimeASR)
+        let delayed = Task { await request(UUID()) }
+        for _ in 0..<100 {
+            if await runtime.activeOperations > 0 { break }
+            try? await Task.sleep(for: .milliseconds(5))
+        }
+        let reserved = await runtime.activeOperations > 0
+        guardian.receive(.critical)
+        await ComputeScheduler.shared.release(asr)
+        checks.append(("optional completion never reached scheduler wait", reserved))
+        checks.append(("pressure after scheduler wait admitted reconcile", await delayed.value))
+        checks.append(("scheduler-wait denial reached native loader", await loads.values.isEmpty))
+
+        guardian.receive(.normal)
+        let gate = NotesShutdownProbeGate()
+        let current = Task { try? await runtime.withLane(.background) { _ in await gate.park() } }
+        for _ in 0..<100 {
+            if await gate.started { break }
+            try? await Task.sleep(for: .milliseconds(5))
+        }
+        let held = await gate.started
+        let queued = Task { await request(UUID()) }
+        for _ in 0..<100 {
+            if await runtime.queuedNativeWaiters > 0 { break }
+            try? await Task.sleep(for: .milliseconds(5))
+        }
+        let waited = await runtime.queuedNativeWaiters > 0
+        guardian.receive(.warning)
+        await gate.release()
+        _ = await current.result
+        checks.append(("native ownership fixture did not hold and queue", held && waited))
+        checks.append(("pressure after native ownership wait admitted reconcile", await queued.value))
+        checks.append(("native-wait denial reached native loader", await loads.values.isEmpty))
+        let active = await runtime.activeOperations
+        let waiters = await runtime.queuedNativeWaiters
+        let owns = await runtime.nativeOwner
+        checks.append(("optional denial left native ownership active", active == 0 && waiters == 0 && !owns))
+
+        guardian.receive(.normal)
+        await runtime.setOptionalLoadProbeForTesting {
+            await loads.append("load")
+            guardian.receive(.warning)
+        }
+        checks.append(("pressure after optional load await claimed completion", await request(UUID())))
+        checks.append(("late pressure missed actual optional loading seam", await loads.values.count == 1))
+        guardian.receive(.critical)
+        await runtime.useInstalledModel(missingSelection)
+        let requiredAttemptsBefore = await runtime.loadAttemptCount
+        do {
+            _ = try await runtime.complete(system: "fixture", user: "fixture", maxTokens: 1)
+            checks.append(("required completion did not reach absent file", false))
+        } catch is CancellationError {
+            checks.append(("pressure suppressed required completion", false))
+        } catch LlamaError.modelMissing {
+            checks.append(("required completion retained normal loading contract",
+                           await runtime.loadAttemptCount == requiredAttemptsBefore + 1))
+        } catch {
+            checks.append(("required completion returned wrong absent-file error", false))
+        }
+        checks.append(("admission fixture opened installed native weights",
+                       LlamaLoadProbe.fullWeightLoadCount() == nativeLoadsBefore))
+        _ = await runtime.shutdown()
+        return checks
+    }
 
     /// Deterministic reservation probe; no GGUF, permissions, or user history.
     static func conversationSchedulingSelfTest() async -> Bool {
@@ -1610,6 +2019,7 @@ actor NotesModelRuntime {
         guard !nativeWaiters.isEmpty else {
             nativeOwner = false
             finishDeferredShutdownIfIdle()
+            scheduleCleanupPrefixRestoreIfNeeded()
             return
         }
         let next = nativeWaiters.indices.min {
@@ -1770,6 +2180,7 @@ actor NotesModelRuntime {
         }
         // P0-18: whatever the context held is gone; the ledger must not outlive it.
         kvTokens = []
+        publishResidency()
     }
 
     /// The Models tab can hand this runtime a different GGUF at any moment.
@@ -2067,7 +2478,10 @@ actor NotesModelRuntime {
 
         let jobID = schedulerJobID
         let task = Task<Void, Error> {
-            defer { self.loadTask = nil }
+            defer {
+                self.loadTask = nil
+                self.publishResidency()
+            }
             let loadTrace = LatencyTrace.start(.modelLoad)
             let generation = await ModelRuntimeManager.shared.beginLoading(.notes)
             self.setRuntimeGeneration(generation)
@@ -2114,6 +2528,7 @@ actor NotesModelRuntime {
             }
         }
         loadTask = task
+        publishResidency()
         try await withTaskCancellationHandler {
             try await task.value
         } onCancel: {
@@ -2214,6 +2629,7 @@ actor NotesModelRuntime {
         model = loadedModel
         vocabulary = loadedVocabulary
         trainedContext = Int(llama_model_n_ctx_train(loadedModel))
+        publishResidency()
         // P0-04: the file itself names its turn markers. `llama_model_chat_template` is the
         // default template the vocabulary carries; the GGUF key is the same string and is
         // only read when the model reports none, for architecture and pre-tokenizer too.

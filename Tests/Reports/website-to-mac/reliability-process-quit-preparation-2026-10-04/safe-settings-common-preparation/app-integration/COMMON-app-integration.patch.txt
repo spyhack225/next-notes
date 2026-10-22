@@ -1,0 +1,106 @@
+--- a/Sources/NextNotes/NextNotesApp.swift
++++ b/Sources/NextNotes/NextNotesApp.swift
+@@ -152,7 +152,7 @@
+                                         "--native-startup-case", "--native-startup-assets",
+                                         "--native-termination-recording-mode",
+                                         "--native-llama-owner-case", "--native-llama-owner-model",
+-                                        outputFlag, timeoutFlag]
++                                        "--native-notes-settings-case", outputFlag, timeoutFlag]
+             let extraFlags = arguments.filter { $0.hasPrefix("-") && !allowed.contains($0) }
+             let hasStartupCase = arguments.contains("--native-startup-case")
+             let hasStartupAssets = arguments.contains("--native-startup-assets")
+@@ -164,10 +164,17 @@
+             let mixedOther = hasOtherCase && (hasStartupCase || hasStartupAssets
+                 || arguments.contains("--native-termination-recording-mode")
+                 || arguments.contains("--native-termination-model"))
++            let hasNotesSettingsCase = arguments.contains("--native-notes-settings-case")
++            let mixedNotesSettings = hasNotesSettingsCase && (hasStartupCase || hasStartupAssets
++                || hasOtherCase || hasOtherModel
++                || arguments.contains("--native-termination-recording-mode"))
+             guard named == ["--selftest-native-termination"], extraFlags.isEmpty,
+                   hasStartupCase == hasStartupAssets, !mixedStartup,
+-                  hasOtherCase == hasOtherModel, !mixedOther else {
+-                print("NATIVE_TERMINATION_FAILED: conflicting diagnostic or live modifier")
++                  hasOtherCase == hasOtherModel, !mixedOther, !mixedNotesSettings,
++                  !hasNotesSettingsCase || arguments.contains("--native-termination-model") else {
++                print(hasNotesSettingsCase
++                    ? "NOTES_SETTINGS_INVALID: conflicting diagnostic or live modifier"
++                    : "NATIVE_TERMINATION_FAILED: conflicting diagnostic or live modifier")
+                 exit(1)
+             }
+         }
+@@ -360,18 +367,27 @@
+ 
+     private var terminationFixtureForTesting: (
+         service: NotesService, runtime: NotesModelRuntime,
++        finalReply: (@MainActor (Bool) -> Bool)?,
++        didVote: (@MainActor (Bool, Bool) -> Void)?,
++        safetyDrain: (@MainActor () async -> Void)?,
+         reply: @MainActor (NSApplication.TerminateReply) -> Void,
+         willExit: @MainActor () -> Void
+     )?
+ 
+     func configureNativeTerminationFixture(
+         service: NotesService, runtime: NotesModelRuntime,
++        finalReply: (@MainActor (Bool) -> Bool)? = nil,
++        didVote: (@MainActor (Bool, Bool) -> Void)? = nil,
++        safetyDrain: (@MainActor () async -> Void)? = nil,
+         reply: @escaping @MainActor (NSApplication.TerminateReply) -> Void,
+         willExit: @escaping @MainActor () -> Void
+     ) throws {
+         guard SelfTest.isRunning, SelfTest.requested == "--selftest-native-termination",
+-              terminationFixtureForTesting == nil else { throw CocoaError(.fileWriteNoPermission) }
+-        terminationFixtureForTesting = (service, runtime, reply, willExit)
++              terminationFixtureForTesting == nil, recordingQuitFixtureForTesting == nil,
++              startupTerminationFixtureForTesting == nil, otherLlamaTerminationFixtureForTesting == nil,
++              (finalReply == nil && didVote == nil && safetyDrain == nil)
++                || NativeNotesSettingsSelfTest.isRequested else { throw CocoaError(.fileWriteNoPermission) }
++        terminationFixtureForTesting = (service, runtime, finalReply, didVote, safetyDrain, reply, willExit)
+     }
+ 
+     private var recordingQuitFixtureForTesting: (
+@@ -870,9 +886,15 @@
+                         try await NativeTerminationSelfTest.arm()
+                     }
+                 } catch {
+-                    SelfTest.failed = true
+-                    SelfTest.diagnostic("NATIVE_TERMINATION_FAILED: INPUT/native preparation unavailable")
+-                    SelfTest.requestTermination()
++                    if NativeNotesSettingsSelfTest.isRequested {
++                        // Refuse setup before native work, or drain through the already
++                        // mounted private Notes route. Never fall back to shared owners.
++                        NativeNotesSettingsSelfTest.handleArmFailure()
++                    } else {
++                        SelfTest.failed = true
++                        SelfTest.diagnostic("NATIVE_TERMINATION_FAILED: INPUT/native preparation unavailable")
++                        SelfTest.requestTermination()
++                    }
+                 }
+                 // Native hook requests quit; do not issue a premature second quit.
+             }
+@@ -9723,12 +9745,17 @@
+             await parakeet.finishTermination()
+             let drained = await runtime.finishTermination()
+             let diagnosticDrain = self.otherLlamaTerminationFixtureForTesting?.safetyDrain
++                ?? self.terminationFixtureForTesting?.safetyDrain
+             // Preserve the ordinary nil path's existing release/reply ordering.
+             if diagnosticDrain == nil { self.nativeTerminationTask = nil }
+             // Veto-only diagnostic callbacks cannot promote a false real result.
+             let allowExit = drained && (self.startupTerminationFixtureForTesting?.finalReply?(drained) ?? true)
+                 && (self.otherLlamaTerminationFixtureForTesting?.finalReply?(drained) ?? true)
++                && (self.terminationFixtureForTesting?.finalReply?(drained) ?? true)
+             if allowExit { self.nativeTerminationTask = nil }
++            // Read-only actual vote observation also sees false real drain even
++            // when the conjunction deliberately skips diagnostic veto callbacks.
++            self.terminationFixtureForTesting?.didVote?(drained, allowExit)
+             sender.reply(toApplicationShouldTerminate: allowExit)
+             guard !allowExit, drained, let diagnosticDrain else {
+                 self.nativeTerminationTask = nil
+@@ -9739,6 +9766,7 @@
+             // Consume the diagnostic continuation once. A failed safety predicate
+             // after cleanup cannot schedule an unbounded Cocoa re-quit loop.
+             self.otherLlamaTerminationFixtureForTesting?.safetyDrain = nil
++            self.terminationFixtureForTesting?.safetyDrain = nil
+             await diagnosticDrain()
+             self.nativeTerminationTask = nil
+             SelfTest.requestTermination()

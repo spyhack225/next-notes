@@ -1,0 +1,21 @@
+{
+  "status": "SOURCE_ONLY_CANDIDATE_HELD_NOT_APPLIED",
+  "artifacts": [
+    {
+      "path": "FIXED-from-current.patch.txt",
+      "sha256": "fffec19c923b7ae64586764799f66c4c53b9e8f34d926111947eedd57b4dbaee"
+    },
+    {
+      "path": "README.md",
+      "sha256": "078d0ac3cd9738c58c850f84ea1945f4a42dc934cdfe08ebdf3169b719845b13"
+    },
+    {
+      "path": "source-only-replay.json",
+      "sha256": "fb631ce254756b7fd6ae1ba18d3f7067c2999927894d21a8dc27e86852871291"
+    },
+    {
+      "path": "source-pins.json",
+      "sha256": "2cc0278225b494b514f5c3a693aa596b9dc1034397e80b1d1a59dc8614db5f6e"
+    }
+  ]
+}

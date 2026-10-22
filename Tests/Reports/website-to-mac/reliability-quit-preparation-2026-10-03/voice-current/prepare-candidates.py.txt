@@ -1,0 +1,204 @@
+from pathlib import Path
+import re,difflib,hashlib,json
+root=Path.cwd();out=root/'Tests/Reports/website-to-mac/reliability-quit-preparation-2026-10-03/voice-current'
+frozen=root/'Tests/Reports/agent-overhaul-closure/native-termination-crash-review/2026-10-02-pid41058/active-playback-ownership-review'
+pocket=frozen/'app-producer-preparation/rebased146/ordinary-build-coherence-amendment'
+kokoro=frozen/'kokoro-owner-preparation'
+h=lambda b:hashlib.sha256(b).hexdigest()
+paths=['Package.swift','Sources/NextNotes/NextNotesApp.swift','Sources/NextNotes/Support/NativeStartupTerminationSelfTest.swift','Sources/NextNotes/Support/NativeTerminationSelfTest.swift','Sources/NextNotes/Agent/Speech/PocketAgentVoice.swift','Sources/NextNotes/Agent/Speech/KokoroAgentVoice.swift','Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift']
+audit=['Sources/NextNotes/Agent/Speech/PocketSourceSpeechBacking.swift','Sources/NextNotes/UI/Settings/ModelsSettingsTab.swift']
+baseline={f:(root/f).read_text() for f in paths};common=dict(baseline)
+def replace(f,a,b,stage=common):
+ assert stage[f].count(a)==1,(f,repr(a[:100]),stage[f].count(a))
+ stage[f]=stage[f].replace(a,b)
+def apply(s,patch):
+ lines=patch.splitlines(True);i=0
+ while i<len(lines):
+  if lines[i].startswith('@@ '):
+   i+=1;old=[];new=[]
+   while i<len(lines) and not lines[i].startswith(('@@ ','--- a/')):
+    l=lines[i]
+    if l[:1] in [' ','-']:old.append(l[1:])
+    if l[:1] in [' ','+']:new.append(l[1:])
+    i+=1
+   a=''.join(old);b=''.join(new);assert s.count(a)==1,(repr(a[:100]),s.count(a));s=s.replace(a,b)
+  else:i+=1
+ return s
+def parts(p):
+ return [(x.splitlines()[0],'--- a/'+x) for x in p.read_text().split('--- a/')[1:]]
+# Exact frozen conditional Pocket/common and ordinary dependency selection.
+app='Sources/NextNotes/NextNotesApp.swift';synth='Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift';voice='Sources/NextNotes/Agent/Speech/KokoroAgentVoice.swift'
+for name in ['COMMON-app-current.patch.txt','COMMON-package-selection.patch.txt']:
+ for f,part in parts(pocket/name):
+  if f!=app:common[f]=apply(common[f],part)
+# App hunk anchors narrowed because current other-llama tuple intervenes.
+replace(app,'        parakeet: ParakeetModels?, pocket: PocketAgentVoice?, queue: TranscriptionQueue?, diarizer: MeetingDiarizer?,\n','        parakeet: ParakeetModels?, pocket: PocketAgentVoice?, queue: TranscriptionQueue?, diarizer: MeetingDiarizer?,\n        playback: PocketSpeechBacking?,\n')
+replace(app,'        parakeet: ParakeetModels?, pocket: PocketAgentVoice?, queue: TranscriptionQueue? = nil, diarizer: MeetingDiarizer? = nil,\n','        parakeet: ParakeetModels?, pocket: PocketAgentVoice?, queue: TranscriptionQueue? = nil, diarizer: MeetingDiarizer? = nil,\n        playback: PocketSpeechBacking? = nil,\n')
+replace(app,'              finalReply == nil || (diarizer != nil && NativeDiarizationQuitSelfTest.isRequested) else {','''              playback == nil || (pocket != nil && CommandLine.arguments.contains("pocket-playback-active")
+                  || pocket != nil && CommandLine.arguments.contains("pocket-playback-predecessor")
+                  || pocket != nil && CommandLine.arguments.contains("pocket-playback-factory")
+                  || pocket != nil && CommandLine.arguments.contains("pocket-playback-closed")),
+              finalReply == nil || playback != nil || (diarizer != nil && NativeDiarizationQuitSelfTest.isRequested) else {''')
+replace(app,'startupTerminationFixtureForTesting = (parakeet, pocket, queue, diarizer, finalReply, reply, willExit)','startupTerminationFixtureForTesting = (parakeet, pocket, queue, diarizer, playback, finalReply, reply, willExit)')
+# Shared loaded-only metadata exists identically before/fixed; no close in COMMON.
+for f,cls in [(synth,'AgentSpeechSynthesizer'),(voice,'KokoroAgentVoice')]:
+ replace(f,f'    static let shared = {cls}()\n',f'''    private static weak var loadedShared: {cls}?
+    static let shared: {cls} = {{
+        let value = {cls}()
+        loadedShared = value
+        return value
+    }}()
+    static var sharedIfLoaded: {cls}? {{ loadedShared }}
+
+    // COMMON absent-producer scaffold; original admission/ownership stays unchanged.
+    func beginTermination() {{}}
+    func finishTermination() async {{}}
+''')
+# Kokoro backing scaffold is absent only in original; no diagnostic package APIs.
+replace(voice,'    func pauseForListening() {','    // COMMON absent-producer scaffold.\n    func beginTermination() {}\n    func finishTermination() async {}\n\n    func pauseForListening() {')
+fixture='Sources/NextNotes/Support/PocketPlaybackTerminationSelfTest.swift'
+common[fixture]=(pocket/'COMMON-PocketPlaybackTerminationSelfTest.swift.txt').read_text()
+fixed=dict(common)
+# Frozen Pocket producer rebased; shared App/synth hunks are applied manually below.
+for f,part in parts(pocket/'producer-current.patch.txt'):
+ if f.endswith('PocketAgentVoice.swift'):fixed[f]=apply(fixed[f],part)
+# Frozen backing-only ownership delta, applied to current backing (COMMON noops replace additions).
+originalBacking=baseline[voice];backingFixed=apply(originalBacking,(kokoro/'backing-only-producer.patch.txt').read_text())
+start=originalBacking.index('/// Kokoro returns a PCM WAV;');fixed[voice]=common[voice][:common[voice].index('/// Kokoro returns a PCM WAV;')]+backingFixed[backingFixed.index('/// Kokoro returns a PCM WAV;'):]
+# Retain the actual initialization producer, and refuse late publication/work on permanent close.
+replace(voice,'''    // COMMON absent-producer scaffold; original admission/ownership stays unchanged.
+    func beginTermination() {}
+    func finishTermination() async {}
+''','''    private var prepareTask: Task<Void, Never>?
+    private var terminationPrepareTask: Task<Void, Never>?
+    private var terminationRequested = false
+
+    func beginTermination() {
+        guard !terminationRequested else { return }
+        terminationRequested = true
+        terminationPrepareTask = prepareTask
+        terminationPrepareTask?.cancel()
+    }
+
+    func finishTermination() async {
+        beginTermination()
+        await terminationPrepareTask?.value
+        terminationPrepareTask = nil
+    }
+''',fixed)
+a=baseline[voice][baseline[voice].index('    func prepare() async {'):baseline[voice].index('    func wav(for text: String) async throws -> Data {')]
+b='''    func prepare() async {
+        guard !terminationRequested, !Task.isCancelled else { return }
+        guard Self.isSupportedOS else {
+            errorMessage = Self.unavailableMessage
+            return
+        }
+        if isReady { return }
+        if let prepareTask { await prepareTask.value; return }
+        isPreparing = true
+        errorMessage = nil
+        let pending = Task { @MainActor in
+            defer { isPreparing = false }
+            do {
+                try Task.checkCancellation()
+                guard !terminationRequested else { throw CancellationError() }
+                try await manager.initialize()
+                try Task.checkCancellation()
+                guard !terminationRequested else { throw CancellationError() }
+                isReady = true
+            } catch is CancellationError {
+                // Closing owns cleanup, without a late readiness/error publication.
+            } catch {
+                if !terminationRequested, !Task.isCancelled {
+                    errorMessage = error.localizedDescription
+                    Log.agent.error("Kokoro TTS load failed: \\(error.localizedDescription, privacy: .public)")
+                }
+            }
+        }
+        prepareTask = pending
+        await pending.value
+        prepareTask = nil
+    }
+
+'''
+replace(voice,a,b,fixed)
+replace(voice,'''        guard Self.isSupportedOS else { throw KokoroVoiceError.unsupportedOS }
+        if !isReady { await prepare() }
+        guard isReady else { throw KokoroVoiceError.unavailable(errorMessage) }
+        return try await manager.synthesize(text: text, voice: Self.voiceID)
+''','''        try Task.checkCancellation()
+        guard !terminationRequested else { throw CancellationError() }
+        guard Self.isSupportedOS else { throw KokoroVoiceError.unsupportedOS }
+        if !isReady { await prepare() }
+        try Task.checkCancellation()
+        guard !terminationRequested else { throw CancellationError() }
+        guard isReady else { throw KokoroVoiceError.unavailable(errorMessage) }
+        let data = try await manager.synthesize(text: text, voice: Self.voiceID)
+        try Task.checkCancellation()
+        guard !terminationRequested else { throw CancellationError() }
+        return data
+''',fixed)
+# Loaded synth owns the existing startup task and both existing native backing tasks.
+replace(synth,'''    // COMMON absent-producer scaffold; original admission/ownership stays unchanged.
+    func beginTermination() {}
+    func finishTermination() async {}
+''','''    private var terminationRequested = false
+    private var preparationTask: Task<Void, Never>?
+
+    func beginTermination() {
+        guard !terminationRequested else { return }
+        terminationRequested = true
+        preparationTask?.cancel()
+        stop()
+        pocketBacking.beginTermination()
+        kokoroBacking.beginTermination()
+    }
+
+    // Joins only captured selected playback/preparation owners; other native owners stay open.
+    func finishTermination() async {
+        beginTermination()
+        await preparationTask?.value
+        preparationTask = nil
+        await pocketBacking.finishTermination()
+        await kokoroBacking.finishTermination()
+    }
+''',fixed)
+replace(synth,'            Task { await PocketAgentVoice.shared.prepare() }','            preparationTask = Task { await PocketAgentVoice.shared.prepare() }',fixed)
+replace(synth,'                Task { await KokoroAgentVoice.shared.prepare() }','                preparationTask = Task { await KokoroAgentVoice.shared.prepare() }',fixed)
+for anchor in ['    func speak(_ reply: String) {','    func prepareForStream() {','    func enqueueClause(_ clause: String) {','    private func startClause(_ clause: String) {','    private func fallbackCurrentClause(text: String, token: UInt64) {']:
+ replace(synth,anchor,anchor+'\n        guard !terminationRequested else { return }',fixed)
+# Delegate: existing synchronous entry capture and same quit task joins; no idle synth/model initialization.
+replace(app,'        let ownedNotesTasks = service?.beginTermination() ?? []','''        let ownedNotesTasks = service?.beginTermination() ?? []
+        let speech = AgentSpeechSynthesizer.sharedIfLoaded
+        let kokoro = KokoroAgentVoice.sharedIfLoaded
+        let playbackForTesting = startupTerminationFixtureForTesting?.playback
+        speech?.beginTermination()
+        kokoro?.beginTermination()
+        playbackForTesting?.beginTermination()''',fixed)
+replace(app,'            for task in ownedNotesTasks { await task.value }','''            for task in ownedNotesTasks { await task.value }
+            await speech?.finishTermination()
+            await kokoro?.finishTermination()
+            await playbackForTesting?.finishTermination()''',fixed)
+manifest={'status':'OFF_SOURCE_CURRENT_REBASE_UNCOMPILED_UNRUN_HELD','canonicalChanges':False,'scope':paths,'newFiles':[fixture],'baseline':{},'artifacts':{},'frozenReferences':{}}
+for kind,data in [('baseline',baseline),('common-original',common),('proposed-fixed',fixed)]:
+ for f,s in data.items():
+  p=out/kind/f;p.parent.mkdir(parents=True,exist_ok=True);p.write_text(s);manifest['artifacts'][str(p.relative_to(out))]=h(p.read_bytes())
+  if kind=='baseline':manifest['baseline'][f]=h((root/f).read_bytes())
+for f in audit:
+ if (root/f).is_file():manifest['baseline'][f]=h((root/f).read_bytes())
+for name,left,right in [('COMMON-current.patch',baseline,common),('producer-current.patch',common,fixed)]:
+ diff=[]
+ for f in sorted(set(left)|set(right)):
+  if left.get(f,'')==right.get(f,''):continue
+  diff.extend(difflib.unified_diff(left.get(f,'').splitlines(True),right.get(f,'').splitlines(True),fromfile='a/'+f if f in left else '/dev/null',tofile='b/'+f))
+ (out/name).write_text(''.join(diff));manifest['artifacts'][name]=h((out/name).read_bytes())
+# Every frozen coherence pin remains exact; reference, never rewrite/frozen apply.
+m=json.loads((pocket/'manifest.json').read_text());mismatches=[]
+for f,v in m['files'].items():
+ if h((pocket/f).read_bytes())!=v:mismatches.append(f)
+assert not mismatches
+manifest['frozenReferences']['PocketCoherence']={'path':str(pocket.relative_to(root)),'manifestSHA256':h((pocket/'manifest.json').read_bytes()),'pins':len(m['files']),'mismatches':mismatches,'checks':57,'expressions':18,'fixtureSHA256':h((pocket/'COMMON-PocketPlaybackTerminationSelfTest.swift.txt').read_bytes())}
+for name in ['backing-only-producer.patch.txt','public-read-boundary.json','actual-source-preparation/README.md','actual-source-preparation/package-body-observation.patch.txt','actual-source-preparation/COMMON-NativeKokoroQuitSelfTest.swift.txt']:
+ p=kokoro/name;manifest['frozenReferences']['Kokoro/'+name]={'path':str(p.relative_to(root)),'sha256':h(p.read_bytes())}
+(out/'manifest.json').write_text(json.dumps(manifest,indent=2)+'\n')
+print('prepared',out,'frozen Pocket17pins unchanged;57 fixture exact; canonical unchanged')

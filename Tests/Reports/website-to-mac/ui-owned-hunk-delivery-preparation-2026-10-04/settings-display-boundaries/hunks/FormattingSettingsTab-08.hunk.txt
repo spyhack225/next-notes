@@ -1,0 +1,8 @@
+--- a/Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift
++++ b/Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift
+@@ -91,0 +79,5 @@ struct FormattingSettingsTab: View {
++                .selectionDisabled(true)
++                .listRowBackground(DS.Color.groupedFill)
++            appsNote
++                .selectionDisabled(true)
++                .listRowBackground(DS.Color.window)

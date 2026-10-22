@@ -1,0 +1,94 @@
+{
+  "schema_version": 1,
+  "id": "2026-10-22-asr-ultra",
+  "title": "Parakeet Ultra (CoreML)",
+  "date": "2026-10-22",
+  "category": "asr",
+  "status": "measured",
+  "scope": "Isolated runtime probe",
+  "summary": "English 256.1\u00d7 throughput, 4.41% word error. App provider acceptance remains open.",
+  "environment": {
+    "hardware": "Apple M3, 16 GB RAM",
+    "os": "macOS 27.2",
+    "workload": "Serial isolated runtimes; ASR plus voice not qualified",
+    "power_thermal": "Per-run state not recorded"
+  },
+  "provenance": {
+    "kind": "historical evidence import",
+    "build": "See original evidence; not re-run by hub"
+  },
+  "metrics": [
+    {
+      "name": "Runtime artifact size",
+      "value": 632162964,
+      "unit": "bytes",
+      "boundary": "Actual tested model files",
+      "samples": 1,
+      "aggregation": "reported observation"
+    },
+    {
+      "name": "EN warm throughput",
+      "value": 256.0991480075504,
+      "unit": "audio seconds / processing second",
+      "boundary": "Isolated file transcription; excludes cleanup, insertion and paced capture",
+      "samples": 2,
+      "aggregation": "median of warm passes 2 and 3"
+    },
+    {
+      "name": "EN word error rate",
+      "value": 4.411764705882353,
+      "unit": "percent",
+      "boundary": "Normalized authored reference, repeated same audio",
+      "samples": 1,
+      "aggregation": "fixture score"
+    },
+    {
+      "name": "FR warm throughput",
+      "value": 204.1923276108781,
+      "unit": "audio seconds / processing second",
+      "boundary": "Isolated file transcription; excludes cleanup, insertion and paced capture",
+      "samples": 2,
+      "aggregation": "median of warm passes 2 and 3"
+    },
+    {
+      "name": "FR word error rate",
+      "value": 9.933774834437086,
+      "unit": "percent",
+      "boundary": "Normalized authored reference, repeated same audio",
+      "samples": 1,
+      "aggregation": "fixture score"
+    },
+    {
+      "name": "Load time",
+      "value": 11608.299970626831,
+      "unit": "ms",
+      "boundary": "Runtime-specific preparation; not comparable hardware-cold startup",
+      "samples": 1,
+      "aggregation": "reported observation"
+    },
+    {
+      "name": "Peak RSS",
+      "value": 668319744,
+      "unit": "bytes",
+      "boundary": "Lifetime process RSS, including preparation; not Mach footprint",
+      "samples": 1,
+      "aggregation": "reported observation"
+    }
+  ],
+  "limitations": [
+    "Two authored fixtures: English 136 words / 60.585375 s; French 151 words / 58.406875 s. Phonon is English only.",
+    "Two warm timing trials repeat one fixture; they are not independent quality samples.",
+    "Runtime and timing boundaries differ; see source report. No default promotion or end-to-end latency claim.",
+    "Raw transcripts and model/source hashes remain in original evidence; website publishes summary only."
+  ],
+  "sources": [
+    "Tests/Reports/asr-candidates-2026-10-22/README.md",
+    "Tests/Reports/asr-candidates-2026-10-22/comparison.json",
+    "Tests/Reports/asr-candidates-2026-10-22/ultra.json"
+  ],
+  "publication": {
+    "approved": true,
+    "reviewed_by": "benchmark-hub-20261022",
+    "reviewed_on": "2026-10-22"
+  }
+}

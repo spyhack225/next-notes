@@ -1,0 +1,10 @@
+{
+  "status": "STATIC_CONDITIONAL_ACCEPTANCE_NO_SOURCE_OR_NATIVE_LEASE",
+  "inputs": {
+    "settingsDisplayManifestSHA256": "4fc90cf4af442d2b2137862b0a9cd804de484334f282b0fc77c0512203f2c5e1"
+  },
+  "artifacts": {
+    "README.md": "6c3ef2659cd4c696e7d1b6ca0f05d7e5085ec11ce29100ab929adb215f1d1714",
+    "checks.json": "866b9c8f93e09eecd732c52650bb3c3a0d1de569bd7c05eaa101631d0b2f20bb"
+  }
+}

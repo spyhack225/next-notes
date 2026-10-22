@@ -1,0 +1,48 @@
+--- a/Sources/NextNotes/UI/Agent/ToolReviewCard.swift
++++ b/Sources/NextNotes/UI/Agent/ToolReviewCard.swift
+@@ -218,7 +218,13 @@
+         // Straight on to the next thing that is owed, so a two-blank card is two
+         // sentences rather than two visits.
+         asking = live.blockers.first?.name
+-        if asking != nil { focusedField = "ask" }
++        if asking != nil {
++            focusedField = "ask"
++        } else if live.isReadyToRun {
++            focusedField = nil
++            focusedQuestion = false
++            focusedDecision = true
++        }
+     }
+ 
+     // MARK: - Footer
+@@ -275,6 +281,10 @@
+     private func focusNextBlocker(after name: String) {
+         guard let next = live.blockers.first(where: { $0.name != name }) else {
+             focusedField = nil
++            if live.isReadyToRun {
++                focusedQuestion = false
++                focusedDecision = true
++            }
+             return
+         }
+         focusedField = next.name
+--- a/Sources/NextNotes/UI/Agent/AgentView.swift
++++ b/Sources/NextNotes/UI/Agent/AgentView.swift
+@@ -464,6 +464,7 @@
+                 )
+             }
+         )
++        .id(request.id)
+     }
+ 
+     private func acpConfirmCard(_ request: ACPConfirmationRequest) -> some View {
+--- a/Sources/NextNotes/UI/Agent/AgentWorkingCard.swift
++++ b/Sources/NextNotes/UI/Agent/AgentWorkingCard.swift
+@@ -100,6 +100,7 @@
+                             )
+                         }
+                     )
++                    .id(inlineReview.id)
+                 }
+             } else {
+                 terminalCard

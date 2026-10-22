@@ -1,0 +1,23 @@
+{
+  "status": "BOUNDED_PAIRED_SOURCE_PREPARATION_FULL_PRODUCER_RELEASE_HELD_UNCOMPILED_NATIVE_UNRUN",
+  "inputs": {
+    "background-revision/manifest.json": "6390a8f0a74b2117e519fea3b44686fadba29a659fb9145a20074a6b09b698ae",
+    "fixture-preparation/manifest.json": "04d0396f8716b94090a00b8ed8517b0cac6da6dc306b8d25f5102c232e7196ab",
+    "fixture-independent-review.md": "3f11ec3d1a4526aa68ee374b9680fc0811594e8d6122e20fc7d3fcdd76cd63b0",
+    "background-revision-readiness.md": "677d01dfa202592da82591db8226a0b59659411a455dccd5f5316cad7a95b2c1",
+    "paired-parent-pin-verification.json": "1374960f1b28421bb5340afb092fe5ac4c53cdf58bf22199d16197d4c9c0852e"
+  },
+  "documents": {
+    "README.md": "a9836a8cfde2f304694f28ccbc041a1dc6c663b9a7467bfb216430c4902a48eb"
+  },
+  "boundedFixture": "actual Cocoa post-close imported pending continuation consumers plus denial, no live worker/model/backing",
+  "parentSourceArtifactChecks": 25,
+  "parentMismatches": 0,
+  "release": null,
+  "holds": [
+    "compiler/bootstrap/owner guard original-fixed qualification",
+    "healthy live one-click continuation and distinct live gate",
+    "same-ID actual outstanding predecessor/backing proof",
+    "scheduled/Capture/speech all-owner quit and SIGSEGV"
+  ]
+}

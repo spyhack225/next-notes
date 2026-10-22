@@ -129,6 +129,7 @@ final class MeetingScheduler {
     func runOnce(now: Date = Date()) async {
         syncCallDetection()
         armDueEvents(now: now)
+        applyMatchedTitles()
         await startArmedMeetings(now: now)
         // Meeting-starting triggers, whether or not the meeting is recorded: each applies its
         // own lead time, and an event seen on many ticks runs once. After the start above, so a
@@ -168,7 +169,12 @@ final class MeetingScheduler {
     /// (M-11): the event's own meeting, started early because the call settled first. The
     /// recording then ends with the call rather than with the schedule.
     @discardableResult
-    func recordNow(_ event: MeetingEvent, coveringCallID: String? = nil) async -> Bool {
+    func recordNow(
+        _ event: MeetingEvent,
+        coveringCallID: String? = nil,
+        titledAs titledEventID: String? = nil,
+        fallbackTitle: String? = nil
+    ) async -> Bool {
         skipped.remove(event.overrideKey)
         IslandState.shared.clearArmed(event)
         // Only an armed meeting is reused. One that already ran is a finished recording
@@ -179,9 +185,20 @@ final class MeetingScheduler {
         // next tick writes off as "another meeting was being recorded", and leave that
         // failure in the list for good.
         if let existing, existing.status.isActive { return false }
+        // A finished row for this event is a recording that already happened.
+        // Arming a second one for the same event saves a duplicate the list
+        // then shows as two meetings with the same name, and the second one
+        // suppresses the "another meeting was being recorded" diagnosis that
+        // would have explained it.
+        // Any row that is not an armed meeting blocks a second row for the
+        // same event: a finished one is a recording that already happened, and
+        // minting a new id for the same event is the duplicate-meeting failure
+        // the list cannot explain.
+        if let existing, existing.status != .armed { return false }
         var meeting = existing?.status == .armed
             ? existing!
-            : arm(event, now: Date(), announce: false)
+            : arm(event, now: Date(), announce: false, titledAs: titledEventID,
+                  fallbackTitle: fallbackTitle)
         if let coveringCallID, meeting.coveringCallID != coveringCallID {
             meeting = meeting.withCoveringCall(coveringCallID)
             store.save(meeting)
@@ -220,7 +237,7 @@ final class MeetingScheduler {
             guard willAutoRecord(event) else { continue }
             // Already claimed — including by a meeting that failed. Re-arming a failure
             // would restart a recording the user has already seen go wrong.
-            guard meeting(for: event) == nil else { continue }
+            guard self.meeting(for: event) == nil else { continue }
             // Inside the window: past the lead time, not past the end.
             guard now >= event.start.addingTimeInterval(-lead), now < event.end else { continue }
 
@@ -460,13 +477,30 @@ final class MeetingScheduler {
         // than "Zoom call" with nobody on it. Decided once, before the switch, because the
         // "already covered" branch needs it too: a meeting armed a moment ago still starts
         // on its own schedule, and the call is what will end it.
-        let match = CallPolicy.calendarMatch(at: now, candidates: calendarCandidates())
+        // Two questions, asked separately.
+        //
+        // The arming question — which meeting's recording does this call join
+        // — is the arming rule's: its window is symmetric on purpose, because a
+        // call that joins late is still that meeting's call.
+        //
+        // The naming question — may this meeting take the event's title — is
+        // the title matcher's, and its window is one-sided: a meeting that
+        // ended ten minutes ago does not lend its name to a call that started
+        // after it. A call may therefore be recorded as the event's meeting
+        // without being titled as it.
+        let candidates = calendarCandidates()
+        let match = CallPolicy.calendarMatch(at: now, candidates: candidates)
+        let titled = MeetingTitleMatcher.match(
+            candidates: candidates.map(\.event), callStart: call.since)
 
         switch decision {
         case .attach:
             if case .startCalendar(let eventID) = match {
                 stampCoveringCall(onEvent: eventID, for: call)
             }
+            // The titling matcher is consulted for the name, not for the
+            // arming: the arming rule's answer is the one that says which
+            // meeting's recording this call joins.
             // Deliberately nothing. A meeting is already armed or already recording over
             // this stretch of clock, and a Zoom call that is on the calendar has to produce
             // one recording rather than two — so the existing meeting *is* the answer, and
@@ -483,10 +517,26 @@ final class MeetingScheduler {
         case .arm:
             switch match {
             case .startCalendar(let eventID):
-                await startCalendarEvent(eventID, for: call)
+                // The event is the meeting's own; the title is the naming
+                // rule's to give, and only when the naming rule agrees that
+                // the call was that event. A call that started after the event
+                // ended joins the recording without taking the name.
+                if await startCalendarEvent(
+                    eventID, for: call, titledAs: titled.kind == .exactEvent ? titled.event?.id : nil) {
+                    return
+                }
+                await raise(event, for: call, answer: answer, now: now)
             case .askCalendar(let eventID):
-                askAboutCalendarEvent(eventID, for: call, now: now)
+                if askAboutCalendarEvent(
+                    eventID, for: call, now: now, titledAs: titled.kind == .exactEvent ? titled.event?.id : nil) {
+                    return
+                }
+                await raise(event, for: call, answer: answer, now: now)
             case .none:
+                if await switchToMatchedCalendarEvent(
+                    for: call, answer: answer, now: now, titled: titled) {
+                    return
+                }
                 await raise(event, for: call, answer: answer, now: now)
             }
         }
@@ -521,7 +571,91 @@ final class MeetingScheduler {
     /// The event behind an id from a `CalendarMatch`, which is the one the list above
     /// was built from.
     private func calendarEvent(_ eventID: String) -> MeetingEvent? {
-        calendar.upcoming.first { $0.id == eventID }
+        // The provider is part of the identity: two providers can hand out the
+        // same opaque id, and a call matched against one of them must not be
+        // recorded against the other's event. The candidate list is the
+        // provider-scoped one the match was made from.
+        calendarCandidates().first { $0.event.id == eventID }?.event
+            ?? calendar.upcoming.first { $0.id == eventID }
+    }
+
+    /// The same call, asked of the title matcher rather than of the arming rule (MR-01).
+    ///
+    /// `calendarMatch` chose `.none` — no single nearest event to attach to — but the
+    /// matcher asks a narrower question with stronger evidence: one event the call
+    /// provably is, on a join-URL hit or a unique window match. The call side carries no
+    /// join link today (`CallDetector.CallActivity` has none), so in production this
+    /// reaches an answer only through the unique-window rule; the join-URL branch is
+    /// here, and first, for the producer that surfaces one. False means nothing exact,
+    /// and the caller raises its ad-hoc question as before.
+    private func switchToMatchedCalendarEvent(
+        for call: CallDetector.CallActivity,
+        answer: CallPolicy.AppAnswer?,
+        now: Date,
+        titled: MeetingTitleMatcher.Match
+    ) async -> Bool {
+        let match = titled
+        guard match.kind == .exactEvent, let event = match.event else { return false }
+        // A meeting that already has a row owns the title. Arming a second one
+        // for the same event saves a duplicate and leaves a failure row for good.
+        guard meeting(for: event) == nil else { return false }
+        // The person's own answer for this app decides whether recording needs
+        // asking. The calendar's auto-record switch is about calendar events,
+        // and it is not permission to record a call the person was told would
+        // be asked about.
+        let recordsWithoutAsking = CallPolicy.recordsWithoutAsking(
+            bundleID: call.bundleID,
+            autoRecord: Settings.shared.callDetectionAutoRecord,
+            answer: answer)
+        if recordsWithoutAsking {
+            return await startCalendarEvent(event.id, for: call, titledAs: event.id)
+        }
+        return askAboutCalendarEvent(event.id, for: call, now: now, titledAs: event.id)
+    }
+
+    /// Detected-call meetings the calendar has since caught up with (MR-01/MR-06).
+    ///
+    /// A call that settled while the calendar could not answer — a failed fetch, an
+    /// event that had not entered the window yet — kept its synthetic "Zoom call" title
+    /// for the whole recording, and the only cure has been renaming it by hand. This is
+    /// the same matcher the settle path runs, at this tick's existing cadence, so a
+    /// recovered calendar gives the meeting the event's real title without anyone
+    /// touching it.
+    ///
+    /// Four guards, none of them optional: the row is a detected call; it is still armed
+    /// or recording, because a finished row's transcript already cites its old title;
+    /// nobody has typed a name over it; and the event has not already produced a meeting
+    /// of its own — that title belongs to the event's meeting when there is one, and a
+    /// second row claiming it is the duplicate-meeting failure again. The title lands
+    /// through the same store-save-plus-session-sync a rename uses, so the live pane and
+    /// the island agree with the file while the recording is still running.
+    private func applyMatchedTitles() {
+        let candidates = calendarCandidates()
+        guard !candidates.isEmpty else { return }
+        for meeting in store.meetings where meeting.isDetectedCall {
+            guard meeting.status == .armed || meeting.status.isActive else { continue }
+            guard meeting.effectiveTitleSource != .user else { continue }
+            // The call's own clock, not the recording's: a person who took a
+            // minute to answer the question must still get the meeting the
+            // call was about.
+            guard let callStart = CallDetector.callStart(fromIdentity: meeting.calendarEventID)
+            else { continue }
+            let match = MeetingTitleMatcher.match(
+                candidates: candidates.map(\.event),
+                callStart: callStart
+            )
+            guard match.kind == .exactEvent, let event = match.event else { continue }
+            guard self.meeting(for: event) == nil else { continue }
+            guard let updated = MeetingTitleMatcher.titleUpdate(for: meeting, match: match) else { continue }
+            store.save(updated)
+            controller.syncTitle(
+                of: updated.id, to: updated.title, source: .auto,
+                attendees: updated.attendees, calendarName: updated.calendarName)
+            Log.meeting.info("""
+                titled detected-call meeting \(updated.title, privacy: .public) \
+                from its calendar event (\(match.reason.rawValue, privacy: .public))
+                """)
+        }
     }
 
     /// The meeting a call covers starts now, under the event's own name.
@@ -533,21 +667,27 @@ final class MeetingScheduler {
     /// this one started" — a failure row for a meeting that was being recorded.
     private func startCalendarEvent(
         _ eventID: String,
-        for call: CallDetector.CallActivity
-    ) async {
-        guard let event = calendarEvent(eventID) else { return }
-        let started = await recordNow(event, coveringCallID: CallDetector.identity(of: call))
+        for call: CallDetector.CallActivity,
+        titledAs titledEventID: String? = nil
+    ) async -> Bool {
+        guard let event = calendarEvent(eventID) else { return false }
+        let started = await recordNow(
+            event,
+            coveringCallID: CallDetector.identity(of: call),
+            titledAs: titledEventID,
+            fallbackTitle: CallDetector.event(for: call).title)
         guard started else {
             Log.calls.info("""
                 \(call.displayName, privacy: .public) is on a call for \
                 "\(event.title, privacy: .public)", but something is already recording
                 """)
-            return
+            return false
         }
         Log.calls.info("""
             started "\(event.title, privacy: .public)" now — \
             \(call.displayName, privacy: .public) is on a call for it
             """)
+        return true
     }
 
     /// The event is near and is not agreed, so the question is about **it** — the meeting
@@ -558,16 +698,20 @@ final class MeetingScheduler {
     private func askAboutCalendarEvent(
         _ eventID: String,
         for call: CallDetector.CallActivity,
-        now: Date
-    ) {
-        guard let event = calendarEvent(eventID) else { return }
-        guard meeting(for: event) == nil else { return }
+        now: Date,
+        titledAs titledEventID: String? = nil
+    ) -> Bool {
+        guard let event = calendarEvent(eventID) else { return false }
+        guard meeting(for: event) == nil else { return false }
         _ = arm(
             event,
             now: now,
             announce: true,
-            body: "\(call.displayName) is on a call. Record it?"
+            body: "\(call.displayName) is on a call. Record it?",
+            titledAs: titledEventID,
+            fallbackTitle: CallDetector.event(for: call).title
         )
+        return true
     }
 
     /// The call covering an armed meeting is this one, so the recording ends with the
@@ -576,7 +720,10 @@ final class MeetingScheduler {
     private func stampCoveringCall(onEvent eventID: String, for call: CallDetector.CallActivity) {
         guard let event = calendarEvent(eventID),
               let meeting = meeting(for: event),
-              meeting.status == .armed,
+              // A meeting that is already recording is still the meeting the
+              // call belongs to: without the stamp the recording cannot end
+              // with the call, and the schedule ends it instead.
+              meeting.status == .armed || meeting.status.isActive,
               meeting.coveringCallID == nil
         else { return }
         store.save(meeting.withCoveringCall(CallDetector.identity(of: call)))
@@ -720,17 +867,33 @@ final class MeetingScheduler {
     // MARK: - Internals
 
     @discardableResult
+    /// Arms a meeting for an event.
+    ///
+    /// `titledAs` is the event the naming rule says the call provably was.
+    /// When it is that event, the meeting takes the event's title; when it is
+    /// not — the call started after the event ended, so the event is the
+    /// nearest but not the truth — the meeting keeps the call's own title,
+    /// because a title that is wrong is worse than one that is plain.
     private func arm(
         _ event: MeetingEvent,
         now: Date,
         announce: Bool,
-        body: String? = nil
+        body: String? = nil,
+        titledAs titledEventID: String? = nil,
+        fallbackTitle: String? = nil
     ) -> Meeting {
         // `end` carries the *scheduled* end at this point, which is what the auto-stop
         // rule reads. `MeetingSession` overwrites both ends when the recording really
         // starts and stops.
+        // The source says where the TITLE came from, not whether a call was
+        // proven to be this event: a calendar event's own title is a calendar
+        // title, and a call's own name ("Zoom call") is a placeholder.
+        let named = titledEventID == event.id
+        let usesEventTitle = named || (fallbackTitle == nil && event.providerID != .detectedCall)
+        let title = usesEventTitle ? event.title : (fallbackTitle ?? event.title)
         let meeting = Meeting(
-            title: event.title,
+            title: title,
+            titleSource: usesEventTitle ? .calendar : .auto,
             start: event.start,
             // A detected call gets no end at all, where a calendar event's `end` is the
             // scheduled one. `CallDetector.event(for:)` has nothing to put there but the

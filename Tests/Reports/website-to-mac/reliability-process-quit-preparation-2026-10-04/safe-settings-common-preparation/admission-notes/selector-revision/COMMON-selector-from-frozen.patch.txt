@@ -1,0 +1,26 @@
+--- a/Sources/NextNotes/Support/NativeNotesSettingsSelfTest.swift
++++ b/Sources/NextNotes/Support/NativeNotesSettingsSelfTest.swift
+@@ -38,9 +38,10 @@
+ /// COMMON to the eager-original and lazy-Settings producer; no owner model selection.
+ @MainActor
+ enum NativeNotesSettingsSelfTest {
++    // Raw selector keeps the confined metadata branch active even for malformed
++    // launches; the exact native self-test is checked by admission before owners.
+     nonisolated static var isRequested: Bool {
+-        SelfTest.requested == "--selftest-native-termination"
+-            && CommandLine.arguments.contains("--native-notes-settings-case")
++        CommandLine.arguments.contains("--native-notes-settings-case")
+     }
+ 
+     nonisolated static let binding: Result<NativeNotesSettingsBinding, NativeNotesSettingsAdmissionFailure> = {
+@@ -234,7 +235,9 @@
+     }
+ 
+     nonisolated private static func validateArguments() throws -> NativeNotesSettingsAdmission {
+-        guard isRequested else { throw NativeNotesSettingsAdmissionFailure.invalid }
++        guard isRequested, SelfTest.requested == "--selftest-native-termination" else {
++            throw NativeNotesSettingsAdmissionFailure.invalid
++        }
+         let args = Array(CommandLine.arguments.dropFirst())
+         let valueFlags: Set<String> = ["--native-notes-settings-case", "--native-termination-model",
+             SelfTest.outputFlag, SelfTest.timeoutFlag]

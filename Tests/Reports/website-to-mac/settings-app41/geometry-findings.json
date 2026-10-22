@@ -1,0 +1,90 @@
+[
+  {
+    "width": 320,
+    "checks": {
+      "eightTableObservations": true,
+      "oneScrollPerCheckpoint": true,
+      "viewportPositive": true,
+      "materializedRowsPositive": true,
+      "unchangedKnown15Profiles": true,
+      "expandedNativeInfoRows": true
+    },
+    "viewportHeightPoints": [
+      978.0
+    ],
+    "nativeRowsTotal": [
+      25
+    ],
+    "nativeRowsMaterialized": [
+      25
+    ],
+    "nativeRowsVisible": [
+      11
+    ],
+    "infoRowsAppsThenScreenNames": [
+      {
+        "nativeNodeIndex": 244,
+        "heightPoints": [
+          104.0
+        ],
+        "eightAxisStageObservations": true
+      },
+      {
+        "nativeNodeIndex": 259,
+        "heightPoints": [
+          136.0
+        ],
+        "eightAxisStageObservations": true
+      }
+    ],
+    "originalApp39InfoHeightsAt560": [
+      28,
+      40
+    ],
+    "interpretation": "normal native content rows allocate multiline height; actual560 image verifies complete words,320 later rows require scroll evidence"
+  },
+  {
+    "width": 560,
+    "checks": {
+      "eightTableObservations": true,
+      "oneScrollPerCheckpoint": true,
+      "viewportPositive": true,
+      "materializedRowsPositive": true,
+      "unchangedKnown15Profiles": true,
+      "expandedNativeInfoRows": true
+    },
+    "viewportHeightPoints": [
+      1024.0
+    ],
+    "nativeRowsTotal": [
+      25
+    ],
+    "nativeRowsMaterialized": [
+      25
+    ],
+    "nativeRowsVisible": [
+      25
+    ],
+    "infoRowsAppsThenScreenNames": [
+      {
+        "nativeNodeIndex": 214,
+        "heightPoints": [
+          68.0
+        ],
+        "eightAxisStageObservations": true
+      },
+      {
+        "nativeNodeIndex": 229,
+        "heightPoints": [
+          88.0
+        ],
+        "eightAxisStageObservations": true
+      }
+    ],
+    "originalApp39InfoHeightsAt560": [
+      28,
+      40
+    ],
+    "interpretation": "normal native content rows allocate multiline height; actual560 image verifies complete words,320 later rows require scroll evidence"
+  }
+]

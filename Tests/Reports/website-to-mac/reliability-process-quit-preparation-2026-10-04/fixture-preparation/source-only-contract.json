@@ -1,0 +1,21 @@
+{
+  "status": "HELD_SOURCE_ONLY_UNCOMPILED_NATIVE_UNRUN",
+  "authorManifestSHA256": "6390a8f0a74b2117e519fea3b44686fadba29a659fb9145a20074a6b09b698ae",
+  "canonicalManagerSHA256": "a1578f79294f73d9b4fb7761df394b334e4fe3f71ec30d994975d278a4c0f9e8",
+  "canonicalAppSHA256": "bc01a27f48478a297d07a1d35669c313615cc7c182c0c6d113b4899e792a1b61",
+  "canonicalStandaloneSHA256": "a1c1d30f8198e63758dde34abd8812b236c281a191cd9168383eff95a47aa4f5",
+  "pairedOriginalBeforeFixtureSHA256": "04c6f5f98332eb8853a1197a850e4fe513f40f8e92c87285ccb214bf793e97ab",
+  "pairedFixedBeforeFixtureSHA256": "f16e02b896bddc5bb3314f01ce69cacc20025950ebe43fade697f543bc933e68",
+  "identicalCommonConsumerPostimages": {
+    "Sources/NextNotes/NextNotesApp.swift": "dd9c040208a4c7dbde1eeb9db2a8134bbd8ed3a14a3121619c67217275f37509",
+    "Sources/NextNotes/Support/NativeTerminationSelfTest.swift": "0b58f0534c0c299dc66fbe7a06532b56ab2fad55a911cb9dd93101abd5d9efa5",
+    "Sources/NextNotes/Support/NativeBackgroundQuitSelfTest.swift": "e36f142c47df873d6a7609e285315bc2b105dfa892f085fc79c9ed3c98c3e9ad"
+  },
+  "identityChecks": {
+    "Sources/NextNotes/NextNotesApp.swift": true,
+    "Sources/NextNotes/Support/NativeTerminationSelfTest.swift": true,
+    "Sources/NextNotes/Support/NativeBackgroundQuitSelfTest.swift": true
+  },
+  "qualification": "retained/private pending rows; actual Cocoa post-close producers only; initial question/live gate/healthy pending-worker/native backing remain HELD",
+  "actualExecutions": []
+}

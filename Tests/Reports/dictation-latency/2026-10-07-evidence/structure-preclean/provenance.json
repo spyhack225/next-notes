@@ -1,5 +1,5 @@
 {
-  "status": "Prepared only; exact producers/splitter/lookup. Router finish is not exercised by this component; identity semantic substituted. Candidate closure not applied.",
+  "status": "Prepared192 comparisons in three variants; native and complete Router unrun; group/whitespace repairs cache-only.",
   "sources": {
     "Sources/NextNotes/Formatting/TextFormatter.swift": {
       "sourceSHA": "165d0182c9f4dc90518e27418f7ac86592d580526bc5824c2b3e4c3fd8d0a4d7",
@@ -13,7 +13,7 @@
     },
     "Sources/NextNotes/Formatting/SentenceChunker.swift": {
       "sourceSHA": "bcd28cf8fe4fcb743a06c847380c29a9502cb8f548da551723b6c7975f9a313b",
-      "copiedSHA": "bcd28cf8fe4fcb743a06c847380c29a9502cb8f548da551723b6c7975f9a313b",
+      "copiedSHA": "9a411b7d64be49e3f1a1d8bbda69299ddbd5f3bc94fd980380336f36623cdf7d",
       "copiedName": "SentenceChunker.production.swift"
     },
     "Sources/NextNotes/Formatting/Targets/OutputProfile.swift": {
@@ -30,6 +30,20 @@
   "routerSHA": "c5fe3624d030b83f3a3effe4b63b8539a671f2ef9c08aad4275c9af37254a280",
   "controllerSHA": "48ea2657bd2e8094057415bed5082d51e6db0d2194f4feee8bbb57a9e082f0d0",
   "scope": "Closed spoken structure, cross-boundary envelopes, final punctuation, disabled/target controls; no model/owner store/app.",
-  "fixtureSHA": "2b44af5dad4944a3344f14f7b108a3772d95974a9b11c7d8d162ecb237c384f0",
-  "recipeSHA": "fc2d26b178c09b19ba3b0ab4d09313790745d6f8a4bd81cbc74d0ce223164d80"
+  "fixtureSHA": "7963e09f8c38332beeb4ae3673d6676fe09f944505ed2c8416336ab3d9485b0a",
+  "recipeSHA": "46fe141361259b4ef91f09ebd814827c3051338e24134dc7f95e3f1eb923bb77",
+  "variants": {
+    "naive": "Transforms whole partial before sentence splitting; may separate closing punctuation and is not accepted.",
+    "group": "Keeps existing unrendered sentence grouping; prepares closed group before semantic model through one optional closure on existing producer. Must verify structure separators after joining; no adoption."
+  },
+  "groupCandidateSHA": "5cef7373608a3805971dff3705c875936d02e3d7d135c5fde3e7b9e33fac0ddb",
+  "sourceBoundaryCandidateSHA": "f1573a8286be25fb4035cdab8cdc4f89b02352b10c2e6cc00d1703d241c2805c",
+  "failedHarness": "Attempt1 copied unrelated trailing ChunkedFormatter; compiler1 joined no guard. Retained exact attempted source/log/resource/pins. Enum-only cut retains exact production SentenceChunker, same inputcases.",
+  "fullRouterPlan": "Actual Router format/finish/decision/selection/layout wait bodies; unused factories/selftests removed, pressure sample idle and semantic formatter substituted. Actual copied Trace/Decision/StructurePlan and existing exact bounded wait. Full controller/factory/native remains open.",
+  "fullRouterOriginalSHA": "22b090351ebefc078a6fa8f6848f9a31cf7ce510c93560c88e6d7c3e88fac183",
+  "fullRouterCandidateSHA": "e1009c3021059e6db04761ecd20932ccc2ba1f1cf0614d026adce7f8611a9e12",
+  "boundedWaitSHA": "05d2d1b818f13c05695c8819f7880e18e381cb0ca6dd360fef09a5344468fb7e",
+  "preparationError": "Initial copy searched nonexistent standalone Support/BoundedWait.swift; no compiler or Source change. Existing same Controller function/RaceGate excerpt reused.",
+  "fullFixtureSHA": "4af828ab54ec6533bb68e9bb461558116aa6ae9d3e02a290385af6af5ac49a51",
+  "fullRouterFixtureScope": "80 cases each: exact Router entry/finish/trace/model-call/tail/group/layout-check logic; real copied rules/structure; semantic trim/uppercase and pressure/proposed planner default stubbed. Production controller/engine factory/native/external insertion remain open."
 }

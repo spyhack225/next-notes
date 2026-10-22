@@ -60,6 +60,11 @@ struct LlamaLLMProvider: LLMProvider {
         )
     }
 
+    func completeForOptionalUse(system: String, user: String, maxTokens: Int,
+                                grammar: GBNFGrammar? = nil) async throws -> LLMCompletion {
+        try await runtime.completeForOptionalUse(system: system, user: user, maxTokens: maxTokens, grammar: grammar)
+    }
+
     var enforcesGrammar: Bool { true }
 
     func complete(system: String, user: String, maxTokens: Int, grammar: GBNFGrammar) async throws -> LLMCompletion {

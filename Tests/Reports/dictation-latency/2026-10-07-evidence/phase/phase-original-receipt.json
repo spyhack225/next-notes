@@ -1,0 +1,15 @@
+{
+  "sourcePinCount": 1171,
+  "changed": [],
+  "nativeExit": 1,
+  "nativePhaseOriginalProblems": 4,
+  "nativeCancellationJoinedWhileASRHeld": true,
+  "nativeCancellationWaitSeconds": 0.002279583,
+  "successorReused": 256,
+  "successorDecoded": 394,
+  "promptTokens": 650,
+  "runtimeChanged": false,
+  "nativeChildrenJoined": true,
+  "fixedNativeRun": false,
+  "ownerWarmStallFixed": false
+}

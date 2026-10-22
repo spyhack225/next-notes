@@ -1,0 +1,5 @@
+--- a/Sources/NextNotes/UI/Agent/AgentPaneLayout.swift
++++ b/Sources/NextNotes/UI/Agent/AgentPaneLayout.swift
+@@ -49,0 +50,2 @@ struct AgentPaneHeader<Accessory: View>: View {
++    /// Static caller-supplied phrase only; never split a model, task or meeting title.
++    var accent: String? = nil

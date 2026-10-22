@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "id": "2026-10-13-meeting-full-pipeline",
+  "title": "Whole meeting pipeline baseline",
+  "date": "2026-10-13",
+  "category": "meetings",
+  "status": "partial",
+  "scope": "Scoped installed native checks and retained long-call audit",
+  "summary": "21 scoped checks pass; saved audio coverage, hardware routes and semantic acceptance remain open.",
+  "environment": {
+    "hardware": "Owner M3 reference machine; see retained reports",
+    "build": "503e0e40"
+  },
+  "provenance": {
+    "kind": "historical evidence import",
+    "build": "See original evidence; not re-run by hub"
+  },
+  "metrics": [
+    {
+      "name": "Scoped native checks passed",
+      "value": 21,
+      "unit": "flags",
+      "boundary": "Installed build 503e0e40 focused checks",
+      "samples": 21,
+      "aggregation": "distinct scoped flags"
+    }
+  ],
+  "limitations": [
+    "Missing saved remote audio and compressed system timeline remain confirmed failures.",
+    "A stale-rate boundary hazard is not proof of the incident cause.",
+    "Raw owner audio, participants and notes remain private.",
+    "Isolation retains inherited nested failures; hardware and semantic quality are not accepted."
+  ],
+  "sources": [
+    "Tests/Reports/meeting-reliability/2026-10-13-full-pipeline/ROADMAP.md",
+    "Tests/Reports/meeting-reliability/2026-10-13-audit/README.md"
+  ],
+  "publication": {
+    "approved": true,
+    "reviewed_by": "benchmark-hub-20261022",
+    "reviewed_on": "2026-10-22"
+  }
+}

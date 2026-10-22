@@ -15,3 +15,6 @@ export const REPO_URL = "https://github.com/spyhack225/next-notes";
 export const RELEASES_URL = `${REPO_URL}/releases/latest`;
 /** Stable asset name on every GitHub Release. The versioned twin is `NextNotes-$VERSION.dmg`. */
 export const DOWNLOAD_URL = `${RELEASES_URL}/download/NextNotes.dmg`;
+
+/** The page's own address, for sharing it to another device. */
+export const SITE_URL = "https://next-notes.com/";

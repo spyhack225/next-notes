@@ -1,0 +1,32 @@
+[
+  {
+    "flag": "--selftest-meeting-health",
+    "exit_code": 0,
+    "seconds": 0.917
+  },
+  {
+    "flag": "--selftest-meeting-integrity",
+    "exit_code": 0,
+    "seconds": 2.22
+  },
+  {
+    "flag": "--selftest-meeting-backlog",
+    "exit_code": 0,
+    "seconds": 26.452
+  },
+  {
+    "flag": "--selftest-meeting-resume",
+    "exit_code": 0,
+    "seconds": 15.09
+  },
+  {
+    "flag": "--selftest-meeting-reconcile-llm",
+    "exit_code": 0,
+    "seconds": 1.152
+  },
+  {
+    "flag": "--selftest-audio-retention",
+    "exit_code": 0,
+    "seconds": 1.202
+  }
+]

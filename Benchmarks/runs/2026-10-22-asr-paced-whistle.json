@@ -1,0 +1,97 @@
+{
+  "schema_version": 1,
+  "id": "2026-10-22-asr-paced-whistle",
+  "title": "Whistle paced ASR latency",
+  "date": "2026-10-22",
+  "category": "asr",
+  "status": "partial",
+  "scope": "Paced native runtime first-word and release-to-final; no app integration or physical microphone acceptance",
+  "summary": "Six authored short holds completed under machine pressure; no default promotion.",
+  "environment": {
+    "hardware": "Apple M3,16GB RAM",
+    "os": "macOS27.2 build26B5091g",
+    "workload": "Normal desktop apps, high retained system swap; no competing native build/model run observed in agreed window",
+    "power_thermal": "Per-attempt logs retained; no recorded thermal warning. Quiet ASR+voice reference workload not qualified."
+  },
+  "provenance": {
+    "model": "Pinned original artifact, see raw report and retained metadata",
+    "source": "Dirty shared checkout; function snapshots and linked-input hashes retained; not installed-app parity",
+    "command": "ASR_LIVE=1 ASR_SMALL_CPU=1 python3 -B Tools/asr_benchmark.py --output Tests/Reports/asr-live-latency-2026-10-22/whistle.json",
+    "source_report": "Tests/Reports/asr-live-latency-2026-10-22"
+  },
+  "metrics": [
+    {
+      "name": "EN First provisional text",
+      "value": 420.9605830255896,
+      "unit": "ms",
+      "boundary": "Paced clip start to runtime delivery; 0.4s initial feed then1s updates",
+      "samples": 3,
+      "aggregation": "median of three warmed paced holds; raw range retained"
+    },
+    {
+      "name": "EN First native committed word",
+      "value": 2443.270458956249,
+      "unit": "ms",
+      "boundary": "Paced clip start to runtime delivery; 0.4s initial feed then1s updates",
+      "samples": 3,
+      "aggregation": "median of three warmed paced holds; raw range retained"
+    },
+    {
+      "name": "EN Release to full ASR final",
+      "value": 67.65229196753353,
+      "unit": "ms",
+      "boundary": "Scheduled release of full authored excerpt to final ASR runtime return; includes final incremental feed and stop",
+      "samples": 3,
+      "aggregation": "median of three warmed paced holds; raw range retained"
+    },
+    {
+      "name": "FR First provisional text",
+      "value": 419.7414169902913,
+      "unit": "ms",
+      "boundary": "Paced clip start to runtime delivery; 0.4s initial feed then1s updates",
+      "samples": 3,
+      "aggregation": "median of three warmed paced holds; raw range retained"
+    },
+    {
+      "name": "FR First native committed word",
+      "value": 1439.1238749958575,
+      "unit": "ms",
+      "boundary": "Paced clip start to runtime delivery; 0.4s initial feed then1s updates",
+      "samples": 3,
+      "aggregation": "median of three warmed paced holds; raw range retained"
+    },
+    {
+      "name": "FR Release to full ASR final",
+      "value": 86.20616694679484,
+      "unit": "ms",
+      "boundary": "Scheduled release of full authored excerpt to final ASR runtime return; includes final incremental feed and stop",
+      "samples": 3,
+      "aggregation": "median of three warmed paced holds; raw range retained"
+    },
+    {
+      "name": "EN batch internal first token,10s clip",
+      "value": 14.2,
+      "unit": "ms",
+      "boundary": "Native batch returned ttft_ms on already-recorded10s clip; no token delivery callback",
+      "samples": 3,
+      "aggregation": "median of three post-live warmed calls"
+    }
+  ],
+  "limitations": [
+    "One authored excerpt per language, repeated for timing; no independent corpus/physical mic/UI/polish/insertion/duplex acceptance.",
+    "High retained swap and low disk headroom; cannot rank unmeasured candidates or promote a default.",
+    "Original full-file throughput and accuracy belong to a separate experiment.",
+    "French short-hold final has6edits/22words; English1/20. Provisional and native committed text differ.",
+    "No supported CoreML artifact/export path found; any port needs parity, placement,storage and latency validation."
+  ],
+  "sources": [
+    "Tests/Reports/asr-live-latency-2026-10-22/README.md",
+    "Tests/Reports/asr-live-latency-2026-10-22/comparison.json",
+    "Tests/Reports/asr-live-latency-2026-10-22/whistle.json"
+  ],
+  "publication": {
+    "approved": false,
+    "reviewed_by": null,
+    "reviewed_on": null
+  }
+}

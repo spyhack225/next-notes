@@ -1,0 +1,74 @@
+{
+  "compute": "cpuAndNeuralEngine; preprocessor cpuOnly",
+  "load_ms": 20193.957924842834,
+  "peak_rss_bytes": 489062400,
+  "scope": "explicit CoreML files, v3-family decoder, whole-file unpaced runtime probe",
+  "trials": [
+    {
+      "audio_seconds": 60.585375,
+      "fixture": "/Users/sergekadjo/Documents/Claude/Projects/next-notes/Tests/Fixtures/meetings/en-dialogue.wav",
+      "rtfx": 241.8847550287657,
+      "text": "Okay so the plan is to ship the installer on Friday. Right, and then we write the release note together. We need Sam to approve the budget before Thursday. No wait, that is not the same price as yesterday. We sign the contract next week, no exceptions. Agreed, and we schedule delivery for the 15th. The client wants three copies, not two. Noted, I will tell the team this afternoon. Did you see Priya's report about the delays? Yes, she suggests moving the meeting to Thursday. Perfect, we booked the room for 9 in the morning. And we invite Jordan for the technical part. There are $12,000 left for expenses. We keep that for surprises in December. So that is settled, we meet again next Monday. Great, I will send the summary tonight.",
+      "trial": 0,
+      "wall_seconds": 0.2504720687866211,
+      "edits": 6,
+      "reference_words": 136,
+      "wer": 0.04411764705882353
+    },
+    {
+      "audio_seconds": 60.585375,
+      "fixture": "/Users/sergekadjo/Documents/Claude/Projects/next-notes/Tests/Fixtures/meetings/en-dialogue.wav",
+      "rtfx": 236.41509227374874,
+      "text": "Okay so the plan is to ship the installer on Friday. Right, and then we write the release note together. We need Sam to approve the budget before Thursday. No wait, that is not the same price as yesterday. We sign the contract next week, no exceptions. Agreed, and we schedule delivery for the 15th. The client wants three copies, not two. Noted, I will tell the team this afternoon. Did you see Priya's report about the delays? Yes, she suggests moving the meeting to Thursday. Perfect, we booked the room for 9 in the morning. And we invite Jordan for the technical part. There are $12,000 left for expenses. We keep that for surprises in December. So that is settled, we meet again next Monday. Great, I will send the summary tonight.",
+      "trial": 1,
+      "wall_seconds": 0.2562669515609741,
+      "edits": 6,
+      "reference_words": 136,
+      "wer": 0.04411764705882353
+    },
+    {
+      "audio_seconds": 60.585375,
+      "fixture": "/Users/sergekadjo/Documents/Claude/Projects/next-notes/Tests/Fixtures/meetings/en-dialogue.wav",
+      "rtfx": 257.77164703286695,
+      "text": "Okay so the plan is to ship the installer on Friday. Right, and then we write the release note together. We need Sam to approve the budget before Thursday. No wait, that is not the same price as yesterday. We sign the contract next week, no exceptions. Agreed, and we schedule delivery for the 15th. The client wants three copies, not two. Noted, I will tell the team this afternoon. Did you see Priya's report about the delays? Yes, she suggests moving the meeting to Thursday. Perfect, we booked the room for 9 in the morning. And we invite Jordan for the technical part. There are $12,000 left for expenses. We keep that for surprises in December. So that is settled, we meet again next Monday. Great, I will send the summary tonight.",
+      "trial": 2,
+      "wall_seconds": 0.23503506183624268,
+      "edits": 6,
+      "reference_words": 136,
+      "wer": 0.04411764705882353
+    },
+    {
+      "audio_seconds": 58.406875,
+      "fixture": "/Users/sergekadjo/Documents/Claude/Projects/next-notes/Tests/Fixtures/meetings/fr-dialogue.wav",
+      "rtfx": 203.71689699862583,
+      "text": "Donc on garde le budget à 40 000 pour le moment. Oui c'est ça, je t'envoie le devis demain matin. Il faut que Marc valide avec la banque avant vendredi. Non mais attends, ce n'est pas le même prix qu'hier. On signe le contrat la semaine prochaine, sans faute. D'accord, et on prévoit la nouvelle pour le 15. Le client veut trois exemplaires, pas deux. Je note ça, je préviens mes clips cet après-midi. Tu as vu le rapport de Sophie sur les retards. Oui, elle propose de décaler la réunion à jeudi. Parfait, on confirme la salle pour 9h. Et on a vu ce qu'arrive pour la partie technique. Il reste 12 000 euros sur l'enveloppe travaux. On les garde pour les imprévus de décembre. Alors c'est réglé, on se revoit lundi prochain. Très bien, je t'envoie le compte rendu ce soir.",
+      "trial": 0,
+      "wall_seconds": 0.2867060899734497,
+      "edits": 15,
+      "reference_words": 151,
+      "wer": 0.09933774834437085
+    },
+    {
+      "audio_seconds": 58.406875,
+      "fixture": "/Users/sergekadjo/Documents/Claude/Projects/next-notes/Tests/Fixtures/meetings/fr-dialogue.wav",
+      "rtfx": 221.09495005250386,
+      "text": "Donc on garde le budget à 40 000 pour le moment. Oui c'est ça, je t'envoie le devis demain matin. Il faut que Marc valide avec la banque avant vendredi. Non mais attends, ce n'est pas le même prix qu'hier. On signe le contrat la semaine prochaine, sans faute. D'accord, et on prévoit la nouvelle pour le 15. Le client veut trois exemplaires, pas deux. Je note ça, je préviens mes clips cet après-midi. Tu as vu le rapport de Sophie sur les retards. Oui, elle propose de décaler la réunion à jeudi. Parfait, on confirme la salle pour 9h. Et on a vu ce qu'arrive pour la partie technique. Il reste 12 000 euros sur l'enveloppe travaux. On les garde pour les imprévus de décembre. Alors c'est réglé, on se revoit lundi prochain. Très bien, je t'envoie le compte rendu ce soir.",
+      "trial": 1,
+      "wall_seconds": 0.2641710042953491,
+      "edits": 15,
+      "reference_words": 151,
+      "wer": 0.09933774834437085
+    },
+    {
+      "audio_seconds": 58.406875,
+      "fixture": "/Users/sergekadjo/Documents/Claude/Projects/next-notes/Tests/Fixtures/meetings/fr-dialogue.wav",
+      "rtfx": 200.31029808660543,
+      "text": "Donc on garde le budget à 40 000 pour le moment. Oui c'est ça, je t'envoie le devis demain matin. Il faut que Marc valide avec la banque avant vendredi. Non mais attends, ce n'est pas le même prix qu'hier. On signe le contrat la semaine prochaine, sans faute. D'accord, et on prévoit la nouvelle pour le 15. Le client veut trois exemplaires, pas deux. Je note ça, je préviens mes clips cet après-midi. Tu as vu le rapport de Sophie sur les retards. Oui, elle propose de décaler la réunion à jeudi. Parfait, on confirme la salle pour 9h. Et on a vu ce qu'arrive pour la partie technique. Il reste 12 000 euros sur l'enveloppe travaux. On les garde pour les imprévus de décembre. Alors c'est réglé, on se revoit lundi prochain. Très bien, je t'envoie le compte rendu ce soir.",
+      "trial": 2,
+      "wall_seconds": 0.29158198833465576,
+      "edits": 15,
+      "reference_words": 151,
+      "wer": 0.09933774834437085
+    }
+  ]
+}

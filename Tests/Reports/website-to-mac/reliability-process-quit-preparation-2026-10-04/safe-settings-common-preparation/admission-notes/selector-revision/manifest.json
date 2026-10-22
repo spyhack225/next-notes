@@ -1,0 +1,11 @@
+{
+  "status": "ADDITIVE_SAME_COMMON_HELD_UNCOMPILED",
+  "baseManifestSHA256": "6e6573f2f800c5247006789a90dc7ddfffb3436e2f5b6ddbcf8fdc431d70bb26",
+  "baseFixtureSHA256": "3fec2febf8bd28ae338dbf7866a976dc4beafbc44d579a572775e790c0498878",
+  "artifacts": {
+    "NativeNotesSettingsSelfTest.swift.revised": "24633ea451ba21caff6de79b68dd1e63ed87e3f808a23f6f3e7fc06184797756",
+    "COMMON-selector-from-frozen.patch.txt": "38ee85cbf8c05ef59c0dcb5763528c1758e7663c2bc2989e2bf591c8586bf356",
+    "copy-only-replay.json": "48b7fc26c6448d1334a104fcee2b9ac9c9a347cc59e27f3a32863d96c3230482",
+    "README.md": "a14b6d54c77c349489627b1f053ee47dbfa6dc32797ef3b0bba2340b3879a592"
+  }
+}

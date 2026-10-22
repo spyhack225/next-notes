@@ -1,0 +1,9 @@
+{
+  "status": "CONDITIONAL_SOURCE_ONLY_NO_RELEASE",
+  "artifacts": {
+    "review.md": "b496401b3e9ab70a2a5d28c5d18790e04aed17a248dc2a59080ef4fa461133c1",
+    "pins.json": "ad8dff88811cd4821e0b5596ae7469374817be31fd9a50ef5091d0b804c834a1"
+  },
+  "selectedRevisionSHA256": "ff390c37b9d688f4fbcd46ccd17dceda6c9b21abdecbad68083d754e43401f3d",
+  "combinedPacket": "PENDING independent frozen composition review"
+}

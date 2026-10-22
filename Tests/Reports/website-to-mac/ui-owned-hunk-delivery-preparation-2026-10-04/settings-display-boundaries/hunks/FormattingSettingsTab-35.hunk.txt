@@ -1,0 +1,6 @@
+--- a/Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift
++++ b/Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift
+@@ -358,2 +444 @@ private struct OutputProfileRow: View {
+-        .menuIndicator(.hidden)
+-        .frame(width: DS.Size.formatCapabilityColumn)
++        .menuIndicator(compact ? .visible : .hidden)

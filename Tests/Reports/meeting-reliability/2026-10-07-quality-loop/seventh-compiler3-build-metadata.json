@@ -1,0 +1,50 @@
+{
+  "at": "2026-10-08T08:27:51.370579+00:00",
+  "exit": -15,
+  "wallSeconds": 66.4653714590022,
+  "guardReason": "summed owned footprint above3GB",
+  "originalOwnerEightUnchanged": true,
+  "ownerStatusCountsBefore": {
+    "done": 16
+  },
+  "sourceInvariant": true,
+  "sourceCount": 1176,
+  "remainingOwnedPIDs": [],
+  "ordinarySwap8Crossed": false,
+  "profile": "peer reviewed relay720 compiler-only initial normal8/min6.5/free55; ongoing explicit swap9 exception/min6.5/free40/summed3GB/1200s; no inference or owner app launch",
+  "phaseReceipts": [
+    {
+      "phase": "compile",
+      "errorType": null,
+      "exit": -15,
+      "observationDetails": [],
+      "drain": {
+        "observationDetails": [],
+        "remainingOwnedPIDs": [],
+        "unresolvedPIDs": [],
+        "errors": [],
+        "seconds": 0.21471645799465477,
+        "sent": [
+          {
+            "pid": 5395,
+            "processStart": 1492888820469,
+            "signal": 15
+          },
+          {
+            "pid": 5446,
+            "processStart": 1492962779974,
+            "signal": 15
+          },
+          {
+            "pid": 5451,
+            "processStart": 1492977716436,
+            "signal": 15
+          }
+        ]
+      }
+    }
+  ],
+  "samples": 182,
+  "peakSampledOwnedFootprintBytes": 3192787480,
+  "installed": false
+}

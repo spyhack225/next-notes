@@ -1,0 +1,41 @@
+{
+  "scope": "three existing view files; readiness/header/control fallbacks, two native text actions, one native selectable Formatting List replacing collapsed nested List",
+  "sources": [
+    {
+      "path": "Sources/NextNotes/UI/Settings/ComputerBrowserReadiness.swift",
+      "beforeSHA256": "2fa02ba0dc88ea8d426888dd968bcfa6c489c52f30f1d0e0fd6fb102963f19bf",
+      "proposedSHA256": "513e885becca8306b95a13bde2fea217106d0fddaa086f55766ac30ca1b6f5df"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift",
+      "beforeSHA256": "c750e16bd51c4f8f40875d2122b3a89d57dfe3a02f40cd2a08ec7f0c4eb64d69",
+      "proposedSHA256": "dbf3a77207f535b35ed69e7d02bbc5415765f4dd61af4465c90ce582ff0f1b54"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Settings/AgentSettingsTab.swift",
+      "beforeSHA256": "b31f0440dd9f45ccd8112f4aebb1c0ce8b2d1094fde8ba302d64c1d1db2ecf02",
+      "proposedSHA256": "e7432003a343b2e9a7901cae4676b78216098823bad4d142cb640f4f9e341f31"
+    }
+  ],
+  "patchSHA256": "b88afd58fe045313ef9b905c6e1911fc05f97787d03482f3a64d51f968829ba0",
+  "verification": "copy baseline applicability only; Source/native/build/model untouched",
+  "status": "PACKAGED_APP36_VIEWPORT_CORRECTED_PARTIAL_VISUAL_ONLY",
+  "original_profile_evidence": "../../settings-app33-profile/README.md",
+  "supersedes_as_alternative": "../combined-review/README.md",
+  "prior_status": "UNAPPLIED_REVIEW_COPY_ONLY",
+  "source_application_provenance": "source-application.json",
+  "prior_source_status": "APPLIED_SOURCE_ONLY_UNCOMPILED_UNRUN_REFROZEN",
+  "packaged_result": {
+    "report": "../../settings-app36/README.md",
+    "executable_sha256": "f595f268e10d4015df0bf74578287de488cdcd3e59fc21e71b4b56672f929959",
+    "capture_checks": "six original calls pass",
+    "viewport_regression": "corrected",
+    "remaining": [
+      "narrow profile row readability",
+      "native List footer truncation",
+      "physical native interactions",
+      "motion admission",
+      "latency"
+    ]
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "scope": "source assertions only; native UI not built or installed",
+  "original_failed": 4,
+  "fixed_passed": 4,
+  "changed_source_sha256": {
+    "Sources/NextNotes/Support/Settings.swift": "4a3d4206c6790f4e243171fd5ad3bfd882a78d4d56310195e04310fc0bb28b64",
+    "Sources/NextNotes/UI/Settings/DictationSettingsTab.swift": "0ed1de176d4a83b1ef0330870becc8a71d54e8e9c7ee7f16cc105efe0e9e80e8"
+  }
+}

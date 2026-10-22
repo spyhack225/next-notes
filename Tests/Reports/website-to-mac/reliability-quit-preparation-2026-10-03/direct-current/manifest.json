@@ -1,0 +1,66 @@
+{
+  "status": "OFF_SOURCE_SOURCE_ONLY_UNCOMPILED_UNRUN",
+  "sourcePreimages": {
+    "Sources/NextNotes/Core/DictationController.swift": "881bff421bc879a2d96b6f8051a0410d1a5eb32b0863648df6166349d8e76a4b",
+    "Sources/NextNotes/Transcription/ParakeetEngine.swift": "63d4cc5b03bf0e29d97ada2dcc0851a62d51cd911226e7e55797ab18fd7f693d",
+    "Sources/NextNotes/Support/NativeStartupTerminationSelfTest.swift": "08efb6837d52bd8f216ec3d21ee7d1367d9791472c65f2e162c52bcbc77b73c2",
+    "Sources/NextNotes/NextNotesApp.swift": "bc01a27f48478a297d07a1d35669c313615cc7c182c0c6d113b4899e792a1b61"
+  },
+  "stages": {
+    "current": {
+      "Sources/NextNotes/Core/DictationController.swift": "881bff421bc879a2d96b6f8051a0410d1a5eb32b0863648df6166349d8e76a4b",
+      "Sources/NextNotes/Transcription/ParakeetEngine.swift": "63d4cc5b03bf0e29d97ada2dcc0851a62d51cd911226e7e55797ab18fd7f693d",
+      "Sources/NextNotes/Support/NativeStartupTerminationSelfTest.swift": "08efb6837d52bd8f216ec3d21ee7d1367d9791472c65f2e162c52bcbc77b73c2",
+      "Sources/NextNotes/NextNotesApp.swift": "bc01a27f48478a297d07a1d35669c313615cc7c182c0c6d113b4899e792a1b61"
+    },
+    "directCommon": {
+      "Sources/NextNotes/Core/DictationController.swift": "78d8550d39ce2c35518bfb53d301c371229ae46542ac8b4db904022cd17f35b7",
+      "Sources/NextNotes/Transcription/ParakeetEngine.swift": "cacec5d9aaa23efbbf8654b7253b855e4e57489f256ae81414523ac822df8918",
+      "Sources/NextNotes/Support/NativeStartupTerminationSelfTest.swift": "406389a0fa7b3cf8e4907adf27a70d1df3d038473966a086a6334d95b52d4410",
+      "Sources/NextNotes/NextNotesApp.swift": "3076b8552afadb81880eb0f21fe742ac4c820d4906563dc1ceb45f851233fd7b",
+      "Sources/NextNotes/Support/NativeDirectDictationQuitSelfTest.swift": "1734893ddca0f8a32c89c9e44466b502aea4f67080d8199459182f5e22fb508b"
+    },
+    "directFixed": {
+      "Sources/NextNotes/Core/DictationController.swift": "2b9bede65a3d7ae49b82cd8817633250769f16ca92f2b447e573ef6b5d569d4d",
+      "Sources/NextNotes/Transcription/ParakeetEngine.swift": "ad7ed3a797306b5c946aa874b4fc990aa5a42bdddd2b98b8d9f692e7be26de3e",
+      "Sources/NextNotes/Support/NativeStartupTerminationSelfTest.swift": "406389a0fa7b3cf8e4907adf27a70d1df3d038473966a086a6334d95b52d4410",
+      "Sources/NextNotes/NextNotesApp.swift": "3076b8552afadb81880eb0f21fe742ac4c820d4906563dc1ceb45f851233fd7b",
+      "Sources/NextNotes/Support/NativeDirectDictationQuitSelfTest.swift": "1734893ddca0f8a32c89c9e44466b502aea4f67080d8199459182f5e22fb508b"
+    },
+    "lateCommon": {
+      "Sources/NextNotes/Core/DictationController.swift": "2b9bede65a3d7ae49b82cd8817633250769f16ca92f2b447e573ef6b5d569d4d",
+      "Sources/NextNotes/Transcription/ParakeetEngine.swift": "180b31f4f757f4a9884a3c608c3e5d500098b907225e71805059db16de873211",
+      "Sources/NextNotes/Support/NativeStartupTerminationSelfTest.swift": "4fc1eeae2b03d07b1163dc59eb31b3f2cc97f32214282e31ec8ec0aa87308604",
+      "Sources/NextNotes/NextNotesApp.swift": "3076b8552afadb81880eb0f21fe742ac4c820d4906563dc1ceb45f851233fd7b",
+      "Sources/NextNotes/Support/NativeDirectDictationQuitSelfTest.swift": "fc67c4f827e2953597918993417b14d4654595f4cfa2a50e5ccc67de5ccf5074",
+      "Sources/NextNotes/Support/NativeParakeetLateFeedSelfTest.swift": "c01942401acfd7920900ebceff2841141217088b9e468a148cd6f9c99d8ae280"
+    },
+    "lateFixed": {
+      "Sources/NextNotes/Core/DictationController.swift": "2b9bede65a3d7ae49b82cd8817633250769f16ca92f2b447e573ef6b5d569d4d",
+      "Sources/NextNotes/Transcription/ParakeetEngine.swift": "3467842abec7b0e178891cd1144fcb2c72fa7c8be93f07f16160a08d5b4483ab",
+      "Sources/NextNotes/Support/NativeStartupTerminationSelfTest.swift": "4fc1eeae2b03d07b1163dc59eb31b3f2cc97f32214282e31ec8ec0aa87308604",
+      "Sources/NextNotes/NextNotesApp.swift": "3076b8552afadb81880eb0f21fe742ac4c820d4906563dc1ceb45f851233fd7b",
+      "Sources/NextNotes/Support/NativeDirectDictationQuitSelfTest.swift": "fc67c4f827e2953597918993417b14d4654595f4cfa2a50e5ccc67de5ccf5074",
+      "Sources/NextNotes/Support/NativeParakeetLateFeedSelfTest.swift": "c01942401acfd7920900ebceff2841141217088b9e468a148cd6f9c99d8ae280"
+    }
+  },
+  "patches": {
+    "late-input-common-after-direct33-fixed.patch.txt": "887c7d812964a3e99b9dab067dd7d7775d029dcbbdfbe26f491804fbe70158c7",
+    "direct33-common-current.patch.txt": "cd30e3768434805fba037d383a29ff4cc4579225c959379e6683922e43215816",
+    "late-input-fixed-after-common.patch.txt": "4b48b8937ba317c913bbb81b30b883f2b2f879f89ce8aaa0a595d1466ccef7f2",
+    "direct33-fixed-current.patch.txt": "5536f58449b2e84c70dc86a9670fd10937d35bfeb6f156df79a7d5cf036d1657"
+  },
+  "frozenInputs": {
+    "directFixture": "1734893ddca0f8a32c89c9e44466b502aea4f67080d8199459182f5e22fb508b",
+    "lateFixture": "c01942401acfd7920900ebceff2841141217088b9e468a148cd6f9c99d8ae280",
+    "directCommon": "fa8b508043b3f54c4732058c730fc0eebdaff276fcb2720c18842f04e6e7d0b8",
+    "directFixed": "8f5cd7486aa92bf5bb5f24007f78492db346d4a1f5a97113dcecf1c4de0e572a",
+    "lateDispatcher": "f69a3ecada84ff95825244dfd5bedc8c962d60cad44774512a7442355ee36ca0",
+    "lateEngineCommon": "8da2e3d263cc86324e8b6c6b83a851d33eb55974611877a25693d2a87c399f5a",
+    "lateTrace": "0015187974eacd8da676e547e2c87179e58934563e5543fd9eb9fc71bac87d19",
+    "lateEngineFixed": "043e2f3178bc66d7565bbb930386cbee98bb66728b25dafb14bc7de231254c8b"
+  },
+  "sourceOnlyReplaySHA256": "0146aaa52459e70ac6b253df64df1f8743e5e387d53f39e270ac474f1679367d",
+  "reviewREADME_SHA256": "898e9da1bd362b8f7653eb326f3ec32644975caa5c9976e23cf91cdd3c7d655a",
+  "nativeVerdict": "UNRUN; no model/public asset opened or copied by this worker"
+}

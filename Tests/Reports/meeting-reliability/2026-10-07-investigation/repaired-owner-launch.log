@@ -1,0 +1,6 @@
+[Profiling] Embedding timings: fbankTotal=279.61ms (perWindow=279.606ms), maskPrepTotal=0.00ms (perEval=0.002ms), resampleTotal=0.02ms (perValid=0.020ms), embeddingTotal=87.49ms (perValid=87.488ms), pldaTotal=81.92ms (perValid=81.916ms), batches(fbank=1, plda=1)
+[Profiling] Segmentation timings: windows=64 prepareTotal=185.29ms (perWindow=2.8952ms) predictionTotal=36402.79ms (perWindow=568.7936ms)
+[Profiling] Embedding timings: fbankTotal=1619.04ms (perWindow=25.298ms), maskPrepTotal=0.03ms (perEval=0.000ms), resampleTotal=0.00ms (perValid=0.000ms), embeddingTotal=0.00ms (perValid=0.000ms), pldaTotal=0.00ms (perValid=0.000ms), batches(fbank=2, plda=0)
+2026-10-07 12:58:02.622 NextNotes[17128:168608] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+[Profiling] Segmentation timings: windows=198 prepareTotal=34.30ms (perWindow=0.1732ms) predictionTotal=7364.53ms (perWindow=37.1946ms)
+[Profiling] Embedding timings: fbankTotal=809.12ms (perWindow=4.086ms), maskPrepTotal=0.11ms (perEval=0.000ms), resampleTotal=0.00ms (perValid=0.000ms), embeddingTotal=0.00ms (perValid=0.000ms), pldaTotal=0.00ms (perValid=0.000ms), batches(fbank=7, plda=0)

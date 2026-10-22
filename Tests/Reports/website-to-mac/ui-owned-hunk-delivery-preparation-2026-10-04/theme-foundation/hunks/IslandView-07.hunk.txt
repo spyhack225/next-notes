@@ -1,0 +1,5 @@
+--- a/Sources/NextNotes/UI/Island/IslandView.swift
++++ b/Sources/NextNotes/UI/Island/IslandView.swift
+@@ -454 +459 @@ struct IslandView: View {
+-                    .tracking(0)
++                    .tracking(DS.Font.wordTracking)

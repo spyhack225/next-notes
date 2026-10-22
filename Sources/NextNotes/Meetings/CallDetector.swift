@@ -428,6 +428,19 @@ final class CallDetector {
     /// Internal rather than private because M-11 stamps it on a meeting as the call that
     /// covers it, and a call identity that only `event(for:)` could mint is one
     /// `MeetingScheduler` cannot write.
+    /// The moment the call was first seen, read back out of the identity a
+    /// detected-call meeting carries.
+    ///
+    /// The recording's own start is not the call's start: a person can take a
+    /// minute to answer "Record it?", and a title matched against the
+    /// recording's clock would then miss the meeting the call was about.
+    static func callStart(fromIdentity identity: String?) -> Date? {
+        guard let identity, let at = identity.lastIndex(of: "@") else { return nil }
+        let seconds = String(identity[identity.index(after: at)...])
+        guard let epoch = TimeInterval(seconds) else { return nil }
+        return Date(timeIntervalSince1970: epoch)
+    }
+
     static func identity(of call: CallActivity) -> String {
 
         let app = call.bundleID ?? "pid-\(call.pid)"

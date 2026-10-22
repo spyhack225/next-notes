@@ -1,0 +1,292 @@
+[
+  {
+    "id": "E445ED13-2A09-4478-BD40-227EED253FD5",
+    "start": "2026-09-10T00:35:26Z",
+    "end": "2026-09-10T00:39:52Z",
+    "status": {
+      "state": "done"
+    },
+    "captureIntegrity": null,
+    "audioIsTemporary": false,
+    "audioReleaseAfter": null,
+    "notesModel": "Qwen3.5-4B",
+    "providerID": "detectedCall",
+    "audio_files": [],
+    "notes_present": true,
+    "transcript_segments": {
+      "transcript.json": 66
+    }
+  },
+  {
+    "id": "1B6B0944-66E5-4572-9C5A-A1BAF60CA6E0",
+    "start": "2026-09-13T19:06:38Z",
+    "end": "2026-09-13T19:20:52Z",
+    "status": {
+      "state": "done"
+    },
+    "captureIntegrity": null,
+    "audioIsTemporary": true,
+    "audioReleaseAfter": null,
+    "notesModel": "Qwen3.5-4B",
+    "providerID": "detectedCall",
+    "audio_files": [],
+    "notes_present": true,
+    "transcript_segments": {
+      "transcript.json": 108
+    }
+  },
+  {
+    "id": "C9781051-2BE3-4BD4-BB92-5C986E7C918A",
+    "start": "2026-09-13T21:12:15Z",
+    "end": "2026-09-13T21:33:35Z",
+    "status": {
+      "state": "done"
+    },
+    "captureIntegrity": null,
+    "audioIsTemporary": true,
+    "audioReleaseAfter": null,
+    "notesModel": "Qwen3.5-4B",
+    "providerID": "detectedCall",
+    "audio_files": [],
+    "notes_present": true,
+    "transcript_segments": {
+      "transcript.json": 329
+    }
+  },
+  {
+    "id": "C101E0E5-498E-4747-8B27-F90B8D4C2364",
+    "start": "2026-09-16T00:23:09Z",
+    "end": "2026-09-16T00:33:18Z",
+    "status": {
+      "state": "done"
+    },
+    "captureIntegrity": null,
+    "audioIsTemporary": true,
+    "audioReleaseAfter": null,
+    "notesModel": "Qwen3.5-4B",
+    "providerID": "detectedCall",
+    "audio_files": [],
+    "notes_present": true,
+    "transcript_segments": {
+      "transcript.json": 214
+    }
+  },
+  {
+    "id": "CEACD80D-3188-4B2C-AC27-9698F5BDFC3F",
+    "start": "2026-09-16T16:25:05Z",
+    "end": "2026-09-16T16:51:57Z",
+    "status": {
+      "state": "done"
+    },
+    "captureIntegrity": null,
+    "audioIsTemporary": true,
+    "audioReleaseAfter": null,
+    "notesModel": "Qwen3.5-4B",
+    "providerID": "detectedCall",
+    "audio_files": [],
+    "notes_present": true,
+    "transcript_segments": {
+      "transcript.json": 562
+    }
+  },
+  {
+    "id": "6C5EBA1B-CA1A-4E54-B918-E4348C4BD109",
+    "start": "2026-09-19T19:47:40Z",
+    "end": "2026-09-19T20:12:51Z",
+    "status": {
+      "state": "done"
+    },
+    "captureIntegrity": null,
+    "audioIsTemporary": true,
+    "audioReleaseAfter": null,
+    "notesModel": "Qwen3.5-4B",
+    "providerID": null,
+    "audio_files": [],
+    "notes_present": true,
+    "transcript_segments": {
+      "transcript.json": 393
+    }
+  },
+  {
+    "id": "AC4604C4-5DF5-400F-B580-7B382A844C28",
+    "start": "2026-09-29T14:02:22Z",
+    "end": "2026-09-29T14:03:07Z",
+    "status": {
+      "state": "done"
+    },
+    "captureIntegrity": null,
+    "audioIsTemporary": false,
+    "audioReleaseAfter": null,
+    "notesModel": "Qwen3-4B-Instruct-2507",
+    "providerID": "google",
+    "audio_files": [],
+    "notes_present": true,
+    "transcript_segments": {
+      "transcript.json": 9,
+      "transcript.live.json": 9
+    }
+  },
+  {
+    "id": "8E92941A-FC98-4AA9-887A-65A1C00F9CC5",
+    "start": "2026-10-01T13:59:59Z",
+    "end": "2026-10-01T14:04:26Z",
+    "status": {
+      "state": "done"
+    },
+    "captureIntegrity": null,
+    "audioIsTemporary": true,
+    "audioReleaseAfter": null,
+    "notesModel": "MiniCPM5-2B",
+    "providerID": "google",
+    "audio_files": [],
+    "notes_present": true,
+    "transcript_segments": {
+      "transcript.json": 21,
+      "transcript.live.json": 6
+    }
+  },
+  {
+    "id": "0D413A08-C74D-426C-9D30-3EE0C2F7F51B",
+    "start": "2026-10-02T05:43:50Z",
+    "end": "2026-10-02T05:44:01Z",
+    "status": {
+      "state": "done"
+    },
+    "captureIntegrity": {
+      "audioWriteFailed": false,
+      "captureGap": false,
+      "interruptedAt": "2026-10-02T05:51:15Z",
+      "interruptionReason": "unknown",
+      "lastCapturedAt": "2026-10-02T05:44:01Z",
+      "missingCaptureFrames": 0
+    },
+    "audioIsTemporary": true,
+    "audioReleaseAfter": "2026-10-05T06:29:50Z",
+    "notesModel": "MiniCPM5-2B",
+    "providerID": "detectedCall",
+    "audio_files": [],
+    "notes_present": true,
+    "transcript_segments": {
+      "transcript.json": 5,
+      "transcript.live.json": 2
+    }
+  },
+  {
+    "id": "BADE13F5-EC89-4853-B1A2-9E98BC32AF04",
+    "start": "2026-10-03T01:09:19Z",
+    "end": "2026-10-03T01:09:28Z",
+    "status": {
+      "state": "done"
+    },
+    "captureIntegrity": {
+      "audioWriteFailed": false,
+      "captureGap": false,
+      "interruptedAt": "2026-10-03T01:21:01Z",
+      "interruptionReason": "unknown",
+      "lastCapturedAt": "2026-10-03T01:09:28Z",
+      "missingCaptureFrames": 0
+    },
+    "audioIsTemporary": null,
+    "audioReleaseAfter": null,
+    "notesModel": "MiniCPM5-2B",
+    "providerID": "detectedCall",
+    "audio_files": [],
+    "notes_present": true,
+    "transcript_segments": {
+      "transcript.json": 2
+    }
+  },
+  {
+    "id": "8F271AED-1032-46BA-843F-6167798914FB",
+    "start": "2026-10-06T18:20:38Z",
+    "end": "2026-10-06T18:20:39Z",
+    "status": {
+      "state": "done"
+    },
+    "captureIntegrity": {
+      "audioWriteFailed": false,
+      "captureGap": false,
+      "interruptedAt": "2026-10-06T18:20:39Z",
+      "interruptionReason": "unknown",
+      "lastCapturedAt": "2026-10-06T18:20:38Z",
+      "missingCaptureFrames": 0
+    },
+    "audioIsTemporary": true,
+    "audioReleaseAfter": "2026-10-09T19:42:57Z",
+    "notesModel": "MiniCPM5-2B",
+    "providerID": "detectedCall",
+    "audio_files": [
+      {
+        "name": "audio.caf",
+        "bytes": 84388
+      }
+    ],
+    "notes_present": true,
+    "transcript_segments": {
+      "transcript.json": 1,
+      "transcript.live.json": 0
+    }
+  },
+  {
+    "id": "F9D3A2B3-80FD-4E4D-959E-7717B45E917F",
+    "start": "2026-10-06T19:48:40Z",
+    "end": "2026-10-06T19:48:53Z",
+    "status": {
+      "state": "done"
+    },
+    "captureIntegrity": {
+      "audioWriteFailed": false,
+      "captureGap": false,
+      "interruptedAt": "2026-10-06T21:30:51Z",
+      "interruptionReason": "unknown",
+      "lastCapturedAt": "2026-10-06T19:48:53Z",
+      "missingCaptureFrames": 0
+    },
+    "audioIsTemporary": true,
+    "audioReleaseAfter": "2026-10-09T21:31:25Z",
+    "notesModel": "MiniCPM5-2B",
+    "providerID": "detectedCall",
+    "audio_files": [
+      {
+        "name": "audio.caf",
+        "bytes": 8720136
+      }
+    ],
+    "notes_present": true,
+    "transcript_segments": {
+      "transcript.json": 8,
+      "transcript.live.json": 3
+    }
+  },
+  {
+    "id": "7BEBD40A-8CCD-4014-9E99-E704180DB909",
+    "start": "2026-10-07T14:05:34Z",
+    "end": "2026-10-07T14:05:58Z",
+    "status": {
+      "state": "done"
+    },
+    "captureIntegrity": {
+      "audioWriteFailed": false,
+      "captureGap": false,
+      "interruptedAt": "2026-10-07T15:31:22Z",
+      "interruptionReason": "unknown",
+      "lastCapturedAt": "2026-10-07T14:05:58Z",
+      "missingCaptureFrames": 0
+    },
+    "audioIsTemporary": true,
+    "audioReleaseAfter": "2026-10-10T15:33:19Z",
+    "notesModel": "MiniCPM5-2B",
+    "providerID": "detectedCall",
+    "audio_files": [
+      {
+        "name": "audio.caf",
+        "bytes": 3773272
+      }
+    ],
+    "notes_present": true,
+    "transcript_segments": {
+      "transcript.json": 19,
+      "transcript.live.json": 7
+    }
+  }
+]

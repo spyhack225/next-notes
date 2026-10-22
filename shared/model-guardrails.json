@@ -1,0 +1,151 @@
+{
+  "schema": 1,
+  "about": "Owner-editable guardrails read by Scripts/model-bench.py (make bench-models). Edit a number here; no code changes. 'gated': true means a failing or unmeasured value stops a candidate from passing that role; false means it is reported only. 'status' records who decided the number: 'decided' is an owner decision with a date, 'proposed' is a default nobody has confirmed yet. The reference machine is a 16 GB / 256 GB M2-M3 MacBook Air with ASR and voice running; a run on any other machine, or under contention, is a diagnostic and never passes.",
+  "reference_machine": {
+    "memory_gb": 16,
+    "chip_families": ["Apple M2", "Apple M3"],
+    "power": "adapter",
+    "owner_note": "2026-10-04 decision: a benchmark on this machine picks the silent default, never the user."
+  },
+  "guardrails": {
+    "decode_tps_p10": {
+      "label": "Decode speed floor (p10 of 10 fixed 256-token runs, under ASR load)",
+      "roles": ["speed"], "op": ">=", "value": 20, "unit": "tok/s", "gated": true,
+      "status": "decided 2026-10-04",
+      "measured_by": "--selftest-llm-metal --floor (C1: file-fed Parakeet running)"
+    },
+    "decode_tps_median_target": {
+      "label": "Decode speed target (median), 25 to 30",
+      "roles": ["speed"], "op": ">=", "value": 25, "unit": "tok/s", "gated": false,
+      "status": "decided 2026-10-04 (target, not a floor)",
+      "measured_by": "--selftest-llm-metal --floor"
+    },
+    "sustained_last_minute_tps": {
+      "label": "Decode speed in the last minute of a 10 minute sustained run",
+      "roles": ["speed"], "op": ">=", "value": 20, "unit": "tok/s", "gated": true,
+      "status": "proposed",
+      "only_when": "full",
+      "measured_by": "--floor-sustain 600 (only a --full run measures it)"
+    },
+    "warm_ttft_s": {
+      "label": "Warm first token on the voice route, under a full voice turn (C2)",
+      "roles": ["speed"], "op": "<=", "value": 0.4, "unit": "s", "gated": true,
+      "status": "decided 2026-10-04",
+      "measured_by": "C2 voice turn. --floor reports C2=UNMEASURED today (PL-01 item 3 is open), so this is recorded as unmeasured and the median warm first-token time of the C1 rounds is shown for information only. Set gated to false to ignore it until C2 is wired."
+    },
+    "peak_footprint_gb": {
+      "label": "Peak app memory (physical footprint of the self-test process)",
+      "roles": ["agent", "cleanup", "notes", "speed"], "op": "<=", "value": 6.0, "unit": "GB", "gated": true,
+      "status": "decided 2026-10-04 (under C2)",
+      "measured_by": "proc_pid_rusage polled once a second by the bench script"
+    },
+    "memory_target_gb": {
+      "label": "Memory challenge target (about 2 GB)",
+      "roles": ["agent", "cleanup", "notes", "speed"], "op": "<=", "value": 2.0, "unit": "GB", "gated": false,
+      "status": "direction, not a cap (owner: a challenge, not a ceiling)",
+      "measured_by": "same sample as peak_footprint_gb"
+    },
+    "swap_growth_mb": {
+      "label": "Swap growth during the run",
+      "roles": ["speed"], "op": "<=", "value": 256, "unit": "MB", "gated": true,
+      "status": "decided 2026-10-04",
+      "measured_by": "LLM_FLOOR swap_growth, else the bench script's own vm.swapusage samples"
+    },
+    "pressure_worst": {
+      "label": "Worst memory pressure seen stays normal",
+      "roles": ["speed"], "op": "==", "value": "normal", "unit": "", "gated": true,
+      "status": "decided 2026-10-04",
+      "measured_by": "LLM_FLOOR pressure_worst_observed"
+    },
+    "artifact_disk_gb": {
+      "label": "The language-model file stays small enough to ship by default",
+      "roles": ["agent", "cleanup", "notes", "speed"], "op": "<=", "value": 3.0, "unit": "GB", "gated": true,
+      "status": "decided 2026-10-04",
+      "measured_by": "file size on disk (Apple's built-in model is OS-resident and exempt)"
+    },
+    "agent_quick_score_min": {
+      "label": "Agent quick score (out of 10)",
+      "roles": ["agent"], "op": ">=", "value": 9, "unit": "of 10", "gated": true,
+      "status": "decided (AGENT-OVERHAUL fixed bar)",
+      "only_when": "quick",
+      "measured_by": "--selftest-toolloop-live --quick (TOOLLOOP_LIVE_SCORE)"
+    },
+    "agent_full_score_min": {
+      "label": "Agent full score (out of 30)",
+      "roles": ["agent"], "op": ">=", "value": 25, "unit": "of 30", "gated": true,
+      "status": "decided (AGENT-OVERHAUL fixed bar)",
+      "only_when": "full",
+      "measured_by": "--selftest-toolloop-live (TOOLLOOP_LIVE_SCORE)"
+    },
+    "cleanup_failed_assertions_max": {
+      "label": "Dictation cleanup: failed assertions over the cleanup corpus",
+      "roles": ["cleanup"], "op": "<=", "value": 3, "unit": "assertions", "gated": true,
+      "status": "proposed (MiniCPM5-2B scored 3 on 2026-09-30; Apple scored 0)",
+      "measured_by": "--selftest-cleanup app-llm-compare --compare-only (GGUF), apple-grammar (Apple), s1 (S1-mini)"
+    },
+    "cleanup_p50_s": {
+      "label": "Dictation cleanup: median seconds per cleanup pass",
+      "roles": ["cleanup"], "op": "<=", "value": 1.0, "unit": "s", "gated": true,
+      "status": "proposed (MiniCPM5-2B 0.59 s, Apple 3.03 s on 2026-09-30)",
+      "measured_by": "the median in MODEL_COMPARE / CLEANUP_SUMMARY"
+    },
+    "notes_headings_missing_max": {
+      "label": "Meeting notes: every required section is present",
+      "roles": ["notes"], "op": "<=", "value": 0, "unit": "missing", "gated": true,
+      "status": "proposed",
+      "measured_by": "--selftest-notes <wav> --notes-model (NOTES_HEADINGS_MISSING)"
+    },
+    "notes_tps_min": {
+      "label": "Meeting notes: generated tokens per second (includes prompt reading, so lower than pure decode)",
+      "roles": ["notes"], "op": ">=", "value": 20, "unit": "tok/s", "gated": false,
+      "status": "proposed, reported only",
+      "measured_by": "NOTES_OK line"
+    },
+    "notes_quality_rubric": {
+      "label": "Meeting notes: factual quality against the predeclared rubric (SB-07)",
+      "roles": ["notes"], "op": "n/a", "value": null, "unit": "", "gated": false,
+      "status": "open: the SB-07 corpus and rubric do not exist yet, so notes content is NOT graded here; reading the notes is a human step",
+      "measured_by": "none"
+    }
+  },
+  "runs": {
+    "timeouts_s": {
+      "agent_quick": 3600,
+      "agent_full": 12600,
+      "cleanup": 1800,
+      "notes": 1200,
+      "speed_c0": 900,
+      "speed_c1": 1200,
+      "speed_c1_sustain": 2400
+    },
+    "wall_clock_grace_s": 180,
+    "abort_swap_gb": 8.0,
+    "sample_interval_s": 1.0,
+    "floor_runs": 10,
+    "floor_sustain_s": 600,
+    "agent_planner": null
+  },
+  "fixtures": {
+    "notes_wav": "Tests/Fixtures/meeting-2min.wav",
+    "asr_wav": "Tests/Fixtures/meeting-2min.wav"
+  },
+  "isolation": {
+    "about": "Settings the bench must never change. Compared before and after every run; any difference stops the matrix and fails the report.",
+    "defaults_domain": "ai.pivotstudio.nextnotes",
+    "watch_key_regex": "^(modelRoles\\.|modelLibrary\\.|cleanupEngine)",
+    "ignore_keys": ["modelLibrary.lastUsedAt"],
+    "library_json": "~/Library/Application Support/Next Notes/Models/library.json"
+  },
+  "candidates": {
+    "about": "Display names the cleanup comparison uses for each installed file (matched by lower-case file name fragment). A file without an entry here has no cleanup row until the self-test learns its name.",
+    "cleanup_compare_names": {
+      "minicpm": "MiniCPM5-2B",
+      "qwen3-4b-instruct": "Qwen3-4B-Instruct-2507",
+      "qwen3.5-4b": "Qwen3.5-4B",
+      "gemma-4-e4b": "Gemma 4 E4B"
+    },
+    "builtin_gemma": {"id": "built-in/gemma-4-e4b", "file": "gemma-4-E4B-it-Q4_K_M.gguf", "display": "Gemma 4 E4B"},
+    "cleanup_only_files": {"s1-mini-q4_k_m.gguf": "S1-mini"},
+    "not_language_models": ["embeddinggemma", "potion", "mmproj", "mtp-", "needle"]
+  }
+}

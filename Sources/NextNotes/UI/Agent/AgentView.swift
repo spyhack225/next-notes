@@ -7,6 +7,7 @@ struct AgentView: View {
     @State private var navigation = NavigationState.shared
     @State private var session = AgentSession.shared
     @State private var agent = RealtimeAgent.shared
+    @State private var recoveredReadProblem: (id: String, message: String)?
     @State private var tasks = AgentTaskManager.shared
     @State private var audit = AgentAuditLog.shared
     @State private var gate = PermissionGate.shared
@@ -25,8 +26,6 @@ struct AgentView: View {
     @State private var isReadingLatest = true
     @State private var readerIsScrolling = false
     @State private var hasNewerUpdates = false
-    /// P1-20: the composer's own rows. View state on purpose — see `ComposerNotice`.
-    @State private var notices: [ComposerNotice] = []
     /// Whether the trailing inspector is open. A layout preference, so it is persisted
     /// rather than held in `NavigationState` — which is where *places*, not pane furniture,
     /// live.
@@ -51,23 +50,18 @@ struct AgentView: View {
     private enum TimelineItem: Identifiable {
         case message(AgentSession.Message, String?)
         case event(AgentAuditEntry)
-        /// P1-20: a row the composer raised about the interface. It lives in this enum and
-        /// nowhere else, which is what keeps it out of the model's history, the knowledge index
-        /// and `usage.jsonl` — a notice is not something the Agent said.
-        case notice(ComposerNotice)
+
 
         var id: String {
             switch self {
             case .message(let message, _): "message-\(message.id)"
             case .event(let entry): "event-\(entry.id)"
-            case .notice(let notice): "notice-\(notice.id.timeIntervalSince1970)"
             }
         }
         var at: Date {
             switch self {
             case .message(let message, _): message.at
             case .event(let entry): entry.at
-            case .notice(let notice): notice.at
             }
         }
     }
@@ -90,10 +84,7 @@ struct AgentView: View {
         let actions = audit.entries.filter {
             $0.at >= start && ($0.kind == .tool || $0.kind == .permission || $0.kind == .task)
         }.prefix(40).map { TimelineItem.event($0) }
-        // A notice is always shown, even with no messages yet: interrupting the very first turn
-        // is exactly when a person most needs to know it was them.
-        let said = notices.suffix(10).map { TimelineItem.notice($0) }
-        return (speech + said + (messages.isEmpty ? [] : actions)).sorted {
+        return (speech + (messages.isEmpty ? [] : actions)).sorted {
             if $0.at == $1.at { return $0.id < $1.id }
             return $0.at < $1.at
         }
@@ -249,8 +240,8 @@ struct AgentView: View {
                             Image(systemName: "sparkles")
                                 .font(DS.Font.title)
                                 .foregroundStyle(DS.Color.accent)
-                            Text("What can I help with?")
-                                .font(DS.Font.title)
+                            ThemeHeadline(lead: "What can I", accent: "help with?", level: .pane)
+                                .fixedSize(horizontal: false, vertical: true)
                             Text("Ask a question or give me something to do.")
                                 .font(DS.Font.callout)
                                 .foregroundStyle(DS.Color.textSecondary)
@@ -279,10 +270,9 @@ struct AgentView: View {
                         switch item {
                         case .message(let message, let source): messageRow(message, source: source)
                         case .event(let entry): eventRow(entry)
-                        case .notice(let notice): noticeRow(notice)
                         }
                     }
-                    if agent.isThinking { thinkingRow }
+                    if isWorking { thinkingRow }
                     if !activeTasks.isEmpty {
                         Text("Working on now").font(DS.Font.sectionLabel)
                         ForEach(activeTasks) { task in
@@ -293,7 +283,7 @@ struct AgentView: View {
                             if task.status == .running || task.status == .queued
                                 || task.status == .waitingForPermission {
                                 AgentWorkingCard(task: task, stop: { tasks.cancel(task.id) },
-                                                 animatesActivity: !agent.isThinking && task.id == activeTasks.first?.id, taskManager: tasks)
+                                                 animatesActivity: !isWorking && task.id == activeTasks.first?.id, taskManager: tasks)
                             } else {
                                 taskRow(task)
                             }
@@ -317,6 +307,7 @@ struct AgentView: View {
                     // Keep a full review inside the scroll so expanded fields remain
                     // reachable in a small window. Task-owned reviews stay inline.
                     if let pending = gate.pending, !isShownInline(pending) { permissionCard(pending) }
+                    if let acp = acpGate.pending { acpConfirmCard(acp) }
                     Color.clear.frame(height: DS.Space.xs).id("conversation-bottom")
                 }
                 .padding(DS.Space.page)
@@ -376,7 +367,6 @@ struct AgentView: View {
                     .controlSize(.small)
                     .accessibilityHint("Jump to the newest conversation update")
                 }
-                if let acp = acpGate.pending { acpConfirmCard(acp) }
                 if let caption = answeringModelCaption {
                     // P0-03: the pane says which model answered, so a turn that fell back
                     // to another one cannot be described by Settings as something else.
@@ -498,15 +488,15 @@ struct AgentView: View {
         .glassSurface()
     }
 
-    /// P1-20's notice. A plain centred line, deliberately unlike a message row: it is not
-    /// something either party said, and a row shaped like a message would teach the eye to read
-    /// it as one. It fades on its own so a transcript read tomorrow is not littered with them.
-    private func noticeRow(_ notice: ComposerNotice) -> some View {
-        Text(notice.text)
-            .font(DS.Font.chip)
-            .foregroundStyle(.secondary)
-            .frame(maxWidth: .infinity, alignment: .center)
-            .transition(.opacity)
+    private func openKnowledgeCitation(_ citation: KnowledgeCitation) {
+        switch citation.target {
+        case .meeting(let id, let seconds):
+            if let seconds { navigation.show(meeting: id, at: seconds) } else { navigation.show(meeting: id) }
+        case .conversation: navigation.showConversation()
+        case .routines: navigation.showRoutines()
+        case .dictation: navigation.show(.dictation)
+        case .unavailable: break
+        }
     }
 
     private func messageRow(_ message: AgentSession.Message, source: String?) -> some View {
@@ -528,22 +518,37 @@ struct AgentView: View {
                 }
                 .font(DS.Font.caption)
                 .foregroundStyle(DS.Color.textSecondary)
-                Text(message.text)
+                Group {
+                    if let claims = message.knowledgeClaims, let citations = message.knowledgeCitations {
+                        ForEach(Array(claims.enumerated()), id: \.offset) { _, claim in
+                            KnowledgeClaimRow(claim: claim, citations: citations, open: openKnowledgeCitation)
+                        }
+                        if claims.isEmpty { Text(KnowledgeAnswer.notFound) }
+                    } else {
+                        Text(message.text)
+                    }
+                }
                     .font(DS.Font.body)
                     .textSelection(.enabled)
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(isUser ? DS.Space.m : 0)
                     .background(isUser ? DS.Color.accent.opacity(DS.Opacity.chipFill) : .clear,
                                 in: RoundedRectangle(cornerRadius: DS.Radius.card))
+                if isUser, let facts = message.rememberedFacts {
+                    ForEach(Array(facts.enumerated()), id: \.offset) { _, fact in
+                        Text(fact).font(DS.Font.caption).foregroundStyle(DS.Color.textSecondary)
+                    }
+                }
             }
             .frame(maxWidth: DS.Size.agentBubbleMaxWidth, alignment: isUser ? .trailing : .leading)
             if !isUser { Spacer(minLength: DS.Space.xl) }
         }
         .frame(maxWidth: .infinity)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(agent.respondingMessage?.id == message.id
+        .accessibilityLabel(currentReplyInProgress?.id == message.id
                             ? "\(identity.name) is responding. \(message.text)"
-                            : "\(isUser ? "You" : identity.name). \(message.text)")
+                            : "\(isUser ? "You" : identity.name). \(message.text)"
+                + (message.rememberedFacts.map { " " + $0.joined(separator: " ") } ?? ""))
     }
 
     private func eventRow(_ entry: AgentAuditEntry) -> some View {
@@ -631,6 +636,16 @@ struct AgentView: View {
                 if let request = tasks.pendingInputs.first(where: { $0.taskID == task.id }) {
                     inputCard(request)
                 }
+                if tasks.canRequestRecoveredRead(task), let id = UUID(uuidString: task.id) {
+                    Button("Continue reading") {
+                        if TaskBridge.shared.continueRecoveredRead(id: id, displayedRevision: task.revision, agent: agent) == nil {
+                            recoveredReadProblem = (task.id, "This task is still paused. Its saved work needs checking before it can continue.")
+                        } else { recoveredReadProblem = nil }
+                    }
+                }
+                if let recoveredReadProblem, recoveredReadProblem.id == task.id, task.status == .recovering {
+                    Text(recoveredReadProblem.message).font(DS.Font.caption).foregroundStyle(DS.Color.textSecondary)
+                }
                 if task.status == .running || task.status == .recovering {
                     Button("Cancel") { tasks.cancel(task.id) }
                 }
@@ -645,7 +660,8 @@ struct AgentView: View {
         let answer = inputAnswers[request.id] ?? ""
         let field = tasks.inputField(taskID: request.taskID, requestID: request.id)
         let canContinue = field != nil
-        let choosesFile = field?.kind == .file
+        let choosesDirectory = field?.kind == .folder
+        let choosesFile = field?.kind == .file || choosesDirectory
         let problem = tasks.inputAnswerProblem(taskID: request.taskID, requestID: request.id, text: answer)
         return VStack(alignment: .leading, spacing: DS.Space.s) {
             Text(request.question).font(DS.Font.callout)
@@ -668,7 +684,8 @@ struct AgentView: View {
             HStack {
                 Button("Cancel") { tasks.cancel(request.taskID) }
                 if choosesFile {
-                    Button(answer.isEmpty ? "Choose file" : "Choose another file") { chooseInputFile(request) }
+                    Button(answer.isEmpty ? (choosesDirectory ? "Choose folder" : "Choose file")
+                        : (choosesDirectory ? "Choose another folder" : "Choose another file")) { chooseInputFile(request) }
                         .buttonStyle(.borderedProminent)
                     if !answer.isEmpty {
                         Button("Try again") { submitInputAnswer(request, text: answer) }
@@ -689,14 +706,20 @@ struct AgentView: View {
         }
     }
 
-    private func chooseInputFile(_ request: TaskInputRequest) {
-        guard tasks.inputField(taskID: request.taskID, requestID: request.id)?.kind == .file else { return }
-        let panel = NSOpenPanel()
+    /// The same panel configuration used by the existing input card.
+    static func configureInputPanel(_ panel: NSOpenPanel, request: TaskInputRequest, kind: ToolCallFieldKind) {
         panel.message = request.question
-        panel.prompt = "Read"
-        panel.canChooseFiles = true
-        panel.canChooseDirectories = false
+        panel.prompt = kind == .folder ? "List" : "Read"
+        panel.canChooseFiles = kind != .folder
+        panel.canChooseDirectories = kind == .folder
         panel.allowsMultipleSelection = false
+    }
+
+    private func chooseInputFile(_ request: TaskInputRequest) {
+        guard let field = tasks.inputField(taskID: request.taskID, requestID: request.id),
+              field.kind == .file || field.kind == .folder else { return }
+        let panel = NSOpenPanel()
+        Self.configureInputPanel(panel, request: request, kind: field.kind)
         panel.begin { response in
             guard response == .OK, let url = panel.url else { return }
             inputAnswers[request.id] = url.path
@@ -792,7 +815,7 @@ struct AgentView: View {
             // which is also the only way a follow-up could be sent without pressing Return.
             switch ComposerControl.state(
                 draftIsEmpty: draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-                isThinking: agent.isThinking) {
+                isThinking: isWorking) {
             case .send(let enabled):
                 Button("Send", systemImage: "arrow.up", action: send)
                     .disabled(!enabled)
@@ -819,6 +842,13 @@ struct AgentView: View {
         .background(DS.Color.content, in: RoundedRectangle(cornerRadius: DS.Radius.glass))
         .overlay(RoundedRectangle(cornerRadius: DS.Radius.glass)
             .stroke(DS.Color.separator))
+        .overlay(alignment: .bottom) {
+            // A real busy edge, still so the agent's avatar owns the one live clock.
+            // No synthetic speaking mode or level feed; waiting for approval stays quiet.
+            if isWorking, gate.pending == nil, acpGate.pending == nil {
+                ThemeVoiceGlow(mode: .working, isAnimated: false)
+            }
+        }
         .padding(.bottom, DS.Space.m)
     }
 

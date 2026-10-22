@@ -1,0 +1,4 @@
+--- a/Sources/NextNotes/UI/DesignSystem.swift
++++ b/Sources/NextNotes/UI/DesignSystem.swift
+@@ -0,0 +1 @@
++import AppKit

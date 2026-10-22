@@ -1,0 +1,11 @@
+--- a/Sources/NextNotes/UI/Agent/AgentView.swift
++++ b/Sources/NextNotes/UI/Agent/AgentView.swift
+@@ -101,7 +101,7 @@
+     /// the model. Keeping this mapping shared makes duplicate-row regressions testable.
+     static func presentedMessages(_ messages: [AgentSession.Message],
+                                   responding: AgentSession.Message?) -> [AgentSession.Message] {
+-        var shown = Array(messages.suffix(40))
++        var shown = messages
+         if let responding, !shown.contains(where: { $0.id == responding.id }) {
+             shown.append(responding)
+         }

@@ -1,0 +1,56 @@
+# Original native motion admission observation proposal
+
+Status: **reviewable off-source proposal only**. Runtime root holds Sources, compiler, installed app, native/model work and staging. This audit changed none of them. No timeline, Canvas, first-visible-frame, draw-rate, latency or inactive-layout verdict was measured here.
+
+**Isolation correction:** the tentative four-file `--selftest-agent-presentation` full-pane host described below is **refused** after the mounted-child source audit: the view's default task manager can read owner task JSON under SelfTest, its model-role library can read the owner's installed-model manifest, and unbound `@AppStorage` may read standard preferences. See [the mounted-child audit](ux11-motion-mounted-child-isolation-audit-2026-10-02.md). The normal-app sanitized Instruments route remains a proposal for a later authorized native slot; no internal fixture is admitted by this document.
+
+## Exact inspected inputs
+
+| Source | SHA-256 at audit |
+|---|---|
+| `UI/ExperienceSheet.swift` | `17ecee4dd6f01f96c965b7fced9844eadac312216450d8f75545fb7f6b88ccaa` |
+| `UI/MainWindow.swift` | `5f65aea558ea800d47f62d6deb5a9085a0b8fec4790485b6846578dccbc01150` |
+| `UI/Agent/AgentView.swift` | `7e7eed666368a2ea260548de5071b8bdae1243f1cc364c0b1fb6efbe2c29f7c2` |
+| `UI/Agent/AgentWorkingCard.swift` | `90130118f5d69acdded1e72d423cfa0877d740385bbe69119f17d0e8ae0dfb2d` |
+| `UI/Agent/AgentAvatarView.swift` | `59ec5cdba4fdd73ac3d8edb68393f1547dc09c18675093ba923b08c927432c2c` |
+| `UI/Agent/NotionAvatarView.swift` | `6da6e8d067a58867c78120270a9449f117c4f4a94c57784fd1481b4b96378600` |
+| `UI/Components/Theme/ThemeBorderBeam.swift` | `07abde63ff092072216a55a6bfbdc269d5d739eb92dc0153b6ba1ab83c05db3d` |
+| `UI/Components/Theme/ThemeVoiceGlow.swift` | `4d628c5596a5562d483ccc7aecdb739b51f2260e50e68a68f89be79ba4ee186a` |
+
+`AgentView.body` has two `ViewThatFits` **whole-section** candidates (`offersInspector` true/false). Both source expressions contain the conversation, its `LazyVStack`, first task card and fixed composer. `AgentWorkingCard.animatesActivity` selects only the first active task when the turn is not thinking; it does not identify chosen layout, scroll intersection or host visibility. The card's real work border and the composer's real busy edge are currently parked (`isAnimated: false`). The card avatar uses `frozenAt` when that priority heuristic is false; the thinking row avatar has no equivalent admission input. `AgentAvatarView` updates its pose through a `TimelineView`, then paints a `Canvas`. The beam's periodic timeline changes an angular-gradient border, and the voice glow's periodic timeline changes a Canvas. Counting static source expressions establishes none of their runtime schedules.
+
+## Existing diagnostic seam and its boundary
+
+`ExperienceSheet` safely builds a **leaf** `AgentWorkingCard` with an isolated task/activity store, then draws one offscreen `NSHostingView` through `cacheDisplay`. It does not instantiate `AgentView`, the whole-section `ViewThatFits`, the scroll container, `MainWindow`, a visible/minimized window, or an actual approval gate transition. Its OK marker is image-write/store isolation, and its generation duration is not frame or draw rate. `AgentPaneSelfTest` is a value/layout-name check; `AgentPresentationSelfTest` exercises real stream-to-row mapping but does not host the pane. These are useful fixture and safety patterns, not motion-admission answers.
+
+Hosting the current `AgentView` as-is under a new self-test is **not yet an isolated fixture**: it reads shared session/task/navigation/gate objects, and its `.task` calls `NotesModelRuntime.shared.prewarm()` when mounted. The self-test session has a nil owner file, but the task manager's private store cannot simply be seeded for a production call-site fixture. A leaf card substituted for that pane would avoid those effects by skipping the very admission path being investigated. Do not report that as a `ViewThatFits` or viewport pass.
+
+### Withheld historical four-file diagnostic lease
+
+This route is **not currently safe to lease or mount**. Its original idea was to reuse `--selftest-agent-presentation`'s suspended local fixture provider at `isThinking`, then host the actual `AgentView` at 560 and 1000 pt detail widths. The subsequent mounted-child audit found pre-construction owner reads that invalidate that four-file scope. Keep this paragraph only as history of what was evaluated. A later diagnostic would still need to avoid any extra model, worker, permission flow, sleep, debounce or user-path wait and audit all child effects before mount.
+
+The original **unapplied and now refused** four-file list was `AgentPresentationSelfTest.swift`, `AgentView.swift`, `AgentAvatarView.swift`, and `ThemeVoiceGlow.swift`. It omitted the task-store and model-library isolation work, and assumed default AppStorage/scene binding was safe. It is not a current implementation plan. If a future safe exact diagnostic exists, fixed synthetic trace identifiers and before/after owner-store checks remain necessary, but they cannot substitute for pre-construction read isolation. Even then an offscreen host answers only scheduling/drawing inside that host, not on-screen occlusion, minimization, approval/task behavior, perceived motion or displayed-frame timing.
+
+The separate normal-app lease, when runtime ownership and native access permit, needs no diagnostic Source: use the existing installed build and sanitized task/approval inputs to observe actual window width, scroll, focus and hidden/minimized states with Instruments. Computer Use access is currently blocked; an internal offscreen diagnostic may still be reviewable by the runtime owner and must not be described as CUA approval or live UX acceptance. If either route requires raw owner content to enter a trace, stop and use synthetic data/metadata only.
+
+## Smallest original observation, in order
+
+1. **Before Source changes**, retain the current installed app/source identities and run a sanitized real Agent request with one task through the normal `MainWindow`/`AgentView` path. Observe a narrow detail width below `DS.Size.agentWideMinWidth` (960 pt) and a wider one above it, while recording which inspector toggle/column is actually visible. Repeat with a second active card, approval pending, yielded work and a terminal result. Move the first card fully outside the scroll viewport, switch panes, hide/minimize the window, then return. Repeat the busy portions under Reduce Motion. Capture actual state labels/actions and window, scroll and candidate geometry; `onAppear` and an intersecting frame alone are **not** proof of a compositor frame.
+2. Record the **original still-treatment** portrait schedules/draws before making any moving treatment change. Use Instruments' SwiftUI/Core Animation and Time Profiler tracks with existing process/signpost labels where they identify the surface. If the trace cannot distinguish `ViewThatFits` candidates or visible versus offscreen Canvas calls, label that result *unresolved* instead of inferring from one visible image or a single aggregate CPU number.
+3. Only if candidate attribution is missing, make a narrow **diagnostic-only** instrumentation proposal for runtime-owner review. It should be gated by one exact isolated diagnostic request or temporary Instruments-only build, default nil in production, and attach to existing `TimelineView` closure updates and Canvas draw sites, not create another timeline. Record fixed metadata only: candidate (`inspector`/`plain`), surface (`thinkingPortrait`, `taskPortrait`, `cardBeam`, `composerGlow`), synthetic fixture task ordinal, monotonic timestamp, schedule-update or actual-draw event, and host/scroll/candidate visibility observation. No prompt, objective, transcript, user identity or destination. Keep instrumentation allocation/logging off the production path when disabled. Attribute **selected candidate** from actual layout/visible inspector and measured bounds, not merely from a candidate's `.onAppear` callback. Canvas callbacks can run at a different rendering point than timeline body updates; count both separately.
+4. A full-pane isolated diagnostic would require an explicit temporary-store/fixture admission into the **actual** `AgentView` call site, plus suppression of its model prewarm under that exact diagnostic. Reuse the existing SelfTest owner-store guard and output-path protections. Do not construct a parallel view, seed the owner's task store, replace a real task with a shorter status, open a permission gate, or add a model load to obtain a screenshot. Until that seam is reviewed, the safe original observation is the sanitized normal app with Instruments, subject to the native access slot.
+
+## Required observations and comparison
+
+| Condition | Observation required |
+|---|---|
+| Narrow/wide busy pane | Chosen candidate and inspector control, timeline updates **and** actual portrait/beam/glow draws by candidate; distinguish one visible mark from any unselected candidate work. |
+| First and second running cards; scroll first card offscreen | Actual card intersection and count for each portrait, including after offscreen settling. A mounted `LazyVStack` child may still exist; test the draw result. |
+| Approval, yielded, terminal | Existing words/actions remain truthful; card beam/composer glow stay still, active portrait ownership follows the real state. |
+| Pane switched; window hidden/minimized | Counts after transition reach no continuous offscreen work; distinguish a finite transition/settle draw from a repeating schedule. |
+| Reduce Motion | Constant treatments and portraits; no periodic animation updates after initial draw. Verify the still semantic label and controls remain. |
+| Later moving-treatment candidate | Same inputs and scopes, one admitted moving surface with corresponding portrait frozen, no competing visible mark, no continuous offscreen/collapsed drawing. |
+
+Count schedule callbacks and draw callbacks over the same bounded observation intervals; include display refresh rate, window dimensions, scroll position and transition boundaries. A nonzero callback in a measured-but-unselected candidate would be evidence of work; two source call sites or two `onAppear`s are not. Zero offscreen draws in a non-ordered `ExperienceSheet` panel cannot establish visible-window/minimized behavior. `NSWindow.isVisible`/ordering and offscreen `cacheDisplay` cannot establish the **first displayed frame**. That endpoint requires an authorized capture of the real window correlated to the same accepted request/work/choice event clock.
+
+For the later original/current comparison, preserve the same model/fixture, window and settings; record send → displayed user row, work event → displayed label, choice → displayed acknowledgement and existing UX-05 HUD/island endpoints. Pair with the unchanged Phase 2 voice latency/stall run and active voice/dictation/meeting load. The historical warm first-audio median 2.894 s remains above the ≤0.9 s phase threshold, so no source or capture-only observation can turn that gate green. These observations inform the smallest visibility handoff; they do not authorize a second clock or a new turn-path wait.

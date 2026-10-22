@@ -1,0 +1,25 @@
+--- a/Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift
++++ b/Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift
+@@ -308,7 +351,15 @@ private struct OutputProfileRow: View {
+-        HStack(spacing: DS.Space.xs) {
+-            VStack(alignment: .leading, spacing: 0) {
+-                Text(profile.displayName)
+-                    .font(DS.Font.body)
+-                Text(profile.isPlain && !profile.resolvesPaths ? "Plain prose" : profile.bundleID)
+-                    .font(DS.Font.caption2)
+-                    .foregroundStyle(DS.Color.textTertiary)
++        ViewThatFits(in: .horizontal) {
++            HStack(spacing: DS.Space.xs) {
++                appLabel.fixedSize(horizontal: true, vertical: true)
++                    .frame(minWidth: DS.Size.formatAppLabelMinimum, alignment: .leading)
++                Spacer()
++                HStack(spacing: DS.Space.xs) {
++                    ForEach(OutputCapability.allCases, id: \.self) { capability in
++                        capabilityToggle(capability)
++                            .labelsHidden()
++                            .frame(width: DS.Size.formatCapabilityColumn)
++                    }
++                    pathReferenceMenu(compact: false)
++                        .frame(width: DS.Size.formatCapabilityColumn)
++                }
++                .fixedSize(horizontal: true, vertical: true)

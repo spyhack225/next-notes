@@ -1,0 +1,22 @@
+--- a/Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift
++++ b/Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift
+@@ -106,4 +87,15 @@ struct FormattingSettingsTab: View {
+-        // The one table in Settings. It is rows of checkboxes, not labelled controls, and
+-        // it is the content a wide window exists for — so it takes the whole pane instead
+-        // of one card's column, and its `List` stretches with it.
+-        .settingsSectionSpans()
++    }
++
++    private var appsNote: some View {
++        SettingsNote(
++            text: "Dictated text is written to suit the app it is about to land in — a "
++                + "spoken list becomes bullets in Slack and numbered lines in Mail. "
++                + "These switches choose the marks an app is allowed, not whether you "
++                + "get structure: a list you actually spoke out loud stays a list "
++                + "everywhere, written as plain \u{201C}1.\u{201D} lines in an app that "
++                + "shows marks instead of drawing them. An app that isn't listed is "
++                + "given no marks at all, because a mark an app doesn't render is worse "
++                + "than none."
++        )
++        .lineLimit(nil)
++        .fixedSize(horizontal: false, vertical: true)

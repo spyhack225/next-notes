@@ -1,0 +1,7 @@
+{
+  "pid": 17128,
+  "guard_pid": 17129,
+  "at": "2026-10-07T16:53:05.428644+00:00",
+  "mode": "normal owner data; no fixture or preference override",
+  "monitor_limit_bytes": 2500000000
+}

@@ -10,15 +10,18 @@
     "preview": "vite preview",
     "typecheck": "tsc -b --noEmit",
     "lint": "oxlint",
-    "deploy": "bash scripts/deploy.sh"
+    "deploy": "bash scripts/deploy.sh",
+    "prebuild": "python3 ../Scripts/benchmarks.py render"
   },
   "dependencies": {
     "@fontsource/instrument-serif": "^5.3.0",
     "@fontsource/inter": "^5.3.0",
+    "border-beam": "^1.4.1",
     "framer-motion": "^13.2.0",
     "lucide-react": "^0.468.0",
     "react": "^19.3.0",
-    "react-dom": "^19.3.0"
+    "react-dom": "^19.3.0",
+    "voice-glow": "^0.2.1"
   },
   "devDependencies": {
     "@shadcn/lint": "^0.2.0",

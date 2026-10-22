@@ -1,0 +1,57 @@
+{
+  "installedBinarySHA256": "adc7f6d9848d5ef0355dc989167133a723a77824d52738e1d4e405d2f4b1e8b7",
+  "artifacts": [
+    {
+      "path": "capture-formatting320.log",
+      "sha256": "2e1cf36f3da06d7d53d76b7c47ce75ac5ce4c2d21bb7f400ea4bfb1d73f2e802"
+    },
+    {
+      "path": "capture-formatting560.log",
+      "sha256": "b8ce4cdce78412a43f0fe21d313199c6ccec75d52d72491afcf15b0b385230d0"
+    },
+    {
+      "path": "formatting320/settings-formatting-320-reduce-motion.png",
+      "sha256": "b424fb1bd94cccefa907b6f11809c6850f457344fef9491002583337dc8f4ac5"
+    },
+    {
+      "path": "formatting320/settings-formatting-320-reduce-transparency.png",
+      "sha256": "58684c99bad2d3fb0f5ae491ea168a590504fdc4e8eb42a33513e5d0c225b1af"
+    },
+    {
+      "path": "formatting320/settings-formatting-320-reduced.png",
+      "sha256": "b424fb1bd94cccefa907b6f11809c6850f457344fef9491002583337dc8f4ac5"
+    },
+    {
+      "path": "formatting320/settings-formatting-320-standard.png",
+      "sha256": "e0d29453dd29f6db105efd3a97f0ba3d2bdbaffd5e9efa00d770104f96320da8"
+    },
+    {
+      "path": "formatting560/settings-formatting-560-reduce-motion.png",
+      "sha256": "a36c0d0296248a58b21615e1423bfa493c43bfba5424e27fc408c2591d61f1ac"
+    },
+    {
+      "path": "formatting560/settings-formatting-560-reduce-transparency.png",
+      "sha256": "37298c23576edd4770f3e7e4b7f8f4d01199adab1efb4f0df1ac7cb5dfa24cf1"
+    },
+    {
+      "path": "formatting560/settings-formatting-560-reduced.png",
+      "sha256": "a36c0d0296248a58b21615e1423bfa493c43bfba5424e27fc408c2591d61f1ac"
+    },
+    {
+      "path": "formatting560/settings-formatting-560-standard.png",
+      "sha256": "db2353af66ed5bd36fcb569059904b7a0dfd3f6f0d1128115625490706483299"
+    },
+    {
+      "path": "summary.json",
+      "sha256": "cd0cc192eb74ea28558473370e2430b785bd8b60f9a9bb8698776b1914c39e3a"
+    },
+    {
+      "path": "geometry-findings.json",
+      "sha256": "90c72232530b0a9e67ea1517ce7a549b532c975a846f3a23739f6596c6f77ab2"
+    },
+    {
+      "path": "root-source-manifest.json",
+      "sha256": "1883d57fc1567b0de8188d700f04fd3872528091ac7b3c9238b9cc8c9e862a47"
+    }
+  ]
+}

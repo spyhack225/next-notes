@@ -1,0 +1,6 @@
+--- a/Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift
++++ b/Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift
+@@ -213,3 +253,0 @@ struct FormattingSettingsTab: View {
+-            // A stage, not a fault: an empty table is what a fresh install looks like, and
+-            // every app still gets plain prose meanwhile. `breathing` is the orb for
+-            // nothing-here-yet — a grey symbol would say the screen was broken.

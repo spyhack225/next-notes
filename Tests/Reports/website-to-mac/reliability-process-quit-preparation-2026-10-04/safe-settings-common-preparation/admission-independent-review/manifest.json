@@ -1,0 +1,18 @@
+{
+  "status": "CONDITIONAL_SOURCE_REVIEW_ONLY_HELD",
+  "inputs": {
+    "Tests/Reports/website-to-mac/reliability-process-quit-preparation-2026-10-04/safe-settings-common-preparation/admission-notes/manifest.json": "6e6573f2f800c5247006789a90dc7ddfffb3436e2f5b6ddbcf8fdc431d70bb26",
+    "Tests/Reports/website-to-mac/reliability-process-quit-preparation-2026-10-04/safe-settings-common-preparation/admission-notes/selector-revision/manifest.json": "fac058eb7d457b238b4dc7b8c764289105f260595a600e938225e30ed9577bb7"
+  },
+  "artifacts": {
+    "review.md": "13d2ba031c205f1953f00f1ae456d85926df2b5c2661a6857699dc371cbd78eb",
+    "pin-verification.json": "f9d6feb00fc824656bd9a27510d47eb775f8354d0abe1d5eea919ba395b3362f"
+  },
+  "execution": "NONE; compiler/native/model/defaults/owner stores untouched",
+  "holds": [
+    "Parent before-owner malformed raw-selector refusal",
+    "Compiler and ordinary-build coherence",
+    "Public model digest/copy qualification",
+    "Same-COMMON original/fixed fresh-process Settings and genuine Notes/Cocoa native qualification"
+  ]
+}

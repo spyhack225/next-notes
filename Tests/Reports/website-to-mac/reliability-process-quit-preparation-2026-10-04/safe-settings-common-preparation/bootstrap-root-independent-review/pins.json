@@ -1,0 +1,42 @@
+{
+  "selectedManifest": {
+    "Tests/Reports/website-to-mac/reliability-process-quit-preparation-2026-10-04/safe-settings-common-preparation/bootstrap-root-revision/manifest.json": "ff390c37b9d688f4fbcd46ccd17dceda6c9b21abdecbad68083d754e43401f3d"
+  },
+  "artifactChecks": [
+    {
+      "path": "Tests/Reports/website-to-mac/reliability-process-quit-preparation-2026-10-04/safe-settings-common-preparation/bootstrap-root-revision/COMMON-app-entry-from-frozen.patch.txt",
+      "expected": "a52ef3bd5bfe2b6ed8959660ee161e17b793567d603d64f2f37bcb91febd46a0",
+      "observed": "a52ef3bd5bfe2b6ed8959660ee161e17b793567d603d64f2f37bcb91febd46a0",
+      "matches": true
+    },
+    {
+      "path": "Tests/Reports/website-to-mac/reliability-process-quit-preparation-2026-10-04/safe-settings-common-preparation/bootstrap-root-revision/COMMON-meeting-root-from-selector.patch.txt",
+      "expected": "b51bd4ac346ce72819f26d1a9e0f1c3559a55ae0817ba99a01c6bbb9f2725ed9",
+      "observed": "b51bd4ac346ce72819f26d1a9e0f1c3559a55ae0817ba99a01c6bbb9f2725ed9",
+      "matches": true
+    },
+    {
+      "path": "Tests/Reports/website-to-mac/reliability-process-quit-preparation-2026-10-04/safe-settings-common-preparation/bootstrap-root-revision/NativeNotesSettingsSelfTest.swift.revised",
+      "expected": "281d7e56dd7d2ef1ef74ca48cca03dceae9a4112abd64c25d9e63e87ce17caa9",
+      "observed": "281d7e56dd7d2ef1ef74ca48cca03dceae9a4112abd64c25d9e63e87ce17caa9",
+      "matches": true
+    },
+    {
+      "path": "Tests/Reports/website-to-mac/reliability-process-quit-preparation-2026-10-04/safe-settings-common-preparation/bootstrap-root-revision/README.md",
+      "expected": "a1a0a32a570c0f17b81076cbe85568a96fce8f3379e971ef7aad0cd04694b09a",
+      "observed": "a1a0a32a570c0f17b81076cbe85568a96fce8f3379e971ef7aad0cd04694b09a",
+      "matches": true
+    },
+    {
+      "path": "Tests/Reports/website-to-mac/reliability-process-quit-preparation-2026-10-04/safe-settings-common-preparation/bootstrap-root-revision/copy-only-postimages.json",
+      "expected": "2224ec3f8db6f5959cf080e2294a6dc76b7dca7a36307b6c465c195eb39c0392",
+      "observed": "2224ec3f8db6f5959cf080e2294a6dc76b7dca7a36307b6c465c195eb39c0392",
+      "matches": true
+    }
+  ],
+  "currentSourceObservations": {
+    "Sources/NextNotes/NextNotesApp.swift": "bc01a27f48478a297d07a1d35669c313615cc7c182c0c6d113b4899e792a1b61",
+    "Sources/NextNotes/Meetings/MeetingStore.swift": "085f6b60395192c230d80ac429e84f98cd0c79f2fce0300f10fd4bb0cbc52c6b"
+  },
+  "notExecuted": "Darwin mkdir and all native/diagnostic controls"
+}

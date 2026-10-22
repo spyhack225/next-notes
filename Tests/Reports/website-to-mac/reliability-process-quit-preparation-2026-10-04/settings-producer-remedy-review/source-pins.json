@@ -1,0 +1,36 @@
+{
+  "files": [
+    {
+      "path": "Sources/NextNotes/Support/Settings.swift",
+      "sha256": "884f7a297f68d588a7ae2de962432049682c478d4f53464dba6c92e0a01ee3c4"
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/MeetingDiarizer.swift",
+      "sha256": "bee04c83e4c23c91126482360e891c800f4e27200b930a00cf9dd89cd8cb3f13"
+    },
+    {
+      "path": "Sources/NextNotes/Support/SelfTestStoreGuard.swift",
+      "sha256": "dc2733998fbb09ce1128d2f5dfeb9ce782e821ec2ef752330dab5c5a2de63eed"
+    },
+    {
+      "path": "Sources/NextNotes/Support/NativeTerminationSelfTest.swift",
+      "sha256": "a1c1d30f8198e63758dde34abd8812b236c281a191cd9168383eff95a47aa4f5"
+    },
+    {
+      "path": "Sources/NextNotes/Formatting/LLM/LlamaBackend.swift",
+      "sha256": "a5093f80bcd746a37e5f5aaaa437eb9607cd218711d8221668e436c4dc20f95d"
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/NotesService.swift",
+      "sha256": "c1577429843cd4f2a50bca738a8afe95ed574e7faea29153de38fe8264c79652"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Onboarding/OnboardingSelfTest.swift",
+      "sha256": "7de35b6649bdd5fdcd22ccc426d7bac86944fbf1876bd51f28dc62705cefdddc"
+    },
+    {
+      "path": "Sources/NextNotes/NextNotesApp.swift",
+      "sha256": "bc01a27f48478a297d07a1d35669c313615cc7c182c0c6d113b4899e792a1b61"
+    }
+  ]
+}

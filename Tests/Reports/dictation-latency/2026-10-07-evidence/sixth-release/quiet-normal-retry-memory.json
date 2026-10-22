@@ -1,0 +1,338 @@
+[
+  {
+    "elapsed": 0.38681587499741,
+    "pid": 91622,
+    "processStart": 1307912594600,
+    "footprintBytes": 7308008,
+    "residentBytes": 30818304
+  },
+  {
+    "elapsed": 0.6961032910039648,
+    "pid": 91622,
+    "processStart": 1307912594600,
+    "footprintBytes": 30393352,
+    "residentBytes": 116424704
+  },
+  {
+    "elapsed": 1.008069625000644,
+    "pid": 91622,
+    "processStart": 1307912594600,
+    "footprintBytes": 120751184,
+    "residentBytes": 164839424
+  },
+  {
+    "elapsed": 1.3385131250033737,
+    "pid": 91622,
+    "processStart": 1307912594600,
+    "footprintBytes": 190465224,
+    "residentBytes": 226394112
+  },
+  {
+    "elapsed": 1.6439040410041343,
+    "pid": 91622,
+    "processStart": 1307912594600,
+    "footprintBytes": 191874392,
+    "residentBytes": 233193472
+  },
+  {
+    "elapsed": 1.9494662910001352,
+    "pid": 91622,
+    "processStart": 1307912594600,
+    "footprintBytes": 199886360,
+    "residentBytes": 249397248
+  },
+  {
+    "elapsed": 2.2835082079982385,
+    "pid": 91622,
+    "processStart": 1307912594600,
+    "footprintBytes": 146785816,
+    "residentBytes": 251215872
+  },
+  {
+    "elapsed": 2.5901376660040114,
+    "pid": 91622,
+    "processStart": 1307912594600,
+    "footprintBytes": 147277336,
+    "residentBytes": 251707392
+  },
+  {
+    "elapsed": 2.8974412079987815,
+    "pid": 91622,
+    "processStart": 1307912594600,
+    "footprintBytes": 149112344,
+    "residentBytes": 254590976
+  },
+  {
+    "elapsed": 3.201402708000387,
+    "pid": 91622,
+    "processStart": 1307912594600,
+    "footprintBytes": 139757080,
+    "residentBytes": 292356096
+  },
+  {
+    "elapsed": 3.507887457999459,
+    "pid": 91622,
+    "processStart": 1307912594600,
+    "footprintBytes": 139757080,
+    "residentBytes": 328941568
+  },
+  {
+    "elapsed": 3.8032414160043118,
+    "pid": 91622,
+    "processStart": 1307912594600,
+    "footprintBytes": 139773464,
+    "residentBytes": 359120896
+  },
+  {
+    "elapsed": 4.10384879099729,
+    "pid": 91622,
+    "processStart": 1307912594600,
+    "footprintBytes": 139789848,
+    "residentBytes": 388562944
+  },
+  {
+    "elapsed": 4.407744582997111,
+    "pid": 91622,
+    "processStart": 1307912594600,
+    "footprintBytes": 139789848,
+    "residentBytes": 423673856
+  },
+  {
+    "elapsed": 4.712692916000378,
+    "pid": 91622,
+    "processStart": 1307912594600,
+    "footprintBytes": 139806232,
+    "residentBytes": 453525504
+  },
+  {
+    "elapsed": 5.01611658299953,
+    "pid": 91622,
+    "processStart": 1307912594600,
+    "footprintBytes": 139806232,
+    "residentBytes": 488620032
+  },
+  {
+    "elapsed": 5.316569832997629,
+    "pid": 91622,
+    "processStart": 1307912594600,
+    "footprintBytes": 139806232,
+    "residentBytes": 522289152
+  },
+  {
+    "elapsed": 5.627707583000301,
+    "pid": 91622,
+    "processStart": 1307912594600,
+    "footprintBytes": 139806232,
+    "residentBytes": 551403520
+  },
+  {
+    "elapsed": 5.9375397080002585,
+    "pid": 91622,
+    "processStart": 1307912594600,
+    "footprintBytes": 139806232,
+    "residentBytes": 585908224
+  },
+  {
+    "elapsed": 6.247186665998015,
+    "pid": 91622,
+    "processStart": 1307912594600,
+    "footprintBytes": 139707928,
+    "residentBytes": 618594304
+  },
+  {
+    "elapsed": 6.5558729999975185,
+    "pid": 91622,
+    "processStart": 1307912594600,
+    "footprintBytes": 139707928,
+    "residentBytes": 651329536
+  },
+  {
+    "elapsed": 6.860760333001963,
+    "pid": 91622,
+    "processStart": 1307912594600,
+    "footprintBytes": 139740696,
+    "residentBytes": 651591680
+  },
+  {
+    "elapsed": 7.162371250000433,
+    "pid": 91622,
+    "processStart": 1307912594600,
+    "footprintBytes": 139740696,
+    "residentBytes": 651575296
+  },
+  {
+    "elapsed": 7.477478458000405,
+    "pid": 91622,
+    "processStart": 1307912594600,
+    "footprintBytes": 139740696,
+    "residentBytes": 647856128
+  },
+  {
+    "elapsed": 7.78458849999879,
+    "pid": 91622,
+    "processStart": 1307912594600,
+    "footprintBytes": 139740696,
+    "residentBytes": 647348224
+  },
+  {
+    "elapsed": 8.088836666000134,
+    "pid": 91622,
+    "processStart": 1307912594600,
+    "footprintBytes": 139707928,
+    "residentBytes": 647364608
+  },
+  {
+    "elapsed": 8.39208404099918,
+    "pid": 91622,
+    "processStart": 1307912594600,
+    "footprintBytes": 139707928,
+    "residentBytes": 647364608
+  },
+  {
+    "elapsed": 8.701497415997437,
+    "pid": 91622,
+    "processStart": 1307912594600,
+    "footprintBytes": 139707928,
+    "residentBytes": 647364608
+  },
+  {
+    "elapsed": 9.006980165999266,
+    "pid": 91622,
+    "processStart": 1307912594600,
+    "footprintBytes": 139707928,
+    "residentBytes": 647364608
+  },
+  {
+    "elapsed": 9.309609458003251,
+    "pid": 91622,
+    "processStart": 1307912594600,
+    "footprintBytes": 139707928,
+    "residentBytes": 647364608
+  },
+  {
+    "elapsed": 9.61730491599883,
+    "pid": 91622,
+    "processStart": 1307912594600,
+    "footprintBytes": 139707928,
+    "residentBytes": 647364608
+  },
+  {
+    "elapsed": 9.924306000000797,
+    "pid": 91622,
+    "processStart": 1307912594600,
+    "footprintBytes": 139707928,
+    "residentBytes": 647364608
+  },
+  {
+    "elapsed": 10.22584050000296,
+    "pid": 91622,
+    "processStart": 1307912594600,
+    "footprintBytes": 139707928,
+    "residentBytes": 647364608
+  },
+  {
+    "elapsed": 10.53151762500056,
+    "pid": 91622,
+    "processStart": 1307912594600,
+    "footprintBytes": 139707928,
+    "residentBytes": 647364608
+  },
+  {
+    "elapsed": 10.82689454100182,
+    "pid": 91622,
+    "processStart": 1307912594600,
+    "footprintBytes": 139707928,
+    "residentBytes": 647364608
+  },
+  {
+    "elapsed": 11.122041832997638,
+    "pid": 91622,
+    "processStart": 1307912594600,
+    "footprintBytes": 139707928,
+    "residentBytes": 647364608
+  },
+  {
+    "elapsed": 11.421734166004171,
+    "pid": 91622,
+    "processStart": 1307912594600,
+    "footprintBytes": 139707928,
+    "residentBytes": 647364608
+  },
+  {
+    "elapsed": 11.72198895800102,
+    "pid": 91622,
+    "processStart": 1307912594600,
+    "footprintBytes": 139707928,
+    "residentBytes": 647397376
+  },
+  {
+    "elapsed": 12.024314875001437,
+    "pid": 91622,
+    "processStart": 1307912594600,
+    "footprintBytes": 139707928,
+    "residentBytes": 647397376
+  },
+  {
+    "elapsed": 12.337611583003309,
+    "pid": 91622,
+    "processStart": 1307912594600,
+    "footprintBytes": 139707928,
+    "residentBytes": 647397376
+  },
+  {
+    "elapsed": 12.632909500003734,
+    "pid": 91622,
+    "processStart": 1307912594600,
+    "footprintBytes": 139707928,
+    "residentBytes": 647397376
+  },
+  {
+    "elapsed": 12.930726666003466,
+    "pid": 91622,
+    "processStart": 1307912594600,
+    "footprintBytes": 139707928,
+    "residentBytes": 647397376
+  },
+  {
+    "elapsed": 13.225477958003466,
+    "pid": 91622,
+    "processStart": 1307912594600,
+    "footprintBytes": 139707928,
+    "residentBytes": 647397376
+  },
+  {
+    "elapsed": 13.522990833000222,
+    "pid": 91622,
+    "processStart": 1307912594600,
+    "footprintBytes": 139707928,
+    "residentBytes": 647397376
+  },
+  {
+    "elapsed": 13.820850666001206,
+    "pid": 91622,
+    "processStart": 1307912594600,
+    "footprintBytes": 139707928,
+    "residentBytes": 647397376
+  },
+  {
+    "elapsed": 14.117675708002935,
+    "pid": 91622,
+    "processStart": 1307912594600,
+    "footprintBytes": 139707928,
+    "residentBytes": 647397376
+  },
+  {
+    "elapsed": 14.411454416003835,
+    "pid": 91622,
+    "processStart": 1307912594600,
+    "footprintBytes": 139707928,
+    "residentBytes": 647397376
+  },
+  {
+    "elapsed": 14.711322082999686,
+    "pid": 91622,
+    "processStart": 1307912594600,
+    "footprintBytes": 139707928,
+    "residentBytes": 647397376
+  }
+]

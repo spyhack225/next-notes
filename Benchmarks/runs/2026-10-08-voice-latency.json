@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "id": "2026-10-08-voice-latency",
+  "title": "Voice response latency audit",
+  "date": "2026-10-08",
+  "category": "voice",
+  "status": "partial",
+  "scope": "Historical matched first-audio comparison",
+  "summary": "First-audio median improved from 3.78 s to 2.65 s; 0.9 s target remains unmet.",
+  "environment": {
+    "hardware": "Not fully recorded; consult original evidence"
+  },
+  "provenance": {
+    "kind": "historical evidence import",
+    "build": "See original evidence; not re-run by hub"
+  },
+  "metrics": [
+    {
+      "name": "Original first audio median",
+      "value": 3.78,
+      "unit": "s",
+      "boundary": "Historical matched voice benchmark; consult primary trace",
+      "samples": null,
+      "aggregation": "reported observation"
+    },
+    {
+      "name": "Changed first audio median",
+      "value": 2.65,
+      "unit": "s",
+      "boundary": "Historical matched voice benchmark; consult primary trace",
+      "samples": null,
+      "aggregation": "reported observation"
+    }
+  ],
+  "limitations": [
+    "Sample count is not recovered in this audit import; metrics use one reported aggregate, not one measured trial.",
+    "0.9 s is a target, not a result.",
+    "Historical source/build pins and timing boundaries must be checked in original reports."
+  ],
+  "sources": [
+    "Tests/Reports/agent-overhaul-progress/2026-10-08-status-audit.md"
+  ],
+  "publication": {
+    "approved": true,
+    "reviewed_by": "benchmark-hub-20261022",
+    "reviewed_on": "2026-10-22"
+  }
+}

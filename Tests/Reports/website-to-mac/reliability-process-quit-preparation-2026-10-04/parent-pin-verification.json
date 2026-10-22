@@ -1,0 +1,149 @@
+{
+  "status": "PIN_VERIFICATION_ONLY_UNCOMPILED_NATIVE_UNRUN",
+  "records": [
+    {
+      "packet": "capture-current",
+      "group": "currentSourcePreimage",
+      "path": "Sources/NextNotes/Activation/AgentCaptureController.swift",
+      "matches": true,
+      "expected": "5bd0ea27b5e610a668075d6e1521369eeec730a4ff779ae7796cc55629d98128",
+      "actual": "5bd0ea27b5e610a668075d6e1521369eeec730a4ff779ae7796cc55629d98128"
+    },
+    {
+      "packet": "capture-current",
+      "group": "contextSourcePins",
+      "path": "Sources/NextNotes/Activation/LocalVoiceTurnDetector.swift",
+      "matches": true,
+      "expected": "1f7dbc05314ec46b44865fd4274b363a699ba1fa76159ef319452ac70309a7e6",
+      "actual": "1f7dbc05314ec46b44865fd4274b363a699ba1fa76159ef319452ac70309a7e6"
+    },
+    {
+      "packet": "capture-current",
+      "group": "contextSourcePins",
+      "path": "Sources/NextNotes/Transcription/AppleSpeechEngine.swift",
+      "matches": true,
+      "expected": "db2737c2aa067ba6b43de21ca74db324602324e201b7829f0483574fc0227c79",
+      "actual": "db2737c2aa067ba6b43de21ca74db324602324e201b7829f0483574fc0227c79"
+    },
+    {
+      "packet": "capture-current",
+      "group": "contextSourcePins",
+      "path": "Sources/NextNotes/Formatting/LLM/LocalVoiceFrontend.swift",
+      "matches": false,
+      "expected": "505559bd50c31b91b3f9bb63b27522064ef49074872b60216408c91b448ab02e",
+      "actual": "4a2452aadff2460c72b963b8856d10030b13950087c2b92f18b668208b844098"
+    },
+    {
+      "packet": "capture-current",
+      "group": "patches",
+      "path": "COMMON-capture-current.patch",
+      "matches": true,
+      "expected": "412afcbe13ffaeebbd6aa00d202f39a3df47f29bb4466de95c85209eb94ebdc4",
+      "actual": "412afcbe13ffaeebbd6aa00d202f39a3df47f29bb4466de95c85209eb94ebdc4"
+    },
+    {
+      "packet": "capture-current",
+      "group": "patches",
+      "path": "producer-capture-current.patch",
+      "matches": true,
+      "expected": "6f3a7a19e533b6e4323b136a5fa5a4f89a526604cbae9e456a07d6660bad2244",
+      "actual": "6f3a7a19e533b6e4323b136a5fa5a4f89a526604cbae9e456a07d6660bad2244"
+    },
+    {
+      "packet": "capture-current",
+      "group": "artifacts",
+      "path": "AgentCaptureController.original.swift.txt",
+      "matches": true,
+      "expected": "5bd0ea27b5e610a668075d6e1521369eeec730a4ff779ae7796cc55629d98128",
+      "actual": "5bd0ea27b5e610a668075d6e1521369eeec730a4ff779ae7796cc55629d98128"
+    },
+    {
+      "packet": "capture-current",
+      "group": "artifacts",
+      "path": "AgentCaptureController.COMMON.swift.txt",
+      "matches": true,
+      "expected": "0308ae8c5c3413799925ca73f842c494a4b9d8282de8e95d7643720fd63a4775",
+      "actual": "0308ae8c5c3413799925ca73f842c494a4b9d8282de8e95d7643720fd63a4775"
+    },
+    {
+      "packet": "capture-current",
+      "group": "artifacts",
+      "path": "AgentCaptureController.FIXED.swift.txt",
+      "matches": true,
+      "expected": "a17cdfe3dc57237a0cba0bc00783cc824f434147e44b64e1532b03fb9ac354c4",
+      "actual": "a17cdfe3dc57237a0cba0bc00783cc824f434147e44b64e1532b03fb9ac354c4"
+    },
+    {
+      "packet": "capture-current",
+      "group": "artifacts",
+      "path": "source-only-replay.json",
+      "matches": true,
+      "expected": "f3b9e5b48d527e45b3af8e87a0a7b48dc1d22368b81d9d1d068102a624a92085",
+      "actual": "f3b9e5b48d527e45b3af8e87a0a7b48dc1d22368b81d9d1d068102a624a92085"
+    },
+    {
+      "packet": "capture-current",
+      "group": "artifacts",
+      "path": "README.md",
+      "matches": true,
+      "expected": "32d39fd78f9c4d34ffc41d3230a547135f9ccd9f037734daae4bb727ded74aeb",
+      "actual": "32d39fd78f9c4d34ffc41d3230a547135f9ccd9f037734daae4bb727ded74aeb"
+    },
+    {
+      "packet": "background-current",
+      "group": "currentPreimagesSHA256",
+      "path": "Sources/NextNotes/Agent/Tasks/AgentTaskManager.swift",
+      "matches": true,
+      "expected": "8ebcd688cfa4b19d62a592ca5c12081f7e1df34225b1a6f45db167522eb6221a",
+      "actual": "8ebcd688cfa4b19d62a592ca5c12081f7e1df34225b1a6f45db167522eb6221a"
+    },
+    {
+      "packet": "background-current",
+      "group": "currentPreimagesSHA256",
+      "path": "Sources/NextNotes/NextNotesApp.swift",
+      "matches": true,
+      "expected": "bc01a27f48478a297d07a1d35669c313615cc7c182c0c6d113b4899e792a1b61",
+      "actual": "bc01a27f48478a297d07a1d35669c313615cc7c182c0c6d113b4899e792a1b61"
+    },
+    {
+      "packet": "background-current",
+      "group": "contextReadOnlySHA256",
+      "path": "Sources/NextNotes/Agent/Schedules/ScheduledRunner.swift",
+      "matches": true,
+      "expected": "98f96a175ad86ebe305efc6b24767e73e5e3e4b3216a20b9170e5bcbeb28ff76",
+      "actual": "98f96a175ad86ebe305efc6b24767e73e5e3e4b3216a20b9170e5bcbeb28ff76"
+    },
+    {
+      "packet": "background-current",
+      "group": "patchSHA256",
+      "path": "AgentTaskManager.swift.patch.txt",
+      "matches": true,
+      "expected": "72ca5ec238820bcf9384518337229936fef20473e801eba0aa036ef4fffb7eef",
+      "actual": "72ca5ec238820bcf9384518337229936fef20473e801eba0aa036ef4fffb7eef"
+    },
+    {
+      "packet": "background-current",
+      "group": "patchSHA256",
+      "path": "NextNotesApp.swift.patch.txt",
+      "matches": true,
+      "expected": "34f58951059af0d4d5ea878ae467e228453df2b63c20222f8676c7a429811b49",
+      "actual": "34f58951059af0d4d5ea878ae467e228453df2b63c20222f8676c7a429811b49"
+    },
+    {
+      "packet": "background-current",
+      "group": "documentationSHA256",
+      "path": "README.md",
+      "matches": true,
+      "expected": "00b84b73dd36597fb59ed0e52b1fedbb0e88876dca8cd3f4fb5cc44da433dda7",
+      "actual": "00b84b73dd36597fb59ed0e52b1fedbb0e88876dca8cd3f4fb5cc44da433dda7"
+    },
+    {
+      "packet": "background-current",
+      "group": "documentationSHA256",
+      "path": "source-only-replay.json",
+      "matches": true,
+      "expected": "55d825bc86401ff7e68261d7a508be0dd212961c6122b5a759a34cd4c56129ef",
+      "actual": "55d825bc86401ff7e68261d7a508be0dd212961c6122b5a759a34cd4c56129ef"
+    }
+  ]
+}

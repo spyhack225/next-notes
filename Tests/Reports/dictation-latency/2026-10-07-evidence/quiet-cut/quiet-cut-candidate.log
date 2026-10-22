@@ -1,0 +1,21 @@
+{
+  "candidateCuts" : [
+
+  ],
+  "failures" : [
+
+  ],
+  "inputSamples" : 52566,
+  "lastAboveFloorEnd" : 0,
+  "mode" : "candidate",
+  "originalCuts" : [
+    24000
+  ],
+  "quiet31sHardCuts" : [
+    231520,
+    463040
+  ],
+  "relatedCases" : 4,
+  "scope" : "Actual AV file conversion\/RMS and segmenter; copied shared floor predicate\/logger boundary only; no recognizer\/model\/controller\/physical flow"
+}
+QUIET_CUT_OK

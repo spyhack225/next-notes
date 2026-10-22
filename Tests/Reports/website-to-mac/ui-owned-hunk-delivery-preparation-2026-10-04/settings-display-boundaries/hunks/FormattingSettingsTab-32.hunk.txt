@@ -1,0 +1,4 @@
+--- a/Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift
++++ b/Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift
+@@ -330 +388,0 @@ private struct OutputProfileRow: View {
+-            pathReferenceMenu

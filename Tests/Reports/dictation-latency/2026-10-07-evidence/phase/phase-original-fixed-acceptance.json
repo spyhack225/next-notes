@@ -1,0 +1,21 @@
+{
+  "atUTC": "2026-10-08T05:46:36.868962+00:00",
+  "status": "ORIGINAL NATIVE RED4 -> FIXED NATIVE PASS, SAME EXACT CPU PRODUCER FIXTURE",
+  "originalProblems": 4,
+  "fixedExit": 0,
+  "fixedLogSHA256": "969e0b36f0c5a8102c8348b7412f1f7c6d643ad434c9f08adfba4b78810d2ccd",
+  "fixtureSHA256": "f83014670aee7c2b3df69a7414b49edc0f1f9ed731c23b77873fb7188169aade",
+  "sameOriginalAndFixedFixture": true,
+  "preserved": "Actual cancellation joins while ASR reservation held; denied successor not admitted;256nativecached+394decoded=650prompt. Real S1 CPU, no fake native decoder.",
+  "observed": "Context3.5us; cancelledprefill550.975ms readyfalse/countsunavailable; no-token551.644ms; cancelledparkedcheckpoint1.716ms. These are exact fixture observations, not owner latency.",
+  "sourceInvariant": true,
+  "sourceCount": 1173,
+  "sourceChangedDuringRun": false,
+  "installed": false,
+  "ordinaryResourceGatePassed": false,
+  "exception": "Explicitrelay592, exactoneCPUphaseonly,max9swap/min6disk/free>=60%,240s/3GBsampledprocessfootprint/AppKitdrain",
+  "fullDictationSpeedAccuracyAccepted": false,
+  "ownerWarmStallAttributed": false,
+  "quietNativeFixedWordsVerified": false,
+  "allNativeJoined": true
+}

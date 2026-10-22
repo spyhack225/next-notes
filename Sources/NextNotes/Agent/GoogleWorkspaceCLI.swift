@@ -231,6 +231,8 @@ actor GoogleWorkspaceCLI {
         ].contains(SelfTest.requested ?? "") || (
             SelfTest.requested == "--selftest-gws" && SelfTest.value(after: "--gws-fixture-root") != nil
         ) { return nil }
+        // The fixture Settings pane must not launch an owner-auth or login-shell probe.
+        guard SelfTest.requested != "--selftest-settings-sheet" else { return nil }
         if let cachedPath, FileManager.default.isExecutableFile(atPath: cachedPath.path) {
             return cachedPath
         }

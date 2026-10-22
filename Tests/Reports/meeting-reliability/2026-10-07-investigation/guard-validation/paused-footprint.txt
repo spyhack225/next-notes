@@ -1,0 +1,36 @@
+======================================================================
+Python [14072]: 64-bit    Footprint: 207159944 B (16384 bytes per page)
+======================================================================
+
+      Dirty         Clean   Reclaimable    Regions    Category
+        ---           ---           ---        ---    ---
+200015872 B           0 B           0 B          2    Malloc Large
+  2654208 B           0 B           0 B         11    Untagged
+  2244608 B           0 B           0 B          5    Malloc Small
+   622635 B           0 B           0 B        301    __DATA
+   459400 B           0 B           0 B          1    page table
+   442368 B           0 B           0 B          9    Malloc Metadata
+   294458 B           0 B           0 B        337    __DATA_DIRTY
+   147456 B           0 B           0 B          1    Malloc Tiny
+    73251 B           0 B           0 B       1128    unused dyld shared cache area
+    65536 B           0 B           0 B          2    Stack
+    49080 B           0 B           0 B          4    __TPRO_CONST
+    48760 B           0 B           0 B          1    __OBJC_RW
+    16384 B           0 B           0 B          1    Deferred Reclaim
+    16384 B           0 B           0 B          1    OS Alloc Once
+     9544 B           0 B           0 B        138    __AUTH
+        0 B     3637248 B           0 B        396    __TEXT
+        0 B      311296 B           0 B          3    __LINKEDIT
+        0 B       81920 B           0 B        330    __DATA_CONST
+        0 B           0 B           0 B          1    __CTF
+        0 B           0 B           0 B        331    __AUTH_CONST
+        0 B           0 B           0 B          1    __FONT_DATA
+        0 B           0 B           0 B          1    __OBJC_RO
+        0 B           0 B           0 B          1    mapped file
+        ---           ---           ---        ---    ---
+207159944 B     4030464 B           0 B       3008    TOTAL
+
+Auxiliary data:
+    phys_footprint: 207159944 B
+    phys_footprint_peak: 207159944 B
+

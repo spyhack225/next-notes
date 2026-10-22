@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "id": "2026-10-06-minicpm-asr-overlap-decode",
+  "title": "MiniCPM5-2B decode with ASR overlapping",
+  "date": "2026-10-06",
+  "category": "models",
+  "status": "measured",
+  "scope": "Installed native C1 sustained decode workload",
+  "summary": "42.20 tokens/s median over 96 rounds and 604.28 s with ASR overlap. Combined voice remains unqualified.",
+  "environment": {
+    "hardware": "Apple M3 / Mac15,12, 16 GB RAM",
+    "power": "AC, low-power mode off",
+    "thermal": "Nominal initially, fair after 340 s",
+    "workload": "96 rounds of 256 completion tokens; 122 successful Parakeet returns; all decode rounds overlap ASR"
+  },
+  "provenance": {
+    "source_revision": "22675db948bb60ffbd09c957a7813a6db50bee6d",
+    "binary_sha256": "0321ba4fe5b3358d587f8eb1fca7b6ac5b1482e1e0c4ee484a7a97c2554e215c",
+    "model_sha256": "ec2d5801640099e97d8d7e8003ad4d81f336e757811f03a26173dddf386602fd",
+    "kind": "historical native report import"
+  },
+  "metrics": [
+    {
+      "name": "Decode throughput median",
+      "value": 42.2,
+      "unit": "tokens/s",
+      "boundary": "Native completion decode, 256 tokens per round",
+      "samples": 96,
+      "aggregation": "median"
+    },
+    {
+      "name": "Decode throughput p10",
+      "value": 36.14,
+      "unit": "tokens/s",
+      "boundary": "Native completion decode, 256 tokens per round",
+      "samples": 96,
+      "aggregation": "10th percentile"
+    },
+    {
+      "name": "Run duration",
+      "value": 604.28,
+      "unit": "s",
+      "boundary": "Sustained C1 workload",
+      "samples": 1,
+      "aggregation": "reported observation"
+    }
+  ],
+  "limitations": [
+    "C1 decode acceptance only; combined voice workload C2 remains open.",
+    "Nominal temperature for the whole run is not claimed.",
+    "No current default promotion, cleanup/notes quality or whole-app readiness claim."
+  ],
+  "sources": [
+    "Tests/Reports/agent-overhaul-progress/c1-mini-decode/verification.md"
+  ],
+  "publication": {
+    "approved": true,
+    "reviewed_by": "benchmark-hub-20261022",
+    "reviewed_on": "2026-10-22"
+  }
+}

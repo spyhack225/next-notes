@@ -1,0 +1,63 @@
+{
+  "installedBinarySHA256": "375f58f6d2c3bdd32d5aca54ebda753c86bf2cf03110b402fef4773053fe3f7b",
+  "sourceInvariance": [],
+  "results": [
+    {
+      "flag": "--selftest-settings",
+      "checks": {
+        "exit0": true,
+        "expectedMarker": true,
+        "binaryUnchanged": true
+      },
+      "elapsed": 3.674
+    },
+    {
+      "flag": "--selftest-ui-strings",
+      "checks": {
+        "exit0": true,
+        "expectedMarker": true,
+        "binaryUnchanged": true
+      },
+      "elapsed": 1.93
+    },
+    {
+      "flag": "--selftest-store-isolation",
+      "checks": {
+        "exit0": true,
+        "expectedMarker": true,
+        "binaryUnchanged": true
+      },
+      "elapsed": 33.318
+    },
+    {
+      "pane": "formatting",
+      "width": 320,
+      "checks": {
+        "exit0": true,
+        "fourPNG": true,
+        "constructor": true,
+        "guardNegative": true,
+        "consumer": true,
+        "finalOK": true,
+        "noFailed": true,
+        "binaryUnchanged": true
+      },
+      "elapsed": 1.32
+    },
+    {
+      "pane": "formatting",
+      "width": 560,
+      "checks": {
+        "exit0": true,
+        "fourPNG": true,
+        "constructor": true,
+        "guardNegative": true,
+        "consumer": true,
+        "finalOK": true,
+        "noFailed": true,
+        "binaryUnchanged": true
+      },
+      "elapsed": 1.04
+    }
+  ]
+}

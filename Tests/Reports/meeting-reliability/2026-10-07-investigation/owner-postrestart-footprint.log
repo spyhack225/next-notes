@@ -1,0 +1,59 @@
+======================================================================
+NextNotes [1529]: 64-bit    Footprint: 1706331760 B (16384 bytes per page)
+======================================================================
+
+      Dirty         Clean   Reclaimable    Regions    Category
+        ---           ---           ---        ---    ---
+934690816 B           0 B           0 B        306    IOAccelerator (graphics)
+280002560 B           0 B           0 B         85    Malloc Small
+186056704 B           0 B           0 B        138    IOSurface
+118931456 B           0 B           0 B         78    Untagged
+ 90587136 B           0 B           0 B         16    Malloc Large
+ 51806208 B           0 B           0 B         49    Owned physical footprint (unmapped) (graphics)
+ 14843904 B           0 B           0 B        125    Owned physical footprint (unmapped)
+  7880704 B           0 B       16384 B         22    Malloc Metadata
+  6163879 B           0 B           0 B       1032    __DATA
+  3502189 B           0 B           0 B       1008    __DATA_DIRTY
+  2543216 B           0 B           0 B          1    page table
+  2392064 B           0 B           0 B        147    CoreAnimation
+  1162673 B           0 B           0 B        534    __AUTH
+  1148416 B      393216 B           0 B       1075    __DATA_CONST
+   966656 B           0 B           0 B          9    CoreUI Image Data
+   868352 B           0 B           0 B         28    Stack
+   704512 B           0 B           0 B         15    CG Image
+   376843 B           0 B           0 B       2701    unused dyld shared cache area
+   360448 B           0 B           0 B          8    IOAccelerator
+   294912 B           0 B           0 B          1    Malloc Tiny
+   278528 B           0 B           0 B         26    IOKit
+   262144 B           0 B           0 B          2    Accelerate Framework
+   114616 B           0 B           0 B          4    __TPRO_CONST
+    65536 B           0 B           0 B          1    Deferred Reclaim
+    65536 B           0 B           0 B          2    Malloc Nano
+    65144 B           0 B           0 B          1    __OBJC_RW
+    49152 B           0 B           0 B          1    Activity Tracing
+    49152 B           0 B           0 B         94    SQLite Page Cache
+    49152 B           0 B           0 B          3    CoreGraphics
+    16384 B           0 B           0 B          1    ColorSync
+    16384 B           0 B           0 B          1    OS Alloc Once
+    16384 B           0 B           0 B          1    Foundation
+        0 B    13500416 B           0 B       1163    __TEXT
+        0 B    13074432 B           0 B         93    mapped file
+        0 B      196608 B           0 B          8    Owned physical footprint (unmapped) (neural) (nofootprint)
+        0 B      196608 B           0 B         10    Skywalk Networking (network) (nofootprint)
+        0 B       49152 B           0 B          3    Owned physical footprint (unmapped) (network) (nofootprint)
+        0 B           0 B           0 B          7    Skywalk Networking
+        0 B           0 B           0 B          1    __OBJC_RO
+        0 B           0 B           0 B          8    __LINKEDIT
+        0 B           0 B           0 B          1    __FONT_DATA
+        0 B           0 B           0 B          1    __CTF
+        0 B           0 B           0 B       1063    __AUTH_CONST
+        0 B           0 B           0 B          7    Neural Engine
+        ---           ---           ---        ---    ---
+1706331760 B    27410432 B       16384 B       9882    TOTAL
+
+Auxiliary data:
+    neural: 196608 B
+    neural_peak: 504152064 B
+    phys_footprint: 1706331760 B
+    phys_footprint_peak: 1886572336 B
+

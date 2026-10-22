@@ -1,0 +1,219 @@
+[
+  {
+    "case": "negative-input-directory",
+    "exit": 1,
+    "verdict": "PASS",
+    "elapsed": 0.241,
+    "checks": {
+      "sentinelUnchanged": true,
+      "directoryEmpty": true,
+      "noCapturePayload": true
+    }
+  },
+  {
+    "case": "negative-input-folders-directory",
+    "exit": 1,
+    "verdict": "PASS",
+    "elapsed": 0.406,
+    "checks": {
+      "sentinelUnchanged": true,
+      "directoryEmpty": true,
+      "noCapturePayload": true
+    }
+  },
+  {
+    "case": "negative-input-gws-directory",
+    "exit": 1,
+    "verdict": "PASS",
+    "elapsed": 0.186,
+    "checks": {
+      "sentinelUnchanged": true,
+      "directoryEmpty": true,
+      "noCapturePayload": true
+    }
+  },
+  {
+    "case": "negative-input-formatting",
+    "exit": 1,
+    "verdict": "PASS",
+    "elapsed": 0.186,
+    "checks": {
+      "sentinelUnchanged": true,
+      "directoryEmpty": true,
+      "noCapturePayload": true
+    }
+  },
+  {
+    "case": "negative-input-runs",
+    "exit": 1,
+    "verdict": "PASS",
+    "elapsed": 0.188,
+    "checks": {
+      "sentinelUnchanged": true,
+      "directoryEmpty": true,
+      "noCapturePayload": true
+    }
+  },
+  {
+    "case": "negative-input-mcp",
+    "exit": 1,
+    "verdict": "PASS",
+    "elapsed": 0.133,
+    "checks": {
+      "sentinelUnchanged": true,
+      "directoryEmpty": true,
+      "noCapturePayload": true
+    }
+  },
+  {
+    "case": "negative-input-pairing",
+    "exit": 1,
+    "verdict": "PASS",
+    "elapsed": 0.133,
+    "checks": {
+      "sentinelUnchanged": true,
+      "directoryEmpty": true,
+      "noCapturePayload": true
+    }
+  },
+  {
+    "case": "negative-input-library",
+    "exit": 1,
+    "verdict": "PASS",
+    "elapsed": 0.188,
+    "checks": {
+      "sentinelUnchanged": true,
+      "directoryEmpty": true,
+      "noCapturePayload": true
+    }
+  },
+  {
+    "case": "negative-input-usage",
+    "exit": 1,
+    "verdict": "PASS",
+    "elapsed": 0.078,
+    "checks": {
+      "sentinelUnchanged": true,
+      "directoryEmpty": true,
+      "noCapturePayload": true
+    }
+  },
+  {
+    "case": "negative-input-rotated",
+    "exit": 1,
+    "verdict": "PASS",
+    "elapsed": 0.078,
+    "checks": {
+      "sentinelUnchanged": true,
+      "directoryEmpty": true,
+      "noCapturePayload": true
+    }
+  },
+  {
+    "case": "negative-mixed-live-before",
+    "exit": 1,
+    "verdict": "PASS",
+    "elapsed": 0.021,
+    "checks": {
+      "noOutput": true
+    }
+  },
+  {
+    "case": "negative-mixed-usage-after",
+    "exit": 1,
+    "verdict": "PASS",
+    "elapsed": 0.02,
+    "checks": {
+      "noOutput": true
+    }
+  },
+  {
+    "case": "negative-mixed-other-before",
+    "exit": 1,
+    "verdict": "PASS",
+    "elapsed": 0.02,
+    "checks": {
+      "noOutput": true
+    }
+  },
+  {
+    "case": "negative-mixed-other-after",
+    "exit": 1,
+    "verdict": "PASS",
+    "elapsed": 0.02,
+    "checks": {
+      "noOutput": true
+    }
+  },
+  {
+    "case": "negative-width-notfinite",
+    "exit": 1,
+    "verdict": "PASS",
+    "elapsed": 0.13,
+    "checks": {
+      "noOutput": true
+    }
+  },
+  {
+    "case": "negative-width-huge",
+    "exit": 1,
+    "verdict": "PASS",
+    "elapsed": 0.133,
+    "checks": {
+      "noOutput": true
+    }
+  },
+  {
+    "case": "negative-width-small",
+    "exit": 1,
+    "verdict": "PASS",
+    "elapsed": 0.126,
+    "checks": {
+      "noOutput": true
+    }
+  },
+  {
+    "case": "negative-png-leaf",
+    "exit": 1,
+    "verdict": "PASS",
+    "elapsed": 0.403,
+    "checks": {
+      "sentinelUnchanged": true,
+      "entryStillSymlink": true,
+      "noAdditionalPNG": true
+    }
+  },
+  {
+    "case": "capture-computer320",
+    "exit": 0,
+    "verdict": "PASS",
+    "elapsed": 0.841,
+    "checks": {
+      "fourPNG": true,
+      "constructorExercised": true,
+      "consumerAwaited": true
+    }
+  },
+  {
+    "case": "capture-formatting320",
+    "exit": 0,
+    "verdict": "PASS",
+    "elapsed": 0.897,
+    "checks": {
+      "fourPNG": true,
+      "constructorExercised": true,
+      "consumerAwaited": true
+    }
+  },
+  {
+    "case": "capture-agent560",
+    "exit": 0,
+    "verdict": "PASS",
+    "elapsed": 1.164,
+    "checks": {
+      "fourPNG": true,
+      "constructorExercised": true,
+      "consumerAwaited": true
+    }
+  }
+]

@@ -1,0 +1,7 @@
+--- a/Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift
++++ b/Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift
+@@ -55,2 +37,2 @@ struct FormattingSettingsTab: View {
+-                screenNames
+-                file
++                screenNames.selectionDisabled(true)
++                file.selectionDisabled(true)

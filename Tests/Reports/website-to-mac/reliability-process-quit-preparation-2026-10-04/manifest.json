@@ -1,0 +1,27 @@
+{
+  "status": "HELD_SOURCE_CANDIDATES_WITH_CONFIRMED_ADMISSION_COVERAGE_GAPS_NO_COMPOSITE_APP_RELEASE",
+  "documents": {
+    "README.md": "f94046de16684ac590308cd26ac699f386fb901707b0ff6aaac9ae9daf49c231",
+    "app-integration-contract.md": "abaa26a9ba294ec95d65103909f7ebceff54f462bce01a14ad8b9fb113a2b5a4",
+    "parent-pin-verification.json": "4dc6aa563e9bb3ecca252a697991cfc3fb4d4555ff08edf6930e00288c850769",
+    "capture-current/manifest.json": "c5de80c7778b647b041c46f0fa7a6970c8ecea2d73149ade3f7f079ab872dfdc",
+    "background-current/manifest.json": "b1d201e466385c52e88e6e20d9d2ebc4e0fdd5a83bba8030f2e5ffeb542d83ea",
+    "capture-current-review.md": "a863762aef4c4c4e726cb55fb3028524bb820b4851b1e9029fb89f854eaa5e54",
+    "background-current-review.md": "c74f92523ead70e0d3874a52cc03a9575ca2dcbd6c1992c75eb2212c72b6af51",
+    "background-independent-review.md": "6c5421a73381302a433574d799905ca6773ab9d4f2d2abad4d97b110bfd85013"
+  },
+  "unchangedReviewedQuitManifestSHA256": "e59de055911266d8602414dd2fa12f589ef38ac299f8e6dcdea1858695fe1e2b",
+  "parentPins": {
+    "checks": 18,
+    "matches": 17,
+    "contextDrifts": 1
+  },
+  "runtimeVerdict": null,
+  "holds": [
+    "Manager postquit continuation admission before primary transition",
+    "complete sameID predecessor and scheduled-preflight ownership",
+    "Capture unpublished/retired/unretained operation coverage",
+    "confined hosted actual-original/fixed native fixture absent",
+    "compiler/ordinary build and native/physical/all-owner acceptance unrun"
+  ]
+}

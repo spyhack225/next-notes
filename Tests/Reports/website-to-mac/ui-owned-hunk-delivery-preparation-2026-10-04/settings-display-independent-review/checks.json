@@ -1,0 +1,23 @@
+{
+  "reviewedPacketManifestSHA256": "4fc90cf4af442d2b2137862b0a9cd804de484334f282b0fc77c0512203f2c5e1",
+  "manifestArtifactCount": 44,
+  "manifestArtifactMismatches": [],
+  "selectedHunkCount": 42,
+  "foreignHunkCount": 18,
+  "selectedBySource": {
+    "FormattingSettingsTab.swift": 35,
+    "ComputerBrowserReadiness.swift": 3,
+    "AgentSettingsTab.swift": 3,
+    "DesignSystem.swift": 1
+  },
+  "foreignBySource": {
+    "ComputerBrowserReadiness.swift": 1,
+    "DesignSystem.swift": 17
+  },
+  "selectedHunkHeaderBodyMismatches": [],
+  "currentSourceHashMismatches": [],
+  "evidencePinMismatches": [],
+  "historicalAppliedIdentityMismatches": [],
+  "currentExecution": "NONE",
+  "scope": "Static source and report evidence only; no compiler, native app, model, asset, defaults or owner store read."
+}

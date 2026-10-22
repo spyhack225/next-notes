@@ -132,7 +132,7 @@ export default function HeroStage() {
             </span>
           </div>
           <p className="text-sm text-foreground/90 leading-relaxed">
-            Schedule &ldquo;Cutover&rdquo; — Wednesday the 22nd, 10:00
+            Schedule &ldquo;Cutover&rdquo;, Wednesday the 22nd, 10:00
           </p>
           <div className="flex items-center gap-2 mt-3">
             <span className="text-micro rounded-full bg-foreground text-background px-3 py-1">

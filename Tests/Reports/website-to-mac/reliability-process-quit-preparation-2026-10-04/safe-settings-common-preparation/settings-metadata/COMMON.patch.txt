@@ -1,0 +1,61 @@
+--- a/Sources/NextNotes/Support/Settings.swift
++++ b/Sources/NextNotes/Support/Settings.swift
+@@ -315,6 +315,21 @@
+ @Observable
+ final class Settings {
+     static let shared = Settings()
++
++    /// Exact private native Settings diagnostic only. Production stays nil.
++    private static var nativeNotesAvailabilityProbe: (@MainActor () -> Void)?
++    private static var nativeNotesInitializerEntered = false
++
++    static func configureNativeNotesAvailabilityProbe(_ probe: @escaping @MainActor () -> Void) throws {
++        guard SelfTest.isRunning, SelfTest.requested == "--selftest-native-termination",
++              NativeNotesSettingsSelfTest.isRequested,
++              NativeNotesSettingsSelfTest.isProbeConfigurationAdmitted,
++              !nativeNotesInitializerEntered, nativeNotesAvailabilityProbe == nil else {
++            throw CocoaError(.fileWriteNoPermission)
++        }
++        nativeNotesAvailabilityProbe = probe
++    }
++
+ 
+     /// Master choices only; behavior-specific preferences remain unchanged when a module is off.
+     /// Missing keys keep Dictation and Meetings available for existing users.
+@@ -1310,6 +1325,10 @@
+     }
+ 
+     private init() {
++        // Diagnostic-only lifecycle latch; never construct a second Settings owner.
++        if SelfTest.isRunning, NativeNotesSettingsSelfTest.isRequested {
++            Self.nativeNotesInitializerEntered = true
++        }
+         moduleDictationEnabled = Self.initialModuleEnabled(.dictation, from: defaults)
+         moduleMeetingsEnabled = Self.initialModuleEnabled(.meetings, from: defaults)
+         let raw = defaults.string(forKey: Keys.pushToTalkKey) ?? PushToTalkKey.rightOption.rawValue
+@@ -1377,7 +1396,10 @@
+         meetingsDiarizeChoice = diarizeChoice
+         meetingsDiarize = Self.diarizationDefault(
+             stored: diarizeChoice,
+-            modelsPresent: MeetingDiarizer.isDownloaded
++            modelsPresent: {
++                Self.nativeNotesAvailabilityProbe?()
++                return MeetingDiarizer.isDownloaded
++            }()
+         )
+         meetingsDiarizeOfferDismissed = defaults.object(forKey: Keys.meetingsDiarizeOfferDismissed)
+             as? Bool ?? false
+--- a/Sources/NextNotes/Meetings/MeetingDiarizer.swift
++++ b/Sources/NextNotes/Meetings/MeetingDiarizer.swift
+@@ -97,6 +97,11 @@
+                   let copied = try? NativeDiarizationQuitSelfTest.validateAssets(
+                       URL(fileURLWithPath: arguments[index + 1])) else { return false }
+             root = copied.appendingPathComponent("speaker-diarization", isDirectory: true)
++        } else if NativeNotesSettingsSelfTest.isRequested {
++            // Invalid exact-mode input is sticky in the SAME diagnostic trace.
++            // Never fall back to the owner's FluidAudio cache for this mode.
++            guard let metadataRoot = NativeNotesSettingsSelfTest.metadataRootForGetter() else { return false }
++            root = metadataRoot
+         } else {
+             root = modelsRoot
+         }

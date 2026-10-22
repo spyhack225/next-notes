@@ -1,0 +1,27 @@
+{
+  "status": "COPY_ONLY_PATCH_APPLY_NOT_TYPECHECK_OR_RUNTIME",
+  "stages": [
+    {
+      "stage": "COMMON",
+      "copiedSourceGitApplyCheck": true,
+      "copiedSourceApply": true,
+      "postimagesSHA256": {
+        "Sources/NextNotes/Agent/Tasks/AgentTaskManager.swift": "7d3829af7d6afc59268729e73c7454d1d97a8c9c6fb100d485762102c8dcecbf",
+        "Sources/NextNotes/NextNotesApp.swift": "dd9c040208a4c7dbde1eeb9db2a8134bbd8ed3a14a3121619c67217275f37509",
+        "Sources/NextNotes/Support/NativeTerminationSelfTest.swift": "0b58f0534c0c299dc66fbe7a06532b56ab2fad55a911cb9dd93101abd5d9efa5",
+        "Sources/NextNotes/Support/NativeBackgroundQuitSelfTest.swift": "e36f142c47df873d6a7609e285315bc2b105dfa892f085fc79c9ed3c98c3e9ad"
+      }
+    },
+    {
+      "stage": "FIXED",
+      "copiedSourceGitApplyCheck": true,
+      "copiedSourceApply": true,
+      "postimagesSHA256": {
+        "Sources/NextNotes/Agent/Tasks/AgentTaskManager.swift": "61034c13a70a1a6690736ac29f6e939b46b1ef900ab4e262e351397a17aa45c2",
+        "Sources/NextNotes/NextNotesApp.swift": "dd9c040208a4c7dbde1eeb9db2a8134bbd8ed3a14a3121619c67217275f37509",
+        "Sources/NextNotes/Support/NativeTerminationSelfTest.swift": "0b58f0534c0c299dc66fbe7a06532b56ab2fad55a911cb9dd93101abd5d9efa5",
+        "Sources/NextNotes/Support/NativeBackgroundQuitSelfTest.swift": "e36f142c47df873d6a7609e285315bc2b105dfa892f085fc79c9ed3c98c3e9ad"
+      }
+    }
+  ]
+}

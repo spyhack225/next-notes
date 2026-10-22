@@ -1,0 +1,57 @@
+--- a/Sources/NextNotes/Agent/Tasks/AgentTaskManager.swift
++++ b/Sources/NextNotes/Agent/Tasks/AgentTaskManager.swift
+@@ -951,7 +951,7 @@
+     /// Existing unanswered question identity, not a generic instruction to restart.
+     @discardableResult
+     func resumeVoiceObjective(id: UUID, requestID: String, answer: String, sessionID: UUID? = nil, revision: Int? = nil) -> Bool {
+-        guard let sessionID, AgentCaptureController.shared.isSessionActive,
++        guard !processTerminationRequested, let sessionID, AgentCaptureController.shared.isSessionActive,
+               AgentCaptureController.shared.sessionID == sessionID,
+               let current = task(id: id.uuidString), current.source == "voice", current.status == .waitingForInput,
+               case .voice(let ownerSession, _)? = current.origin, ownerSession == sessionID,
+@@ -1060,7 +1060,7 @@
+     /// Approves exactly one already parked ACP handshake failure. The backend will consume
+     /// this token before entering ActionOrchestrator; it cannot authorize another run.
+     func approveCompatibilityCLI(taskID: String) {
+-        guard historyReadFailure == nil else { return }
++        guard historyReadFailure == nil, !processTerminationRequested, running[taskID] == nil else { return }
+         guard let task = task(id: taskID),
+               task.status == .waitingForCompatibilityCLI,
+               ACPCompatibilityCLIBackend.request(for: task) != nil
+@@ -1083,7 +1083,7 @@
+               case .permission(let request, _, _) = task.pendingInteraction else { return }
+         // Restored approvals promise one exact retry. Do not silently turn a requested
+         // standing grant into "once" or bypass the review/primary-commit gate.
+-        if approved, duration != .once { return }
++        if approved, duration != .once || processTerminationRequested { return }
+         restorePendingInteractions()
+         guard PermissionGate.shared.hasRestoredRequest(taskID: taskID) else { return }
+         if approved {
+@@ -1225,6 +1225,9 @@
+               request.toolID == task.tool, origin?.isRemote != true else { return false }
+         let exactArguments = review?.executionArguments(mergedOver: request.arguments) ?? request.arguments
+         guard !approved || arguments == exactArguments else { return false }
++        // Denial remains available during quit; approval may not commit queued
++        // state or mint a token when its successor cannot be retained.
++        guard !approved || (!processTerminationRequested && running[taskID] == nil) else { return false }
+         let admitted = update(taskID, kinds: [approved ? .permissionApproved : .permissionDenied]) { item in
+             if approved {
+                 // Preserve all authorization pins that do not appear as editable fields.
+@@ -1310,7 +1313,7 @@
+ 
+     @discardableResult
+     func respondInput(taskID: String, text: String, requestID: String? = nil) -> Bool {
+-        guard historyReadFailure == nil,
++        guard historyReadFailure == nil, !processTerminationRequested, running[taskID] == nil,
+               var task = task(id: taskID), task.status == .waitingForInput,
+               case .input(let request) = task.pendingInteraction,
+               requestID == request.id, let tool = inputTool(task: task, request: request),
+@@ -1381,7 +1384,7 @@
+     }
+ 
+     private func enqueueWorker(_ id: String) {
+-        guard !processTerminationRequested else { return }
++        guard !processTerminationRequested, running[id] == nil else { return }
+         // The same execution slot starts unbound; only primary admission binds it.
+         let ownerToken = UUID()
+         running[id] = RunningWorker(handle: .worker(Task { @MainActor [weak self] in

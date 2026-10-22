@@ -1,0 +1,36 @@
+{
+  "status": "COMPOSED_OFF_SOURCE_UNCOMPILED_NATIVE_UNRUN_HELD",
+  "supersedes_application_order_of": "89e81606edabd96fef3fe19bb13ee9875627e1a4e120e273869eb8846e155f68",
+  "notes_return_manifest": "2f136393d8374c7c1b27f9152122bc6ffe6e5101d08f10ed4b8706fc49aee302",
+  "static_qualification_manifest": "ba3d7345f53282c8e4223f87f7708935670d7f6d5c4ebc4edd34d38bc13e74d2",
+  "artifacts": [
+    {
+      "path": "COMMON-composed.patch.txt",
+      "sha256": "9652a496c924ee81b8dd2d7ae96d0ba719dfa8dc5bd790538fd305f50ff8e4b7"
+    },
+    {
+      "path": "FIXED-from-COMMON.patch.txt",
+      "sha256": "b24f005aea4d45b05708feb643a7ba7ca4c5f5b99d81a842145b975a53a0fc6a"
+    },
+    {
+      "path": "README.md",
+      "sha256": "5ac37a1339a9d8875b40258d83b233db827c9880ec066c451890fd0447a13da5"
+    },
+    {
+      "path": "component-order.json",
+      "sha256": "56155f16827392d6a77a95f5c3fef837cd9048770ff7e199636726e4a74562c4"
+    },
+    {
+      "path": "copy-only-replay.json",
+      "sha256": "bf7d44b9e77168e5918a8e1eff82552ef9b7fda6e906df728785b1f0c721d426"
+    },
+    {
+      "path": "postimages.json",
+      "sha256": "245a00cf698ed55ab908bd453665cd62ee5d1eb36c4e23a66c65d5c8e2c9921d"
+    },
+    {
+      "path": "source-preimages.json",
+      "sha256": "6d154746dfcecbcf89bf8cbc7fc225be02c7d5093da10c32d281f33b5c0eaf5c"
+    }
+  ]
+}

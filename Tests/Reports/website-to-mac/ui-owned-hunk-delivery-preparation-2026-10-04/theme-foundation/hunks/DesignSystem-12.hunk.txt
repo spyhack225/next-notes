@@ -1,0 +1,11 @@
+--- a/Sources/NextNotes/UI/DesignSystem.swift
++++ b/Sources/NextNotes/UI/DesignSystem.swift
+@@ -143,4 +158,4 @@ enum DS {
+-        static let notesHeading = SwiftUI.Font.title3.weight(.semibold)
+-        static let notesSubheading = SwiftUI.Font.headline
+-        static let chip = SwiftUI.Font.caption.weight(.medium)
+-        static let sectionLabel = SwiftUI.Font.subheadline.weight(.semibold)
++        static var notesHeading: SwiftUI.Font { Theme.Typography.sans(.title3, weight: .semibold) }
++        static var notesSubheading: SwiftUI.Font { Theme.Typography.sans(.headline, weight: .semibold) }
++        static var chip: SwiftUI.Font { Theme.Typography.sans(.caption, weight: .medium) }
++        static var sectionLabel: SwiftUI.Font { Theme.Typography.sans(.subheadline, weight: .semibold) }

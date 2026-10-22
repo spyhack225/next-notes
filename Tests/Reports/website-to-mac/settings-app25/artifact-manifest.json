@@ -1,0 +1,233 @@
+{
+  "installedBinarySHA256": "0b5cd2efc8db1308e0ed568348a6b2297ef0d37ec50786f9032bab628e9e5875",
+  "artifacts": [
+    {
+      "path": "original/settings-summary.json",
+      "sha256": "d48e50c9dbdf32f9c69dff3820f48b46cef54ae0e9c60ad38240d767fd4c1d2f"
+    },
+    {
+      "path": "original/negative-input-directory.log",
+      "sha256": "1c4edd9d645dbad55081456bcbbb285b48a9ac91daa62bdfcc78b64df23eac4c"
+    },
+    {
+      "path": "original/negative-input-folders-directory.log",
+      "sha256": "41340db07456ee285c5666703a566edcdde3917ee2ae1081d67b0a0630099750"
+    },
+    {
+      "path": "corrected/settings-summary.json",
+      "sha256": "ffe044ac586af248a629df7cbfb47f6732c6be38d83c37b3d149b3770bb10c8b"
+    },
+    {
+      "path": "corrected/capture-agent560.log",
+      "sha256": "1bc46eff8b8038738e534b1c214ee2ff878e027275c96b8303de53408439c7e9"
+    },
+    {
+      "path": "corrected/capture-computer320.log",
+      "sha256": "cff39fa0a3d2dbf2aae2b1649972bab5211c537cdc1bfe588040af12371d2227"
+    },
+    {
+      "path": "corrected/capture-formatting320.log",
+      "sha256": "4b604433f974123ab0eda03ea444ef6f8cad42d330d2e9ea9faf402081858340"
+    },
+    {
+      "path": "corrected/negative-input-directory.log",
+      "sha256": "8626fafb7d2a493b0572c8f961c2ecfefd0d031818fad7ab07f5ed555ef9667d"
+    },
+    {
+      "path": "corrected/negative-input-folders-directory.log",
+      "sha256": "582edb537af812f4a45b9c17f73f7171f6b9c2d15e2e2290a990a1bac1e56da5"
+    },
+    {
+      "path": "corrected/negative-input-formatting.log",
+      "sha256": "e50e1c4fcf14b1a94fe3e708904bc084e8e39b1038a221163aed89b351d919fb"
+    },
+    {
+      "path": "corrected/negative-input-gws-directory.log",
+      "sha256": "34003aefeb19567dd9d91eccca207b8ec441c49e3292c3d29b26ac19081b01de"
+    },
+    {
+      "path": "corrected/negative-input-library.log",
+      "sha256": "d9ced4dd5b2a0b2347c63e9f0cc9b3be407e0bcdaba866f28630b53c3d49c1d6"
+    },
+    {
+      "path": "corrected/negative-input-mcp.log",
+      "sha256": "b5b3ec5db15227e99a6765e4684b78565b49f5115caac9ee9dd72cd70b693199"
+    },
+    {
+      "path": "corrected/negative-input-pairing.log",
+      "sha256": "0cc9c99f3d96445e67ed2b98f32875db44abc44b8bc7c47b30b9299bfd3c0693"
+    },
+    {
+      "path": "corrected/negative-input-rotated.log",
+      "sha256": "bc1d7dd1ed43b6f03195d7290c1c20c3cd00b1ba2f8323ba05266af6de193250"
+    },
+    {
+      "path": "corrected/negative-input-runs.log",
+      "sha256": "c5a61a3ffdd543bba8170f75f13a6ab4bee8bfb0f10839ee3ec49aa5c08553d6"
+    },
+    {
+      "path": "corrected/negative-input-usage.log",
+      "sha256": "8e7d585526e2dd767d705c970b1914f570a83b93f60a45cb153b17b6c24daf2c"
+    },
+    {
+      "path": "corrected/negative-mixed-live-before.log",
+      "sha256": "c7617cdda73badd4c589e563ad8f9080bc77faf381e892a4e9dadc6ff770f6f6"
+    },
+    {
+      "path": "corrected/negative-mixed-other-after.log",
+      "sha256": "c7617cdda73badd4c589e563ad8f9080bc77faf381e892a4e9dadc6ff770f6f6"
+    },
+    {
+      "path": "corrected/negative-mixed-other-before.log",
+      "sha256": "c7617cdda73badd4c589e563ad8f9080bc77faf381e892a4e9dadc6ff770f6f6"
+    },
+    {
+      "path": "corrected/negative-mixed-usage-after.log",
+      "sha256": "c7617cdda73badd4c589e563ad8f9080bc77faf381e892a4e9dadc6ff770f6f6"
+    },
+    {
+      "path": "corrected/negative-png-leaf.log",
+      "sha256": "fd1b7a97333c260bd49ea251f2aec6867bcbd20d54e8045a9bad467744604597"
+    },
+    {
+      "path": "corrected/negative-width-huge.log",
+      "sha256": "88837befef876a4c068632ef5fbef1c056c95e34ec62dce41137b9979bcc7d79"
+    },
+    {
+      "path": "corrected/negative-width-notfinite.log",
+      "sha256": "88837befef876a4c068632ef5fbef1c056c95e34ec62dce41137b9979bcc7d79"
+    },
+    {
+      "path": "corrected/negative-width-small.log",
+      "sha256": "88837befef876a4c068632ef5fbef1c056c95e34ec62dce41137b9979bcc7d79"
+    },
+    {
+      "path": "captures/computer320/settings-computer-320-reduce-motion.png",
+      "sha256": "6e5d3ad74e4c57866f4e29b09cb07c88960383cf43c385235a1b7c313355b52a"
+    },
+    {
+      "path": "captures/computer320/settings-computer-320-reduce-transparency.png",
+      "sha256": "6e5d3ad74e4c57866f4e29b09cb07c88960383cf43c385235a1b7c313355b52a"
+    },
+    {
+      "path": "captures/computer320/settings-computer-320-reduced.png",
+      "sha256": "6e5d3ad74e4c57866f4e29b09cb07c88960383cf43c385235a1b7c313355b52a"
+    },
+    {
+      "path": "captures/computer320/settings-computer-320-standard.png",
+      "sha256": "6e5d3ad74e4c57866f4e29b09cb07c88960383cf43c385235a1b7c313355b52a"
+    },
+    {
+      "path": "captures/formatting320/settings-formatting-320-reduce-motion.png",
+      "sha256": "c17abff5f144cf3b2f4ab9163093cc0623ac9d8edfe88f4c483e6555f8520f81"
+    },
+    {
+      "path": "captures/formatting320/settings-formatting-320-reduce-transparency.png",
+      "sha256": "754fa0f2d97127dceb6dd63166b0adf7f3dbf1ce81a3e4c081c2ade3f9727996"
+    },
+    {
+      "path": "captures/formatting320/settings-formatting-320-reduced.png",
+      "sha256": "c17abff5f144cf3b2f4ab9163093cc0623ac9d8edfe88f4c483e6555f8520f81"
+    },
+    {
+      "path": "captures/formatting320/settings-formatting-320-standard.png",
+      "sha256": "b989f9720e5915740534eef3bc1cac663667787cddbd0442c66c312bc74898d9"
+    },
+    {
+      "path": "captures/agent560/settings-agent-560-reduce-motion.png",
+      "sha256": "eee220d54c0fbd478fb58de355542a0b0013c584db2a3cc573cb4c5e507e686b"
+    },
+    {
+      "path": "captures/agent560/settings-agent-560-reduce-transparency.png",
+      "sha256": "6a8062530ea265c929ef678407ac322b8dcea5190495c19e25d1375e2e74a018"
+    },
+    {
+      "path": "captures/agent560/settings-agent-560-reduced.png",
+      "sha256": "eee220d54c0fbd478fb58de355542a0b0013c584db2a3cc573cb4c5e507e686b"
+    },
+    {
+      "path": "captures/agent560/settings-agent-560-standard.png",
+      "sha256": "39a5530ce44eedd2c53cd8cf53fdead5cc925e47b63811236405639249eda1e2"
+    },
+    {
+      "path": "original/checker.py",
+      "sha256": "dfdaaf1fed3753df3d06dd1ec68f834bff6d38ffe7d39b96bc6db07fba6abc56"
+    },
+    {
+      "path": "corrected/checker.py",
+      "sha256": "aa72d868c793d2fd61692798ad270568f1405d1ebb89d6601682720b631b000a"
+    },
+    {
+      "path": "negative-input-launcher.sh",
+      "sha256": "daf0746fb678bbea857950e06e38748cb9cfdc6411006109910825b20772c7f9"
+    },
+    {
+      "path": "installed-source-manifest.json",
+      "sha256": "87de2cadc0d06273f3b92d7bef9213d2edf75437b107676039e6c7b1c9d6bea7"
+    },
+    {
+      "path": "wider-original/agent320/settings-agent-320-reduce-motion.png",
+      "sha256": "144eb56bdd90ceb52c1422839b007df5fd2935ab20fbd4d7fd0fe87b4deffe33"
+    },
+    {
+      "path": "wider-original/agent320/settings-agent-320-reduce-transparency.png",
+      "sha256": "dbc9c16dcac56b3242265458d673154383a0fcd54d9b3b75a44cb1a2bbd1e869"
+    },
+    {
+      "path": "wider-original/agent320/settings-agent-320-reduced.png",
+      "sha256": "144eb56bdd90ceb52c1422839b007df5fd2935ab20fbd4d7fd0fe87b4deffe33"
+    },
+    {
+      "path": "wider-original/agent320/settings-agent-320-standard.png",
+      "sha256": "2cd6a126f0751e145f9f604b720b7ee92b88e104dfc0fed47ffe311bcf46672f"
+    },
+    {
+      "path": "wider-original/capture-agent320.log",
+      "sha256": "306a8caa689bbdefb99d7a781d3f9309d2db839a6ce14737c8c5cf67653d355f"
+    },
+    {
+      "path": "wider-original/capture-computer560.log",
+      "sha256": "ae6bfbfbb21286ead3414fbd5ca082de679fbdb163d64b66a123df83bc40f966"
+    },
+    {
+      "path": "wider-original/capture-formatting560.log",
+      "sha256": "dcdf87e4bed80c7431e9df059c1adace431cb272d82072384504ac3495d775c2"
+    },
+    {
+      "path": "wider-original/computer560/settings-computer-560-reduce-motion.png",
+      "sha256": "596daf9554e684f804f8997838fe30adacccb243b59237d1543cdba684733429"
+    },
+    {
+      "path": "wider-original/computer560/settings-computer-560-reduce-transparency.png",
+      "sha256": "596daf9554e684f804f8997838fe30adacccb243b59237d1543cdba684733429"
+    },
+    {
+      "path": "wider-original/computer560/settings-computer-560-reduced.png",
+      "sha256": "596daf9554e684f804f8997838fe30adacccb243b59237d1543cdba684733429"
+    },
+    {
+      "path": "wider-original/computer560/settings-computer-560-standard.png",
+      "sha256": "596daf9554e684f804f8997838fe30adacccb243b59237d1543cdba684733429"
+    },
+    {
+      "path": "wider-original/formatting560/settings-formatting-560-reduce-motion.png",
+      "sha256": "b5ee8b5b05be340b92bec4aa190103175ce9bb4571fe3fc1ba66b015ba659903"
+    },
+    {
+      "path": "wider-original/formatting560/settings-formatting-560-reduce-transparency.png",
+      "sha256": "33e4db1fbb240dc3dcd0d243f2dad80724aa2cfad665f8e10101508682f6ef66"
+    },
+    {
+      "path": "wider-original/formatting560/settings-formatting-560-reduced.png",
+      "sha256": "b5ee8b5b05be340b92bec4aa190103175ce9bb4571fe3fc1ba66b015ba659903"
+    },
+    {
+      "path": "wider-original/formatting560/settings-formatting-560-standard.png",
+      "sha256": "022454481336ef7cacc09bdbd33332ce0bd0443a53d11c81ce66a86c54790724"
+    },
+    {
+      "path": "wider-original/summary.json",
+      "sha256": "203882cd267be0ca4866c770d8332965e5ba916881730fe9d3cbc28624be03f5"
+    }
+  ]
+}

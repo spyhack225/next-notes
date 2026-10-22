@@ -1,0 +1,80 @@
+{
+  "status": "SOURCE_ONLY_REPLAY_PASS_NO_COMPILE_OR_NATIVE_RUN",
+  "currentSourcePreimagesMatch": true,
+  "patchPinsMatch": true,
+  "stages": {
+    "canonical": {
+      "patches": [],
+      "postimagePinsMatch": true,
+      "coreHelperByteIdentical": true,
+      "frozenFixturePinsMatch": null,
+      "frozenFixtureNote": "Not applicable: COMMON fixtures are absent in canonical input."
+    },
+    "unionCommon": {
+      "patches": [
+        "union-COMMON-current.patch.txt"
+      ],
+      "postimagePinsMatch": true,
+      "coreHelperByteIdentical": true,
+      "frozenFixturePinsMatch": true
+    },
+    "s1Fixed": {
+      "patches": [
+        "union-COMMON-current.patch.txt",
+        "fixed-S1-from-union.patch.txt"
+      ],
+      "postimagePinsMatch": true,
+      "coreHelperByteIdentical": true,
+      "frozenFixturePinsMatch": true
+    },
+    "s1DirectFixed": {
+      "patches": [
+        "union-COMMON-current.patch.txt",
+        "fixed-S1-from-union.patch.txt",
+        "fixed-direct33-after-S1.patch.txt"
+      ],
+      "postimagePinsMatch": true,
+      "coreHelperByteIdentical": true,
+      "frozenFixturePinsMatch": true
+    },
+    "allFixed": {
+      "patches": [
+        "union-COMMON-current.patch.txt",
+        "fixed-S1-from-union.patch.txt",
+        "fixed-direct33-after-S1.patch.txt",
+        "fixed-Pocket57-after-S1-direct33.patch.txt"
+      ],
+      "postimagePinsMatch": true,
+      "coreHelperByteIdentical": true,
+      "frozenFixturePinsMatch": true
+    },
+    "s1OnlyFixed": {
+      "patches": [
+        "union-COMMON-current.patch.txt",
+        "fixed-S1-from-union.patch.txt"
+      ],
+      "postimagePinsMatch": true,
+      "coreHelperByteIdentical": true,
+      "frozenFixturePinsMatch": true
+    },
+    "directOnlyFixed": {
+      "patches": [
+        "union-COMMON-current.patch.txt",
+        "fixed-direct33-from-union.patch.txt"
+      ],
+      "postimagePinsMatch": true,
+      "coreHelperByteIdentical": true,
+      "frozenFixturePinsMatch": true
+    },
+    "pocketOnlyFixed": {
+      "patches": [
+        "union-COMMON-current.patch.txt",
+        "fixed-Pocket57-from-union.patch.txt"
+      ],
+      "postimagePinsMatch": true,
+      "coreHelperByteIdentical": true,
+      "frozenFixturePinsMatch": true
+    }
+  },
+  "frozenStageComparison": "8 stages: only Core withBoundedWait old-to-current helper replacement; all other 13 postimages per stage byte-identical to frozen composition"
+}

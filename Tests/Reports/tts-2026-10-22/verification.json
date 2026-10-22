@@ -1,0 +1,22 @@
+{
+  "runnerLifecycleTests": 7,
+  "tinyMacOSCOWCommandTests": 1,
+  "testsPassed": 8,
+  "nativeSDKAndVoiceAdapterObjects": "compiled",
+  "nativeAppBuild": "failed: inherited GeneralSettingsTab SwiftUI Section overload; source repaired, rebuild blocked by disk pressure",
+  "nativeSourcePauseRegression": "not-run; executable unavailable",
+  "newProviderPlaybackChecks": "not-run; executable unavailable",
+  "mlxMetalPackaging": "official MLX 0.32.3 archive verified; macOS default.metallib retained, temporary archive deleted; GPU execution unrun",
+  "modelWeightsDownloaded": 0,
+  "nativeTTSTimingRuns": 0,
+  "installedAppChanged": false,
+  "referenceWorkloadAccepted": false,
+  "blockedAt": "2026-10-22T15:38:01.242748+00:00",
+  "disk": "Filesystem        Size    Used   Avail Capacity iused ifree %iused  Mounted on\n/dev/disk3s1s1   228Gi    13Gi   528Mi    97%    486k  5.4M    8%   /\n",
+  "swap": "vm.swapusage: total = 10752.00M  used = 9609.50M  free = 1142.50M  (encrypted)\n",
+  "cleanup": {
+    "metalArchiveBytesRemoved": 212871838,
+    "temporaryFakeModelFixturesRemoved": true,
+    "retained": "Useful shared SDK checkouts, objects and 2.2MB Metal library for incremental completion; existing owner models untouched."
+  }
+}

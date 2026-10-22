@@ -1,0 +1,5 @@
+--- a/Sources/NextNotes/UI/DesignSystem.swift
++++ b/Sources/NextNotes/UI/DesignSystem.swift
+@@ -136 +151 @@ enum DS {
+-        static let transcript = SwiftUI.Font.body
++        static var transcript: SwiftUI.Font { Theme.Typography.sans(.body) }

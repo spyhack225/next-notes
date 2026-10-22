@@ -1,0 +1,579 @@
+import FluidAudio
+import Foundation
+
+/// Who said what on the system track of a finished meeting.
+///
+/// Only the system track. The microphone track is one person by construction — the person
+/// holding the Mac — so running a clustering model over it can only invent speakers that
+/// aren't there. Everyone else arrives mixed down into one channel, and that mixdown is the
+/// only place the question "was that Ana or Ben?" is even askable.
+///
+/// It runs after the recording rather than during it: the offline diarizer clusters over the
+/// whole file, which is what lets it give the same person the same label at minute 3 and at
+/// minute 58. A streaming diarizer would answer sooner and change its mind later, and a
+/// transcript whose speaker labels shuffle while you read it is worse than no labels.
+actor MeetingDiarizer {
+    static let shared = MeetingDiarizer()
+    private var terminationFixtureDirectory: URL?
+    private var terminationFixtureTrace: DiarizerNativeTrace?
+    private var terminationRequested = false
+    private var terminationLoadTask: Task<Void, Error>?
+
+    func configureTerminationFixture(directory: URL, trace: DiarizerNativeTrace) throws {
+        guard NativeDiarizationQuitSelfTest.isRequested, self === Self.shared,
+              models == nil, loadTask == nil, terminationFixtureDirectory == nil else {
+            throw CocoaError(.fileReadNoPermission)
+        }
+        terminationFixtureDirectory = try NativeDiarizationQuitSelfTest.validateAssets(directory)
+        terminationFixtureTrace = trace
+    }
+    func beginTermination() {
+        guard !terminationRequested else { return }
+        terminationRequested = true
+        terminationLoadTask = loadTask
+        terminationLoadTask?.cancel()
+    }
+    func finishTermination() async {
+        beginTermination()
+        if let owned = terminationLoadTask { _ = await owned.result }
+        terminationLoadTask = nil
+    }
+    private func checkTerminationAdmission() throws {
+        guard !terminationRequested else { throw CancellationError() }
+        try Task.checkCancellation()
+    }
+
+    /// One stretch of one speaker, in seconds from the start of the recording.
+    ///
+    /// FluidAudio's own `TimedSpeakerSegment` carries a 256-float embedding per segment.
+    /// Assignment ignores it; `MeetingVoicePrints` averages it into one voice print per
+    /// speaker for entity resolution (Phase D). Lifting the result into this type is what lets
+    /// both be tested without a CoreML model.
+    struct SpeakerRun: Sendable, Equatable {
+        let speakerID: String
+        let start: TimeInterval
+        let end: TimeInterval
+        var embedding: [Float] = []
+    }
+
+    /// Windows shorter than this are a door closing, not a turn in a conversation, and the
+    /// segmentation model has nothing to cluster from them.
+    private static let minimumAudioSeconds: Double = 2
+
+    /// How far past a run's edge a system segment may lie and still take that run's
+    /// speaker. The embedding needs a full second of audio, so runs miss exactly the
+    /// fast edges the transcript keeps; beyond this the speaker could have changed,
+    /// and the segment stays unlabelled rather than guessed at.
+    static let nearestRunTolerance: TimeInterval = 1.0
+
+    /// Where FluidAudio caches the offline diarization models.
+    ///
+    /// `OfflineDiarizerModels.load` is handed `Application Support/FluidAudio/Models`, and
+    /// `ModelHub` appends the repo's folder name under it — so the four compiled models and
+    /// the PLDA parameters land here.
+    private static var modelsRoot: URL {
+        let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        return support.appendingPathComponent("FluidAudio/Models/speaker-diarization", isDirectory: true)
+    }
+
+    /// Whether the models are already on disk, checked without loading them.
+    ///
+    /// `nonisolated` and filesystem-based for the same reason `ParakeetModels.isDownloaded`
+    /// is: Settings draws this synchronously, and an in-memory "have I loaded yet" flag
+    /// would report "not downloaded" on every fresh launch.
+    nonisolated static var isDownloaded: Bool {
+        let required = [
+            "Segmentation.mlmodelc/coremldata.bin",
+            "FBank.mlmodelc/coremldata.bin",
+            "Embedding.mlmodelc/coremldata.bin",
+            "PldaRho.mlmodelc/coremldata.bin",
+            "plda-parameters.json",
+        ]
+        let root: URL
+        if NativeDiarizationQuitSelfTest.isRequested {
+            let arguments = CommandLine.arguments
+            guard let index = arguments.firstIndex(of: "--native-startup-assets"),
+                  arguments.indices.contains(index + 1),
+                  let copied = try? NativeDiarizationQuitSelfTest.validateAssets(
+                      URL(fileURLWithPath: arguments[index + 1])) else { return false }
+            root = copied.appendingPathComponent("speaker-diarization", isDirectory: true)
+        } else {
+            root = modelsRoot
+        }
+        guard required.allSatisfy({ FileManager.default.fileExists(atPath: root.appendingPathComponent($0).path) })
+        else { return false }
+
+        // A resumed download leaves the compiled directory in place while it is still a
+        // fragment. Never advertise that as installed.
+        let enumerator = FileManager.default.enumerator(at: root, includingPropertiesForKeys: nil)
+        while let file = enumerator?.nextObject() as? URL {
+            if file.lastPathComponent.contains(".partial") { return false }
+        }
+        return true
+    }
+
+    /// The prepared models, once. Kept for the life of the process because compiling them
+    /// is seconds of work and a meeting is not the moment to spend it twice.
+    private var models: Models?
+
+    /// In-flight load, so the Settings download button and a meeting that has just stopped
+    /// don't each start their own. `prepare()` suspends over a download, and an actor is
+    /// reentrant across a suspension — without this the second caller walks straight past
+    /// the `manager == nil` guard and downloads the models a second time.
+    private var loadTask: Task<Void, Error>?
+
+    /// Downloads and compiles the models if they aren't already on disk.
+    func prepare() async throws {
+        try checkTerminationAdmission()
+        if models != nil { return }
+        if let loadTask {
+            try await loadTask.value
+            try checkTerminationAdmission()
+            return
+        }
+
+        let task = Task<Void, Error> { [weak self] in try await self?.load() }
+        loadTask = task
+        defer { loadTask = nil }
+        try await task.value
+        try checkTerminationAdmission()
+    }
+
+    private func load() async throws {
+        try checkTerminationAdmission()
+        guard models == nil else { return }
+        let started = Date()
+        let loaded = try await Self.loaded(directory: terminationFixtureDirectory)
+        try checkTerminationAdmission()
+        models = loaded
+        Log.meeting.info("""
+            diarizer ready in \(Date().timeIntervalSince(started), format: .fixed(precision: 1))s
+            """)
+    }
+
+    /// Clusters one mono 16 kHz track into speaker runs.
+    ///
+    /// - Parameters:
+    ///   - hint: a speaker-count constraint read from the meeting (M-03). nil clusters
+    ///     blind, as every meeting before M-03 did.
+    ///   - merged: whether the post-clustering voice-print merge runs. The self-test's
+    ///     measurement mode reads the raw clusters — merged centroids would answer a
+    ///     question about the raw ones.
+    /// - Parameter progress: fraction of the segmentation pass, 0…1.
+    func speakerRuns(
+        in samples: [Float],
+        hint: SpeakerCountHint? = nil,
+        merged: Bool = true,
+        progress: (@Sendable (Double) -> Void)? = nil
+    ) async throws -> [SpeakerRun] {
+        guard Double(samples.count) / ChunkedTranscriber.sampleRate >= Self.minimumAudioSeconds else {
+            return []
+        }
+        try await prepare()
+        try checkTerminationAdmission()
+        guard let models else { throw DiarizationError.notPrepared }
+        terminationFixtureTrace?.nativeEntered()
+        var succeeded = false
+        defer { terminationFixtureTrace?.nativeReturned(succeeded: succeeded) }
+        let result = try await Self.speakerRuns(
+            from: models, in: samples, hint: hint, merged: merged, progress: progress
+        )
+        succeeded = true
+        try checkTerminationAdmission()
+        return result
+    }
+
+    /// Frees the models. Called when nothing is going to be diarized for a while.
+    func unload() {
+        models = nil
+    }
+
+    // MARK: - Off the actor
+
+    /// FluidAudio's `OfflineDiarizerManager` is a class that holds its CoreML models
+    /// `nonisolated(unsafe)` and only reads them once prepared. That makes it safe to use
+    /// from one place at a time, which is exactly what this actor guarantees — but it is not
+    /// `Sendable`, and an actor may not hand a non-`Sendable` value to a `nonisolated async`
+    /// method. So the manager never crosses the boundary: it is created, prepared and used
+    /// entirely off the actor, and only this box — which states the guarantee — is stored.
+    private final class Models: @unchecked Sendable {
+        /// The manager the load went through: `.default` config, already prewarmed. An
+        /// unhinted pass runs on it exactly as every meeting before M-03 did.
+        let defaultManager: OfflineDiarizerManager
+        /// The same load's models as a value, so a hinted pass can build its own manager
+        /// around them with `initialize(models:)` — which shares the prepared models and
+        /// never loads them a second time.
+        let prepared: OfflineDiarizerModels
+
+        init(defaultManager: OfflineDiarizerManager, prepared: OfflineDiarizerModels) {
+            self.defaultManager = defaultManager
+            self.prepared = prepared
+        }
+    }
+
+    private nonisolated static func loaded(directory: URL? = nil) async throws -> Models {
+        // One load, through a manager with the default configuration — the same call the
+        // pre-M-03 code made — so the download, the compile and FluidAudio's prewarm all
+        // happen exactly once. `prepareModels` returns nothing, so the prepared struct is
+        // re-read below from the compiled artefacts it just wrote (a re-open of what
+        // `ModelCache` keeps, not a recompile) and every hinted pass after this one
+        // builds on it instead of loading again.
+        let manager = OfflineDiarizerManager(config: .default)
+        try await manager.prepareModels(directory: directory)
+        let prepared = try await OfflineDiarizerModels.load(from: directory)
+        return Models(defaultManager: manager, prepared: prepared)
+    }
+
+    /// The config one hint becomes. FluidAudio's own words: `numSpeakers` overrides
+    /// `min`/`max`; a `maxSpeakers` binds only when the auto-detected count exceeds it.
+    /// `minSpeakers` stays unset in both cases — a one-sided recording is still one voice,
+    /// and a hint that forces a second speaker into silence is worse than no hint.
+    private nonisolated static func config(for hint: SpeakerCountHint) -> OfflineDiarizerConfig? {
+        if let exact = hint.numSpeakers, exact >= 1 {
+            return OfflineDiarizerConfig().withSpeakers(exactly: exact)
+        }
+        if let max = hint.maxSpeakers, max >= 1 {
+            return OfflineDiarizerConfig().withSpeakers(max: max)
+        }
+        return nil
+    }
+
+    private nonisolated static func speakerRuns(
+        from models: Models,
+        in samples: [Float],
+        hint: SpeakerCountHint?,
+        merged: Bool,
+        progress: (@Sendable (Double) -> Void)?
+    ) async throws -> [SpeakerRun] {
+        let manager: OfflineDiarizerManager
+        if let hint, let config = Self.config(for: hint) {
+            manager = OfflineDiarizerManager(config: config)
+            manager.initialize(models: models.prepared)
+        } else {
+            manager = models.defaultManager
+        }
+        let result = try await manager.process(audio: samples) { done, total in
+            guard total > 0 else { return }
+            progress?(Double(done) / Double(total))
+        }
+        var runs = result.segments.map {
+            SpeakerRun(
+                speakerID: $0.speakerId,
+                start: TimeInterval($0.startTimeSeconds),
+                end: TimeInterval($0.endTimeSeconds),
+                embedding: $0.embedding
+            )
+        }
+        guard merged else { return runs }
+        // The person's exact count is not something the merge may second-guess: they
+        // counted the voices they heard, and `numSpeakers` is that answer, not a bound
+        // to squeeze under.
+        runs = mergeClusters(
+            runs,
+            maxSpeakers: hint?.maxSpeakers,
+            threshold: hint?.numSpeakers == nil ? Self.mergeThreshold : nil
+        )
+        return runs
+    }
+
+    // MARK: - Cluster merge (M-03)
+
+    /// Cosine similarity above which two clusters' voice-print centroids are the same
+    /// voice. Measured, not guessed: the self-test's measurement mode runs the diarizer
+    /// without hints over the two far-end fixtures — plus both concatenated, which is
+    /// where the same-speaker pairs come from (the fixtures share the B voice) — and this
+    /// sits at the midpoint between the highest different-speaker similarity and the
+    /// lowest same-speaker similarity of that table. nil (the ranges overlap) means no
+    /// similarity merge — the hint alone then does the work.
+    static let mergeThreshold: Double? = 0.9
+
+    /// Cosine similarity of two vectors of the same length. nil when either is empty or
+    /// the norms do not behave — an embedding FluidAudio left degenerate is not evidence
+    /// for or against a merge.
+    static func cosine(_ a: [Double], _ b: [Double]) -> Double? {
+        guard a.count == b.count, !a.isEmpty else { return nil }
+        var dot = 0.0
+        var normA = 0.0
+        var normB = 0.0
+        for index in a.indices {
+            dot += a[index] * b[index]
+            normA += a[index] * a[index]
+            normB += b[index] * b[index]
+        }
+        let denominator = (normA * normB).squareRoot()
+        guard denominator > 0, denominator.isFinite else { return nil }
+        return dot / denominator
+    }
+
+    /// One cluster while merging: the duration-weighted embedding sum, how much speech it
+    /// covers, and where it was first heard.
+    private struct Cluster {
+        var id: String
+        var sum: [Double]
+        var weight: Double
+        var firstStart: TimeInterval
+    }
+
+    /// Merges over-split clusters by voice print, then squeezes to `maxSpeakers`.
+    ///
+    /// Pure over `[SpeakerRun]`: the centroids are the same duration-weighted means
+    /// `MeetingVoicePrints.centroids` writes, compared pairwise by cosine similarity.
+    /// Two passes, greedy one pair at a time because merging two clusters changes both
+    /// centroids and the next verdict must be read against the result:
+    /// 1. every pair at or above `threshold` — until none is;
+    /// 2. with a `maxSpeakers`, the closest pair — until the count fits.
+    ///
+    /// A cluster with no embedding (a run FluidAudio embedded empty) has nothing to
+    /// compare and is never merged on similarity; it can still be consumed by the
+    /// `maxSpeakers` squeeze, whose pairs are ranked by similarity and fall back to
+    /// first-heard order when similarity is unknown, so the loop always terminates.
+    /// The surviving id of a merge is whichever cluster was heard first — labels are
+    /// renumbered by first-heard order downstream, so nothing else can tell.
+    static func mergeClusters(
+        _ runs: [SpeakerRun],
+        maxSpeakers: Int? = nil,
+        threshold: Double? = nil
+    ) -> [SpeakerRun] {
+        guard runs.count > 1 else { return runs }
+
+        var clusters: [String: Cluster] = [:]
+        for run in runs {
+            let weight = Double(max(0, run.end - run.start))
+            var cluster = clusters[run.speakerID]
+                ?? Cluster(id: run.speakerID, sum: [], weight: 0, firstStart: run.start)
+            cluster.firstStart = min(cluster.firstStart, run.start)
+            if weight > 0, !run.embedding.isEmpty {
+                if cluster.sum.isEmpty {
+                    cluster.sum = [Double](repeating: 0, count: run.embedding.count)
+                }
+                if cluster.sum.count == run.embedding.count {
+                    for index in cluster.sum.indices {
+                        cluster.sum[index] += Double(run.embedding[index]) * weight
+                    }
+                    cluster.weight += weight
+                }
+            }
+            clusters[run.speakerID] = cluster
+        }
+        guard clusters.count > 1 else { return runs }
+
+        func centroid(_ cluster: Cluster) -> [Double]? {
+            guard cluster.weight > 0, !cluster.sum.isEmpty else { return nil }
+            return cluster.sum.map { $0 / cluster.weight }
+        }
+        func similarity(_ a: Cluster, _ b: Cluster) -> Double? {
+            guard let first = centroid(a), let second = centroid(b) else { return nil }
+            return cosine(first, second)
+        }
+
+        var ordered = Array(clusters.values)
+        // id → the id that absorbed it. Chains resolve by following the map, because a
+        // survivor can itself be absorbed later.
+        var absorbedInto: [String: String] = [:]
+        func resolve(_ id: String) -> String {
+            var current = id
+            while let next = absorbedInto[current] { current = next }
+            return current
+        }
+        func absorb(_ survivorIndex: Int, _ goneIndex: Int) {
+            var survivor = ordered[survivorIndex]
+            let gone = ordered[goneIndex]
+            absorbedInto[gone.id] = survivor.id
+            if gone.sum.isEmpty {
+                // Nothing to combine; a zero weight cannot move a centroid.
+            } else if survivor.sum.isEmpty {
+                survivor.sum = gone.sum
+                survivor.weight = gone.weight
+            } else if survivor.sum.count == gone.sum.count {
+                for index in survivor.sum.indices { survivor.sum[index] += gone.sum[index] }
+                survivor.weight += gone.weight
+            }
+            // A dimension mismatch (FluidAudio embeds a fixed 256 wide, so this is
+            // theoretical) loses the gone cluster's evidence rather than the merge:
+            // the squeeze has to make progress to terminate.
+            survivor.firstStart = min(survivor.firstStart, gone.firstStart)
+            ordered[survivorIndex] = survivor
+            ordered.remove(at: goneIndex)
+        }
+
+        // Pair ranking: highest similarity first; unknown similarities rank last and
+        // tie-break by first-heard order, so the squeeze always makes progress.
+        func bestPair() -> (first: Int, second: Int, similarity: Double)? {
+            var best: (Int, Int, Double)?
+            for first in ordered.indices {
+                for second in (first + 1)..<ordered.count {
+                    let sim = similarity(ordered[first], ordered[second]) ?? -1
+                    if best == nil
+                        || sim > best!.2
+                        || (sim == best!.2
+                            && (ordered[first].firstStart, ordered[second].firstStart)
+                                < (ordered[best!.0].firstStart, ordered[best!.1].firstStart)) {
+                        best = (first, second, sim)
+                    }
+                }
+            }
+            return best.map { (first: $0.0, second: $0.1, similarity: $0.2) }
+        }
+
+        if let threshold {
+            while let pair = bestPair(), pair.similarity >= threshold {
+                absorb(pair.first, pair.second)
+            }
+        }
+        if let maxSpeakers {
+            while ordered.count > maxSpeakers, let pair = bestPair() {
+                absorb(pair.first, pair.second)
+            }
+        }
+        guard ordered.count < clusters.count else { return runs }
+
+        return runs.map { run in
+            SpeakerRun(
+                speakerID: resolve(run.speakerID),
+                start: run.start,
+                end: run.end,
+                embedding: run.embedding
+            )
+        }
+    }
+
+    // MARK: - Assignment
+
+    /// Labels the system-track segments of a transcript from a set of speaker runs.
+    ///
+    /// Assignment is by overlap rather than by midpoint: a transcript segment is a window of
+    /// audio Parakeet decided to cut, and it routinely spans the moment one person stops and
+    /// another starts. Whoever holds the most of it owns it, which is the same answer a
+    /// reader would give.
+    ///
+    /// Labels are numbered by when each speaker is first heard, so "Speaker 1" is whoever
+    /// opened the call. The cluster ids the model produces are stable within one run but say
+    /// nothing about order, and a transcript that starts at Speaker 4 reads like a bug.
+    ///
+    /// The resolution ceiling is the transcript's, not the model's: a segment carries no
+    /// timing inside itself, so a window in which three people spoke can only be attributed
+    /// to the one who held most of it. The clustering underneath is far finer — it routinely
+    /// returns a dozen runs for one transcript segment — and none of that detail survives
+    /// here. Fixing it means word-level timings out of Parakeet, not a better rule in this
+    /// function.
+    ///
+    /// Short finals routinely land between runs: the embedding needs a full second of audio,
+    /// so the runs miss exactly the fast edges the transcript keeps. Three rules, in order,
+    /// for a system segment:
+    /// 1. the run with the largest overlap wins;
+    /// 2. with no overlap, the nearest run within `nearestRunTolerance` wins
+    ///    (ties go to the earlier run);
+    /// 3. still unlabelled, the nearest labelled system neighbours on both sides win,
+    ///    but only when they agree — and one pass only, so a line labelled here never
+    ///    labels another.
+    /// Otherwise the segment stays unlabelled and falls back to "Others": a run of
+    /// unlabelled lines between two different speakers stays unlabelled, honest over tidy.
+    /// Mic segments are never touched.
+    ///
+    /// Pure and static so the mapping can be exercised without a model, a file, or a meeting.
+    static func assign(_ segments: [TranscriptSegment], to runs: [SpeakerRun]) -> [TranscriptSegment] {
+        guard !runs.isEmpty else { return segments }
+
+        let labels = labelsByCluster(runs)
+
+        // Pass 1: overlap wins; otherwise the nearest run within tolerance.
+        var assigned = segments.map { segment -> TranscriptSegment in
+            guard segment.source == .system else { return segment }
+
+            var best: (id: String, overlap: TimeInterval)?
+            for run in runs {
+                let overlap = min(segment.end, run.end) - max(segment.start, run.start)
+                guard overlap > 0 else { continue }
+                if overlap > (best?.overlap ?? 0) { best = (run.speakerID, overlap) }
+            }
+            if let best, let label = labels[best.id] {
+                var labelled = segment
+                labelled.speaker = label
+                return labelled
+            }
+
+            // No overlap at all — a window the segmentation model heard as silence,
+            // or a short final that fell between runs. The nearest run still owns it
+            // when it is close enough to be the same turn.
+            var nearest: (id: String, gap: TimeInterval)?
+            for run in runs.sorted(by: { $0.start < $1.start }) {
+                let gap = max(0, max(run.start, segment.start) - min(run.end, segment.end))
+                if gap < (nearest?.gap ?? .infinity) {
+                    nearest = (run.speakerID, gap)
+                }
+            }
+            guard let nearest, nearest.gap <= Self.nearestRunTolerance,
+                  let label = labels[nearest.id] else { return segment }
+            var labelled = segment
+            labelled.speaker = label
+            return labelled
+        }
+
+        // Pass 2: agreeing neighbours. Read from the pass-1 snapshot so a line
+        // labelled here never labels another (no propagation chains).
+        let before = assigned.map(\.speaker)
+        let order = assigned.indices.sorted { assigned[$0].start < assigned[$1].start }
+        for (position, index) in order.enumerated() {
+            guard assigned[index].source == .system, before[index] == nil else { continue }
+            var previous: String?
+            for earlier in order[..<position].reversed() {
+                if assigned[earlier].source == .system, let speaker = before[earlier] {
+                    previous = speaker
+                    break
+                }
+            }
+            var next: String?
+            if position + 1 < order.count {
+                for later in order[(position + 1)...] {
+                    if assigned[later].source == .system, let speaker = before[later] {
+                        next = speaker
+                        break
+                    }
+                }
+            }
+            if let previous, previous == next {
+                assigned[index].speaker = previous
+            }
+        }
+        return assigned
+    }
+
+    /// Cluster id → "Speaker N", numbered by when each speaker is first heard.
+    static func labelsByCluster(_ runs: [SpeakerRun]) -> [String: String] {
+        var labels: [String: String] = [:]
+        for run in runs.sorted(by: { $0.start < $1.start }) where labels[run.speakerID] == nil {
+            labels[run.speakerID] = "Speaker \(labels.count + 1)"
+        }
+        return labels
+    }
+
+    /// Every generated speaker label in a transcript, in the order they were assigned.
+    ///
+    /// What the rename sheet lists, and what tells the detail view whether there is anything
+    /// to rename in the first place.
+    static func labels(in segments: [TranscriptSegment]) -> [String] {
+        var seen: [String] = []
+        for segment in segments {
+            guard let speaker = segment.speaker, !seen.contains(speaker) else { continue }
+            seen.append(speaker)
+        }
+        return seen
+    }
+}
+
+enum DiarizationError: LocalizedError {
+    case notPrepared
+    case noAudio
+    case tooShort
+
+    var errorDescription: String? {
+        switch self {
+        case .notPrepared:
+            "The speaker models couldn't be loaded."
+        case .noAudio:
+            "This meeting kept no audio, so its speakers can't be identified."
+        case .tooShort:
+            "This recording is too short to tell speakers apart."
+        }
+    }
+}

@@ -1,0 +1,27 @@
+{
+  "status": "CACHE ONLY, UNCOMPILED, UNAPPLIED; candidate remains a hypothesis",
+  "producer": "Actual ParakeetEngine.schedule/drain/nextPass",
+  "originalSHA256": "78ae4827c275b8d5e37cba2aac098a7d68dd6186a21ebcece68c9361176f1c73",
+  "candidateSHA256": "d5f222513554ccd2f5c5c2ef43b427870fbc6465d86bb59bdeaf995f7cc0909e",
+  "sourceWrites": false,
+  "hypothesis": "Bounded existing live cadence covers accepted PCM even below the RMS pause hint; cuts/native managers/cancellation lane unchanged",
+  "notFree": "Adds partial inference during silence/ambient noise; must reject new hallucinations and measure load plus physical ASR/voice before adoption",
+  "required": [
+    "Identical quiet whole input and independently aligned exact final-turn window native raw/reference words, before/after",
+    "Actual first nonempty partial before release in entirely quiet recognizable window, not fabricated marker alone",
+    "Digital zero, DC and deterministic noise exact outputs/modelcalls/end-to-end work; DC/nonzero is not speech ground truth",
+    "Quiet pause-midword/long allquiet segmentation exact independent words",
+    "Normal short/long/forcedcut native WER/final latency, original failure/heldsegment/offset/cancellation regressions",
+    "Reference16GB ASR+voice contention and partial duty measurement"
+  ],
+  "stillOpen": "RMS-based pause cuts may split quiet speech; changed partial scheduling alone does not repair this",
+  "pauseCutCandidate": {
+    "status": "CACHE ONLY, UNCOMPILED, UNAPPLIED",
+    "originalSHA256": "215ef83b73014c1bffbcda9f8446798613e12c1f929593078f2c09fb9f4a5e3b",
+    "candidateSHA256": "b87b448013837a4c8e6a8286b7fcb97f084af1cccc9b6619c1fabfa5c7c125ad",
+    "nativeOriginal": "signed fifth direct exact7word referenceWER0 vs actualengineGreat/Great.Yeah WER.857, firstpartial3084/3087ms,2passes1segment",
+    "firstContract": "below-RMS entire input reaches min3s and cuts silenceRun3s in half at1.5s inside a recognized spoken clause",
+    "scope": "Do not create an RMS pause cut without observed speech in that open segment; same hard-cap search, offset retention and models",
+    "notProved": "Mixed louder-to-quieter speech can still trigger incorrect RMS pauses. Native fixed words/silence/noise/latency/ASR+voice remain required."
+  }
+}

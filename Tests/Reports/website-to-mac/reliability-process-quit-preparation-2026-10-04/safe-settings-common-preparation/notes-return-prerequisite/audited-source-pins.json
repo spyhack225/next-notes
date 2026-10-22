@@ -1,0 +1,8 @@
+{
+  "kind": "finite read-only source observation",
+  "pins": {
+    "Sources/NextNotes/Meetings/NotesService.swift": "c1577429843cd4f2a50bca738a8afe95ed574e7faea29153de38fe8264c79652",
+    "Sources/NextNotes/Meetings/MeetingStore.swift": "085f6b60395192c230d80ac429e84f98cd0c79f2fce0300f10fd4bb0cbc52c6b",
+    "Sources/NextNotes/NextNotesApp.swift": "bc01a27f48478a297d07a1d35669c313615cc7c182c0c6d113b4899e792a1b61"
+  }
+}

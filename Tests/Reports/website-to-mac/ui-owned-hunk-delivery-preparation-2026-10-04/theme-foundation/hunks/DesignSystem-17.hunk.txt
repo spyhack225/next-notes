@@ -1,0 +1,11 @@
+--- a/Sources/NextNotes/UI/DesignSystem.swift
++++ b/Sources/NextNotes/UI/DesignSystem.swift
+@@ -659,3 +677,5 @@ enum DS {
+-        /// glass draws its own specular edge, and it draws it correctly in both
+-        /// appearances, where a hard-coded white lip would only ever be right in one.
+-        static let surfaceGlass: Glass = .regular
++        /// glass draws its own specular edge, and it draws it against whatever is
++        /// actually behind the pane. Consumes the theme tuning (owner decision
++        /// 2026-10-01); the fixed light substrate is what the specular edge draws
++        /// against now.
++        static let surfaceGlass: Glass = Theme.Glass.tinted

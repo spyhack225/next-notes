@@ -1,0 +1,33 @@
+{
+  "atUTC": "2026-10-08T05:33:46.732411+00:00",
+  "paths": [
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-empty-context-20261008/check",
+      "sha256": "79c6d75fe4d1567b761bd7f88bed69365518e7299cf0c68abc0e7a8271bfee3f",
+      "logicalBytes": 550296,
+      "allocatedBytes": 552960
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-live-coverage-20261008/cut-check",
+      "sha256": "ad413e79359da79b7d816f33952c605ec31cd74c72390187f4124b3b3ab1091e",
+      "logicalBytes": 131416,
+      "allocatedBytes": 135168
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-live-coverage-20261008/live-original",
+      "sha256": "7f8fc1eb260d067a457cca239bccb328358e6a0ccea236d9b7646d42fd1f6a1a",
+      "logicalBytes": 313776,
+      "allocatedBytes": 315392
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-live-coverage-20261008/live-zero-candidate",
+      "sha256": "bd699901d44afbc6f8e5cb9511d767fd14a0a701a362221e306cc1ed56a0120f",
+      "logicalBytes": 314304,
+      "allocatedBytes": 315392
+    }
+  ],
+  "allocatedBytesReclaimed": 1318912,
+  "scope": "Four owned obsolete joined component executables only. Exact source, Make recipes, original/fixed logs and acceptance receipts retained. No app/model/scratch/store/recording/worktree removal.",
+  "processCheck": "exact paths absent from ps pid,comm,args",
+  "removed": true
+}
