@@ -1,0 +1,5 @@
+Rebased and committed as `e07867fb` and `514fcfc7`. Recovery checks passed; all 11 previews inspected.
+
+Retained failures: Settings exit `-11` and 13 Island assertions. Details in [RESULT.md](/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/voice-settings-ui/RESULT.md).
+
+Scratch removed and relay handoff sent. No install, push, or main merge.

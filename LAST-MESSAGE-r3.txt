@@ -1,0 +1,8 @@
+Committed round-three changes as `98f9205a` and evidence as `09b686d1`.
+
+- Source review: RED 20 → GREEN 0; recovery wiring preserved.
+- Build, Voice Settings, UI strings, and previews pass.
+- Inspected all 11 light-theme PNGs, including the real 560pt Models page.
+- Settings retains inherited exit `-11`. Active-window Retry appearance remains unverified.
+
+[RESULT.md](/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/voice-settings-ui/RESULT.md) records evidence, limitations, and conflicts. Own scratch deleted; relay sent. No install, push, or main merge.

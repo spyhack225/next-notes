@@ -1,0 +1,5 @@
+Round 4 completed in the own worktree: `6e374bb4`, `458aae5a`.
+
+Four findings fixed; recovery/epoch wiring untouched. Source RED5 → GREEN. Build, Voice Settings, UI strings and preview passed; all 11 PNGs inspected. Settings retains the inherited `-11` crash. Active Retry prominence remains unverified offscreen.
+
+[RESULT.md](/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/voice-settings-ui/RESULT.md) records evidence and limits. Scratch deleted; relay sent. No install, push or main merge.
