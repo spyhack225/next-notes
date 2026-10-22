@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "id": "2026-10-22-asr-signed-app-phonon",
-  "title": "Phonon-2 (CoreML) signed-app live ASR",
+  "title": "Phonon-2 signed-app live ASR",
   "date": "2026-10-22",
   "category": "asr",
   "status": "measured",

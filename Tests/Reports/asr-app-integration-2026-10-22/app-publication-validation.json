@@ -1,0 +1,18 @@
+{
+  "candidates": 8,
+  "timedHolds": 45,
+  "sharedAppLatencyMatchesNativeMedians": true,
+  "siteTypecheck": "pass",
+  "siteLint": "pass",
+  "browserPreview": {
+    "englishRows": 8,
+    "frenchRows": 8,
+    "frenchFastest": "Whistle417msfirst/38msfinal",
+    "frenchVoz": "450msfirst/58msfinal",
+    "phononFrench": "English only",
+    "scopeLabelsVisible": true,
+    "temporaryTabClosed": true,
+    "temporaryViteServerJoined": true
+  },
+  "generatedSwiftSHA256": "cd4cd2de634eaccfb3efe485ed26a55427d6f8e9883f0824ecd3970fe4becb71"
+}

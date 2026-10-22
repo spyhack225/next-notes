@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "id": "2026-10-22-asr-signed-app-ultra",
-  "title": "Parakeet Ultra (CoreML) signed-app live ASR",
+  "title": "Parakeet Ultra signed-app live ASR",
   "date": "2026-10-22",
   "category": "asr",
   "status": "measured",

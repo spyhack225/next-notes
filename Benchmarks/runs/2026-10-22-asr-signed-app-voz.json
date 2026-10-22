@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "id": "2026-10-22-asr-signed-app-voz",
-  "title": "Voz (CoreML CLI) signed-app live ASR",
+  "title": "Voz signed-app live ASR",
   "date": "2026-10-22",
   "category": "asr",
   "status": "measured",

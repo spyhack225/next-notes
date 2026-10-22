@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "id": "2026-10-22-asr-signed-app-parakeet",
-  "title": "Parakeet v3 (cached FluidAudio) signed-app live ASR",
+  "title": "Parakeet v3 signed-app live ASR",
   "date": "2026-10-22",
   "category": "asr",
   "status": "measured",

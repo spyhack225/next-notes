@@ -6,7 +6,7 @@ import { REPO_URL } from "./lib/motion";
 
 const areas = ["all", "asr", "dictation", "meetings", "agent", "voice", "tts", "workflows", "models"];
 const labels: Record<string, string> = { all: "All areas", asr: "Speech recognition", tts: "Speech synthesis" };
-const asrAppRows = asrModels.map(model => ({ ...model, live: asrAppLatency.find(run => run.id === model.id)?.languages }));
+const asrAppRows = asrModels.map(model => ({ ...model, name: model.name.replace(/\s*\([^)]*\)/g, ""), live: asrAppLatency.find(run => run.id === model.id)?.languages }));
 
 export default function Benchmarks() {
   const [language, setLanguage] = useState<"en" | "fr">("en");
