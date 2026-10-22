@@ -1,0 +1,20 @@
+{
+  "at": "2026-10-22T18:22:59.715997+00:00",
+  "surface": "Local Vite preview through CUA in-app browser",
+  "url": "http://127.0.0.1:5173/?page=benchmarks",
+  "observedEnglishRows": 8,
+  "observedFrenchRows": 8,
+  "frenchSelectionChanged": true,
+  "observedFrenchVoz": {
+    "firstWordMS": 446,
+    "releaseToFinalMS": 83,
+    "sizeMB": 337,
+    "wordAccuracyPercent": 88.1
+  },
+  "observedFrenchQwenLargeAccuracyPercent": 96.0,
+  "observedPhononFrench": "English only",
+  "defaultViewportScreenshotInspected": true,
+  "layout": "Readable five-column table with no visible overlap; remaining rows reachable by page scrolling.",
+  "publicDeploymentVerified": false,
+  "nativeSettingsUI": "Initial Next Notes CUA timeout -10005; not verified"
+}

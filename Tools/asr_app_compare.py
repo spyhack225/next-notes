@@ -1,9 +1,11 @@
 """Serial optimized-app ASR check; one candidate/process/temp root at a time."""
-import argparse,fcntl,hashlib,json,os,shutil,signal,subprocess,time
+import argparse,fcntl,hashlib,json,os,shutil,signal,subprocess,time,tempfile
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 
 def main():
+ def interrupted(signum, frame): raise KeyboardInterrupt("diagnostic parent interrupted")
+ signal.signal(signal.SIGTERM,interrupted)
  parser=argparse.ArgumentParser(description=__doc__)
  parser.add_argument('--app',type=Path,required=True)
  parser.add_argument('--output',type=Path,required=True)
@@ -19,8 +21,8 @@ def main():
    beforeRoots=set(cache.glob('app-*'));before=shutil.disk_usage(cache).free
    command=[str(args.app.resolve()),'--selftest-asr-live','--asr-model',model,'--asr-fixtures',str(ROOT/'Tests/Fixtures/meetings'),'--asr-output',str(output.resolve())]
    began=time.monotonic();reason=None
-   with (args.output/f'{model}.log').open('w') as log:
-    child=subprocess.Popen(command,stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
+   with tempfile.TemporaryDirectory(prefix='app-http-',dir=cache) as http_temp, (args.output/f'{model}.log').open('w') as log:
+    child=subprocess.Popen(command,stdout=log,stderr=subprocess.STDOUT,start_new_session=True,env={**os.environ,'TMPDIR':http_temp+os.sep})
     try:
      while child.poll() is None:
       if shutil.disk_usage(cache).free<1536*1024**2:reason='disk below1.5GiB'
@@ -28,16 +30,23 @@ def main():
       if reason:
        os.killpg(child.pid,signal.SIGKILL);child.wait();break
       time.sleep(.5)
-    except BaseException:
+    except BaseException as error:
      if child.poll() is None:os.killpg(child.pid,signal.SIGKILL);child.wait()
-     raise
+     reason='parent interrupted: '+repr(error)
    deleted=[]
    for folder in set(cache.glob('app-*'))-beforeRoots:
     marker=folder/'.pid'
     if marker.is_file() and marker.read_text().strip()==str(child.pid):
      shutil.rmtree(folder);deleted.append(str(folder))
-   row=dict(model=model,appSHA256=binarySHA,command=command,exit=child.returncode,seconds=time.monotonic()-began,stopped=reason,freeBefore=before,freeAfter=shutil.disk_usage(cache).free,ownedFailureRootsDeleted=deleted,childJoined=child.poll() is not None)
+   row=dict(model=model,appSHA256=binarySHA,command=command,exit=child.returncode,seconds=time.monotonic()-began,stopped=reason,freeBefore=before,freeAfter=shutil.disk_usage(cache).free,ownedFailureRootsDeleted=deleted,childJoined=child.poll() is not None,httpTemporaryDeleted=not Path(http_temp).exists())
    results.append(row);(args.output/'runner.json').write_text(json.dumps(results,indent=2)+'\n');print(json.dumps(row),flush=True)
    if child.returncode or not output.exists():raise SystemExit(1)
    result=json.loads(output.read_text());assert result['temporaryAssetsDeleted']
+   from asr_live import fixture
+   from asr_benchmark import error_rate
+   quality=[]
+   for trial in result['trials']:
+    _, reference, identity=fixture(trial['language'])
+    quality.append(dict(language=trial['language'],trial=trial['index'],fixture=identity,**error_rate(reference,trial['text'])))
+   (args.output/f'{model}-quality.json').write_text(json.dumps(dict(scope='Literal parent-scored WER on actual app final;20EN/22FR authored reference words, number formatting can count as errors; not general accuracy.',trials=quality),indent=2)+'\n')
 if __name__=='__main__':main()
