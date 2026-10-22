@@ -29,6 +29,8 @@ Use `git show <snapshot-commit>:<repository-relative-file>` to read a file. To r
 
 Ignored content is in that snapshot's `.worktree-preservation/ignored.tar.gz`. List and review the archive, then extract only into the new recovery checkout. It includes local-only material and must not be published blindly. The manifest, original index and staged patch in `.worktree-preservation/` retain the original staging context. Recover one task at a time rather than recreating the whole set of checkouts.
 
+Because these histories were archive-merged, `git merge <old-tip>` will not reapply their old application files. A future feature integration must recover the snapshot, review its original-base-to-snapshot diff, and explicitly port the selected producer changes onto current main. Do not assume the archive merge activated the feature.
+
 This is local Git retention, not an off-machine backup or a qualified combined application build. Separately tested source integration is still required before activating archived alternative implementations.
 
 ## Completed outcome
