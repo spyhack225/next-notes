@@ -14,7 +14,8 @@ repo = report.parents[2]
 app = Path(sys.argv[1]).resolve()
 binary = app / 'Contents/MacOS/NextNotes'
 flags = [
-    'asr-settings', 'tts-source', 'chat-template', 'google-connect', 'gws',
+    'asr-settings', 'stream', 'dictation-segments', 'usage-log',
+    'tts-source', 'chat-template', 'google-connect', 'gws',
     'calendar', 'mac-accounts', 'capability-manifest', 'ui-strings',
     'task-durability', 'task-recovery', 'task-authority', 'task-restoration',
     'task-history-repair', 'task-worker-attempt', 'receipt-persistence',
