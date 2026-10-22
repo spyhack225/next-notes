@@ -115,10 +115,11 @@ webrtc-audio:
 	@mkdir -p "$(STAGE)"
 	@NEXTNOTES_WEBRTC_CACHE="$(STAGE)/webrtc" bash Tools/build-webrtc-audio.sh > "$(STAGE)/webrtc-build.log" 2>&1 || { cat "$(STAGE)/webrtc-build.log"; exit 1; }
 
-SWIFT_BUILD_FLAGS ?=
+SWIFT_BUILD_FLAGS ?= --jobs 2 -Xswiftc -no-whole-module-optimization -Xswiftc -enable-batch-mode -Xswiftc -driver-batch-count -Xswiftc 16 -Xswiftc -num-threads -Xswiftc 1
 build: webrtc-audio
 	# SwiftBuild flattens two binary dependencies' module maps into one output.
 	swift build -c $(CONFIG) --build-system native --scratch-path "$(SCRATCH)" $(SWIFT_BUILD_FLAGS)
+	python3 Tools/package-resource-accessors.py "$(SCRATCH)" "$(CONFIG)"
 	bash Tools/build-mlx-metal.sh "$(SCRATCH)" "$(CONFIG)"
 
 ## Two suites, named explicitly rather than matched by one regex.
@@ -152,7 +153,7 @@ app: build
 	@mkdir -p "$(CONTENTS)/MacOS" "$(CONTENTS)/Resources" "$(CONTENTS)/Frameworks"
 	@cp $(BUILD) "$(CONTENTS)/MacOS/$(EXEC)"
 	@for resource in "$(SCRATCH)/$(CONFIG)"/*.bundle; do \
-		if [ -d "$$resource" ]; then cp -R "$$resource" "$(BUNDLE)/"; fi; \
+		if [ -d "$$resource" ]; then cp -R "$$resource" "$(CONTENTS)/Resources/"; fi; \
 	done
 	@cp -R "$(LLAMA_FRAMEWORK)" "$(CONTENTS)/Frameworks/"
 	@cp "$(WEBRTC_LIB_DIR)/libNextNotesAEC.dylib" "$(WEBRTC_LIB_DIR)/libwebrtc-audio-processing-2.1.dylib" "$(CONTENTS)/Frameworks/"
