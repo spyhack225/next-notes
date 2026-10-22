@@ -2134,7 +2134,7 @@ final class DictationController {
         // Which speech engine actually ran this hold, for the usage row. Read from the
         // engine rather than from the setting: a test injects its own, and the row should
         // name what ran rather than what the picker says today.
-        let engineChoice: SpeechEngineChoice = (engine as? ParakeetEngine)?.modelChoice ?? .apple
+        let engineChoice = currentEngineChoice
         self.audioContinuation = nil
         self.feedTask = nil
         self.engine = nil
@@ -2586,7 +2586,7 @@ final class DictationController {
     private var currentEngineChoice: SpeechEngineChoice {
         if engine is AppleSpeechEngine { return .apple }
         if let engine = engine as? ParakeetEngine { return engine.modelChoice }
-        return Settings.shared.resolvedSpeechEngine
+        return .parakeet
     }
 
     private static func millisecondsBetween(_ from: Date, _ to: Date) -> Int {
