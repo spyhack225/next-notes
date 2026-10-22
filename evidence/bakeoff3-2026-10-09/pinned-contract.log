@@ -1,0 +1,72 @@
+....Run 1/3: model=installed-fixture-model, clock=2026-10-04T12:00:00-04:00
+TOOLLOOP_LIVE_CLOCK: 2026-10-04T12:00:00-04:00 timezone=America/New_York
+TOOLLOOP_LIVE_MODEL: appLLM "fixture" ctx=8192
+TOOLLOOP_LIVE_FAILED: 7/10
+TOOLLOOP_LIVE_SAMPLER: arm=minicpm-vendor temperature=1 top_p=0.95 min_p=0 repeat_penalty=1.05
+Run 2/3: model=installed-fixture-model, clock=2026-10-04T12:00:00-04:00
+TOOLLOOP_LIVE_CLOCK: 2026-10-04T12:00:00-04:00 timezone=America/New_York
+TOOLLOOP_LIVE_MODEL: appLLM "fixture" ctx=8192
+TOOLLOOP_LIVE_FAILED: 7/10
+TOOLLOOP_LIVE_SAMPLER: arm=minicpm-vendor temperature=1 top_p=0.95 min_p=0 repeat_penalty=1.05
+Run 3/3: model=installed-fixture-model, clock=2026-10-04T12:00:00-04:00
+TOOLLOOP_LIVE_CLOCK: 2026-10-04T12:00:00-04:00 timezone=America/New_York
+TOOLLOOP_LIVE_MODEL: appLLM "fixture" ctx=8192
+TOOLLOOP_LIVE_FAILED: 7/10
+TOOLLOOP_LIVE_SAMPLER: arm=minicpm-vendor temperature=1 top_p=0.95 min_p=0 repeat_penalty=1.05
+........Quick installed-fixture-model: min 7/10, median 7/10, max 7/10; /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/nextnotes-quick-contract-96xzhtuj/runs-None
+Run 1/3: model=installed-fixture-model, clock=2026-10-04T12:00:00-04:00
+TOOLLOOP_LIVE_CLOCK: 2026-10-04T12:00:00-04:00 timezone=America/New_York
+TOOLLOOP_LIVE_MODEL: appLLM "fixture" ctx=8192
+TOOLLOOP_LIVE_FAILED: 7/10
+TOOLLOOP_LIVE_SAMPLER: arm=minicpm-vendor temperature=1 top_p=0.95 min_p=0 repeat_penalty=1.05
+Run 2/3: model=installed-fixture-model, clock=2026-10-04T12:00:00-04:00
+TOOLLOOP_LIVE_CLOCK: 2026-10-04T12:00:00-04:00 timezone=America/New_York
+TOOLLOOP_LIVE_MODEL: appLLM "fixture" ctx=8192
+TOOLLOOP_LIVE_FAILED: 7/10
+TOOLLOOP_LIVE_SAMPLER: arm=minicpm-vendor temperature=1 top_p=0.95 min_p=0 repeat_penalty=1.05
+Run 3/3: model=installed-fixture-model, clock=2026-10-04T12:00:00-04:00
+TOOLLOOP_LIVE_CLOCK: 2026-10-04T12:00:00-04:00 timezone=America/New_York
+TOOLLOOP_LIVE_MODEL: appLLM "fixture" ctx=8192
+TOOLLOOP_LIVE_FAILED: 7/10
+TOOLLOOP_LIVE_SAMPLER: arm=minicpm-vendor temperature=1 top_p=0.95 min_p=0 repeat_penalty=1.05
+Quick installed-fixture-model: min 7/10, median 7/10, max 7/10; /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/nextnotes-quick-contract-hofp3u1t/runs-prompt
+Run 1/3: model=installed-fixture-model, clock=2026-10-04T12:00:00-04:00
+TOOLLOOP_LIVE_CLOCK: 2026-10-04T12:00:00-04:00 timezone=America/New_York
+TOOLLOOP_LIVE_MODEL: appLLM "fixture" ctx=8192
+TOOLLOOP_LIVE_FAILED: 7/10
+TOOLLOOP_LIVE_SAMPLER: arm=minicpm-vendor temperature=1 top_p=0.95 min_p=0 repeat_penalty=1.05
+Run 2/3: model=installed-fixture-model, clock=2026-10-04T12:00:00-04:00
+TOOLLOOP_LIVE_CLOCK: 2026-10-04T12:00:00-04:00 timezone=America/New_York
+TOOLLOOP_LIVE_MODEL: appLLM "fixture" ctx=8192
+TOOLLOOP_LIVE_FAILED: 7/10
+TOOLLOOP_LIVE_SAMPLER: arm=minicpm-vendor temperature=1 top_p=0.95 min_p=0 repeat_penalty=1.05
+Run 3/3: model=installed-fixture-model, clock=2026-10-04T12:00:00-04:00
+TOOLLOOP_LIVE_CLOCK: 2026-10-04T12:00:00-04:00 timezone=America/New_York
+TOOLLOOP_LIVE_MODEL: appLLM "fixture" ctx=8192
+TOOLLOOP_LIVE_FAILED: 7/10
+TOOLLOOP_LIVE_SAMPLER: arm=minicpm-vendor temperature=1 top_p=0.95 min_p=0 repeat_penalty=1.05
+.Quick installed-fixture-model: min 7/10, median 7/10, max 7/10; /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/nextnotes-quick-contract-hofp3u1t/runs-native
+Run 1/3: model=installed-fixture-model, clock=2026-10-04T12:00:00-04:00
+TOOLLOOP_LIVE_CLOCK: 2026-10-04T12:00:00-04:00 timezone=America/New_York
+TOOLLOOP_LIVE_MODEL: appLLM "fixture" ctx=8192
+TOOLLOOP_LIVE_FAILED: 7/10
+TOOLLOOP_LIVE_SAMPLER: arm=minicpm-vendor temperature=1 top_p=0.95 min_p=0 repeat_penalty=1.05
+Run 2/3: model=installed-fixture-model, clock=2026-10-04T12:00:00-04:00
+TOOLLOOP_LIVE_CLOCK: 2026-10-04T12:00:00-04:00 timezone=America/New_York
+TOOLLOOP_LIVE_MODEL: appLLM "fixture" ctx=8192
+TOOLLOOP_LIVE_FAILED: 7/10
+TOOLLOOP_LIVE_SAMPLER: arm=minicpm-vendor temperature=1 top_p=0.95 min_p=0 repeat_penalty=1.05
+Run 3/3: model=installed-fixture-model, clock=2026-10-04T12:00:00-04:00
+TOOLLOOP_LIVE_CLOCK: 2026-10-04T12:00:00-04:00 timezone=America/New_York
+TOOLLOOP_LIVE_MODEL: appLLM "fixture" ctx=8192
+TOOLLOOP_LIVE_FAILED: 7/10
+TOOLLOOP_LIVE_SAMPLER: arm=minicpm-vendor temperature=1 top_p=0.95 min_p=0 repeat_penalty=1.05
+...Quick installed-fixture-model: min 7/10, median 7/10, max 7/10; /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/nextnotes-quick-contract-6js3uam4/runs-None
+Machine: {"load": 41, "swapGiB": 0.0, "freeGiB": 20.0}
+Machine: {"load": 3, "swapGiB": 8.0009765625, "freeGiB": 20.0}
+Machine: {"load": 3, "swapGiB": 0.0, "freeGiB": 9.0}
+...
+----------------------------------------------------------------------
+Ran 19 tests in 0.027s
+
+OK
