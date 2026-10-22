@@ -1,0 +1,5 @@
+Committed `6e490cec`: the service epoch now drops stale calendar-list completions across withdrawal, disconnect, and reconnect.
+
+Native RED: 7 failures. Fixed/restored: 369 assertions pass. Both seven-flag batches, mutation/restoration checks, and secret scans passed. The inherited isolation subcheck failure remains documented.
+
+[RESULT.md](/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/google-c/RESULT.md) records evidence and the CalendarService integration conflict. Scratch cleaned; no install, push, merge, or private OAuth JSON read.

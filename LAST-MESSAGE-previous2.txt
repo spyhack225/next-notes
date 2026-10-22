@@ -1,0 +1,5 @@
+Committed through `ddf30b7b`. Original49/draft4 failures → GREEN0; all seven required markers OK. Three mutations turned RED and were restored. Secret greps passed; own scratch cleaned and relay finish posted.
+
+Inherited nested browser failures remain open, along with real Google/release verification. No install, push or merge.
+
+Details: [RESULT.md](/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/google-c/RESULT.md).

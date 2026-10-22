@@ -1,0 +1,5 @@
+Fixed findings 1–6 in six separate commits, plus all small items. Head: `59b8bbba`.
+
+Native RED reproduced every finding; fixed/restored passed 318 Google assertions, all seven checks, and targeted mutations. Final secret scans passed; own scratch removed. No install, push, merge, or private OAuth JSON access.
+
+[RESULT.md](/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/google-c/RESULT.md) records why earlier tests missed each finding, evidence, and manual conflicts. The inherited browser gate and real-account/UI verification remain open.

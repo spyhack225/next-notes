@@ -1,0 +1,9 @@
+Fixed all three in separate commits:
+
+- `27c24e23`: grant identity binding through token delivery and launch.
+- `8a3aec0f`: controller withdrawal/disconnect clears cached calendars.
+- `08ffb2ec`: named RED assertions and setup-failure controls.
+
+Native RED reproduced 13 failures; fixed/restored runs pass 340 Google assertions and all seven flags. Mutations behaved correctly; final secret scans are clean. The inherited nested tool-loop failure remains unchanged.
+
+[RESULT.md](/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/google-c/RESULT.md) explains earlier misses, evidence, and integration conflicts. No install, push, or merge.
