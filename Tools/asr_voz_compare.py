@@ -13,6 +13,7 @@ import os
 from pathlib import Path
 import re
 import shutil
+import signal
 import subprocess
 import tarfile
 import tempfile
@@ -25,12 +26,15 @@ URL = f"https://github.com/Desert-Ant-Labs/desert-ant-cli/releases/download/{REL
 
 
 def run(command, env, timeout=180):
-    child = subprocess.Popen(command, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    child = subprocess.Popen(command, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, start_new_session=True)
     try:
         stdout, stderr = child.communicate(timeout=timeout)
     except BaseException:
-        child.kill()
-        child.wait()
+        try:
+            os.killpg(child.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+        child.communicate()
         raise
     return {"exit": child.returncode, "stdout": stdout.decode(errors="replace"),
             "stderr": stderr.decode(errors="replace")}

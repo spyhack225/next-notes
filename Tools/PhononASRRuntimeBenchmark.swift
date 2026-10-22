@@ -16,7 +16,20 @@ struct PhononASRRuntimeBenchmark {
         try FileManager.default.moveItem(at: compiled, to: folder.appendingPathComponent("Phonon-2.mlmodelc"))
         let compileMS = Date().timeIntervalSince(began) * 1000
         let start = Date()
-        let transcriber = try Transcriber(bundle: folder)
+        var options = Transcriber.Options()
+        let live = ProcessInfo.processInfo.environment["ASR_LIVE"] == "1"
+        if live {
+            // These paced holds are <=7.25s. Avoid compiling the unused default
+            // 15s/35s functions before the short-dictation graphs can load.
+            options.functions = [5, 10]
+            options.eagerFunctions = [5]
+            options.progress = { phase, elapsed in
+                if let data = try? JSONSerialization.data(withJSONObject: ["phase":phase,"elapsed_seconds":elapsed]) {
+                    FileHandle.standardOutput.write(Data("ASR_PROGRESS ".utf8) + data + Data([10]))
+                }
+            }
+        }
+        let transcriber = try Transcriber(bundle: folder, options: options)
         let loadMS = Date().timeIntervalSince(start) * 1000
         if ProcessInfo.processInfo.environment["ASR_LIVE"] == "1" {
             func emit(_ value: [String: Any]) throws {
@@ -27,7 +40,8 @@ struct PhononASRRuntimeBenchmark {
                 let data = try JSONSerialization.data(withJSONObject: measured, options: [.sortedKeys])
                 FileHandle.standardOutput.write(Data("ASR_RPC ".utf8) + data + Data([10]))
             }
-            try emit(["ready": true, "load_ms": loadMS, "compile_ms": compileMS])
+            try emit(["ready": true, "load_ms": loadMS, "compile_ms": compileMS,
+                "function_seconds": [5,10], "eager_seconds": [5]])
             while let line = readLine() {
                 let request = try JSONSerialization.jsonObject(with: Data(line.utf8)) as! [String: Any]
                 let file = try AVAudioFile(forReading: URL(fileURLWithPath: request["path"] as! String))

@@ -70,10 +70,13 @@ def main():
                     from asr_live import rpc_driver
                     rpc_driver(child, folder / "result.json", languages=("en",))
                 stdout, stderr = child.communicate(timeout=240)
-            except BaseException:
+            except BaseException as error:
                 child.kill()
-                child.wait()
-                raise
+                stdout, stderr = child.communicate(timeout=10)
+                report["error"] = repr(error)
+                diagnostic = folder / "result.json.diagnostic.json"
+                if diagnostic.exists():
+                    report["rpc_diagnostic"] = json.loads(diagnostic.read_text())
             report.update(child_exit=child.returncode, child_joined=True,
                 stdout=stdout.decode(errors="replace"), stderr=stderr.decode(errors="replace"))
             if (folder / "result.json").exists():

@@ -1,0 +1,21 @@
+{
+  "at": "2026-10-22T16:35:07.131258+00:00",
+  "ready_candidates": [
+    "parakeet-v3",
+    "whistle",
+    "redux",
+    "ultra",
+    "qwen-06b"
+  ],
+  "remaining": [
+    "phonon",
+    "qwen-17b",
+    "voz"
+  ],
+  "removed_probe_bytes": 19373776,
+  "removed_probe_sha256": "84e25e37e7c5a5f86ebf2cb2286ec7e92c205e75cbb16402644a15cebced2aab",
+  "cache_entries": [
+    "serial.lock"
+  ],
+  "free_disk_bytes": 5223043072
+}

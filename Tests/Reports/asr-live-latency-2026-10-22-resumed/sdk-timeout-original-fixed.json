@@ -1,0 +1,14 @@
+[
+  {
+    "variant": "original",
+    "passed": false,
+    "tests": 1,
+    "output": "F\n======================================================================\nFAIL: test_sdk_timeout_stops_owned_compiler_descendant (test_asr_live.PaceTests.test_sdk_timeout_stops_owned_compiler_descendant)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/Users/sergekadjo/Documents/Claude/Projects/next-notes/Tools/test_asr_live.py\", line 130, in test_sdk_timeout_stops_owned_compiler_descendant\n    self.assertTrue(not state or state.startswith(\"Z\"),\"timed-out native job left a compiler running\")\n    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: False is not true : timed-out native job left a compiler running\n\n----------------------------------------------------------------------\nRan 1 test in 1.769s\n\nFAILED (failures=1)\n"
+  },
+  {
+    "variant": "fixed",
+    "passed": true,
+    "tests": 1,
+    "output": ".\n----------------------------------------------------------------------\nRan 1 test in 0.759s\n\nOK\n"
+  }
+]

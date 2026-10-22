@@ -48,11 +48,13 @@ def main():
             or s["rfilename"] == "parakeet_v3_vocab.json"]
         total = sum(s["size"] for s in needed)
         free = shutil.disk_usage(cache).free
-        # Account for temporary compiled ANE artifacts as well as the download.
-        if free < 2 * 1024**3 + 3 * total:
+        # These are already compiled models: one download plus one additional
+        # specialization copy, with 1GiB spare. The RPC waits also monitor disk.
+        if free < 1024**3 + 2 * total:
             raise RuntimeError(f"insufficient headroom: {free} available; candidate {total} bytes")
         args.output.parent.mkdir(parents=True, exist_ok=True)
         report = {"engine": args.engine, "repo": repo, "revision": revision,
+            "disk_budget": "1GiB reserve plus two model copies; live RPC512MiB stop",
             "download_bytes": total, "free_disk_before_bytes": free,
             "runtime_probe_sha256": hashlib.sha256(binary.read_bytes()).hexdigest(),
             "scope": "same cached FluidAudio v3-family decoder; explicit alternative CoreML weights",

@@ -81,9 +81,10 @@ def main():
         files = [s for s in metadata["siblings"] if s["rfilename"].endswith((".safetensors", ".json", ".txt", ".model"))]
         total = sum(s["size"] for s in files)
         free = shutil.disk_usage(cache).free
-        # Weights + disposable interpreter packages/installation working room + swap reserve.
-        if free < total + 3 * 1024**3:
-            raise RuntimeError(f"insufficient disk headroom: {free} available, {total} weights plus 3 GiB required")
+        # Pinned binary wheels only, with a post-install check of actual space.
+        # Avoid refusing a model because of an unmeasured 3GiB package estimate.
+        if free < total + int(1.75 * 1024**3):
+            raise RuntimeError(f"insufficient disk headroom: {free} available, {total} weights plus1.75GiB required")
         report = {"engine": f"Qwen3-ASR-{options.size}-4bit", "repo": repo, "revision": revision,
             "download_bytes": total, "free_disk_before_bytes": free, "artifacts": []}
         options.output.parent.mkdir(parents=True, exist_ok=True)
@@ -103,11 +104,22 @@ def main():
                     options.output.write_text(json.dumps(report, indent=2) + "\n")
                     raise RuntimeError(done.stderr[-2000:])
             report["runtime_packages"] = subprocess.check_output(["uv", "pip", "freeze", "--python", str(folder / "venv/bin/python")], env=env, text=True)
+            report["free_disk_after_install_bytes"] = shutil.disk_usage(cache).free
+            if report["free_disk_after_install_bytes"] < 1024**3:
+                raise RuntimeError("Qwen installation leaves less than1GiB disk headroom; candidate removed")
             print("Qwen: native MLX child starting; inference network disabled", flush=True)
             child = subprocess.Popen([str(folder / "venv/bin/python"), str(Path(__file__).resolve()), "--worker", str(folder)],
                 env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             try:
-                stdout, stderr = child.communicate(timeout=240)
+                deadline = time.monotonic() + 240
+                while True:
+                    if shutil.disk_usage(cache).free < 512*1024**2 or time.monotonic() > deadline:
+                        raise RuntimeError("Qwen stopped at disk/time boundary")
+                    try:
+                        stdout, stderr = child.communicate(timeout=1)
+                        break
+                    except subprocess.TimeoutExpired:
+                        continue
             except BaseException:
                 child.kill()
                 child.wait()

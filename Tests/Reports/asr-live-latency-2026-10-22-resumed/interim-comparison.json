@@ -1,0 +1,257 @@
+{
+  "at": "2026-10-22T16:47:19.586092+00:00",
+  "scope": "Five complete fresh candidates; remaining cases pending quiet machine slot. No final recommendation yet.",
+  "rows": [
+    {
+      "id": "parakeet-v3",
+      "model": "Parakeet v3 (cached FluidAudio)",
+      "model_bytes": 483257242,
+      "status": "measured",
+      "languages": {
+        "en": {
+          "trials": 3,
+          "first_word_ms": [
+            513.930540997535,
+            512.9777920083143,
+            512.2827910236083
+          ],
+          "release_final_ms": [
+            132.57891597459093,
+            135.8049580012448,
+            130.6215000222437
+          ],
+          "short_hold_wer": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "previous_full_fixture_wer": 0.04411764705882353
+        },
+        "fr": {
+          "trials": 3,
+          "first_word_ms": [
+            511.2272499827668,
+            524.5479580480605,
+            499.09783294424415
+          ],
+          "release_final_ms": [
+            159.6028749481775,
+            168.40712499106303,
+            159.73837493220344
+          ],
+          "short_hold_wer": [
+            0.09090909090909091,
+            0.09090909090909091,
+            0.09090909090909091
+          ],
+          "previous_full_fixture_wer": 0.09933774834437085
+        }
+      }
+    },
+    {
+      "id": "whistle",
+      "model": "Whistle",
+      "model_bytes": 16919407,
+      "status": "measured",
+      "languages": {
+        "en": {
+          "trials": 3,
+          "first_word_ms": [
+            425.1213340321556,
+            427.6140839792788,
+            431.0744590475224
+          ],
+          "release_final_ms": [
+            85.38891701027751,
+            81.22170896967873,
+            100.7153750397265
+          ],
+          "short_hold_wer": [
+            0.05,
+            0.05,
+            0.05
+          ],
+          "previous_full_fixture_wer": 0.051470588235294115
+        },
+        "fr": {
+          "trials": 3,
+          "first_word_ms": [
+            431.7393749952316,
+            424.3922919849865,
+            428.71804197784513
+          ],
+          "release_final_ms": [
+            149.22470797318965,
+            155.65745899220929,
+            216.44891693722457
+          ],
+          "short_hold_wer": [
+            0.2727272727272727,
+            0.2727272727272727,
+            0.2727272727272727
+          ],
+          "previous_full_fixture_wer": 0.1986754966887417
+        }
+      }
+    },
+    {
+      "id": "redux",
+      "model": "Parakeet Redux (CoreML)",
+      "model_bytes": 220304193,
+      "status": "measured",
+      "languages": {
+        "en": {
+          "trials": 3,
+          "first_word_ms": [
+            648.7852080026641,
+            987.2519170166925,
+            807.8295410377905
+          ],
+          "release_final_ms": [
+            401.117833040189,
+            341.5220419992693,
+            326.41337503446266
+          ],
+          "short_hold_wer": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "previous_full_fixture_wer": 0.051470588235294115
+        },
+        "fr": {
+          "trials": 3,
+          "first_word_ms": [
+            706.2878329888918,
+            811.4015000173822,
+            709.900584013667
+          ],
+          "release_final_ms": [
+            513.9311669627205,
+            402.4786250083707,
+            418.51350001525134
+          ],
+          "short_hold_wer": [
+            0.09090909090909091,
+            0.09090909090909091,
+            0.09090909090909091
+          ],
+          "previous_full_fixture_wer": 0.12582781456953643
+        }
+      }
+    },
+    {
+      "id": "ultra",
+      "model": "Parakeet Ultra (CoreML)",
+      "model_bytes": 632162964,
+      "status": "measured",
+      "languages": {
+        "en": {
+          "trials": 3,
+          "first_word_ms": [
+            514.5046249963343,
+            530.0430409843102,
+            508.954334014561
+          ],
+          "release_final_ms": [
+            171.62783403182402,
+            142.08566601155326,
+            133.73070902889594
+          ],
+          "short_hold_wer": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "previous_full_fixture_wer": 0.04411764705882353
+        },
+        "fr": {
+          "trials": 3,
+          "first_word_ms": [
+            505.54675003513694,
+            504.52929199673235,
+            526.2862920062616
+          ],
+          "release_final_ms": [
+            134.34358302038163,
+            140.66045795334503,
+            149.32954194955528
+          ],
+          "short_hold_wer": [
+            0.09090909090909091,
+            0.09090909090909091,
+            0.09090909090909091
+          ],
+          "previous_full_fixture_wer": 0.09933774834437085
+        }
+      }
+    },
+    {
+      "id": "phonon",
+      "model": "Phonon-2 (CoreML)",
+      "model_bytes": 344990366,
+      "status": "initial-default-eager15-startup-timed-out; optimized-short-shapes-pending",
+      "languages": {}
+    },
+    {
+      "id": "qwen-06b",
+      "model": "Qwen3-ASR 0.6B (4-bit MLX)",
+      "model_bytes": 712778752,
+      "status": "measured",
+      "languages": {
+        "en": {
+          "trials": 3,
+          "first_word_ms": [
+            558.9399579912424,
+            545.7660839892924,
+            545.312084024772
+          ],
+          "release_final_ms": [
+            504.97429101960734,
+            507.3170840041712,
+            596.1778340279125
+          ],
+          "short_hold_wer": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "previous_full_fixture_wer": 0.007352941176470588
+        },
+        "fr": {
+          "trials": 3,
+          "first_word_ms": [
+            547.9114589979872,
+            557.526666962076,
+            551.5169589780271
+          ],
+          "release_final_ms": [
+            1030.4355419939384,
+            1289.8105419590138,
+            997.0903339562938
+          ],
+          "short_hold_wer": [
+            0.09090909090909091,
+            0.09090909090909091,
+            0.09090909090909091
+          ],
+          "previous_full_fixture_wer": 0.09271523178807947
+        }
+      }
+    },
+    {
+      "id": "qwen-17b",
+      "model": "Qwen3-ASR 1.7B (4-bit MLX)",
+      "model_bytes": 1607630579,
+      "status": "pending",
+      "languages": {}
+    },
+    {
+      "id": "voz",
+      "model": "Voz (CoreML CLI)",
+      "model_bytes": 336667603,
+      "status": "pending",
+      "languages": {}
+    }
+  ]
+}

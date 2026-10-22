@@ -3,10 +3,13 @@ import json
 from pathlib import Path
 import subprocess
 import sys
+import os
+import time
 import tempfile
 from types import SimpleNamespace
 from unittest.mock import patch
 import asr_live
+import asr_voz_compare
 
 
 class PaceTests(unittest.TestCase):
@@ -65,6 +68,75 @@ class PaceTests(unittest.TestCase):
                 if child.poll() is None:
                     child.kill()
                 child.communicate()
+
+    def test_native_stderr_cannot_block_transcript_delivery(self):
+        with tempfile.TemporaryDirectory() as folder:
+            output = Path(folder)/"result.json"
+            child = subprocess.Popen([sys.executable,"-c",
+                'import sys; print(\'ASR_RPC {"ready":true}\',flush=True); input(); '
+                'sys.stderr.write("x"*262144); sys.stderr.flush(); '
+                'print(\'ASR_RPC {"text":"hello"}\',flush=True); sys.stdin.read()'],
+                stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+            def measured(infer,languages):
+                self.assertEqual(infer([0]*6400,"en",False)["text"],"hello")
+                return {"trials":[],"peak_rss_bytes":0}
+            try:
+                with patch.object(asr_live.shutil,"disk_usage",return_value=SimpleNamespace(free=1024**3)), \
+                     patch.object(asr_live,"measure",side_effect=measured):
+                    asr_live.rpc_driver(child,output)
+                self.assertEqual(len(json.loads(output.read_text())["native_stderr_tail"]),65536)
+            finally:
+                if child.poll() is None:
+                    child.kill()
+                child.communicate()
+
+    def test_startup_failure_retains_native_error(self):
+        with tempfile.TemporaryDirectory() as folder:
+            output = Path(folder)/"result.json"
+            child = subprocess.Popen([sys.executable,"-c",
+                'import sys; sys.stderr.write("model compile failed\\n"); sys.stderr.flush()'],
+                stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+            try:
+                with patch.object(asr_live.shutil,"disk_usage",return_value=SimpleNamespace(free=1024**3)):
+                    with self.assertRaisesRegex(RuntimeError,"exited before reply"):
+                        asr_live.rpc_driver(child,output)
+                retained = json.loads(Path(str(output)+".diagnostic.json").read_text())
+                self.assertIsNone(retained["runtime_ready"])
+                self.assertEqual(retained["requests"],[])
+                self.assertIn("model compile failed",retained["native_stderr_tail"])
+            finally:
+                if child.poll() is None:
+                    child.kill()
+                child.communicate()
+
+    def test_sdk_timeout_stops_owned_compiler_descendant(self):
+        with tempfile.TemporaryDirectory() as folder:
+            pidfile = Path(folder)/"child.pid"
+            script = ('import subprocess,sys,time; '
+                'p=subprocess.Popen([sys.executable,"-c","import time; time.sleep(30)"]); '
+                'open(sys.argv[1],"w").write(str(p.pid)); time.sleep(30)')
+            pid = None
+            try:
+                with self.assertRaises(subprocess.TimeoutExpired):
+                    asr_voz_compare.run([sys.executable,"-c",script,str(pidfile)],dict(os.environ),timeout=.75)
+                self.assertTrue(pidfile.exists(),"fake compiler never started")
+                pid = int(pidfile.read_text())
+                deadline = time.monotonic()+1
+                while True:
+                    state = subprocess.run(["ps","-p",str(pid),"-o","state="],capture_output=True,text=True).stdout.strip()
+                    if not state or state.startswith("Z") or time.monotonic() >= deadline:
+                        break
+                    time.sleep(.02)
+                self.assertTrue(not state or state.startswith("Z"),"timed-out native job left a compiler running")
+            finally:
+                # The recorded PID was created by this disposable test only.
+                if pid is None and pidfile.exists():
+                    pid = int(pidfile.read_text())
+                if pid:
+                    try:
+                        os.kill(pid,9)
+                    except ProcessLookupError:
+                        pass
 
 
 if __name__ == "__main__":

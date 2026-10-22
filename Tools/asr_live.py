@@ -115,7 +115,10 @@ def rpc_driver(child, destination, languages=("en", "fr")):
     pending = bytearray()
     diagnostics = []
     requests = []
+    native_stderr = bytearray()
+    stderr_open = child.stderr is not None
     def response():
+        nonlocal stderr_open
         deadline = time.monotonic() + 120
         while True:
             while b"\n" not in pending:
@@ -123,7 +126,15 @@ def rpc_driver(child, destination, languages=("en", "fr")):
                     raise RuntimeError("ASR RPC stopped below 512MiB disk headroom")
                 if time.monotonic() >= deadline:
                     raise TimeoutError("ASR RPC response deadline exceeded")
-                if not select.select([child.stdout], [], [], 1)[0]:
+                streams = [child.stdout] + ([child.stderr] if stderr_open else [])
+                readable = select.select(streams, [], [], 1)[0]
+                if child.stderr in readable:
+                    chunk = os.read(child.stderr.fileno(), 65536)
+                    if not chunk:
+                        stderr_open = False
+                    native_stderr.extend(chunk)
+                    del native_stderr[:-65536]
+                if child.stdout not in readable:
                     continue
                 chunk = os.read(child.stdout.fileno(), 65536)
                 if not chunk:
@@ -140,7 +151,13 @@ def rpc_driver(child, destination, languages=("en", "fr")):
                 return value
             diagnostics.append(line[:2048].decode(errors="replace"))
             del diagnostics[:-20]
-    ready = response()
+    try:
+        ready = response()
+    except BaseException as error:
+        Path(str(destination)+".diagnostic.json").write_text(json.dumps({"error":str(error),
+            "runtime_ready":None,"requests":requests,"runtime_stdout_diagnostics":diagnostics,
+            "native_stderr_tail":native_stderr.decode(errors="replace")},indent=2)+"\n")
+        raise
     def infer(audio, language, final):
         path = ROOT / f"Tests/Fixtures/meetings/{language}-dialogue.wav"
         request = {"language":language,"samples":len(audio),"sent_at":time.monotonic()}
@@ -155,7 +172,8 @@ def rpc_driver(child, destination, languages=("en", "fr")):
         result = measure(infer, languages)
     except BaseException as error:
         Path(str(destination)+".diagnostic.json").write_text(json.dumps({"error":str(error),
-            "runtime_ready":ready,"requests":requests,"runtime_stdout_diagnostics":diagnostics},indent=2)+"\n")
+            "runtime_ready":ready,"requests":requests,"runtime_stdout_diagnostics":diagnostics,
+            "native_stderr_tail":native_stderr.decode(errors="replace")},indent=2)+"\n")
         raise
     result["driver_peak_rss_bytes"] = result.pop("peak_rss_bytes")
     result["peak_rss_bytes"] = max([ready.get("native_peak_rss_bytes", 0),
@@ -163,6 +181,7 @@ def rpc_driver(child, destination, languages=("en", "fr")):
     result["child_memory"] = "native getrusage lifetime peak RSS; not Mach physical footprint"
     result["runtime_ready"] = ready
     result["runtime_stdout_diagnostics"] = diagnostics
+    result["native_stderr_tail"] = native_stderr.decode(errors="replace")
     Path(destination).write_text(json.dumps(result, ensure_ascii=False, indent=2)+"\n")
     child.stdin.close()
     child.stdin = None
