@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "id": "2026-10-22-asr-paced-resumed-redux",
+  "title": "Parakeet Redux resumed paced ASR latency",
+  "date": "2026-10-22",
+  "category": "asr",
+  "status": "measured",
+  "scope": "Paced native runtime first-word and release-to-final; no app integration or physical microphone acceptance",
+  "summary": "Three warmed paced trials per language; quiet serial candidate window, no app/default promotion.",
+  "environment": {
+    "hardware": "Apple M3,16GB RAM",
+    "os": "macOS27.2 build26B5091g",
+    "workload": "Normal desktop apps; coordinated serial native window, no concurrent build/model workload. Per-attempt context retained; high inherited swap remains.",
+    "power_thermal": "Per-attempt logs retained; no recorded thermal warning. Quiet ASR+voice reference workload not qualified."
+  },
+  "provenance": {
+    "model": "Pinned original artifact, see raw report and retained metadata",
+    "source": "Dirty shared checkout; function snapshots and linked-input hashes retained; not installed-app parity",
+    "command": "ASR_LIVE=1 native candidate runner; see raw report redux.json",
+    "source_report": "Tests/Reports/asr-live-latency-2026-10-22-resumed"
+  },
+  "metrics": [
+    {
+      "name": "EN First provisional word",
+      "value": 807.8295410377905,
+      "unit": "ms",
+      "boundary": "Paced audio start to first readable provisional word; 400ms initial audio, then1s updates",
+      "samples": 3,
+      "aggregation": "median of three warmed paced holds; raw ranges retained"
+    },
+    {
+      "name": "EN Release to full ASR final",
+      "value": 341.5220419992693,
+      "unit": "ms",
+      "boundary": "Independent scheduled release to complete native ASR return, including in-flight work; excludes polish/UI/insertion",
+      "samples": 3,
+      "aggregation": "median of three warmed paced holds; raw ranges retained"
+    },
+    {
+      "name": "FR First provisional word",
+      "value": 709.900584013667,
+      "unit": "ms",
+      "boundary": "Paced audio start to first readable provisional word; 400ms initial audio, then1s updates",
+      "samples": 3,
+      "aggregation": "median of three warmed paced holds; raw ranges retained"
+    },
+    {
+      "name": "FR Release to full ASR final",
+      "value": 418.51350001525134,
+      "unit": "ms",
+      "boundary": "Independent scheduled release to complete native ASR return, including in-flight work; excludes polish/UI/insertion",
+      "samples": 3,
+      "aggregation": "median of three warmed paced holds; raw ranges retained"
+    }
+  ],
+  "limitations": [
+    "One authored short excerpt per language, repeated for timing; no broad accuracy, physical microphone/UI/polish/insertion or concurrent ASR/voice acceptance.",
+    "Model loading/compilation and shape warmup excluded. Results are provisional word delivery, not native committed text.",
+    "Other candidate results belong to the same resumed suite; original pressure experiment and whole-file speed/accuracy remain separate.",
+    "No product default or installed app changed.",
+    "Short French2/22 raw edits are numeral rendering only; English0/20. This small fixture cannot establish general accuracy."
+  ],
+  "sources": [
+    "Tests/Reports/asr-live-latency-2026-10-22-resumed/README.md",
+    "Tests/Reports/asr-live-latency-2026-10-22-resumed/redux.json"
+  ],
+  "publication": {
+    "approved": false,
+    "reviewed_by": null,
+    "reviewed_on": null
+  }
+}

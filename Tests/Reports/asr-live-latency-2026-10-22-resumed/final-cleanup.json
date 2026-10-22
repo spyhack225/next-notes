@@ -1,0 +1,32 @@
+{
+  "at": "2026-10-22T17:19:17.109233+00:00",
+  "cache_entries": [
+    "serial.lock"
+  ],
+  "free_disk_bytes": 4002684928,
+  "remaining_attempts": {
+    "phonon": {
+      "child_exit": 0,
+      "child_joined": true,
+      "children_joined": null,
+      "temporary_assets_deleted": true
+    },
+    "qwen-17b": {
+      "child_exit": 0,
+      "child_joined": true,
+      "children_joined": null,
+      "temporary_assets_deleted": true
+    },
+    "voz": {
+      "child_exit": 0,
+      "child_joined": true,
+      "children_joined": null,
+      "temporary_assets_deleted": true
+    }
+  },
+  "remaining_native_processes": [],
+  "ane_service_samples": [
+    " 9355   0.0   5936 /System/Library/PrivateFrameworks/AppleNeuralEngine.framework/XPCServices/ANECompilerService.xpc/Contents/MacOS/ANECompilerService",
+    "13562   0.0    448 /System/Library/PrivateFrameworks/AppleNeuralEngine.framework/XPCServices/ANECompilerService.xpc/Contents/MacOS/ANECompilerService"
+  ]
+}

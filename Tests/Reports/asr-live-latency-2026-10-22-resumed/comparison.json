@@ -1,0 +1,1142 @@
+{
+  "scope": "Warmed paced native callbacks; 400ms initial prefix,1s updates. Not physical mic/UI/polish/insertion/concurrent voice acceptance.",
+  "rows": [
+    {
+      "id": "parakeet-v3",
+      "model": "Parakeet v3 (cached FluidAudio)",
+      "model_bytes": 483257242,
+      "source": "parakeet-v3.json",
+      "languages": {
+        "en": {
+          "samples": 3,
+          "first_texts": [
+            "Okay.",
+            "Okay.",
+            "Okay."
+          ],
+          "short_hold_wer": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "previous_full_fixture_wer": 0.04411764705882353,
+          "edits": [
+            0,
+            0,
+            0
+          ],
+          "reference_words": 20,
+          "final_texts": [
+            "Okay so the plan is to ship the installer on Friday. Right, and then we write the release note together.",
+            "Okay so the plan is to ship the installer on Friday. Right, and then we write the release note together.",
+            "Okay so the plan is to ship the installer on Friday. Right, and then we write the release note together."
+          ],
+          "first_text_ms": {
+            "values": [
+              513.930540997535,
+              512.9777920083143,
+              512.2827910236083
+            ],
+            "median": 512.9777920083143,
+            "min": 512.2827910236083,
+            "max": 513.930540997535
+          },
+          "first_correct_reference_word_ms": {
+            "values": [
+              513.930540997535,
+              512.9777920083143,
+              512.2827910236083
+            ],
+            "median": 512.9777920083143,
+            "min": 512.2827910236083,
+            "max": 513.930540997535
+          },
+          "first_final_consistent_word_ms": {
+            "values": [
+              513.930540997535,
+              512.9777920083143,
+              512.2827910236083
+            ],
+            "median": 512.9777920083143,
+            "min": 512.2827910236083,
+            "max": 513.930540997535
+          },
+          "first_committed_ms": {
+            "values": [],
+            "median": null,
+            "min": null,
+            "max": null
+          },
+          "release_to_final_ms": {
+            "values": [
+              132.57891597459093,
+              135.8049580012448,
+              130.6215000222437
+            ],
+            "median": 132.57891597459093,
+            "min": 130.6215000222437,
+            "max": 135.8049580012448
+          }
+        },
+        "fr": {
+          "samples": 3,
+          "first_texts": [
+            "Donc on",
+            "Donc on",
+            "Donc on"
+          ],
+          "short_hold_wer": [
+            0.09090909090909091,
+            0.09090909090909091,
+            0.09090909090909091
+          ],
+          "previous_full_fixture_wer": 0.09933774834437085,
+          "edits": [
+            2,
+            2,
+            2
+          ],
+          "reference_words": 22,
+          "final_texts": [
+            "Donc on garde le budget à 40 000 pour le moment. Oui c'est ça, je t'envoie le devis demain matin.",
+            "Donc on garde le budget à 40 000 pour le moment. Oui c'est ça, je t'envoie le devis demain matin.",
+            "Donc on garde le budget à 40 000 pour le moment. Oui c'est ça, je t'envoie le devis demain matin."
+          ],
+          "first_text_ms": {
+            "values": [
+              511.2272499827668,
+              524.5479580480605,
+              499.09783294424415
+            ],
+            "median": 511.2272499827668,
+            "min": 499.09783294424415,
+            "max": 524.5479580480605
+          },
+          "first_correct_reference_word_ms": {
+            "values": [
+              511.2272499827668,
+              524.5479580480605,
+              499.09783294424415
+            ],
+            "median": 511.2272499827668,
+            "min": 499.09783294424415,
+            "max": 524.5479580480605
+          },
+          "first_final_consistent_word_ms": {
+            "values": [
+              511.2272499827668,
+              524.5479580480605,
+              499.09783294424415
+            ],
+            "median": 511.2272499827668,
+            "min": 499.09783294424415,
+            "max": 524.5479580480605
+          },
+          "first_committed_ms": {
+            "values": [],
+            "median": null,
+            "min": null,
+            "max": null
+          },
+          "release_to_final_ms": {
+            "values": [
+              159.6028749481775,
+              168.40712499106303,
+              159.73837493220344
+            ],
+            "median": 159.73837493220344,
+            "min": 159.6028749481775,
+            "max": 168.40712499106303
+          }
+        }
+      }
+    },
+    {
+      "id": "whistle",
+      "model": "Whistle",
+      "model_bytes": 16919407,
+      "source": "whistle.json",
+      "languages": {
+        "en": {
+          "samples": 3,
+          "first_texts": [
+            "Okay.",
+            "OK.",
+            "OK."
+          ],
+          "short_hold_wer": [
+            0.05,
+            0.05,
+            0.05
+          ],
+          "previous_full_fixture_wer": 0.051470588235294115,
+          "edits": [
+            1,
+            1,
+            1
+          ],
+          "reference_words": 20,
+          "final_texts": [
+            "Okay so the plan is to ship the installer on Friday. Right, and then we write the release notes together.",
+            "Okay so the plan is to ship the installer on Friday. Right, and then we write the release notes together.",
+            "Okay so the plan is to ship the installer on Friday. Right, and then we write the release notes together."
+          ],
+          "first_text_ms": {
+            "values": [
+              425.1213340321556,
+              427.6140839792788,
+              431.0744590475224
+            ],
+            "median": 427.6140839792788,
+            "min": 425.1213340321556,
+            "max": 431.0744590475224
+          },
+          "first_correct_reference_word_ms": {
+            "values": [
+              425.1213340321556,
+              1446.004583965987,
+              1455.1132500055246
+            ],
+            "median": 1446.004583965987,
+            "min": 425.1213340321556,
+            "max": 1455.1132500055246
+          },
+          "first_final_consistent_word_ms": {
+            "values": [
+              425.1213340321556,
+              1446.004583965987,
+              1455.1132500055246
+            ],
+            "median": 1446.004583965987,
+            "min": 425.1213340321556,
+            "max": 1455.1132500055246
+          },
+          "first_committed_ms": {
+            "values": [
+              2509.8512090044096,
+              2455.516666988842,
+              2457.08108402323
+            ],
+            "median": 2457.08108402323,
+            "min": 2455.516666988842,
+            "max": 2509.8512090044096
+          },
+          "release_to_final_ms": {
+            "values": [
+              85.38891701027751,
+              81.22170896967873,
+              100.7153750397265
+            ],
+            "median": 85.38891701027751,
+            "min": 81.22170896967873,
+            "max": 100.7153750397265
+          }
+        },
+        "fr": {
+          "samples": 3,
+          "first_texts": [
+            "Donc on...",
+            "Donc on...",
+            "Donc on..."
+          ],
+          "short_hold_wer": [
+            0.2727272727272727,
+            0.2727272727272727,
+            0.2727272727272727
+          ],
+          "previous_full_fixture_wer": 0.1986754966887417,
+          "edits": [
+            6,
+            6,
+            6
+          ],
+          "reference_words": 22,
+          "final_texts": [
+            "Donc on garde le budget à 40 000 pour le moment. Oui, c'est ça, je t'envoie le gris d'hommes à matin.",
+            "Donc on garde le budget à 40 000 pour le moment. Oui, c'est ça, je t'envoie le gris d'hommes à matin.",
+            "Donc on garde le budget à 40 000 pour le moment. Oui, c'est ça, je t'envoie le gris d'hommes à matin."
+          ],
+          "first_text_ms": {
+            "values": [
+              431.7393749952316,
+              424.3922919849865,
+              428.71804197784513
+            ],
+            "median": 428.71804197784513,
+            "min": 424.3922919849865,
+            "max": 431.7393749952316
+          },
+          "first_correct_reference_word_ms": {
+            "values": [
+              431.7393749952316,
+              424.3922919849865,
+              428.71804197784513
+            ],
+            "median": 428.71804197784513,
+            "min": 424.3922919849865,
+            "max": 431.7393749952316
+          },
+          "first_final_consistent_word_ms": {
+            "values": [
+              431.7393749952316,
+              424.3922919849865,
+              428.71804197784513
+            ],
+            "median": 428.71804197784513,
+            "min": 424.3922919849865,
+            "max": 431.7393749952316
+          },
+          "first_committed_ms": {
+            "values": [
+              1453.8368749781512,
+              1453.5194170312025,
+              1457.5307499617338
+            ],
+            "median": 1453.8368749781512,
+            "min": 1453.5194170312025,
+            "max": 1457.5307499617338
+          },
+          "release_to_final_ms": {
+            "values": [
+              149.22470797318965,
+              155.65745899220929,
+              216.44891693722457
+            ],
+            "median": 155.65745899220929,
+            "min": 149.22470797318965,
+            "max": 216.44891693722457
+          }
+        }
+      }
+    },
+    {
+      "id": "redux",
+      "model": "Parakeet Redux (CoreML)",
+      "model_bytes": 220304193,
+      "source": "redux.json",
+      "languages": {
+        "en": {
+          "samples": 3,
+          "first_texts": [
+            "OK",
+            "OK",
+            "OK"
+          ],
+          "short_hold_wer": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "previous_full_fixture_wer": 0.051470588235294115,
+          "edits": [
+            0,
+            0,
+            0
+          ],
+          "reference_words": 20,
+          "final_texts": [
+            "Okay so the plan is to ship the installer on Friday. Right, and then we write the release note together.",
+            "Okay so the plan is to ship the installer on Friday. Right, and then we write the release note together.",
+            "Okay so the plan is to ship the installer on Friday. Right, and then we write the release note together."
+          ],
+          "first_text_ms": {
+            "values": [
+              648.7852080026641,
+              987.2519170166925,
+              807.8295410377905
+            ],
+            "median": 807.8295410377905,
+            "min": 648.7852080026641,
+            "max": 987.2519170166925
+          },
+          "first_correct_reference_word_ms": {
+            "values": [
+              1691.119000024628,
+              1792.8480840055272,
+              1729.2020409950055
+            ],
+            "median": 1729.2020409950055,
+            "min": 1691.119000024628,
+            "max": 1792.8480840055272
+          },
+          "first_final_consistent_word_ms": {
+            "values": [
+              1691.119000024628,
+              1792.8480840055272,
+              1729.2020409950055
+            ],
+            "median": 1729.2020409950055,
+            "min": 1691.119000024628,
+            "max": 1792.8480840055272
+          },
+          "first_committed_ms": {
+            "values": [],
+            "median": null,
+            "min": null,
+            "max": null
+          },
+          "release_to_final_ms": {
+            "values": [
+              401.117833040189,
+              341.5220419992693,
+              326.41337503446266
+            ],
+            "median": 341.5220419992693,
+            "min": 326.41337503446266,
+            "max": 401.117833040189
+          }
+        },
+        "fr": {
+          "samples": 3,
+          "first_texts": [
+            "Donc on...",
+            "Donc on...",
+            "Donc on..."
+          ],
+          "short_hold_wer": [
+            0.09090909090909091,
+            0.09090909090909091,
+            0.09090909090909091
+          ],
+          "previous_full_fixture_wer": 0.12582781456953643,
+          "edits": [
+            2,
+            2,
+            2
+          ],
+          "reference_words": 22,
+          "final_texts": [
+            "Donc on garde le budget à 40 000 pour le moment. Oui c'est ça, je t'envoie le devis demain matin.",
+            "Donc on garde le budget à 40 000 pour le moment. Oui c'est ça, je t'envoie le devis demain matin.",
+            "Donc on garde le budget à 40 000 pour le moment. Oui c'est ça, je t'envoie le devis demain matin."
+          ],
+          "first_text_ms": {
+            "values": [
+              706.2878329888918,
+              811.4015000173822,
+              709.900584013667
+            ],
+            "median": 709.900584013667,
+            "min": 706.2878329888918,
+            "max": 811.4015000173822
+          },
+          "first_correct_reference_word_ms": {
+            "values": [
+              706.2878329888918,
+              811.4015000173822,
+              709.900584013667
+            ],
+            "median": 709.900584013667,
+            "min": 706.2878329888918,
+            "max": 811.4015000173822
+          },
+          "first_final_consistent_word_ms": {
+            "values": [
+              706.2878329888918,
+              811.4015000173822,
+              709.900584013667
+            ],
+            "median": 709.900584013667,
+            "min": 706.2878329888918,
+            "max": 811.4015000173822
+          },
+          "first_committed_ms": {
+            "values": [],
+            "median": null,
+            "min": null,
+            "max": null
+          },
+          "release_to_final_ms": {
+            "values": [
+              513.9311669627205,
+              402.4786250083707,
+              418.51350001525134
+            ],
+            "median": 418.51350001525134,
+            "min": 402.4786250083707,
+            "max": 513.9311669627205
+          }
+        }
+      }
+    },
+    {
+      "id": "ultra",
+      "model": "Parakeet Ultra (CoreML)",
+      "model_bytes": 632162964,
+      "source": "ultra.json",
+      "languages": {
+        "en": {
+          "samples": 3,
+          "first_texts": [
+            "Okay",
+            "Okay",
+            "Okay"
+          ],
+          "short_hold_wer": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "previous_full_fixture_wer": 0.04411764705882353,
+          "edits": [
+            0,
+            0,
+            0
+          ],
+          "reference_words": 20,
+          "final_texts": [
+            "Okay so the plan is to ship the installer on Friday. Right, and then we write the release note together.",
+            "Okay so the plan is to ship the installer on Friday. Right, and then we write the release note together.",
+            "Okay so the plan is to ship the installer on Friday. Right, and then we write the release note together."
+          ],
+          "first_text_ms": {
+            "values": [
+              514.5046249963343,
+              530.0430409843102,
+              508.954334014561
+            ],
+            "median": 514.5046249963343,
+            "min": 508.954334014561,
+            "max": 530.0430409843102
+          },
+          "first_correct_reference_word_ms": {
+            "values": [
+              514.5046249963343,
+              530.0430409843102,
+              508.954334014561
+            ],
+            "median": 514.5046249963343,
+            "min": 508.954334014561,
+            "max": 530.0430409843102
+          },
+          "first_final_consistent_word_ms": {
+            "values": [
+              514.5046249963343,
+              530.0430409843102,
+              508.954334014561
+            ],
+            "median": 514.5046249963343,
+            "min": 508.954334014561,
+            "max": 530.0430409843102
+          },
+          "first_committed_ms": {
+            "values": [],
+            "median": null,
+            "min": null,
+            "max": null
+          },
+          "release_to_final_ms": {
+            "values": [
+              171.62783403182402,
+              142.08566601155326,
+              133.73070902889594
+            ],
+            "median": 142.08566601155326,
+            "min": 133.73070902889594,
+            "max": 171.62783403182402
+          }
+        },
+        "fr": {
+          "samples": 3,
+          "first_texts": [
+            "Donc on",
+            "Donc on",
+            "Donc on"
+          ],
+          "short_hold_wer": [
+            0.09090909090909091,
+            0.09090909090909091,
+            0.09090909090909091
+          ],
+          "previous_full_fixture_wer": 0.09933774834437085,
+          "edits": [
+            2,
+            2,
+            2
+          ],
+          "reference_words": 22,
+          "final_texts": [
+            "Donc on garde le budget à 40 000 pour le moment. Oui c'est ça, je t'envoie le devis demain matin.",
+            "Donc on garde le budget à 40 000 pour le moment. Oui c'est ça, je t'envoie le devis demain matin.",
+            "Donc on garde le budget à 40 000 pour le moment. Oui c'est ça, je t'envoie le devis demain matin."
+          ],
+          "first_text_ms": {
+            "values": [
+              505.54675003513694,
+              504.52929199673235,
+              526.2862920062616
+            ],
+            "median": 505.54675003513694,
+            "min": 504.52929199673235,
+            "max": 526.2862920062616
+          },
+          "first_correct_reference_word_ms": {
+            "values": [
+              505.54675003513694,
+              504.52929199673235,
+              526.2862920062616
+            ],
+            "median": 505.54675003513694,
+            "min": 504.52929199673235,
+            "max": 526.2862920062616
+          },
+          "first_final_consistent_word_ms": {
+            "values": [
+              505.54675003513694,
+              504.52929199673235,
+              526.2862920062616
+            ],
+            "median": 505.54675003513694,
+            "min": 504.52929199673235,
+            "max": 526.2862920062616
+          },
+          "first_committed_ms": {
+            "values": [],
+            "median": null,
+            "min": null,
+            "max": null
+          },
+          "release_to_final_ms": {
+            "values": [
+              134.34358302038163,
+              140.66045795334503,
+              149.32954194955528
+            ],
+            "median": 140.66045795334503,
+            "min": 134.34358302038163,
+            "max": 149.32954194955528
+          }
+        }
+      }
+    },
+    {
+      "id": "phonon",
+      "model": "Phonon-2 (CoreML)",
+      "model_bytes": 344990366,
+      "source": "phonon.json",
+      "languages": {
+        "en": {
+          "samples": 3,
+          "first_texts": [
+            "Okay.",
+            "Okay so",
+            "Okay so"
+          ],
+          "short_hold_wer": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "previous_full_fixture_wer": 0.007352941176470588,
+          "edits": [
+            0,
+            0,
+            0
+          ],
+          "reference_words": 20,
+          "final_texts": [
+            "Okay, so the plan is to ship the installer on Friday. Right, and then we write the release note together.",
+            "Okay, so the plan is to ship the installer on Friday. Right, and then we write the release note together.",
+            "Okay, so the plan is to ship the installer on Friday. Right, and then we write the release note together."
+          ],
+          "first_text_ms": {
+            "values": [
+              418.57258399249986,
+              421.1360000190325,
+              424.722625000868
+            ],
+            "median": 421.1360000190325,
+            "min": 418.57258399249986,
+            "max": 424.722625000868
+          },
+          "first_correct_reference_word_ms": {
+            "values": [
+              418.57258399249986,
+              421.1360000190325,
+              424.722625000868
+            ],
+            "median": 421.1360000190325,
+            "min": 418.57258399249986,
+            "max": 424.722625000868
+          },
+          "first_final_consistent_word_ms": {
+            "values": [
+              418.57258399249986,
+              421.1360000190325,
+              424.722625000868
+            ],
+            "median": 421.1360000190325,
+            "min": 418.57258399249986,
+            "max": 424.722625000868
+          },
+          "first_committed_ms": {
+            "values": [],
+            "median": null,
+            "min": null,
+            "max": null
+          },
+          "release_to_final_ms": {
+            "values": [
+              51.22604197822511,
+              52.29354102630168,
+              57.600750005804
+            ],
+            "median": 52.29354102630168,
+            "min": 51.22604197822511,
+            "max": 57.600750005804
+          }
+        }
+      }
+    },
+    {
+      "id": "qwen-06b",
+      "model": "Qwen3-ASR 0.6B (4-bit MLX)",
+      "model_bytes": 712778752,
+      "source": "qwen-06b.json",
+      "languages": {
+        "en": {
+          "samples": 3,
+          "first_texts": [
+            "Okay.",
+            "Okay.",
+            "Okay."
+          ],
+          "short_hold_wer": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "previous_full_fixture_wer": 0.007352941176470588,
+          "edits": [
+            0,
+            0,
+            0
+          ],
+          "reference_words": 20,
+          "final_texts": [
+            "Okay, so the plan is to ship the installer on Friday. Right, and then we write the release note together.",
+            "Okay, so the plan is to ship the installer on Friday. Right, and then we write the release note together.",
+            "Okay, so the plan is to ship the installer on Friday. Right, and then we write the release note together."
+          ],
+          "first_text_ms": {
+            "values": [
+              558.9399579912424,
+              545.7660839892924,
+              545.312084024772
+            ],
+            "median": 545.7660839892924,
+            "min": 545.312084024772,
+            "max": 558.9399579912424
+          },
+          "first_correct_reference_word_ms": {
+            "values": [
+              558.9399579912424,
+              545.7660839892924,
+              545.312084024772
+            ],
+            "median": 545.7660839892924,
+            "min": 545.312084024772,
+            "max": 558.9399579912424
+          },
+          "first_final_consistent_word_ms": {
+            "values": [
+              558.9399579912424,
+              545.7660839892924,
+              545.312084024772
+            ],
+            "median": 545.7660839892924,
+            "min": 545.312084024772,
+            "max": 558.9399579912424
+          },
+          "first_committed_ms": {
+            "values": [],
+            "median": null,
+            "min": null,
+            "max": null
+          },
+          "release_to_final_ms": {
+            "values": [
+              504.97429101960734,
+              507.3170840041712,
+              596.1778340279125
+            ],
+            "median": 507.3170840041712,
+            "min": 504.97429101960734,
+            "max": 596.1778340279125
+          }
+        },
+        "fr": {
+          "samples": 3,
+          "first_texts": [
+            "Donc on.",
+            "Donc on.",
+            "Donc on."
+          ],
+          "short_hold_wer": [
+            0.09090909090909091,
+            0.09090909090909091,
+            0.09090909090909091
+          ],
+          "previous_full_fixture_wer": 0.09271523178807947,
+          "edits": [
+            2,
+            2,
+            2
+          ],
+          "reference_words": 22,
+          "final_texts": [
+            "Donc on garde le budget à 40 000 pour le moment. Oui c'est ça, je t'envoie le devis demain matin.",
+            "Donc on garde le budget à 40 000 pour le moment. Oui c'est ça, je t'envoie le devis demain matin.",
+            "Donc on garde le budget à 40 000 pour le moment. Oui c'est ça, je t'envoie le devis demain matin."
+          ],
+          "first_text_ms": {
+            "values": [
+              547.9114589979872,
+              557.526666962076,
+              551.5169589780271
+            ],
+            "median": 551.5169589780271,
+            "min": 547.9114589979872,
+            "max": 557.526666962076
+          },
+          "first_correct_reference_word_ms": {
+            "values": [
+              547.9114589979872,
+              557.526666962076,
+              551.5169589780271
+            ],
+            "median": 551.5169589780271,
+            "min": 547.9114589979872,
+            "max": 557.526666962076
+          },
+          "first_final_consistent_word_ms": {
+            "values": [
+              547.9114589979872,
+              557.526666962076,
+              551.5169589780271
+            ],
+            "median": 551.5169589780271,
+            "min": 547.9114589979872,
+            "max": 557.526666962076
+          },
+          "first_committed_ms": {
+            "values": [],
+            "median": null,
+            "min": null,
+            "max": null
+          },
+          "release_to_final_ms": {
+            "values": [
+              1030.4355419939384,
+              1289.8105419590138,
+              997.0903339562938
+            ],
+            "median": 1030.4355419939384,
+            "min": 997.0903339562938,
+            "max": 1289.8105419590138
+          }
+        }
+      }
+    },
+    {
+      "id": "qwen-17b",
+      "model": "Qwen3-ASR 1.7B (4-bit MLX)",
+      "model_bytes": 1607630579,
+      "source": "qwen-17b.json",
+      "languages": {
+        "en": {
+          "samples": 3,
+          "first_texts": [
+            "Okay.",
+            "Okay.",
+            "Okay."
+          ],
+          "short_hold_wer": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "previous_full_fixture_wer": 0.03676470588235294,
+          "edits": [
+            0,
+            0,
+            0
+          ],
+          "reference_words": 20,
+          "final_texts": [
+            "Okay, so the plan is to ship the installer on Friday. Right, and then we write the release note together.",
+            "Okay, so the plan is to ship the installer on Friday. Right, and then we write the release note together.",
+            "Okay, so the plan is to ship the installer on Friday. Right, and then we write the release note together."
+          ],
+          "first_text_ms": {
+            "values": [
+              588.1247920333408,
+              560.9199989703484,
+              571.9756249454804
+            ],
+            "median": 571.9756249454804,
+            "min": 560.9199989703484,
+            "max": 588.1247920333408
+          },
+          "first_correct_reference_word_ms": {
+            "values": [
+              588.1247920333408,
+              560.9199989703484,
+              571.9756249454804
+            ],
+            "median": 571.9756249454804,
+            "min": 560.9199989703484,
+            "max": 588.1247920333408
+          },
+          "first_final_consistent_word_ms": {
+            "values": [
+              588.1247920333408,
+              560.9199989703484,
+              571.9756249454804
+            ],
+            "median": 571.9756249454804,
+            "min": 560.9199989703484,
+            "max": 588.1247920333408
+          },
+          "first_committed_ms": {
+            "values": [],
+            "median": null,
+            "min": null,
+            "max": null
+          },
+          "release_to_final_ms": {
+            "values": [
+              660.0269170012325,
+              658.8988329749554,
+              640.8004999975674
+            ],
+            "median": 658.8988329749554,
+            "min": 640.8004999975674,
+            "max": 660.0269170012325
+          }
+        },
+        "fr": {
+          "samples": 3,
+          "first_texts": [
+            "Donc on.",
+            "donc on.",
+            "Donc on."
+          ],
+          "short_hold_wer": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "previous_full_fixture_wer": 0.039735099337748346,
+          "edits": [
+            0,
+            0,
+            0
+          ],
+          "reference_words": 22,
+          "final_texts": [
+            "Donc on garde le budget à quarante mille pour le moment. Oui c'est ça, je t'envoie le devis demain matin.",
+            "Donc on garde le budget à quarante mille pour le moment. Oui c'est ça, je t'envoie le devis demain matin.",
+            "Donc on garde le budget à quarante mille pour le moment. Oui c'est ça, je t'envoie le devis demain matin."
+          ],
+          "first_text_ms": {
+            "values": [
+              581.8201249931008,
+              600.7816250203177,
+              618.718792044092
+            ],
+            "median": 600.7816250203177,
+            "min": 581.8201249931008,
+            "max": 618.718792044092
+          },
+          "first_correct_reference_word_ms": {
+            "values": [
+              581.8201249931008,
+              600.7816250203177,
+              618.718792044092
+            ],
+            "median": 600.7816250203177,
+            "min": 581.8201249931008,
+            "max": 618.718792044092
+          },
+          "first_final_consistent_word_ms": {
+            "values": [
+              581.8201249931008,
+              600.7816250203177,
+              618.718792044092
+            ],
+            "median": 600.7816250203177,
+            "min": 581.8201249931008,
+            "max": 618.718792044092
+          },
+          "first_committed_ms": {
+            "values": [],
+            "median": null,
+            "min": null,
+            "max": null
+          },
+          "release_to_final_ms": {
+            "values": [
+              1309.895374928601,
+              1295.768624986522,
+              1297.4259170005098
+            ],
+            "median": 1297.4259170005098,
+            "min": 1295.768624986522,
+            "max": 1309.895374928601
+          }
+        }
+      }
+    },
+    {
+      "id": "voz",
+      "model": "Voz (CoreML CLI)",
+      "model_bytes": 336667603,
+      "source": "voz.json",
+      "languages": {
+        "en": {
+          "samples": 3,
+          "first_texts": [
+            "Okay",
+            "Okay C",
+            "Okay C"
+          ],
+          "short_hold_wer": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "previous_full_fixture_wer": 0.03676470588235294,
+          "edits": [
+            0,
+            0,
+            0
+          ],
+          "reference_words": 20,
+          "final_texts": [
+            "Okay, so the plan is to ship the installer on Friday. Right, and then we write the release note together",
+            "Okay, so the plan is to ship the installer on Friday. Right, and then we write the release note together",
+            "Okay, so the plan is to ship the installer on Friday. Right, and then we write the release note together"
+          ],
+          "first_text_ms": {
+            "values": [
+              439.3223330262117,
+              450.5272499518469,
+              454.2479999945499
+            ],
+            "median": 450.5272499518469,
+            "min": 439.3223330262117,
+            "max": 454.2479999945499
+          },
+          "first_correct_reference_word_ms": {
+            "values": [
+              439.3223330262117,
+              450.5272499518469,
+              454.2479999945499
+            ],
+            "median": 450.5272499518469,
+            "min": 439.3223330262117,
+            "max": 454.2479999945499
+          },
+          "first_final_consistent_word_ms": {
+            "values": [
+              439.3223330262117,
+              450.5272499518469,
+              454.2479999945499
+            ],
+            "median": 450.5272499518469,
+            "min": 439.3223330262117,
+            "max": 454.2479999945499
+          },
+          "first_committed_ms": {
+            "values": [],
+            "median": null,
+            "min": null,
+            "max": null
+          },
+          "release_to_final_ms": {
+            "values": [
+              60.656582994852215,
+              65.92916598310694,
+              84.2245839885436
+            ],
+            "median": 65.92916598310694,
+            "min": 60.656582994852215,
+            "max": 84.2245839885436
+          }
+        },
+        "fr": {
+          "samples": 3,
+          "first_texts": [
+            "Donc on",
+            "Donc on",
+            "Donc on"
+          ],
+          "short_hold_wer": [
+            0.09090909090909091,
+            0.09090909090909091,
+            0.09090909090909091
+          ],
+          "previous_full_fixture_wer": 0.11920529801324503,
+          "edits": [
+            2,
+            2,
+            2
+          ],
+          "reference_words": 22,
+          "final_texts": [
+            "Donc on garde le budget à 40 000 pour le moment. Oui c'est ça, je t'envoie le devis demain matin.",
+            "Donc on garde le budget à 40 000 pour le moment. Oui c'est ça, je t'envoie le devis demain matin.",
+            "Donc on garde le budget à 40 000 pour le moment. Oui c'est ça, je t'envoie le devis demain matin."
+          ],
+          "first_text_ms": {
+            "values": [
+              442.28833296801895,
+              456.3604589784518,
+              445.64670900581405
+            ],
+            "median": 445.64670900581405,
+            "min": 442.28833296801895,
+            "max": 456.3604589784518
+          },
+          "first_correct_reference_word_ms": {
+            "values": [
+              442.28833296801895,
+              456.3604589784518,
+              445.64670900581405
+            ],
+            "median": 445.64670900581405,
+            "min": 442.28833296801895,
+            "max": 456.3604589784518
+          },
+          "first_final_consistent_word_ms": {
+            "values": [
+              442.28833296801895,
+              456.3604589784518,
+              445.64670900581405
+            ],
+            "median": 445.64670900581405,
+            "min": 442.28833296801895,
+            "max": 456.3604589784518
+          },
+          "first_committed_ms": {
+            "values": [],
+            "median": null,
+            "min": null,
+            "max": null
+          },
+          "release_to_final_ms": {
+            "values": [
+              90.3014579671435,
+              82.8037919709459,
+              80.48358396627009
+            ],
+            "median": 82.8037919709459,
+            "min": 80.48358396627009,
+            "max": 90.3014579671435
+          }
+        }
+      }
+    }
+  ]
+}

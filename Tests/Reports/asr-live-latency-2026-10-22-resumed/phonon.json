@@ -1,0 +1,364 @@
+{
+  "engine": "Phonon-2 CoreML",
+  "repo": "FermionResearch/Phonon-2-CoreML",
+  "revision": "1143812fd4236522232a8c33e3115f0577e3cd7d",
+  "download_bytes_including_source": 345115905,
+  "free_disk_before_bytes": 4421140480,
+  "artifacts": [
+    {
+      "path": "Phonon-2.mlpackage/Data/com.apple.CoreML/model.mlmodel",
+      "bytes": 2500482,
+      "sha256": "4f6790ec94fe4429b10397c013563d0a51119953ff6d3da466bbcb23a25dee2a"
+    },
+    {
+      "path": "Phonon-2.mlpackage/Data/com.apple.CoreML/weights/weight.bin",
+      "bytes": 329186560,
+      "sha256": "93aa991318a00ed492fdbb724e7bca4e6a69c6cf671ab4f14a14ef6101e7648b"
+    },
+    {
+      "path": "Phonon-2.mlpackage/Manifest.json",
+      "bytes": 617,
+      "sha256": "6ebc9309aea0e16bda9c7558521fef6307fac0afba9a5b4959fea45ed7cd0429"
+    },
+    {
+      "path": "decoder.bin",
+      "bytes": 13301279,
+      "sha256": "36fa7202dda85c603af60d930ab88d7e9f0d2a619490aff46f5384db924cfa70"
+    },
+    {
+      "path": "manifest.json",
+      "bytes": 1428,
+      "sha256": "ab3fb5dfd3fc07b1d8a24379d04418f458d0443ba6359d3a5ab2f098a7d64089"
+    },
+    {
+      "path": "phonon-coreml-src.tgz",
+      "bytes": 125539,
+      "sha256": "633e97ca8d0c54b323ade42a3001feb507c4278c7cafe899d92ab30b9fde18ff"
+    }
+  ],
+  "compile_commands": [
+    [
+      "xcrun",
+      "swiftc",
+      "-O",
+      "-emit-library",
+      "-emit-module",
+      "-module-name",
+      "PhononCoreML",
+      "-I",
+      "/Users/sergekadjo/Library/Caches/NextNotesASRBench/phonon-w2m9c8af/phonon-coreml/Binaries/PhononTDT.xcframework/macos-arm64_x86_64/Headers",
+      "/Users/sergekadjo/Library/Caches/NextNotesASRBench/phonon-w2m9c8af/phonon-coreml/Sources/PhononCoreML/AudioSource.swift",
+      "/Users/sergekadjo/Library/Caches/NextNotesASRBench/phonon-w2m9c8af/phonon-coreml/Sources/PhononCoreML/DecoderBin.swift",
+      "/Users/sergekadjo/Library/Caches/NextNotesASRBench/phonon-w2m9c8af/phonon-coreml/Sources/PhononCoreML/LogMel.swift",
+      "/Users/sergekadjo/Library/Caches/NextNotesASRBench/phonon-w2m9c8af/phonon-coreml/Sources/PhononCoreML/Segmenter.swift",
+      "/Users/sergekadjo/Library/Caches/NextNotesASRBench/phonon-w2m9c8af/phonon-coreml/Sources/PhononCoreML/Transcriber.swift",
+      "/Users/sergekadjo/Library/Caches/NextNotesASRBench/phonon-w2m9c8af/phonon-coreml/Sources/PhononCoreML/Windower.swift",
+      "/Users/sergekadjo/Library/Caches/NextNotesASRBench/phonon-w2m9c8af/phonon-coreml/Sources/PhononCoreML/Words.swift",
+      "/Users/sergekadjo/Library/Caches/NextNotesASRBench/phonon-w2m9c8af/phonon-coreml/Binaries/PhononTDT.xcframework/macos-arm64_x86_64/libPhononTDT.a",
+      "-lc++",
+      "-framework",
+      "Accelerate",
+      "-emit-module-path",
+      "/Users/sergekadjo/Library/Caches/NextNotesASRBench/phonon-w2m9c8af/PhononCoreML.swiftmodule",
+      "-o",
+      "/Users/sergekadjo/Library/Caches/NextNotesASRBench/phonon-w2m9c8af/libPhononCoreML.dylib"
+    ],
+    [
+      "xcrun",
+      "swiftc",
+      "-O",
+      "-parse-as-library",
+      "-I",
+      "/Users/sergekadjo/Library/Caches/NextNotesASRBench/phonon-w2m9c8af",
+      "-I",
+      "/Users/sergekadjo/Library/Caches/NextNotesASRBench/phonon-w2m9c8af/phonon-coreml/Binaries/PhononTDT.xcframework/macos-arm64_x86_64/Headers",
+      "-L",
+      "/Users/sergekadjo/Library/Caches/NextNotesASRBench/phonon-w2m9c8af",
+      "-lPhononCoreML",
+      "-Xlinker",
+      "-rpath",
+      "-Xlinker",
+      "/Users/sergekadjo/Library/Caches/NextNotesASRBench/phonon-w2m9c8af",
+      "/Users/sergekadjo/Documents/Claude/Projects/next-notes/Tools/PhononASRRuntimeBenchmark.swift",
+      "-o",
+      "/Users/sergekadjo/Library/Caches/NextNotesASRBench/phonon-w2m9c8af/probe"
+    ]
+  ],
+  "child_exit": 0,
+  "child_joined": true,
+  "stdout": "",
+  "stderr": "",
+  "benchmark": {
+    "schema": "asr-paced-runtime.v1",
+    "trials": [
+      {
+        "language": "en",
+        "trial": 0,
+        "audio_seconds": 7.25,
+        "first_text_ms": 418.57258399249986,
+        "first_text": "Okay.",
+        "first_correct_reference_word_ms": 418.57258399249986,
+        "first_final_consistent_word_ms": 418.57258399249986,
+        "first_committed_ms": null,
+        "release_to_final_ms": 51.22604197822511,
+        "release_to_final_dispatch_ms": 10.071750031784177,
+        "text": "Okay, so the plan is to ship the installer on Friday. Right, and then we write the release note together.",
+        "edits": 0,
+        "reference_words": 20,
+        "wer": 0.0,
+        "events": [
+          {
+            "dispatch_ms": 404.28808401338756,
+            "received_ms": 418.57258399249986,
+            "available_samples": 6468,
+            "native_peak_rss_bytes": 570195968,
+            "text": "Okay."
+          },
+          {
+            "dispatch_ms": 1410.0614999770187,
+            "received_ms": 1436.889834003523,
+            "available_samples": 22560,
+            "native_peak_rss_bytes": 570195968,
+            "text": "Okay, so the plan is to share."
+          },
+          {
+            "dispatch_ms": 2410.0367500213906,
+            "received_ms": 2430.7613340206444,
+            "available_samples": 38560,
+            "native_peak_rss_bytes": 570195968,
+            "text": "Okay, so the plan is to ship the installer on the"
+          },
+          {
+            "dispatch_ms": 3401.7967919935472,
+            "received_ms": 3422.1447089803405,
+            "available_samples": 54428,
+            "native_peak_rss_bytes": 570195968,
+            "text": "Okay, so the plan is to ship the installer on Friday."
+          },
+          {
+            "dispatch_ms": 4410.05716699874,
+            "received_ms": 4444.751749979332,
+            "available_samples": 70560,
+            "native_peak_rss_bytes": 570195968,
+            "text": "Okay, so the plan is to ship the installer on Friday. Right."
+          },
+          {
+            "dispatch_ms": 5410.026292025577,
+            "received_ms": 5443.159624992404,
+            "available_samples": 86560,
+            "native_peak_rss_bytes": 570195968,
+            "text": "Okay, so the plan is to ship the installer on Friday. Right, and then we write."
+          },
+          {
+            "dispatch_ms": 6410.031249979511,
+            "received_ms": 6439.107374986634,
+            "available_samples": 102560,
+            "native_peak_rss_bytes": 570195968,
+            "text": "Okay, so the plan is to ship the installer on Friday. Right, and then we write the release note again."
+          },
+          {
+            "dispatch_ms": 7260.071750031784,
+            "received_ms": 7301.226041978225,
+            "available_samples": 116000,
+            "final": true,
+            "native_peak_rss_bytes": 570195968,
+            "text": "Okay, so the plan is to ship the installer on Friday. Right, and then we write the release note together."
+          }
+        ]
+      },
+      {
+        "language": "en",
+        "trial": 1,
+        "audio_seconds": 7.25,
+        "first_text_ms": 421.1360000190325,
+        "first_text": "Okay so",
+        "first_correct_reference_word_ms": 421.1360000190325,
+        "first_final_consistent_word_ms": 421.1360000190325,
+        "first_committed_ms": null,
+        "release_to_final_ms": 52.29354102630168,
+        "release_to_final_dispatch_ms": 10.094208002556115,
+        "text": "Okay, so the plan is to ship the installer on Friday. Right, and then we write the release note together.",
+        "edits": 0,
+        "reference_words": 20,
+        "wer": 0.0,
+        "events": [
+          {
+            "dispatch_ms": 410.0370830274187,
+            "received_ms": 421.1360000190325,
+            "available_samples": 6560,
+            "native_peak_rss_bytes": 570195968,
+            "text": "Okay so"
+          },
+          {
+            "dispatch_ms": 1409.9460000288673,
+            "received_ms": 1439.2032910254784,
+            "available_samples": 22559,
+            "native_peak_rss_bytes": 570195968,
+            "text": "Okay, so the plan is to share."
+          },
+          {
+            "dispatch_ms": 2409.43216602318,
+            "received_ms": 2429.9237499944866,
+            "available_samples": 38550,
+            "native_peak_rss_bytes": 570195968,
+            "text": "Okay, so the plan is to ship the installer on the"
+          },
+          {
+            "dispatch_ms": 3410.046875011176,
+            "received_ms": 3426.6654580133036,
+            "available_samples": 54560,
+            "native_peak_rss_bytes": 570195968,
+            "text": "Okay, so the plan is to ship the installer on Friday."
+          },
+          {
+            "dispatch_ms": 4410.073333012406,
+            "received_ms": 4439.971083018463,
+            "available_samples": 70561,
+            "native_peak_rss_bytes": 570195968,
+            "text": "Okay, so the plan is to ship the installer on Friday. Right."
+          },
+          {
+            "dispatch_ms": 5410.036833025515,
+            "received_ms": 5444.180749997031,
+            "available_samples": 86560,
+            "native_peak_rss_bytes": 570195968,
+            "text": "Okay, so the plan is to ship the installer on Friday. Right, and then we write."
+          },
+          {
+            "dispatch_ms": 6406.3611250021495,
+            "received_ms": 6452.103416027967,
+            "available_samples": 102501,
+            "native_peak_rss_bytes": 570195968,
+            "text": "Okay, so the plan is to ship the installer on Friday. Right, and then we write the release note that you can."
+          },
+          {
+            "dispatch_ms": 7260.094208002556,
+            "received_ms": 7302.293541026302,
+            "available_samples": 116000,
+            "final": true,
+            "native_peak_rss_bytes": 570195968,
+            "text": "Okay, so the plan is to ship the installer on Friday. Right, and then we write the release note together."
+          }
+        ]
+      },
+      {
+        "language": "en",
+        "trial": 2,
+        "audio_seconds": 7.25,
+        "first_text_ms": 424.722625000868,
+        "first_text": "Okay so",
+        "first_correct_reference_word_ms": 424.722625000868,
+        "first_final_consistent_word_ms": 424.722625000868,
+        "first_committed_ms": null,
+        "release_to_final_ms": 57.600750005804,
+        "release_to_final_dispatch_ms": 10.228542028926313,
+        "text": "Okay, so the plan is to ship the installer on Friday. Right, and then we write the release note together.",
+        "edits": 0,
+        "reference_words": 20,
+        "wer": 0.0,
+        "events": [
+          {
+            "dispatch_ms": 410.0350419757888,
+            "received_ms": 424.722625000868,
+            "available_samples": 6560,
+            "native_peak_rss_bytes": 570195968,
+            "text": "Okay so"
+          },
+          {
+            "dispatch_ms": 1410.6659169774503,
+            "received_ms": 1433.192250027787,
+            "available_samples": 22570,
+            "native_peak_rss_bytes": 570195968,
+            "text": "Okay, so the plan is to share."
+          },
+          {
+            "dispatch_ms": 2410.075167019386,
+            "received_ms": 2439.7941670031287,
+            "available_samples": 38561,
+            "native_peak_rss_bytes": 570195968,
+            "text": "Okay, so the plan is to ship the installer on the"
+          },
+          {
+            "dispatch_ms": 3410.052541992627,
+            "received_ms": 3443.7412080005743,
+            "available_samples": 54560,
+            "native_peak_rss_bytes": 570195968,
+            "text": "Okay, so the plan is to ship the installer on Friday."
+          },
+          {
+            "dispatch_ms": 4410.094125021715,
+            "received_ms": 4445.891625015065,
+            "available_samples": 70561,
+            "native_peak_rss_bytes": 570195968,
+            "text": "Okay, so the plan is to ship the installer on Friday. Right."
+          },
+          {
+            "dispatch_ms": 5410.068167024292,
+            "received_ms": 5445.4964169999585,
+            "available_samples": 86561,
+            "native_peak_rss_bytes": 570195968,
+            "text": "Okay, so the plan is to ship the installer on Friday. Right, and then we write."
+          },
+          {
+            "dispatch_ms": 6410.045417025685,
+            "received_ms": 6455.898499989416,
+            "available_samples": 102560,
+            "native_peak_rss_bytes": 570195968,
+            "text": "Okay, so the plan is to ship the installer on Friday. Right, and then we write the release note again."
+          },
+          {
+            "dispatch_ms": 7260.228542028926,
+            "received_ms": 7307.600750005804,
+            "available_samples": 116000,
+            "final": true,
+            "native_peak_rss_bytes": 570195968,
+            "text": "Okay, so the plan is to ship the installer on Friday. Right, and then we write the release note together."
+          }
+        ]
+      }
+    ],
+    "fixtures": {
+      "en": {
+        "path": "Tests/Fixtures/meetings/en-dialogue.wav",
+        "source_sha256": "5e4c00f6c703bd20e49bd8e7470703776311169e3ba0aff8d8fd247bd875f203",
+        "samples": 116000,
+        "seconds": 7.25,
+        "reference": "Okay so the plan is to ship the installer on Friday. Right, and then we write the release note together."
+      }
+    },
+    "warmups": [
+      {
+        "language": "en",
+        "seconds": 63.82679308304796
+      }
+    ],
+    "policy": "0.4s first prefix, then 1s; monotonic audio availability; serialized/coalesced; full-prefix final",
+    "scope": "Paced fixture runtime delivery; no physical mic/UI/cleanup/insertion or duplex acceptance",
+    "driver_peak_rss_bytes": 41549824,
+    "peak_rss_bytes": 570195968,
+    "child_memory": "native getrusage lifetime peak RSS; not Mach physical footprint",
+    "runtime_ready": {
+      "compile_ms": 873.2579946517944,
+      "eager_seconds": [
+        5
+      ],
+      "function_seconds": [
+        5,
+        10
+      ],
+      "load_ms": 66684.35096740723,
+      "native_peak_rss_bytes": 570195968,
+      "ready": true
+    },
+    "runtime_stdout_diagnostics": [
+      "ASR_PROGRESS {\"phase\":\"compiled\",\"elapsed_seconds\":0.017364025115966797}",
+      "ASR_PROGRESS {\"phase\":\"loading enc_5s\",\"elapsed_seconds\":0.017447948455810547}",
+      "ASR_PROGRESS {\"phase\":\"loaded enc_5s\",\"elapsed_seconds\":66.68116295337677}",
+      "ASR_PROGRESS {\"elapsed_seconds\":66.761657953262329,\"phase\":\"loading enc_10s\"}",
+      "ASR_PROGRESS {\"elapsed_seconds\":130.44747602939606,\"phase\":\"loaded enc_10s\"}"
+    ],
+    "native_stderr_tail": ""
+  },
+  "temporary_assets_deleted": true,
+  "free_disk_after_bytes": 3690168320
+}

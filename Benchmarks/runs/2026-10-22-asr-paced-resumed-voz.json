@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "id": "2026-10-22-asr-paced-resumed-voz",
+  "title": "Voz (CoreML CLI) resumed paced ASR latency",
+  "date": "2026-10-22",
+  "category": "asr",
+  "status": "measured",
+  "scope": "Paced native runtime first-word and release-to-final; no app integration or physical microphone acceptance",
+  "summary": "Three warmed paced trials per language; quiet serial candidate window, no app/default promotion.",
+  "environment": {
+    "hardware": "Apple M3,16GB RAM",
+    "os": "macOS27.2 build26B5091g",
+    "workload": "Normal desktop apps; coordinated serial native window, no concurrent build/model workload. Per-attempt context retained; high inherited swap remains.",
+    "power_thermal": "Per-attempt logs retained; no recorded thermal warning. Quiet ASR+voice reference workload not qualified."
+  },
+  "provenance": {
+    "model": "Pinned original artifact, see raw report and retained metadata",
+    "source": "Dirty shared checkout; function snapshots and linked-input hashes retained; not installed-app parity",
+    "command": "ASR_LIVE=1 native candidate runner; see voz.json",
+    "source_report": "Tests/Reports/asr-live-latency-2026-10-22-resumed"
+  },
+  "metrics": [
+    {
+      "name": "EN First provisional word",
+      "value": 450.5272499518469,
+      "unit": "ms",
+      "boundary": "Paced audio start to first readable provisional word;400ms first prefix,1s updates",
+      "samples": 3,
+      "aggregation": "median of three warmed paced holds; raw range retained"
+    },
+    {
+      "name": "EN Release to full ASR final",
+      "value": 65.92916598310694,
+      "unit": "ms",
+      "boundary": "Independent scheduled release to complete native ASR return; includes in-flight work, excludes UI/polish/insertion",
+      "samples": 3,
+      "aggregation": "median of three warmed paced holds; raw range retained"
+    },
+    {
+      "name": "FR First provisional word",
+      "value": 445.64670900581405,
+      "unit": "ms",
+      "boundary": "Paced audio start to first readable provisional word;400ms first prefix,1s updates",
+      "samples": 3,
+      "aggregation": "median of three warmed paced holds; raw range retained"
+    },
+    {
+      "name": "FR Release to full ASR final",
+      "value": 82.8037919709459,
+      "unit": "ms",
+      "boundary": "Independent scheduled release to complete native ASR return; includes in-flight work, excludes UI/polish/insertion",
+      "samples": 3,
+      "aggregation": "median of three warmed paced holds; raw range retained"
+    }
+  ],
+  "limitations": [
+    "Single authored excerpt per language, three timing trials; no broad corpus/physical microphone/UI/polish/insertion/concurrent ASR+voice acceptance.",
+    "Cold compilation/load/shape warmup excluded. All temporary candidate assets deleted; no app/default/install promotion.",
+    "Short French literal2/22 edits are number rendering; whole-file French18/151 includes actual errors. SDK isolated release build and offline inference."
+  ],
+  "sources": [
+    "Tests/Reports/asr-live-latency-2026-10-22-resumed/README.md",
+    "Tests/Reports/asr-live-latency-2026-10-22-resumed/voz.json"
+  ],
+  "publication": {
+    "approved": false,
+    "reviewed_by": null,
+    "reviewed_on": null
+  }
+}

@@ -1,0 +1,634 @@
+{
+  "engine": "Voz SDK",
+  "sdk_revision": "86b9b55fe8c61ec1c27c5b6383f545c6df1d6ceb",
+  "free_disk_before_bytes": 4333330432,
+  "source_archive_sha256": "222e6fcd5bdba2dd23fb9b113535f8de16e2e8c093c7b4db47da33e8c0989555",
+  "build_command": [
+    "xcrun",
+    "swift",
+    "build",
+    "--package-path",
+    "/Users/sergekadjo/Library/Caches/NextNotesASRBench/voz-live-vcz0f2_d/sdk/Desert-Ant-Labs-desert-ant-core-86b9b55",
+    "--scratch-path",
+    "/Users/sergekadjo/Library/Caches/NextNotesASRBench/voz-live-vcz0f2_d/build",
+    "-c",
+    "release",
+    "--jobs",
+    "1",
+    "--cache-path",
+    "/Users/sergekadjo/Library/Caches/NextNotesASRBench/voz-live-vcz0f2_d/spm-cache",
+    "--config-path",
+    "/Users/sergekadjo/Library/Caches/NextNotesASRBench/voz-live-vcz0f2_d/spm-config",
+    "--security-path",
+    "/Users/sergekadjo/Library/Caches/NextNotesASRBench/voz-live-vcz0f2_d/spm-security",
+    "--disable-default-traits",
+    "--product",
+    "ASRLiveProbe"
+  ],
+  "build": {
+    "exit": 0,
+    "stdout": "Building for production...\n[Computing dependencies]\n[Pre-planning 1 / 558]\n[Planning deferred tasks]\n[12 / 251]\n[124 / 252]\n[129 / 287]\n[131 / 287]\n[134 / 287]\n[137 / 288] JSON\n[140 / 289]\n[143 / 289]\n[146 / 289]\n[150 / 289]\n[152 / 289]\n[155 / 289]\n[157 / 289]\n[158 / 289]\n[160 / 289]\n[161 / 289]\n[163 / 289] JSON\n[180 / 292] FFIBuffer\n[184 / 293] JSHost\n[197 / 295] DesertAnt_UsagePrivacy\n[203 / 296] TextNormalization\n[213 / 299] AudioIO\n[214 / 300] Regex\n[214 / 331] Regex\n[217 / 331]\n[224 / 331]\n[227 / 331]\n[229 / 331]\n[230 / 331]\n[233 / 331]\n[235 / 331]\n[237 / 331]\n[238 / 331]\n[242 / 331]\n[243 / 331]\n[246 / 331]\n[247 / 331]\n[248 / 331] Regex\n[250 / 331]\n[251 / 331]\n[252 / 331] AudioIO\n[260 / 332] AudioIO\n[261 / 333] PlatformSupport\n[270 / 335] HostBridge\n[272 / 340] HostBridge\n[277 / 340] Usage\n[289 / 341]\n[291 / 342]\n[297 / 343] CStrings\n[299 / 344] TextNormalization\n[309 / 345] PlatformSupport\n[312 / 353]\n[313 / 353]\n[316 / 353]\n[317 / 353]\n[318 / 353]\n[326 / 354]\n[336 / 356]\n[338 / 357]\n[344 / 358]\n[346 / 359] ModelCatalog\n[353 / 360]\n[355 / 361]\n[359 / 361] ASRLiveProbe-product\n[360 / 361] ASRLiveProbe-product\nBuild complete! (30.11 sec)\n",
+    "stderr": "Fetching https://github.com/apple/swift-numerics\n[1/6756] Fetching swift-numerics\nFetched https://github.com/apple/swift-numerics (0.46s)\nComputing version for https://github.com/apple/swift-numerics\nComputed https://github.com/apple/swift-numerics at 1.1.1 (0.77s)\nComputed https://github.com/apple/swift-numerics at 1.1.1 (0.00s)\nCreating working copy for https://github.com/apple/swift-numerics\nWorking copy of https://github.com/apple/swift-numerics resolved at 1.1.1\n/Users/sergekadjo/Library/Caches/NextNotesASRBench/voz-live-vcz0f2_d/sdk/Desert-Ant-Labs-desert-ant-core-86b9b55/Sources/Voz/Pipeline.swift:710:27: warning: conformance of underlying type of 'some AudioStream' to protocol 'AudioStream' may be isolated and cannot be passed to @concurrent context [#IsolatedConformances]\n 708 |             while starts.count - processed < Self.batchWindows {\n 709 |                 let last = starts[starts.count - 1]\n 710 |                 try await ensure(through: last + window + 1)\n     |                           `- warning: conformance of underlying type of 'some AudioStream' to protocol 'AudioStream' may be isolated and cannot be passed to @concurrent context [#IsolatedConformances]\n 711 |                 guard available > last + window else { break }\n 712 |                 starts.append(nextBoundary(after: last) { buffer[$0 - origin] })\n\n/Users/sergekadjo/Library/Caches/NextNotesASRBench/voz-live-vcz0f2_d/sdk/Desert-Ant-Labs-desert-ant-core-86b9b55/Sources/Voz/Pipeline.swift:721:23: warning: conformance of underlying type of 'some AudioStream' to protocol 'AudioStream' may be isolated and cannot be passed to @concurrent context [#IsolatedConformances]\n 719 |             // and the buffer would grow with the file (5.8 MB per minute of audio).\n 720 |             release(before: starts[group.lowerBound])\n 721 |             try await ensure(through: starts[group.upperBound - 1] + window)\n     |                       `- warning: conformance of underlying type of 'some AudioStream' to protocol 'AudioStream' may be isolated and cannot be passed to @concurrent context [#IsolatedConformances]\n 722 |             // Shared between the two threads for the length of the group, so it\n 723 |             // is allocated rather than held in an array whose buffer only one\n\n/Users/sergekadjo/Library/Caches/NextNotesASRBench/voz-live-vcz0f2_d/sdk/Desert-Ant-Labs-desert-ant-core-86b9b55/Sources/Voz/Pipeline.swift:815:31: warning: conformance of underlying type of 'some AudioStream' to protocol 'AudioStream' may be isolated and cannot be passed to @concurrent context [#IsolatedConformances]\n 813 |                         try await encode(windows: audio(of: b), slot: 0,\n 814 |                                          into: shared.base + b * batch * stride)\n 815 |                         await announce(b)\n     |                               `- warning: conformance of underlying type of 'some AudioStream' to protocol 'AudioStream' may be isolated and cannot be passed to @concurrent context [#IsolatedConformances]\n 816 |                     }\n 817 |                 } else {\n\n/Users/sergekadjo/Library/Caches/NextNotesASRBench/voz-live-vcz0f2_d/sdk/Desert-Ant-Labs-desert-ant-core-86b9b55/Sources/Voz/Pipeline.swift:846:39: warning: conformance of underlying type of 'some AudioStream' to protocol 'AudioStream' may be isolated and cannot be passed to @concurrent context [#IsolatedConformances]\n 844 |                             landed[finished.batch] = true\n 845 |                             while announced < batches, landed[announced] {\n 846 |                                 await announce(announced)\n     |                                       `- warning: conformance of underlying type of 'some AudioStream' to protocol 'AudioStream' may be isolated and cannot be passed to @concurrent context [#IsolatedConformances]\n 847 |                                 announced += 1\n 848 |                             }\n\n[#IsolatedConformances]: <https://docs.swift.org/compiler/documentation/diagnostics/isolated-conformances>\n"
+  },
+  "cli_archive_sha256": "5f37890f742719461c4d48121cc3f6ce96d79f2b091dc7ca402cfcb14569b7d3",
+  "prepare": {
+    "exit": 0,
+    "stdout": "{\n  \"downloaded\" : true,\n  \"model\" : \"voz\"\n}\n",
+    "stderr": ""
+  },
+  "artifacts": [
+    {
+      "path": "embedding.f16",
+      "bytes": 10487040,
+      "sha256": "07163e5f6f8a68f9ffeed7a8ff770c68098c2db216232321912188bd614b9a72"
+    },
+    {
+      "path": "vocab.json",
+      "bytes": 78654,
+      "sha256": "3eb2f73e8853dce5156c2ed97c0b1bb84eb4ebd201eb1761d15977fc1ea31490"
+    },
+    {
+      "path": "meta.json",
+      "bytes": 584,
+      "sha256": "2b5fa951d70cbbab49fccf31836521be8305d0d9557b9bedf45cc8dcdc61b53b"
+    },
+    {
+      "path": "encoder.mlmodelc/metadata.json",
+      "bytes": 2739,
+      "sha256": "81e00f4d507edf2e6d045a9826362f3c6e314e60ef16a28aef4c99d693876991"
+    },
+    {
+      "path": "encoder.mlmodelc/model.mil",
+      "bytes": 820490,
+      "sha256": "974c88c39c840c21b031f10529943516d1d8469535f0ddc3571cddaab29574e4"
+    },
+    {
+      "path": "encoder.mlmodelc/coremldata.bin",
+      "bytes": 430,
+      "sha256": "02327c1dc4dc362dfcb1061f785a24ee3bcb86853ecaa818511ae71ca2e2a0b8"
+    },
+    {
+      "path": "decoder.mlmodelc/metadata.json",
+      "bytes": 18528,
+      "sha256": "798639c54e4eb71bcfa5dbc15b62c0a341c37b265d1a9c879c28a40b06549875"
+    },
+    {
+      "path": "decoder.mlmodelc/model.mil",
+      "bytes": 99410,
+      "sha256": "1f331acb4a4bb999c792db0a3725d790c046311ab9941ddbe0ee7e3418ae1e14"
+    },
+    {
+      "path": "decoder.mlmodelc/coremldata.bin",
+      "bytes": 1093,
+      "sha256": "2d7a5210e91e4e3b25c547db4b76ea14bf769db9f71e7659c027008041e38d2d"
+    },
+    {
+      "path": "mel.mlmodelc/metadata.json",
+      "bytes": 2215,
+      "sha256": "6be5be2c02370c3a218b712046ea50c8486f4e20fd70558458d5980d1c296e53"
+    },
+    {
+      "path": "mel.mlmodelc/model.mil",
+      "bytes": 9728,
+      "sha256": "aae23c58b6aa3093063f75a392d9f44deb324804c3fbb58fa3e55bb7f371ece1"
+    },
+    {
+      "path": "mel.mlmodelc/coremldata.bin",
+      "bytes": 405,
+      "sha256": "e6598e764b01f8ba06fa787f2bc22d7707f97c2954492d77a2736800fd006f5d"
+    },
+    {
+      "path": ".dal-meta/manifest",
+      "bytes": 1930,
+      "sha256": "43e9d484697dc4c298a06c386f8ca6df3ee1adb8913fe172c2854492a02d8176"
+    },
+    {
+      "path": "mel.mlmodelc/weights/weight.bin",
+      "bytes": 826688,
+      "sha256": "34f8a1bcf01e6a6ae053efe012cd189e0c38e9dca65660f199740ce9a0958f95"
+    },
+    {
+      "path": "mel.mlmodelc/analytics/coremldata.bin",
+      "bytes": 243,
+      "sha256": "d1cabbea932a1be1b53a1adc0d434d5a7a1f097d9679d3d995183238773de472"
+    },
+    {
+      "path": "decoder.mlmodelc/weights/weight.bin",
+      "bytes": 12277132,
+      "sha256": "12ab4cbb83155dbaf3d9832f524c23b803e3e266863d9c6f3d58e1d88577e130"
+    },
+    {
+      "path": "decoder.mlmodelc/analytics/coremldata.bin",
+      "bytes": 243,
+      "sha256": "cc2be0dbcd0c7d8d915aa3621869ea074791c432ba7b4bb6e029c483087f7189"
+    },
+    {
+      "path": "encoder.mlmodelc/weights/weight.bin",
+      "bytes": 312039808,
+      "sha256": "72b6e867cb3176cea36fc1410622b7bfd50043e80eafbaab03ae0a53382908c2"
+    },
+    {
+      "path": "encoder.mlmodelc/analytics/coremldata.bin",
+      "bytes": 243,
+      "sha256": "983e1e4e31f6ef386fba8d35202984c6ec11ff688f62cf3fde57dd957d40ff27"
+    }
+  ],
+  "child_exit": 0,
+  "child_joined": true,
+  "stderr": "",
+  "benchmark": {
+    "schema": "asr-paced-runtime.v1",
+    "trials": [
+      {
+        "language": "en",
+        "trial": 0,
+        "audio_seconds": 7.25,
+        "first_text_ms": 439.3223330262117,
+        "first_text": "Okay",
+        "first_correct_reference_word_ms": 439.3223330262117,
+        "first_final_consistent_word_ms": 439.3223330262117,
+        "first_committed_ms": null,
+        "release_to_final_ms": 60.656582994852215,
+        "release_to_final_dispatch_ms": 1.1047080042771995,
+        "text": "Okay, so the plan is to ship the installer on Friday. Right, and then we write the release note together",
+        "edits": 0,
+        "reference_words": 20,
+        "wer": 0.0,
+        "events": [
+          {
+            "dispatch_ms": 403.0580410035327,
+            "received_ms": 439.3223330262117,
+            "available_samples": 6448,
+            "native_peak_rss_bytes": 408535040,
+            "text": "Okay"
+          },
+          {
+            "dispatch_ms": 1410.0797080318443,
+            "received_ms": 1460.2296660305,
+            "available_samples": 22561,
+            "native_peak_rss_bytes": 408535040,
+            "text": "Okay so the plan is to sh"
+          },
+          {
+            "dispatch_ms": 2403.0717500136234,
+            "received_ms": 2455.0634160405025,
+            "available_samples": 38449,
+            "native_peak_rss_bytes": 408535040,
+            "text": "Okay so the plan is to ship the installer on"
+          },
+          {
+            "dispatch_ms": 3410.0428750389256,
+            "received_ms": 3461.402958026156,
+            "available_samples": 54560,
+            "native_peak_rss_bytes": 408535040,
+            "text": "Okay so the plan is to ship the installer on Friday."
+          },
+          {
+            "dispatch_ms": 4410.032958025113,
+            "received_ms": 4471.728333039209,
+            "available_samples": 70560,
+            "native_peak_rss_bytes": 408535040,
+            "text": "Okay, so the plan is to ship the installer on Friday. Right"
+          },
+          {
+            "dispatch_ms": 5410.017041023821,
+            "received_ms": 5453.738540993072,
+            "available_samples": 86560,
+            "native_peak_rss_bytes": 408535040,
+            "text": "Okay, so the plan is to ship the installer on Friday. Right, and then we write"
+          },
+          {
+            "dispatch_ms": 6410.045166034251,
+            "received_ms": 6482.574500027113,
+            "available_samples": 102560,
+            "native_peak_rss_bytes": 408535040,
+            "text": "Okay so the plan is to ship the installer on Friday. Right, and then we write the release note again"
+          },
+          {
+            "dispatch_ms": 7251.104708004277,
+            "received_ms": 7310.656582994852,
+            "available_samples": 116000,
+            "final": true,
+            "native_peak_rss_bytes": 408535040,
+            "text": "Okay, so the plan is to ship the installer on Friday. Right, and then we write the release note together"
+          }
+        ]
+      },
+      {
+        "language": "en",
+        "trial": 1,
+        "audio_seconds": 7.25,
+        "first_text_ms": 450.5272499518469,
+        "first_text": "Okay C",
+        "first_correct_reference_word_ms": 450.5272499518469,
+        "first_final_consistent_word_ms": 450.5272499518469,
+        "first_committed_ms": null,
+        "release_to_final_ms": 65.92916598310694,
+        "release_to_final_dispatch_ms": 10.028749995399266,
+        "text": "Okay, so the plan is to ship the installer on Friday. Right, and then we write the release note together",
+        "edits": 0,
+        "reference_words": 20,
+        "wer": 0.0,
+        "events": [
+          {
+            "dispatch_ms": 414.1587499761954,
+            "received_ms": 450.5272499518469,
+            "available_samples": 6626,
+            "native_peak_rss_bytes": 408535040,
+            "text": "Okay C"
+          },
+          {
+            "dispatch_ms": 1404.5055409660563,
+            "received_ms": 1438.1421249709092,
+            "available_samples": 22472,
+            "native_peak_rss_bytes": 408535040,
+            "text": "Okay so the plan is to sh"
+          },
+          {
+            "dispatch_ms": 2410.0271659553982,
+            "received_ms": 2446.526957966853,
+            "available_samples": 38560,
+            "native_peak_rss_bytes": 408535040,
+            "text": "Okay so the plan is to ship the installer on"
+          },
+          {
+            "dispatch_ms": 3410.0211249897256,
+            "received_ms": 3448.652833001688,
+            "available_samples": 54560,
+            "native_peak_rss_bytes": 408535040,
+            "text": "Okay so the plan is to ship the installer on Friday."
+          },
+          {
+            "dispatch_ms": 4410.021249961574,
+            "received_ms": 4450.430332974065,
+            "available_samples": 70560,
+            "native_peak_rss_bytes": 408535040,
+            "text": "Okay, so the plan is to ship the installer on Friday. Right"
+          },
+          {
+            "dispatch_ms": 5408.4532499546185,
+            "received_ms": 5451.53883297462,
+            "available_samples": 86535,
+            "native_peak_rss_bytes": 408535040,
+            "text": "Okay, so the plan is to ship the installer on Friday. Right, and then we write"
+          },
+          {
+            "dispatch_ms": 6410.064457973931,
+            "received_ms": 6488.252374983858,
+            "available_samples": 102561,
+            "native_peak_rss_bytes": 408535040,
+            "text": "Okay so the plan is to ship the installer on Friday. Right, and then we write the release note again"
+          },
+          {
+            "dispatch_ms": 7260.028749995399,
+            "received_ms": 7315.929165983107,
+            "available_samples": 116000,
+            "final": true,
+            "native_peak_rss_bytes": 408535040,
+            "text": "Okay, so the plan is to ship the installer on Friday. Right, and then we write the release note together"
+          }
+        ]
+      },
+      {
+        "language": "en",
+        "trial": 2,
+        "audio_seconds": 7.25,
+        "first_text_ms": 454.2479999945499,
+        "first_text": "Okay C",
+        "first_correct_reference_word_ms": 454.2479999945499,
+        "first_final_consistent_word_ms": 454.2479999945499,
+        "first_committed_ms": null,
+        "release_to_final_ms": 84.2245839885436,
+        "release_to_final_dispatch_ms": 5.666834011208266,
+        "text": "Okay, so the plan is to ship the installer on Friday. Right, and then we write the release note together",
+        "edits": 0,
+        "reference_words": 20,
+        "wer": 0.0,
+        "events": [
+          {
+            "dispatch_ms": 410.05895897978917,
+            "received_ms": 454.2479999945499,
+            "available_samples": 6560,
+            "native_peak_rss_bytes": 408535040,
+            "text": "Okay C"
+          },
+          {
+            "dispatch_ms": 1409.7463749931194,
+            "received_ms": 1460.944875027053,
+            "available_samples": 22555,
+            "native_peak_rss_bytes": 408535040,
+            "text": "Okay so the plan is to sh"
+          },
+          {
+            "dispatch_ms": 2407.202334026806,
+            "received_ms": 2458.9423750294372,
+            "available_samples": 38515,
+            "native_peak_rss_bytes": 408535040,
+            "text": "Okay so the plan is to ship the installer on"
+          },
+          {
+            "dispatch_ms": 3410.084334027488,
+            "received_ms": 3486.9973339955322,
+            "available_samples": 54561,
+            "native_peak_rss_bytes": 408535040,
+            "text": "Okay so the plan is to ship the installer on Friday."
+          },
+          {
+            "dispatch_ms": 4410.072459024377,
+            "received_ms": 4473.625916987658,
+            "available_samples": 70561,
+            "native_peak_rss_bytes": 408535040,
+            "text": "Okay, so the plan is to ship the installer on Friday. Right"
+          },
+          {
+            "dispatch_ms": 5410.036208981182,
+            "received_ms": 5467.126042000018,
+            "available_samples": 86560,
+            "native_peak_rss_bytes": 408535040,
+            "text": "Okay, so the plan is to ship the installer on Friday. Right, and then we write"
+          },
+          {
+            "dispatch_ms": 6410.053250030614,
+            "received_ms": 6479.915334028192,
+            "available_samples": 102560,
+            "native_peak_rss_bytes": 408535040,
+            "text": "Okay so the plan is to ship the installer on Friday. Right, and then we write the release note again"
+          },
+          {
+            "dispatch_ms": 7255.666834011208,
+            "received_ms": 7334.224583988544,
+            "available_samples": 116000,
+            "final": true,
+            "native_peak_rss_bytes": 408535040,
+            "text": "Okay, so the plan is to ship the installer on Friday. Right, and then we write the release note together"
+          }
+        ]
+      },
+      {
+        "language": "fr",
+        "trial": 0,
+        "audio_seconds": 6.65,
+        "first_text_ms": 442.28833296801895,
+        "first_text": "Donc on",
+        "first_correct_reference_word_ms": 442.28833296801895,
+        "first_final_consistent_word_ms": 442.28833296801895,
+        "first_committed_ms": null,
+        "release_to_final_ms": 90.3014579671435,
+        "release_to_final_dispatch_ms": 10.066915943752974,
+        "text": "Donc on garde le budget à 40 000 pour le moment. Oui c'est ça, je t'envoie le devis demain matin.",
+        "edits": 2,
+        "reference_words": 22,
+        "wer": 0.09090909090909091,
+        "events": [
+          {
+            "dispatch_ms": 406.65041597094387,
+            "received_ms": 442.28833296801895,
+            "available_samples": 6506,
+            "native_peak_rss_bytes": 408535040,
+            "text": "Donc on"
+          },
+          {
+            "dispatch_ms": 1405.1206249860115,
+            "received_ms": 1439.8059159866534,
+            "available_samples": 22481,
+            "native_peak_rss_bytes": 408535040,
+            "text": "Donc on garde le budget à"
+          },
+          {
+            "dispatch_ms": 2410.060790949501,
+            "received_ms": 2478.0081249773502,
+            "available_samples": 38560,
+            "native_peak_rss_bytes": 408535040,
+            "text": "Donc on garde le budget à 40 000 pour le"
+          },
+          {
+            "dispatch_ms": 3410.056082997471,
+            "received_ms": 3478.6554579623044,
+            "available_samples": 54560,
+            "native_peak_rss_bytes": 408535040,
+            "text": "Donc on garde le budget à 40 000 pour le moment."
+          },
+          {
+            "dispatch_ms": 4410.055582993664,
+            "received_ms": 4490.4788749990985,
+            "available_samples": 70560,
+            "native_peak_rss_bytes": 408535040,
+            "text": "Donc on garde le budget à 40 000 pour le moment. Oui, c'est ça"
+          },
+          {
+            "dispatch_ms": 5409.4144579721615,
+            "received_ms": 5479.3479579966515,
+            "available_samples": 86550,
+            "native_peak_rss_bytes": 408535040,
+            "text": "Donc on garde le budget à 40 000 pour le moment. Oui c'est ça, je t'envoie le devis"
+          },
+          {
+            "dispatch_ms": 6410.0796659477055,
+            "received_ms": 6487.636165984441,
+            "available_samples": 102561,
+            "native_peak_rss_bytes": 408535040,
+            "text": "Donc on garde le budget à 40 000 pour le moment. Oui c'est ça, je t'envoie le devis demain matin"
+          },
+          {
+            "dispatch_ms": 6660.066915967036,
+            "received_ms": 6740.301457990427,
+            "available_samples": 106400,
+            "final": true,
+            "native_peak_rss_bytes": 408535040,
+            "text": "Donc on garde le budget à 40 000 pour le moment. Oui c'est ça, je t'envoie le devis demain matin."
+          }
+        ]
+      },
+      {
+        "language": "fr",
+        "trial": 1,
+        "audio_seconds": 6.65,
+        "first_text_ms": 456.3604589784518,
+        "first_text": "Donc on",
+        "first_correct_reference_word_ms": 456.3604589784518,
+        "first_final_consistent_word_ms": 456.3604589784518,
+        "first_committed_ms": null,
+        "release_to_final_ms": 82.8037919709459,
+        "release_to_final_dispatch_ms": 10.071041993796825,
+        "text": "Donc on garde le budget à 40 000 pour le moment. Oui c'est ça, je t'envoie le devis demain matin.",
+        "edits": 2,
+        "reference_words": 22,
+        "wer": 0.09090909090909091,
+        "events": [
+          {
+            "dispatch_ms": 410.0336669944227,
+            "received_ms": 456.3604589784518,
+            "available_samples": 6560,
+            "native_peak_rss_bytes": 408535040,
+            "text": "Donc on"
+          },
+          {
+            "dispatch_ms": 1404.112750024069,
+            "received_ms": 1457.599624991417,
+            "available_samples": 22465,
+            "native_peak_rss_bytes": 408535040,
+            "text": "Donc on garde le budget à"
+          },
+          {
+            "dispatch_ms": 2410.0561250234023,
+            "received_ms": 2472.1102920011617,
+            "available_samples": 38560,
+            "native_peak_rss_bytes": 408535040,
+            "text": "Donc on garde le budget à 40 000 pour le"
+          },
+          {
+            "dispatch_ms": 3410.0934590096585,
+            "received_ms": 3476.4387090108357,
+            "available_samples": 54561,
+            "native_peak_rss_bytes": 408535040,
+            "text": "Donc on garde le budget à 40 000 pour le moment."
+          },
+          {
+            "dispatch_ms": 4410.075084015261,
+            "received_ms": 4473.916292015929,
+            "available_samples": 70561,
+            "native_peak_rss_bytes": 408535040,
+            "text": "Donc on garde le budget à 40 000 pour le moment. Oui, c'est ça"
+          },
+          {
+            "dispatch_ms": 5410.021167015657,
+            "received_ms": 5459.815541980788,
+            "available_samples": 86560,
+            "native_peak_rss_bytes": 408535040,
+            "text": "Donc on garde le budget à 40 000 pour le moment. Oui c'est ça, je t'envoie le David"
+          },
+          {
+            "dispatch_ms": 6410.048125020694,
+            "received_ms": 6484.754167031497,
+            "available_samples": 102560,
+            "native_peak_rss_bytes": 408535040,
+            "text": "Donc on garde le budget à 40 000 pour le moment. Oui c'est ça, je t'envoie le devis demain matin"
+          },
+          {
+            "dispatch_ms": 6660.07104201708,
+            "received_ms": 6732.803791994229,
+            "available_samples": 106400,
+            "final": true,
+            "native_peak_rss_bytes": 408535040,
+            "text": "Donc on garde le budget à 40 000 pour le moment. Oui c'est ça, je t'envoie le devis demain matin."
+          }
+        ]
+      },
+      {
+        "language": "fr",
+        "trial": 2,
+        "audio_seconds": 6.65,
+        "first_text_ms": 445.64670900581405,
+        "first_text": "Donc on",
+        "first_correct_reference_word_ms": 445.64670900581405,
+        "first_final_consistent_word_ms": 445.64670900581405,
+        "first_committed_ms": null,
+        "release_to_final_ms": 80.48358396627009,
+        "release_to_final_dispatch_ms": 10.093624936416745,
+        "text": "Donc on garde le budget à 40 000 pour le moment. Oui c'est ça, je t'envoie le devis demain matin.",
+        "edits": 2,
+        "reference_words": 22,
+        "wer": 0.09090909090909091,
+        "events": [
+          {
+            "dispatch_ms": 410.0338749703951,
+            "received_ms": 445.64670900581405,
+            "available_samples": 6560,
+            "native_peak_rss_bytes": 408535040,
+            "text": "Donc on"
+          },
+          {
+            "dispatch_ms": 1413.8553339871578,
+            "received_ms": 1466.7028749827296,
+            "available_samples": 22621,
+            "native_peak_rss_bytes": 408535040,
+            "text": "Donc on garde le budget à"
+          },
+          {
+            "dispatch_ms": 2405.6183749926277,
+            "received_ms": 2474.2805419955403,
+            "available_samples": 38489,
+            "native_peak_rss_bytes": 408535040,
+            "text": "Donc on garde le budget à 40 000 pour le"
+          },
+          {
+            "dispatch_ms": 3406.181500002276,
+            "received_ms": 3446.5042089577764,
+            "available_samples": 54498,
+            "native_peak_rss_bytes": 408535040,
+            "text": "Donc on garde le budget à 40 000 pour le moment."
+          },
+          {
+            "dispatch_ms": 4410.032209008932,
+            "received_ms": 4463.476999953855,
+            "available_samples": 70560,
+            "native_peak_rss_bytes": 408535040,
+            "text": "Donc on garde le budget à 40 000 pour le moment. Oui, c'est ça"
+          },
+          {
+            "dispatch_ms": 5410.042834002525,
+            "received_ms": 5470.915291982237,
+            "available_samples": 86560,
+            "native_peak_rss_bytes": 408535040,
+            "text": "Donc on garde le budget à 40 000 pour le moment. Oui c'est ça, je t'envoie le David"
+          },
+          {
+            "dispatch_ms": 6410.0745839532465,
+            "received_ms": 6491.828874975909,
+            "available_samples": 102561,
+            "native_peak_rss_bytes": 408535040,
+            "text": "Donc on garde le budget à 40 000 pour le moment. Oui c'est ça, je t'envoie le devis demain matin"
+          },
+          {
+            "dispatch_ms": 6660.0936249597,
+            "received_ms": 6730.483583989553,
+            "available_samples": 106400,
+            "final": true,
+            "native_peak_rss_bytes": 408535040,
+            "text": "Donc on garde le budget à 40 000 pour le moment. Oui c'est ça, je t'envoie le devis demain matin."
+          }
+        ]
+      }
+    ],
+    "fixtures": {
+      "en": {
+        "path": "Tests/Fixtures/meetings/en-dialogue.wav",
+        "source_sha256": "5e4c00f6c703bd20e49bd8e7470703776311169e3ba0aff8d8fd247bd875f203",
+        "samples": 116000,
+        "seconds": 7.25,
+        "reference": "Okay so the plan is to ship the installer on Friday. Right, and then we write the release note together."
+      },
+      "fr": {
+        "path": "Tests/Fixtures/meetings/fr-dialogue.wav",
+        "source_sha256": "b25cfc815260c4184ef564150417b48201013ecf1baec9802914899e05e3b8c5",
+        "samples": 106400,
+        "seconds": 6.65,
+        "reference": "Donc on garde le budget à quarante mille pour le moment. Oui c'est ça, je t'envoie le devis demain matin."
+      }
+    },
+    "warmups": [
+      {
+        "language": "en",
+        "seconds": 0.36508250003680587
+      },
+      {
+        "language": "fr",
+        "seconds": 0.35940262500662357
+      }
+    ],
+    "policy": "0.4s first prefix, then 1s; monotonic audio availability; serialized/coalesced; full-prefix final",
+    "scope": "Paced fixture runtime delivery; no physical mic/UI/cleanup/insertion or duplex acceptance",
+    "driver_peak_rss_bytes": 391593984,
+    "peak_rss_bytes": 408535040,
+    "child_memory": "native getrusage lifetime peak RSS; not Mach physical footprint",
+    "runtime_ready": {
+      "load_ms": 10079.883933067322,
+      "native_peak_rss_bytes": 408535040,
+      "ready": true
+    },
+    "runtime_stdout_diagnostics": [],
+    "native_stderr_tail": ""
+  },
+  "temporary_assets_deleted": true,
+  "free_disk_after_bytes": 4002099200
+}
