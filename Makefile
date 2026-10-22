@@ -115,9 +115,10 @@ webrtc-audio:
 	@mkdir -p "$(STAGE)"
 	@NEXTNOTES_WEBRTC_CACHE="$(STAGE)/webrtc" bash Tools/build-webrtc-audio.sh > "$(STAGE)/webrtc-build.log" 2>&1 || { cat "$(STAGE)/webrtc-build.log"; exit 1; }
 
+SWIFT_BUILD_FLAGS ?=
 build: webrtc-audio
 	# SwiftBuild flattens two binary dependencies' module maps into one output.
-	swift build -c $(CONFIG) --build-system native --scratch-path "$(SCRATCH)"
+	swift build -c $(CONFIG) --build-system native --scratch-path "$(SCRATCH)" $(SWIFT_BUILD_FLAGS)
 	bash Tools/build-mlx-metal.sh "$(SCRATCH)" "$(CONFIG)"
 
 ## Two suites, named explicitly rather than matched by one regex.

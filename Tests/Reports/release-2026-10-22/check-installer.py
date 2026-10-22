@@ -11,7 +11,7 @@ import subprocess
 import tempfile
 
 repo = Path(__file__).resolve().parents[3]
-old = subprocess.check_output(['git', 'show', '41de1377:Scripts/install-bundle.sh'], text=True)
+old = Path(__file__).with_name('original-install-bundle.sh').read_text()
 current = (repo / 'Scripts/install-bundle.sh').read_text()
 results = []
 with tempfile.TemporaryDirectory(prefix='nextnotes-installer-check-') as temporary:

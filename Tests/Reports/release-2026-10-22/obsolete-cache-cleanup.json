@@ -1,0 +1,71 @@
+{
+  "retired": [
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/claude-scratch/out/Intermediates.noindex",
+      "allocated_bytes_du": 1395019776
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/claude-scratch/out/SDKExplicitPrecompiledModules",
+      "allocated_bytes_du": 306192384
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/claude-scratch/out/SDKStatCaches.noindex",
+      "allocated_bytes_du": 15294464
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/claude-scratch/out/ModuleCache.noindex",
+      "allocated_bytes_du": 100478976
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/claude-scratch/out/v5",
+      "allocated_bytes_du": 422240256
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/claude-scratch/out/CompilationCache.noindex",
+      "allocated_bytes_du": 28672
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/claude-scratch/out/PCH",
+      "allocated_bytes_du": 0
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt-scratch/voice-ack/out/Intermediates.noindex",
+      "allocated_bytes_du": 486281216
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt-scratch/voice-ack/out/SDKExplicitPrecompiledModules",
+      "allocated_bytes_du": 102080512
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt-scratch/voice-ack/out/SDKStatCaches.noindex",
+      "allocated_bytes_du": 15294464
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt-scratch/voice-ack/out/ModuleCache.noindex",
+      "allocated_bytes_du": 25182208
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt-scratch/voice-ack/out/CompilationCache.noindex",
+      "allocated_bytes_du": 28672
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt-scratch/voice-ack/out/PCH",
+      "allocated_bytes_du": 0
+    }
+  ],
+  "allocated_bytes_du_sum": 2868121600,
+  "free_bytes_before": 5713080320,
+  "free_bytes_after": 8594358272,
+  "retained_executable_hashes": {
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/claude-scratch/out/Products/Release/NextNotes": "f0cfb6bc3c6b322d410ce28e5f7456cc2c719aa586354d286dbc8f47f6e17958",
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/claude-scratch/out/Products/Debug/NextNotes": "3a4a1d04027c85308780dd176f04cf42cbcf916ec5b646761dfdcb2091dd6275",
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt-scratch/voice-ack/out/Products/Release/NextNotes": "90b9b1eea4b114f1a50e63737b46418edca216c71e93d49a906f2b0fc318fda6",
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/release/NextNotes": "6369272fa8fcc9cee16658f2f56288e5200fc8cb5bd17ff81f3f8e27175b513f"
+  },
+  "native_and_legacy_products_unchanged": true,
+  "active_old_cache_files": 0,
+  "agents_ack": [
+    "asr-finish-20261022",
+    "codex-tts-20261022"
+  ]
+}
