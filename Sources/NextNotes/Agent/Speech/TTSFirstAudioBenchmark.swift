@@ -267,11 +267,19 @@ enum TTSFirstAudioBenchmark {
                 onBuffer: { probe.captured($0) }, onOverflow: { _ in probe.dropped() })
             TTSOutputProbe.install(probe)
             var finished = false, failed = false
-            backing.onUtteranceFinished = { _ in finished = true }
-            // Failure callbacks are optional in the protocol; missing completion fails the deadline.
-            if let source = backing as? PocketSourceSpeechBacking { source.onFailure = { _,_,_ in failed = true } }
-            if let pocket = backing as? PocketSpeechBacking { pocket.onFailure = { _,_,_ in failed = true } }
-            if let kokoro = backing as? KokoroSpeechBacking { kokoro.onFailure = { _,_,_ in failed = true } }
+            if let apple = backing as? AVSpeechBacking { apple.onUtteranceFinished = { _ in finished = true } }
+            if let source = backing as? PocketSourceSpeechBacking {
+                source.onUtteranceFinished = { _ in finished = true }
+                source.onFailure = { _,_,_ in failed = true }
+            }
+            if let pocket = backing as? PocketSpeechBacking {
+                pocket.onUtteranceFinished = { _ in finished = true }
+                pocket.onFailure = { _,_,_ in failed = true }
+            }
+            if let kokoro = backing as? KokoroSpeechBacking {
+                kokoro.onUtteranceFinished = { _ in finished = true }
+                kokoro.onFailure = { _,_,_ in failed = true }
+            }
             do {
                 // Diagnostic pacing and a measured quiet baseline, never a product turn wait.
                 try await Task.sleep(for: .milliseconds(700))
