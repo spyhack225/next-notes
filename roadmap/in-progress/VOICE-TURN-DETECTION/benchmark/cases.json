@@ -1,0 +1,427 @@
+{
+  "schema": "nextnotes.turn-cases.v1",
+  "created": "2026-10-22",
+  "status": "recipes-only-no-recorded-audio-or-native-results",
+  "minimum_trials_by_phase": {
+    "warm": 30,
+    "cold_capture": 30,
+    "cold_process": 30,
+    "reopen": 30,
+    "pressure": 30
+  },
+  "targets_ms": {
+    "endpoint_p95": 450,
+    "audible_p95": 900,
+    "duck_p95": 200,
+    "endpoint_timeout": 2500,
+    "pacing_p95_error": 20
+  },
+  "cases": [
+    {
+      "id": "complete-question",
+      "family": "complete",
+      "required": true,
+      "language": "en",
+      "expected_commits": 1,
+      "tail_required": true,
+      "require_audible": true,
+      "protected_pause": false,
+      "recipe": "What time is it in Tokyo right now?"
+    },
+    {
+      "id": "complete-request",
+      "family": "complete",
+      "required": true,
+      "language": "en",
+      "expected_commits": 1,
+      "tail_required": true,
+      "require_audible": true,
+      "protected_pause": false,
+      "recipe": "Remind me to call Sarah tomorrow morning."
+    },
+    {
+      "id": "complete-short",
+      "family": "complete",
+      "required": true,
+      "language": "en",
+      "expected_commits": 1,
+      "tail_required": true,
+      "require_audible": true,
+      "protected_pause": false,
+      "recipe": "Yes, please."
+    },
+    {
+      "id": "complete-correction",
+      "family": "complete",
+      "required": true,
+      "language": "en",
+      "expected_commits": 1,
+      "tail_required": true,
+      "require_audible": true,
+      "protected_pause": false,
+      "recipe": "Actually, make that Thursday afternoon."
+    },
+    {
+      "id": "pause-200",
+      "family": "internal-pause",
+      "required": true,
+      "language": "en",
+      "expected_commits": 1,
+      "tail_required": true,
+      "require_audible": true,
+      "protected_pause": true,
+      "recipe": "I want to book a table for <PAUSE> four people tomorrow evening.",
+      "pause_ms": 200,
+      "materialization": "Insert exact silence samples at a reviewed word boundary; retain full-sentence control."
+    },
+    {
+      "id": "pause-400",
+      "family": "internal-pause",
+      "required": true,
+      "language": "en",
+      "expected_commits": 1,
+      "tail_required": true,
+      "require_audible": true,
+      "protected_pause": true,
+      "recipe": "I want to book a table for <PAUSE> four people tomorrow evening.",
+      "pause_ms": 400,
+      "materialization": "Insert exact silence samples at a reviewed word boundary; retain full-sentence control."
+    },
+    {
+      "id": "pause-700",
+      "family": "internal-pause",
+      "required": true,
+      "language": "en",
+      "expected_commits": 1,
+      "tail_required": true,
+      "require_audible": true,
+      "protected_pause": true,
+      "recipe": "I want to book a table for <PAUSE> four people tomorrow evening.",
+      "pause_ms": 700,
+      "materialization": "Insert exact silence samples at a reviewed word boundary; retain full-sentence control."
+    },
+    {
+      "id": "pause-900",
+      "family": "internal-pause",
+      "required": true,
+      "language": "en",
+      "expected_commits": 1,
+      "tail_required": true,
+      "require_audible": true,
+      "protected_pause": true,
+      "recipe": "I want to book a table for <PAUSE> four people tomorrow evening.",
+      "pause_ms": 900,
+      "materialization": "Insert exact silence samples at a reviewed word boundary; retain full-sentence control."
+    },
+    {
+      "id": "pause-1200",
+      "family": "internal-pause",
+      "required": true,
+      "language": "en",
+      "expected_commits": 1,
+      "tail_required": true,
+      "require_audible": true,
+      "protected_pause": true,
+      "recipe": "I want to book a table for <PAUSE> four people tomorrow evening.",
+      "pause_ms": 1200,
+      "materialization": "Insert exact silence samples at a reviewed word boundary; retain full-sentence control."
+    },
+    {
+      "id": "pause-1500",
+      "family": "internal-pause",
+      "required": true,
+      "language": "en",
+      "expected_commits": 1,
+      "tail_required": true,
+      "require_audible": true,
+      "protected_pause": true,
+      "recipe": "I want to book a table for <PAUSE> four people tomorrow evening.",
+      "pause_ms": 1500,
+      "materialization": "Insert exact silence samples at a reviewed word boundary; retain full-sentence control."
+    },
+    {
+      "id": "pause-fr-900",
+      "family": "internal-pause",
+      "required": true,
+      "language": "fr",
+      "expected_commits": 1,
+      "tail_required": true,
+      "require_audible": true,
+      "protected_pause": true,
+      "recipe": "Je voudrais reserver une table pour <PAUSE> quatre personnes demain soir.",
+      "pause_ms": 900
+    },
+    {
+      "id": "hesitation-um",
+      "family": "hesitation",
+      "required": true,
+      "language": "en",
+      "expected_commits": 1,
+      "tail_required": true,
+      "require_audible": true,
+      "protected_pause": true,
+      "recipe": "So I was thinking we could, um <PAUSE> maybe move the meeting.",
+      "pause_ms": 700
+    },
+    {
+      "id": "hesitation-uh",
+      "family": "hesitation",
+      "required": true,
+      "language": "en",
+      "expected_commits": 1,
+      "tail_required": true,
+      "require_audible": true,
+      "protected_pause": true,
+      "recipe": "Please remind me to, uh <PAUSE> check the oven.",
+      "pause_ms": 900
+    },
+    {
+      "id": "self-correction",
+      "family": "hesitation",
+      "required": true,
+      "language": "en",
+      "expected_commits": 1,
+      "tail_required": true,
+      "require_audible": true,
+      "protected_pause": true,
+      "recipe": "Set it for Tuesday <PAUSE> no, Thursday at three.",
+      "pause_ms": 900
+    },
+    {
+      "id": "phone-digits",
+      "family": "entity",
+      "required": true,
+      "language": "en",
+      "expected_commits": 1,
+      "tail_required": true,
+      "require_audible": true,
+      "protected_pause": true,
+      "recipe": "The phone number is five five five <PAUSE> zero one two three.",
+      "pause_ms": 1200
+    },
+    {
+      "id": "date-entry",
+      "family": "entity",
+      "required": true,
+      "language": "en",
+      "expected_commits": 1,
+      "tail_required": true,
+      "require_audible": true,
+      "protected_pause": true,
+      "recipe": "Move it to October <PAUSE> twenty ninth at nine.",
+      "pause_ms": 900
+    },
+    {
+      "id": "spelled-name",
+      "family": "entity",
+      "required": true,
+      "language": "en",
+      "expected_commits": 1,
+      "tail_required": true,
+      "require_audible": true,
+      "protected_pause": true,
+      "recipe": "Send it to A L <PAUSE> I C E.",
+      "pause_ms": 1200
+    },
+    {
+      "id": "long-12s",
+      "family": "long",
+      "required": true,
+      "language": "en",
+      "expected_commits": 1,
+      "tail_required": true,
+      "require_audible": true,
+      "protected_pause": false,
+      "recipe": "Human recorded request lasting 12-15 seconds with required final words.",
+      "minimum_audio_seconds": 12,
+      "native_assertions": [
+        "Last 8-second context preserves newest speech.",
+        "No commit before annotated allowed completion."
+      ]
+    },
+    {
+      "id": "long-45s",
+      "family": "long",
+      "required": true,
+      "language": "en",
+      "expected_commits": 1,
+      "tail_required": true,
+      "require_audible": true,
+      "protected_pause": false,
+      "recipe": "Human recorded multi-clause request lasting 45-60 seconds.",
+      "minimum_audio_seconds": 45,
+      "native_assertions": [
+        "Bounded ring and in-flight work.",
+        "All committed transcript spans retained outside model window."
+      ]
+    },
+    {
+      "id": "quiet-speech",
+      "family": "quiet",
+      "required": true,
+      "language": "en",
+      "expected_commits": 1,
+      "tail_required": true,
+      "require_audible": true,
+      "protected_pause": false,
+      "recipe": "Quiet natural speaker: Please call Sarah tomorrow.",
+      "condition": "quiet-near",
+      "native_assertions": [
+        "No word loss from energy threshold."
+      ]
+    },
+    {
+      "id": "silence",
+      "family": "non-speech",
+      "required": true,
+      "language": "en",
+      "expected_commits": 0,
+      "tail_required": false,
+      "require_audible": false,
+      "protected_pause": false,
+      "recipe": "Real room silence, with annotated no speech.",
+      "no_output": true,
+      "condition": "noise"
+    },
+    {
+      "id": "keyboard-noise",
+      "family": "non-speech",
+      "required": true,
+      "language": "en",
+      "expected_commits": 0,
+      "tail_required": false,
+      "require_audible": false,
+      "protected_pause": false,
+      "recipe": "Keyboard clicks and chair movement without speech.",
+      "no_output": true,
+      "condition": "noise"
+    },
+    {
+      "id": "echo-only",
+      "family": "non-speech",
+      "required": true,
+      "language": "en",
+      "expected_commits": 0,
+      "tail_required": false,
+      "require_audible": false,
+      "protected_pause": false,
+      "recipe": "Existing assistant rendered output reflected into microphone, no near speaker.",
+      "no_output": true,
+      "condition": "echo"
+    },
+    {
+      "id": "double-talk-stop",
+      "family": "interruption",
+      "required": true,
+      "language": "en",
+      "expected_commits": 1,
+      "tail_required": true,
+      "require_audible": false,
+      "protected_pause": false,
+      "recipe": "Mix a reviewed near-speech stop phrase into actual rendered-reference playback.",
+      "require_duck": true,
+      "condition": "double-talk",
+      "native_assertions": [
+        "Gain change belongs to interrupted output generation.",
+        "Last stale output sample and native producer join reported separately."
+      ]
+    },
+    {
+      "id": "resume-during-inference",
+      "family": "race",
+      "required": true,
+      "language": "en",
+      "expected_commits": 1,
+      "tail_required": true,
+      "require_audible": true,
+      "protected_pause": true,
+      "recipe": "Resume unfinished phrase after evaluation starts and before it returns.",
+      "pause_ms": 900,
+      "native_assertions": [
+        "Stale complete verdict rejected by revision."
+      ]
+    },
+    {
+      "id": "asr-tail-lag",
+      "family": "race",
+      "required": true,
+      "language": "en",
+      "expected_commits": 1,
+      "tail_required": true,
+      "require_audible": true,
+      "protected_pause": false,
+      "recipe": "Delay recognizer publication of the final word, without delaying audio capture.",
+      "native_assertions": [
+        "Early complete verdict waits for actual transcript progress.",
+        "No fabricated watermark from feed enqueue."
+      ]
+    },
+    {
+      "id": "stale-session-result",
+      "family": "race",
+      "required": true,
+      "language": "en",
+      "expected_commits": 0,
+      "tail_required": false,
+      "require_audible": false,
+      "protected_pause": false,
+      "recipe": "Close capture and reopen before the old prediction returns.",
+      "no_output": true,
+      "native_assertions": [
+        "Old inference cannot affect new session."
+      ]
+    },
+    {
+      "id": "fallback-missing-model",
+      "family": "fallback",
+      "required": true,
+      "language": "en",
+      "expected_commits": 1,
+      "tail_required": true,
+      "require_audible": true,
+      "protected_pause": false,
+      "recipe": "Finished question with Smart Turn unavailable; retain current safe endpoint behavior.",
+      "expect_degraded_mode": "model-missing"
+    },
+    {
+      "id": "fallback-late-model",
+      "family": "fallback",
+      "required": true,
+      "language": "en",
+      "expected_commits": 1,
+      "tail_required": true,
+      "require_audible": true,
+      "protected_pause": false,
+      "recipe": "Finished question with prediction beyond useful deadline; native task joins later.",
+      "expect_degraded_mode": "model-late"
+    },
+    {
+      "id": "rapid-first",
+      "family": "rapid",
+      "required": true,
+      "language": "en",
+      "expected_commits": 1,
+      "tail_required": true,
+      "require_audible": true,
+      "protected_pause": false,
+      "recipe": "First of two real adjacent turns, collected as its own turn-bound trace.",
+      "native_assertions": [
+        "Both turns emitted exactly once; second feed starts before first handler completes."
+      ]
+    },
+    {
+      "id": "rapid-second",
+      "family": "rapid",
+      "required": true,
+      "language": "en",
+      "expected_commits": 1,
+      "tail_required": true,
+      "require_audible": true,
+      "protected_pause": false,
+      "recipe": "Second of two real adjacent turns, collected as its own turn-bound trace.",
+      "native_assertions": [
+        "No ASR reset drops next-turn audio."
+      ]
+    }
+  ]
+}

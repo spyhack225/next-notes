@@ -14,6 +14,7 @@ and speaker concurrent.
 | [Implementation](01-IMPLEMENTATION.md) | Architecture, state contracts, ordered tasks, file boundaries and failure handling |
 | [Benchmarks](02-BENCHMARKS.md) | Ground truth, reproducible latency/pause corpus, engine matrix, metrics and acceptance |
 | [ASR/TTS alignment](03-ASR-TTS-ALIGNMENT.md) | Direct coordination with the two engine agents, adapter contracts and ownership |
+| [TTS audible-start follow-up](04-TTS-AUDIBLE-ALIGNMENT.md) | New native component results, rendered/presentation/physical timing boundaries and collector requirements |
 | [Status](STATUS.md) | Execution ledger; planning never implies native acceptance |
 | [Benchmark tools](benchmark/README.md) | Executable offline trace scorer and machine-readable case recipes |
 
@@ -142,6 +143,8 @@ repair or an explicitly unqualified provider/path, never easier fixtures or retr
   [CoreML export](https://huggingface.co/aufklarer/Smart-Turn-v3.2-CoreML),
   [Silero](https://github.com/snakers4/silero-vad),
   [Pipecat reference behavior](https://docs.pipecat.ai/api-reference/server/utilities/turn-detection/smart-turn-overview).
-- JOSIE's [reference README](../../references/JOSIE-Voice-main/README.md) describes the
+- JOSIE's [public README](https://github.com/Goekdeniz-Guelmez/JOSIE-Voice#how-it-works) describes the
   pairing, but its app source is private. This plan is based on Next Notes' producers and
   open model contracts, not a claim to reproduce JOSIE's implementation.
+  The imported reference copy was inspected for the original plan; it was no longer
+  present during the later same-day link check, so the source link uses the public repository.

@@ -126,3 +126,12 @@ No test-result claim follows merely because all agents agree with the architectu
 The roadmap is actionable with the current pair even while candidate adapters remain
 unavailable. Keep their cells explicitly pending; do not block independent model/buffer/
 policy work on a speculative all-engine rewrite.
+
+## Later TTS evidence, same day
+
+The TTS agent subsequently supplied native component results and muted production
+source/renderer checks at commits `16020462` / `3e86baf9`. Its original uncompiled status
+above is a dated response snapshot, not the latest TTS acceptance. See the
+[audible-start follow-up](04-TTS-AUDIBLE-ALIGNMENT.md) for inspected evidence, the remaining
+physical-output gap and actionable measurement requirements sent back to that agent.
+No native result was rerun by this roadmap task; Smart Turn integration remains todo.

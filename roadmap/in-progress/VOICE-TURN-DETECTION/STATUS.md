@@ -38,6 +38,13 @@ see [verification](benchmark/VERIFICATION.md). There are 31 fixture recipes, not
 - TTS candidate source was uncompiled and ASR candidate adapters unimplemented at their
   coordination replies. Consult their final reports; no cross-provider native pass is claimed.
 
+**Same-day TTS follow-up:** the peer now records five native generated-PCM component
+comparisons and muted source/renderer checks. Reviewed its README/accepted-results and
+current renderer/meter source; [requirements and scope](04-TTS-AUDIBLE-ALIGNMENT.md)
+were sent back directly. Existing RMS probes do not retain acoustic-onset timestamps;
+render receipts include zero PCM and delayed polling. No physical audible-start or
+default-promotion claim follows. VTD product tasks and native turn benchmarks remain todo.
+
 ## Completion record required later
 
 For each task add date, responsible producer, original failing case/source/binary pin,
