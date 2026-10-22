@@ -1,0 +1,5 @@
+Completed heavy.sh v2, memory gate, and usage notes. All 63 isolated checks pass: `HEAVY_TESTS_OK`.
+
+Tests committed as `06d4ba6c`. Relay start/finish messages posted. No install, push, merge, or app build.
+
+Details: [RESULT.md](/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/tooling/RESULT.md).
