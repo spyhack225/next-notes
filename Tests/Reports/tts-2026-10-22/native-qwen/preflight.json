@@ -1,0 +1,43 @@
+{
+  "activeMachineClaims": [],
+  "assessed": "pass",
+  "coverage": {
+    "disk": "measured",
+    "load": "measured",
+    "swap": "measured"
+  },
+  "freeGb": 3.867931365966797,
+  "kind": "preflight",
+  "load": 2.12,
+  "measurements": {
+    "freeGb": {
+      "error": null,
+      "source": "df -Pk Tests/Reports/tts-2026-10-22/native-qwen",
+      "timestamp": "2026-10-22T17:04:38.265Z",
+      "value": 3.867931365966797
+    },
+    "load": {
+      "error": null,
+      "source": "sysctl vm.loadavg",
+      "timestamp": "2026-10-22T17:04:38.262Z",
+      "value": 2.12
+    },
+    "swapGb": {
+      "error": null,
+      "source": "sysctl vm.swapusage",
+      "timestamp": "2026-10-22T17:04:38.261Z",
+      "value": 8.303408203125
+    }
+  },
+  "mode": "permissive",
+  "ok": true,
+  "path": "Tests/Reports/tts-2026-10-22/native-qwen",
+  "reasons": [],
+  "require": [
+    "swap",
+    "load",
+    "disk"
+  ],
+  "swapGb": 8.303408203125,
+  "unknown": []
+}

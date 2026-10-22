@@ -1,0 +1,11 @@
+{
+  "cleanupVerified": true,
+  "elapsedSeconds": 0.049371708009857684,
+  "engine": "qwen",
+  "exitCode": 1,
+  "freeBytesAfterCleanup": 4431634432,
+  "freeBytesBefore": 4431638528,
+  "reason": "Engine failed; see its log. No timing result was accepted.",
+  "status": "failed",
+  "temporaryLogicalBytesBeforeCleanup": 4
+}

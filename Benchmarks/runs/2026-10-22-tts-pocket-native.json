@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "id": "2026-10-22-tts-pocket-native",
+  "title": "FluidAudio/PocketTTS-int8/alba: native first generated audio",
+  "date": "2026-10-22",
+  "category": "tts",
+  "status": "measured",
+  "scope": "Known English text request to first non-empty generated PCM through the actual native adapter; separate muted native playback checks for Qwen/Phonon.",
+  "summary": "Warm median 59.00 ms across 5 back-to-back runs; first synthesis after preparation 1096.68 ms. Result saved, child joined and owned model removed.",
+  "environment": {
+    "hardware": "Apple M3,16GB RAM",
+    "os": "Version 27.2 (Build 26B5091g)",
+    "workload": "Standalone TTS; no concurrent native benchmark/build, normal owner apps retained, inherited swap pressure. ASR-plus-voice reference workload unqualified.",
+    "power_thermal": "Resume snapshot retained; continuous thermal/power state during trials unmeasured.",
+    "cold_warm": "One first synthesis after preparation, five back-to-back warm runs of same text. Not hardware-cold."
+  },
+  "provenance": {
+    "source_revision": "16020462 plus concurrently reviewed archive integration; complete source hashes in source-pins.json",
+    "binary_sha256": "6369272fa8fcc9cee16658f2f56288e5200fc8cb5bd17ff81f3f8e27175b513f",
+    "model_revision": "FluidAudio/PocketTTS-int8/alba",
+    "fixture_sha256": "24c43847fca95ff1f3f83b3129bf7d82b67321d0dc62d1f096e96d7e21273c7b",
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 Tools/tts_compare.py --app /Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/release/NextNotes --output Tests/Reports/tts-2026-10-22/native-results --engines phonon,qwen,apple,pocket,kokoro --trials 5 --relay-owner codex-tts-20261022 --max-swap-gb 12 --workload 'Standalone TTS adapters; no concurrent benchmark or build. Normal owner apps retained, inherited swap pressure; ASR-plus-voice reference workload unqualified.'",
+    "grader": "Native non-empty PCM count/timestamp; parent schema/finite sample validation; cleanup verification."
+  },
+  "metrics": [
+    {
+      "name": "Warm first generated PCM",
+      "value": 58.9975,
+      "unit": "ms",
+      "boundary": "Known text request → first non-empty generated PCM; not speaker output.",
+      "samples": 5,
+      "aggregation": "median"
+    },
+    {
+      "name": "First synthesis after preparation",
+      "value": 1096.675875,
+      "unit": "ms",
+      "boundary": "Known text request → first non-empty generated PCM on first synthesis after load; not hardware-cold.",
+      "samples": 1,
+      "aggregation": "single observation"
+    },
+    {
+      "name": "Preparation",
+      "value": 5704.298125,
+      "unit": "ms",
+      "boundary": "Start preparation → runtime ready; includes download/load or APFS cache adoption.",
+      "samples": 1,
+      "aggregation": "single observation"
+    }
+  ],
+  "limitations": [
+    "Generated PCM is not audible output or speech-end-to-answer latency.",
+    "Same-text back-to-back warm runs; human-paced performance, language quality and full-duplex reference acceptance remain open.",
+    "Normal owner apps and inherited swap pressure retained; no default promotion or installed-app acceptance.",
+    "Child peak RSS excludes external host services and is not Mach physical footprint."
+  ],
+  "sources": [
+    "Tests/Reports/tts-2026-10-22/native-results/pocket.json",
+    "Tests/Reports/tts-2026-10-22/README.md",
+    "Tests/Reports/tts-2026-10-22/accepted-results.json",
+    "Tests/Reports/tts-2026-10-22/native-binary.json",
+    "Tests/Reports/tts-2026-10-22/source-pins.json",
+    "Tests/Reports/tts-2026-10-22/verification.json",
+    "Tests/Reports/tts-2026-10-22/final-model-cleanup.json",
+    "Tests/Reports/tts-2026-10-22/owner-cache-preservation.json"
+  ],
+  "publication": {
+    "approved": false,
+    "reviewed_by": null,
+    "reviewed_on": null
+  }
+}

@@ -1,0 +1,79 @@
+{
+  "cleanupVerified": true,
+  "elapsedSeconds": 1.546532207983546,
+  "engine": "apple",
+  "exitCode": 0,
+  "freeBytesAfterCleanup": 3892035584,
+  "freeBytesBefore": 3920707584,
+  "measurement": {
+    "engine": "apple",
+    "generatedAt": "2026-10-22T17:00:18Z",
+    "macOS": "Version 27.2 (Build 26B5091g)",
+    "memoryBytes": 17179869184,
+    "model": "AVSpeechSynthesizer/system-default",
+    "notes": [
+      "Measures request to first non-empty generated PCM, not speaker output or speech-end-to-answer latency.",
+      "Trial zero is the first synthesis after preparation; later trials are back-to-back warm runs.",
+      "Preparation includes downloading and loading. No microphone or speaker is opened.",
+      "Compatible existing model directories are reused through APFS copy-on-write snapshots; SDK cache changes and cleanup affect only the temporary snapshot."
+    ],
+    "peakRSSBytes": 43040768,
+    "preparationMs": 1.004209,
+    "schema": "nextnotes.tts-first-pcm.v1",
+    "text": "I found three matching files. The latest is enclosure version seventeen.",
+    "trials": [
+      {
+        "audioSeconds": 4.651746031746032,
+        "completionMs": 1081.793459,
+        "firstPCMms": 1039.268084,
+        "frames": 102571,
+        "index": 0,
+        "phase": "first-after-prepare"
+      },
+      {
+        "audioSeconds": 4.6517460317460335,
+        "completionMs": 178.183334,
+        "firstPCMms": 135.688292,
+        "frames": 102571,
+        "index": 1,
+        "phase": "warm"
+      },
+      {
+        "audioSeconds": 4.651746031746032,
+        "completionMs": 51.773,
+        "firstPCMms": 8.976667,
+        "frames": 102571,
+        "index": 2,
+        "phase": "warm"
+      },
+      {
+        "audioSeconds": 4.651746031746031,
+        "completionMs": 51.741792,
+        "firstPCMms": 9.069542,
+        "frames": 102571,
+        "index": 3,
+        "phase": "warm"
+      },
+      {
+        "audioSeconds": 4.651746031746033,
+        "completionMs": 50.251792,
+        "firstPCMms": 8.850042,
+        "frames": 102571,
+        "index": 4,
+        "phase": "warm"
+      },
+      {
+        "audioSeconds": 4.651746031746032,
+        "completionMs": 51.1465,
+        "firstPCMms": 8.83425,
+        "frames": 102571,
+        "index": 5,
+        "phase": "warm"
+      }
+    ]
+  },
+  "status": "measured",
+  "temporaryLogicalBytesBeforeCleanup": 2024,
+  "warmMedianMs": 8.976667,
+  "warmP95Ms": 135.688292
+}

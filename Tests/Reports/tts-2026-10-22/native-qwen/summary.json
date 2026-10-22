@@ -1,0 +1,18 @@
+{
+  "appSHA256": "6369272fa8fcc9cee16658f2f56288e5200fc8cb5bd17ff81f3f8e27175b513f",
+  "machine": "macOS-27.2-arm64-arm-64bit-Mach-O",
+  "results": [
+    {
+      "cleanupVerified": true,
+      "elapsedSeconds": 39.11641050002072,
+      "engine": "qwen",
+      "exitCode": -15,
+      "freeBytesAfterCleanup": 3274756096,
+      "freeBytesBefore": 4153139200,
+      "reason": "Disk guard stopped the owned process group before cleanup.",
+      "status": "failed",
+      "temporaryLogicalBytesBeforeCleanup": 1698364895
+    }
+  ],
+  "workload": "Standalone TTS adapter; no concurrent benchmark or build. Normal owner apps retained, inherited swap pressure; ASR-plus-voice reference workload unqualified."
+}

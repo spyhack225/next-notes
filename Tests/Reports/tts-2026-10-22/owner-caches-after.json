@@ -1,0 +1,418 @@
+{
+  "pocket-tts/v2.1/english/cond_prefill.mlmodelc/analytics/coremldata.bin": {
+    "bytes": 243,
+    "sha256": "324406d83f9685577c6665f231fdfa02518b8addceb54a780feaa968a04c33df"
+  },
+  "pocket-tts/v2.1/english/cond_prefill.mlmodelc/coremldata.bin": {
+    "bytes": 1151,
+    "sha256": "12714da8d2ebae282e353e6785d4472ff5b87f656661d60eff769c584969f415"
+  },
+  "pocket-tts/v2.1/english/cond_prefill.mlmodelc/model.mil": {
+    "bytes": 228662,
+    "sha256": "7a93a23c94ec90b583531b6f9edf32aa34edb1de7564bcbef9354b8069f2d140"
+  },
+  "pocket-tts/v2.1/english/cond_prefill.mlmodelc/weights/weight.bin": {
+    "bytes": 133237248,
+    "sha256": "3a40a5ef3158ef91bfbf932be1c6ee44daca10a856fbb30b9a6720ad9424df8c"
+  },
+  "pocket-tts/v2.1/english/constants_bin/alba.safetensors": {
+    "bytes": 6194424,
+    "sha256": "69c32db63ca56843d994f81f343f62e0bf2d73f7e4c9bc73e44bb1110b1d8845"
+  },
+  "pocket-tts/v2.1/english/constants_bin/anna.safetensors": {
+    "bytes": 7816440,
+    "sha256": "5ea82f78db006c9fd34e32ddd5aae82674b5b32646097977436458d00af80dfa"
+  },
+  "pocket-tts/v2.1/english/constants_bin/azelma.safetensors": {
+    "bytes": 7963896,
+    "sha256": "9f3e69f29075f991fd47774566865ef0e0e637cb5a35992c9919761b5b84b1de"
+  },
+  "pocket-tts/v2.1/english/constants_bin/bill_boerst.safetensors": {
+    "bytes": 6735096,
+    "sha256": "75610127d44e0b05b442154f80f89f993df235aecc6cad7070f11000d006c188"
+  },
+  "pocket-tts/v2.1/english/constants_bin/bos_before_voice.bin": {
+    "bytes": 4096,
+    "sha256": "6ac530a104e3f3d2b2ff15f3fad63540f2619b31db78b159c0595a108f142caf"
+  },
+  "pocket-tts/v2.1/english/constants_bin/bos_emb.bin": {
+    "bytes": 128,
+    "sha256": "52f1a157fa35fc100213e6e0fafa74703be99db8faa42de3e99feda607ac7b63"
+  },
+  "pocket-tts/v2.1/english/constants_bin/caro_davy.safetensors": {
+    "bytes": 5260536,
+    "sha256": "a5961b63a2e7a5cfd7edc383aa9042fb70fd14a9dee6310cdc633881a7f2449a"
+  },
+  "pocket-tts/v2.1/english/constants_bin/charles.safetensors": {
+    "bytes": 6194424,
+    "sha256": "299edc20182eeccfbf94e308626f259da4fbf339daa8d5905218f2b1774639b8"
+  },
+  "pocket-tts/v2.1/english/constants_bin/cosette.safetensors": {
+    "bytes": 6194424,
+    "sha256": "c4fdc15f5a3a20c44dd0064a37e87d15d25562936e8dbad7e07b9832015a545d"
+  },
+  "pocket-tts/v2.1/english/constants_bin/eponine.safetensors": {
+    "bytes": 6931704,
+    "sha256": "bda3b76a384ff355fe0350736387765946304ae8ca16e59f60ea3296a1c99cc6"
+  },
+  "pocket-tts/v2.1/english/constants_bin/estelle.safetensors": {
+    "bytes": 8258808,
+    "sha256": "ccebef7f51762c7fc08870f5ecf268e8713551ae2c9f7984ddaec0c1e1c77153"
+  },
+  "pocket-tts/v2.1/english/constants_bin/eve.safetensors": {
+    "bytes": 6538488,
+    "sha256": "ea9c2faf862a6c9d2cb61910fdf02842ae56940382cc8c1000fdb1b43269692b"
+  },
+  "pocket-tts/v2.1/english/constants_bin/fantine.safetensors": {
+    "bytes": 6538488,
+    "sha256": "51a8a4355d7f912d4959e4b1918314fda85ad47eba0a33a1d78a4a505d3465f5"
+  },
+  "pocket-tts/v2.1/english/constants_bin/george.safetensors": {
+    "bytes": 6243576,
+    "sha256": "0c1c6c57c55a98d81254b33728150c7776f40647fe95258d1a6c1a02780b5d02"
+  },
+  "pocket-tts/v2.1/english/constants_bin/giovanni.safetensors": {
+    "bytes": 4621552,
+    "sha256": "a5ee718157ec1c6fd9c1e66a7733c7e6337d474a74a7da756455d27717885c59"
+  },
+  "pocket-tts/v2.1/english/constants_bin/jane.safetensors": {
+    "bytes": 7374072,
+    "sha256": "37386227ca8ec5bf1b8e516c13d132ce5ff5437a304fe90129a1c62f41d9a008"
+  },
+  "pocket-tts/v2.1/english/constants_bin/javert.safetensors": {
+    "bytes": 6194424,
+    "sha256": "0ae88e03ca4e76a0e16cbf321a807428febda9d9e9bc0358c02e7f9c9e2c263b"
+  },
+  "pocket-tts/v2.1/english/constants_bin/jean.safetensors": {
+    "bytes": 6194424,
+    "sha256": "90be4b8f50bb4d2dbe27e3fb4e31417cf6a57928931f0a60426a1748821a3d12"
+  },
+  "pocket-tts/v2.1/english/constants_bin/juergen.safetensors": {
+    "bytes": 6243576,
+    "sha256": "e74d67b38339fc01118e3bbe2c90d6d40e601b161dbf7be906421956ba80a532"
+  },
+  "pocket-tts/v2.1/english/constants_bin/lola.safetensors": {
+    "bytes": 5948664,
+    "sha256": "34972e86b07b17272a8061460054a08119399cace9454979052b9e2d96664e8c"
+  },
+  "pocket-tts/v2.1/english/constants_bin/marius.safetensors": {
+    "bytes": 6194424,
+    "sha256": "04f84efcb77a0547ba582c058db496f7ff4920891d49d37b9950d128422582a8"
+  },
+  "pocket-tts/v2.1/english/constants_bin/mary.safetensors": {
+    "bytes": 6194424,
+    "sha256": "a8f2adf260cab966fe0a113d6b549d6efdeaa79de544ae0ff34b5b6a41445a59"
+  },
+  "pocket-tts/v2.1/english/constants_bin/michael.safetensors": {
+    "bytes": 7275768,
+    "sha256": "8937f724ac4719b9aa51ea0ba1f18f9de0af7a663ad6263558266c1a53c9722d"
+  },
+  "pocket-tts/v2.1/english/constants_bin/paul.safetensors": {
+    "bytes": 6980856,
+    "sha256": "ed7a019168f94dfe77009f1b0de59387abc6fbb0db954d38ce722ecb77da61aa"
+  },
+  "pocket-tts/v2.1/english/constants_bin/peter_yearsley.safetensors": {
+    "bytes": 3736816,
+    "sha256": "dd977a6e15591e347c9a23fa7cc09e35a65b462917f5eeb162baff6dc9e3f685"
+  },
+  "pocket-tts/v2.1/english/constants_bin/rafael.safetensors": {
+    "bytes": 6194424,
+    "sha256": "ac19f099f6cd839875a629c3e2e91e0dfc2c197acf2875db168d0ae244fb58bd"
+  },
+  "pocket-tts/v2.1/english/constants_bin/stuart_bell.safetensors": {
+    "bytes": 5260536,
+    "sha256": "5a49da7ca5df05d02587ec4a0981c0d318e045f68e24423c4203ce474d9b33dc"
+  },
+  "pocket-tts/v2.1/english/constants_bin/text_embed_table.bin": {
+    "bytes": 16388096,
+    "sha256": "2512f9edd82ab0c68bb42a5fcd329a371eaf63ee6fb5275dfb1bc9536592bb0e"
+  },
+  "pocket-tts/v2.1/english/constants_bin/tokenizer.model": {
+    "bytes": 59339,
+    "sha256": "d461765ae179566678c93091c5fa6f2984c31bbe990bf1aa62d92c64d91bc3f6"
+  },
+  "pocket-tts/v2.1/english/constants_bin/vera.safetensors": {
+    "bytes": 6735096,
+    "sha256": "4bf50ddd957b5d218b264fdcf18efbbc7384d12da3eca98ca19b9e8dd6976acc"
+  },
+  "pocket-tts/v2.1/english/flow_decoder_fused.mlmodelc/analytics/coremldata.bin": {
+    "bytes": 243,
+    "sha256": "17cf344fd2be66e934982944a7a252da17087efbc9daac0d3dfb4e8e95797264"
+  },
+  "pocket-tts/v2.1/english/flow_decoder_fused.mlmodelc/coremldata.bin": {
+    "bytes": 413,
+    "sha256": "69ff9affa07e38b1a511ac8d71c594eeeb236389ddbe74f4fabdfa45db4edf7a"
+  },
+  "pocket-tts/v2.1/english/flow_decoder_fused.mlmodelc/model.mil": {
+    "bytes": 333331,
+    "sha256": "0257898b9a6ce06c961959aae993bb27c558f509fbea7407d094b879f872ec3f"
+  },
+  "pocket-tts/v2.1/english/flow_decoder_fused.mlmodelc/weights/weight.bin": {
+    "bytes": 19012608,
+    "sha256": "f28a1bd0af940a195802e9d702c9e050f3e69d265e582f3d0fdf4001709eb30c"
+  },
+  "pocket-tts/v2.1/english/flowlm_stepv2.mlmodelc/analytics/coremldata.bin": {
+    "bytes": 243,
+    "sha256": "f6c97b47c4dbb8ea1788be74e16913d4aa38ac64ee3d066f0edc1b32f9afb480"
+  },
+  "pocket-tts/v2.1/english/flowlm_stepv2.mlmodelc/coremldata.bin": {
+    "bytes": 1190,
+    "sha256": "2ebbbc1c5a3adb00f2651b0babcf6c20554d56f921be5da5c0216154d949a3b2"
+  },
+  "pocket-tts/v2.1/english/flowlm_stepv2.mlmodelc/metadata.json": {
+    "bytes": 10364,
+    "sha256": "e943daba63c3c8176dcf4c08bc766f911546c7b8ee98674327f31c15dc8696ce"
+  },
+  "pocket-tts/v2.1/english/flowlm_stepv2.mlmodelc/model.mil": {
+    "bytes": 245233,
+    "sha256": "e83f1d95fa56d9d14e99833f2b5d05846e2506655a0d3247ee130adefbabf5fd"
+  },
+  "pocket-tts/v2.1/english/flowlm_stepv2.mlmodelc/weights/weight.bin": {
+    "bytes": 76809280,
+    "sha256": "5b7a9bbbc6ba5093cdfb55fb149c0d816191161ad866de5733406ebd7b01fba6"
+  },
+  "pocket-tts/v2.1/english/manifest.json": {
+    "bytes": 739,
+    "sha256": "f8ee44b3d8bfbb1a56698e9a313944dabda530f9c5d809f0a0135ad64ffad3a8"
+  },
+  "pocket-tts/v2.1/english/mimi_decoder.mlmodelc/analytics/coremldata.bin": {
+    "bytes": 243,
+    "sha256": "be4199b44838e2fb199bb44b7649531d28fe847a1a6633fd9f8ca89576c5a7f8"
+  },
+  "pocket-tts/v2.1/english/mimi_decoder.mlmodelc/coremldata.bin": {
+    "bytes": 1777,
+    "sha256": "9d8644e2caad1513153ac28f1ba8090fcd2facdbd5d2621bf8016186fa932bf8"
+  },
+  "pocket-tts/v2.1/english/mimi_decoder.mlmodelc/metadata.json": {
+    "bytes": 16844,
+    "sha256": "aaca1b55b078095e72ee4826a94297fc070526d9f4cd3507464e7f2afaa73376"
+  },
+  "pocket-tts/v2.1/english/mimi_decoder.mlmodelc/model.mil": {
+    "bytes": 107403,
+    "sha256": "f7176b3b3d800de308ac01cb83d1f3e9b555e70b44d299efd4a21c9c27eecc16"
+  },
+  "pocket-tts/v2.1/english/mimi_decoder.mlmodelc/weights/weight.bin": {
+    "bytes": 41768256,
+    "sha256": "c93d182f9ad8c1042ec8302093aabb4e310d76616932dd12720e03b5d07f7c64"
+  },
+  "kokoro/G2PDecoder.mlmodelc/analytics/coremldata.bin": {
+    "bytes": 243,
+    "sha256": "dbf1767747fdc188222d467a45b04608b396c76c71db3abb18a5fb3680ef9827"
+  },
+  "kokoro/G2PDecoder.mlmodelc/coremldata.bin": {
+    "bytes": 545,
+    "sha256": "607e960f19b4d9a30317a5a11869fcce84b300a909fcab2cc756c0d98e2dacd9"
+  },
+  "kokoro/G2PDecoder.mlmodelc/metadata.json": {
+    "bytes": 3064,
+    "sha256": "e54e98484fd60d26f22fd3c4e7fe87b0d92a5d2de1f958cc3c4bb36d4ae06a44"
+  },
+  "kokoro/G2PDecoder.mlmodelc/model.mil": {
+    "bytes": 19737,
+    "sha256": "fe647c598e0d9454d360b8ee49a59ae57ca147fc5330863ba84ccb90dce482ad"
+  },
+  "kokoro/G2PDecoder.mlmodelc/weights/weight.bin": {
+    "bytes": 828030,
+    "sha256": "cbaeb4e743359f607ab161af0c6d8a817462fdaec622ee788ef8ef952c5f8214"
+  },
+  "kokoro/G2PEncoder.mlmodelc/analytics/coremldata.bin": {
+    "bytes": 243,
+    "sha256": "cf7fbd7e7a65529b2d2bf3941e458a0ab6dff7a298bf48e205a1727c81c26a99"
+  },
+  "kokoro/G2PEncoder.mlmodelc/coremldata.bin": {
+    "bytes": 398,
+    "sha256": "0f14d46ca9fd06c68b4717294575b2b99449e67d40b7a2c56f926bf05cd90b11"
+  },
+  "kokoro/G2PEncoder.mlmodelc/metadata.json": {
+    "bytes": 2034,
+    "sha256": "c8e0cfd7f494ac1b3662ff8f1914b2b45f79ffb2791724cdc0576981996732e1"
+  },
+  "kokoro/G2PEncoder.mlmodelc/model.mil": {
+    "bytes": 20392,
+    "sha256": "8c617e569f37286b056dad800d862dc145be9a95fa9ed43857bb646ba199d7da"
+  },
+  "kokoro/G2PEncoder.mlmodelc/weights/weight.bin": {
+    "bytes": 694592,
+    "sha256": "6926bcd2827d21fec82839487b987e06f85fd8a6a5bb896bc4f6062461d014ec"
+  },
+  "kokoro/config.json": {
+    "bytes": 2,
+    "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+  },
+  "kokoro/g2p_vocab.json": {
+    "bytes": 1665,
+    "sha256": "295ed64b86c2820cd665b0602ae50c6947c0e82ac643082873e0be87dca282ce"
+  },
+  "kokoro/gb_gold.json": {
+    "bytes": 2838552,
+    "sha256": "29e62f4b60261c88f7f3c2c7811ca3825978948090b72d2b27d565b729282f71"
+  },
+  "kokoro/gb_silver.json": {
+    "bytes": 3663898,
+    "sha256": "48131e2d92ccc41655f4543e87e0f938e71463eb5a54be7f0693bb712ebb6bce"
+  },
+  "kokoro/us_gold.json": {
+    "bytes": 3001196,
+    "sha256": "8507f89840f0813b10cf584740942f58e9cc9ad3660e24088b442ab0a6b126be"
+  },
+  "kokoro/us_lexicon_cache.json": {
+    "bytes": 10444631,
+    "sha256": "6b36ba313202227d6914ad32cd684a0304bd2757e9ec4158ea7bc36ec40e224e"
+  },
+  "kokoro/us_silver.json": {
+    "bytes": 3105352,
+    "sha256": "ea0e1abca0c9b18fb0d3402034633a337154a3153e9a9f49f97d668c908e140c"
+  },
+  "kokoro/vocab_index.json": {
+    "bytes": 2034,
+    "sha256": "433690ab1da1256639c00179e7961a9e9f50ec91077a9c0877107c14e04fb989"
+  },
+  "kokoro-82m-coreml/ANE/KokoroAlbert.mlmodelc/analytics/coremldata.bin": {
+    "bytes": 243,
+    "sha256": "14a61873d8759a38b79c93f9021ae865f408f56301209a0168dbfc2283265ccd"
+  },
+  "kokoro-82m-coreml/ANE/KokoroAlbert.mlmodelc/coremldata.bin": {
+    "bytes": 433,
+    "sha256": "70b6d2f8429229f6800dda9480341669f7ac0eabf05a82934d8632ab2b4b63a6"
+  },
+  "kokoro-82m-coreml/ANE/KokoroAlbert.mlmodelc/metadata.json": {
+    "bytes": 2480,
+    "sha256": "fe1d005481f646707a948267ac089dfb2cd2ccea7d5827a14c28587eb4c89930"
+  },
+  "kokoro-82m-coreml/ANE/KokoroAlbert.mlmodelc/model.mil": {
+    "bytes": 101485,
+    "sha256": "2038154d06a20e399a8ae35ec5c9242702cb23db8dd24dde7679cd53708e4eae"
+  },
+  "kokoro-82m-coreml/ANE/KokoroAlbert.mlmodelc/weights/weight.bin": {
+    "bytes": 5718848,
+    "sha256": "36089a39359b800d3e2c60e5e8ac9217d8f2d1010a8b9273192290e621f1fabc"
+  },
+  "kokoro-82m-coreml/ANE/KokoroAlignment.mlmodelc/analytics/coremldata.bin": {
+    "bytes": 243,
+    "sha256": "f6074d1039a9151d0f97dc6ec9ee0cd9c7b865f1af646d718ab38b659fa84f3f"
+  },
+  "kokoro-82m-coreml/ANE/KokoroAlignment.mlmodelc/coremldata.bin": {
+    "bytes": 484,
+    "sha256": "9a0fb4a536f665a052914d7f17b0e6ac80a3614f702e4be87ac0302c1143a4ea"
+  },
+  "kokoro-82m-coreml/ANE/KokoroAlignment.mlmodelc/metadata.json": {
+    "bytes": 3021,
+    "sha256": "6f610d23b9f93c7f1a968d6a861efa99725a191de696bf1c3be334ead39b7f00"
+  },
+  "kokoro-82m-coreml/ANE/KokoroAlignment.mlmodelc/model.mil": {
+    "bytes": 8194,
+    "sha256": "eb3a618bda0cdf95cdffab586ef5c76333d0d0a1dcb881190b3ef414f3421b3e"
+  },
+  "kokoro-82m-coreml/ANE/KokoroAlignment.mlmodelc/weights/weight.bin": {
+    "bytes": 4128,
+    "sha256": "2e7d69128b59d615fc3d3cf85637a687235fc086b1eb136359adb11a61615f6b"
+  },
+  "kokoro-82m-coreml/ANE/KokoroNoise_v2.mlmodelc/analytics/coremldata.bin": {
+    "bytes": 243,
+    "sha256": "53af6bf61482f6002bdb6e3a62f30774cde6e96411aebd888222a34b369f3d04"
+  },
+  "kokoro-82m-coreml/ANE/KokoroNoise_v2.mlmodelc/coremldata.bin": {
+    "bytes": 440,
+    "sha256": "9911047f924b41f8b92811c32c50b7c718bd7b0c14842b3bc1b66b9ffe341a19"
+  },
+  "kokoro-82m-coreml/ANE/KokoroNoise_v2.mlmodelc/metadata.json": {
+    "bytes": 3020,
+    "sha256": "eb3102217532d952479c6f1b04d26d7ac4cdbc59875b6a23e8aae86e5e02c2bc"
+  },
+  "kokoro-82m-coreml/ANE/KokoroNoise_v2.mlmodelc/model.mil": {
+    "bytes": 93152,
+    "sha256": "60233949d896f15ef38aea19afda558935d7569fa77a3ca4babddd3ffe845a36"
+  },
+  "kokoro-82m-coreml/ANE/KokoroNoise_v2.mlmodelc/weights/weight.bin": {
+    "bytes": 4580160,
+    "sha256": "1102fc2d31dfcfe3de3978a4c78b65202ff8b0a4d55a9304213bd4e8bda66bc2"
+  },
+  "kokoro-82m-coreml/ANE/KokoroPostAlbert.mlmodelc/analytics/coremldata.bin": {
+    "bytes": 243,
+    "sha256": "6640044c875505382edbc361cdd56f3f1c30f082953e0f9473a31ae3f71e6c43"
+  },
+  "kokoro-82m-coreml/ANE/KokoroPostAlbert.mlmodelc/coremldata.bin": {
+    "bytes": 556,
+    "sha256": "86de3ab0c1e8c6f8842b57bc24695a5099590c49b864e3fa2737b1fb5b15ba3b"
+  },
+  "kokoro-82m-coreml/ANE/KokoroPostAlbert.mlmodelc/metadata.json": {
+    "bytes": 4171,
+    "sha256": "2e3be1af412a76e340120a01cd04a502666371ada86b1fdaf5a622896e0bf979"
+  },
+  "kokoro-82m-coreml/ANE/KokoroPostAlbert.mlmodelc/model.mil": {
+    "bytes": 60047,
+    "sha256": "450b73a3b179e1702e7b2210bad008eac20d58b2d6076e3c2de76290a66e5fef"
+  },
+  "kokoro-82m-coreml/ANE/KokoroPostAlbert.mlmodelc/weights/weight.bin": {
+    "bytes": 13806464,
+    "sha256": "e4f300a23cc2e05d38680d9fc94681cc722d445076d1d248f83255122ba091c8"
+  },
+  "kokoro-82m-coreml/ANE/KokoroProsody.mlmodelc/analytics/coremldata.bin": {
+    "bytes": 243,
+    "sha256": "7708aab83deabd72539512acd850447fa955187608d9710a828943aa8498c6b8"
+  },
+  "kokoro-82m-coreml/ANE/KokoroProsody.mlmodelc/coremldata.bin": {
+    "bytes": 421,
+    "sha256": "d65d87f246a6546c0fb7af6efe020106c38604e5c2b9ca00a78561c115dda33e"
+  },
+  "kokoro-82m-coreml/ANE/KokoroProsody.mlmodelc/metadata.json": {
+    "bytes": 2721,
+    "sha256": "a780887a790fe54e2ad14d26b2d936eca4fc6ab9f727e60f7e01f0c208163eef"
+  },
+  "kokoro-82m-coreml/ANE/KokoroProsody.mlmodelc/model.mil": {
+    "bytes": 79705,
+    "sha256": "e6b332f1ed1b22178a406a16c9767c0eed2d64b7f0c17c86ccb2b6abf863b1ed"
+  },
+  "kokoro-82m-coreml/ANE/KokoroProsody.mlmodelc/weights/weight.bin": {
+    "bytes": 8454272,
+    "sha256": "d3c2670eb0c528802f0815d917dcb77bf17faf063bd2bc09cfd0970e2bc1444c"
+  },
+  "kokoro-82m-coreml/ANE/KokoroTail.mlmodelc/analytics/coremldata.bin": {
+    "bytes": 243,
+    "sha256": "7dd3d6b8cfbcdcac37b46f6eb1312b842b972dc75f7cb9968f349fedfc0d77db"
+  },
+  "kokoro-82m-coreml/ANE/KokoroTail.mlmodelc/coremldata.bin": {
+    "bytes": 392,
+    "sha256": "f28f17e4217d7ec1bed48bff4c65287169daa9198315f6fffb00a1483831f5d3"
+  },
+  "kokoro-82m-coreml/ANE/KokoroTail.mlmodelc/metadata.json": {
+    "bytes": 1872,
+    "sha256": "7708ecc145eecf8e3ef5ef8979ea7a4f77d04c8da787454c6d9190e5300fc50b"
+  },
+  "kokoro-82m-coreml/ANE/KokoroTail.mlmodelc/model.mil": {
+    "bytes": 7014,
+    "sha256": "b0b8fd573bac76ba7eb85730eeb25538fc7f1c666ecbf939fd4b3a4ad4495ad7"
+  },
+  "kokoro-82m-coreml/ANE/KokoroTail.mlmodelc/weights/weight.bin": {
+    "bytes": 81088,
+    "sha256": "2d4877b5d2725a9f017653e391638bee1262d1877a080bce09726aae128fecb2"
+  },
+  "kokoro-82m-coreml/ANE/KokoroVocoder.mlmodelc/analytics/coremldata.bin": {
+    "bytes": 243,
+    "sha256": "1cc4f1e6436597c6d458a845570d9d0ace458813ff90f225d08e0e713496b463"
+  },
+  "kokoro-82m-coreml/ANE/KokoroVocoder.mlmodelc/coremldata.bin": {
+    "bytes": 626,
+    "sha256": "71bac80d2f2f077fefc0d66cdc39c0faaa96540b3a6149093ef29de01b1f8764"
+  },
+  "kokoro-82m-coreml/ANE/KokoroVocoder.mlmodelc/metadata.json": {
+    "bytes": 4331,
+    "sha256": "a8e768f151225a52476d35f6ab90805ae00f1f78b83be4ca21327029c800c183"
+  },
+  "kokoro-82m-coreml/ANE/KokoroVocoder.mlmodelc/model.mil": {
+    "bytes": 309000,
+    "sha256": "52f2febec45094e78a5948a3a47f023be8fc57cfd48cc99e8d4c358a13674ef2"
+  },
+  "kokoro-82m-coreml/ANE/KokoroVocoder.mlmodelc/weights/weight.bin": {
+    "bytes": 48889920,
+    "sha256": "6d1f96eb50218ab687b12d6d862d2ae854c12b7165c3cd9b6b5cef261ef02ff1"
+  },
+  "kokoro-82m-coreml/ANE/af_heart.bin": {
+    "bytes": 522240,
+    "sha256": "d583ccff3cdca2f7fae535cb998ac07e9fcb90f09737b9a41fa2734ec44a8f0b"
+  },
+  "kokoro-82m-coreml/ANE/vocab.json": {
+    "bytes": 1416,
+    "sha256": "8d65b0188b77eafc60751dac42bbac7ab5f5685074af44db91d1877b42dc1d7c"
+  }
+}

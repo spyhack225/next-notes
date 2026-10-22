@@ -1,0 +1,81 @@
+{
+  "cleanupVerified": true,
+  "elapsedSeconds": 40.11623370903544,
+  "engine": "qwen",
+  "exitCode": 0,
+  "freeBytesAfterCleanup": 4399149056,
+  "freeBytesBefore": 5476892672,
+  "measurement": {
+    "engine": "qwen",
+    "generatedAt": "2026-10-22T17:08:43Z",
+    "macOS": "Version 27.2 (Build 26B5091g)",
+    "memoryBytes": 17179869184,
+    "model": "Qwen3-TTS-0.6B-CustomVoice-4bit@08c72cad5e2fd0f41730c8bd1f28149585e46361",
+    "notes": [
+      "Measures request to first non-empty generated PCM, not speaker output or speech-end-to-answer latency.",
+      "Trial zero is the first synthesis after preparation; later trials are back-to-back warm runs.",
+      "Qwen currently returns whole clauses: first PCM includes full-clause generation. Streaming promotion awaits a native producer join contract.",
+      "Compatible existing model directories are reused through APFS copy-on-write snapshots; SDK cache changes and cleanup affect only the temporary snapshot.",
+      "After timing, this provider passed muted native source playback: pause before PCM, resume, first-render receipt and drain. No microphone was opened.",
+      "Preparation includes downloading and loading. Timed trials generate PCM without speaker playback; the separate playback check opens muted output."
+    ],
+    "peakRSSBytes": 1674838016,
+    "preparationMs": 17683.57625,
+    "schema": "nextnotes.tts-first-pcm.v1",
+    "text": "I found three matching files. The latest is enclosure version seventeen.",
+    "trials": [
+      {
+        "audioSeconds": 6.24,
+        "completionMs": 3095.745375,
+        "firstPCMms": 3093.753709,
+        "frames": 149760,
+        "index": 0,
+        "phase": "first-after-prepare"
+      },
+      {
+        "audioSeconds": 6.24,
+        "completionMs": 2709.309291,
+        "firstPCMms": 2709.3025,
+        "frames": 149760,
+        "index": 1,
+        "phase": "warm"
+      },
+      {
+        "audioSeconds": 6.24,
+        "completionMs": 2730.847208,
+        "firstPCMms": 2730.842125,
+        "frames": 149760,
+        "index": 2,
+        "phase": "warm"
+      },
+      {
+        "audioSeconds": 6.24,
+        "completionMs": 2784.710875,
+        "firstPCMms": 2784.694917,
+        "frames": 149760,
+        "index": 3,
+        "phase": "warm"
+      },
+      {
+        "audioSeconds": 6.24,
+        "completionMs": 2627.048625,
+        "firstPCMms": 2627.043667,
+        "frames": 149760,
+        "index": 4,
+        "phase": "warm"
+      },
+      {
+        "audioSeconds": 6.24,
+        "completionMs": 2592.832667,
+        "firstPCMms": 2592.8275,
+        "frames": 149760,
+        "index": 5,
+        "phase": "warm"
+      }
+    ]
+  },
+  "status": "measured",
+  "temporaryLogicalBytesBeforeCleanup": 1698367268,
+  "warmMedianMs": 2709.3025,
+  "warmP95Ms": 2784.694917
+}

@@ -1,0 +1,9 @@
+{
+  "Sources/NextNotes/Agent/Speech/PocketSourceSpeechBacking.swift": "c32c1c57eb85b6db030bf7e4cbaef1301697a0287f5f31464cd87cdafdda4138",
+  "Sources/NextNotes/Agent/Speech/RealtimePCMFloatRing.swift": "993d30d34368e218153865adf03594df480d2117be5b70d76b2641669695e490",
+  "Sources/NextNotes/Agent/Speech/RealtimePCMReferenceRing.swift": "9c30f8441c29b7b31a0ce45ab0c265c4518d3c4921964a331dd4278acc63d88b",
+  "compiledRenderer": "e3b651d4d300bb16f93ba268d344bd4b5c9bd3034b160221857638beefab98a6",
+  "fixture": "6b99247107c858fba5d99aecb3de2b0bfcb1b54cb937ec67cc8706100b753602",
+  "regressionBody": "38cd2669d982682af838774fee3025c4691659c6762e0db7a6757ecaa31c6353",
+  "conversionSubset": "ba54b64413279e60ad59b0f1183bcf5925989adc671ac05477f0a78ab5d53de3"
+}

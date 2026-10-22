@@ -24,15 +24,18 @@ No published Whistle CoreML artifact/exporter was found; its custom CPU .cact ne
 
 22 October 2026 TTS work: [native engines and serial first-PCM benchmark](Tests/Reports/tts-2026-10-22/README.md).
 Owner requires one disposable model/process at a time: save results, exit/unload, delete owned files, then
-start the next. Eight runner lifecycle/copy-on-write tests pass. Dependencies resolved and native voice
-adapter objects compiled; the full optimized app build stopped on an inherited SwiftUI Section overload,
-whose narrow syntax repair is applied. No executable/native timing is accepted yet. The exact MLX 0.32.3
-publisher Metal library is packaged (2.2 MB retained, temporary archive removed); GPU execution and the
-streamed native-producer join remain open. The Qwen adapter uses joined whole-clause generation.
-At 15:32 UTC another agent aborted its owned ASR load as disk fell to 362 MiB and swap reached 10.30 GiB;
-no TTS download/inference was running. Native work is deferred pending resource recovery. No owner
-models/defaults/installed app changed, and no TTS model weights were downloaded. Generated PCM timing
-is separate from audible output, speech-end latency and full-duplex qualification.
+start the next. Five optimized native comparisons now complete: warm median first generated PCM (5 runs)
+Phonon31m 7.80 ms, Apple8.98 ms, Pocket59.00 ms, Kokoro224.11 ms, Qwen3-TTS0.6B4bit2,709.30 ms.
+Qwen returns whole clauses. These back-to-back same-text timings are not audible output, speech-end latency
+or ASR-plus-voice reference qualification. Both new providers pass actual muted pause/resume/render/drain;
+full-app source regression and all eight runner lifecycle/copy-on-write checks pass. Native original and
+initial-pause-only regressions fail; the producer repair publishes the pending pause before the renderer
+token and excludes deliberate paused time from the unchanged two-second active IO budget. Source16020462.
+All temporary model roots are removed; all104 existing voice-cache files are SHA/count unchanged. No owner
+model/default/installed app changed. The matching MLX0.32.3 Metal resource must be packaged after raw SwiftPM
+linking, which can remove the manual bundle. An earlier Qwen load was stopped below1.5GiB free disk; its
+allocating producer is unconfirmed. The unchanged binary later passed with more headroom: no memory/cache
+repair is claimed. About211MB of task-produced app outputs were retired; SDKs/modules/current binary stay.
 
 The reference is a **16 GB / 256 GB M2–M3 MacBook Air with ASR and voice running**.
 The current observations are from the owner's M3. An M3 result is not an M2 result.

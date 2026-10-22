@@ -1,0 +1,265 @@
+{
+  "appSHA256": "6369272fa8fcc9cee16658f2f56288e5200fc8cb5bd17ff81f3f8e27175b513f",
+  "machine": "macOS-27.2-arm64-arm-64bit-Mach-O",
+  "results": [
+    {
+      "cleanupVerified": true,
+      "elapsedSeconds": 11.818774832994677,
+      "engine": "phonon",
+      "exitCode": 0,
+      "freeBytesAfterCleanup": 3920732160,
+      "freeBytesBefore": 4229111808,
+      "measurement": {
+        "engine": "phonon",
+        "generatedAt": "2026-10-22T17:00:16Z",
+        "macOS": "Version 27.2 (Build 26B5091g)",
+        "memoryBytes": 17179869184,
+        "model": "Phonon31m-CoreML/v0.4.0",
+        "notes": [
+          "Measures request to first non-empty generated PCM, not speaker output or speech-end-to-answer latency.",
+          "Trial zero is the first synthesis after preparation; later trials are back-to-back warm runs.",
+          "Compatible existing model directories are reused through APFS copy-on-write snapshots; SDK cache changes and cleanup affect only the temporary snapshot.",
+          "After timing, this provider passed muted native source playback: pause before PCM, resume, first-render receipt and drain. No microphone was opened.",
+          "Preparation includes downloading and loading. Timed trials generate PCM without speaker playback; the separate playback check opens muted output."
+        ],
+        "peakRSSBytes": 200818688,
+        "preparationMs": 7002.317875,
+        "schema": "nextnotes.tts-first-pcm.v1",
+        "text": "I found three matching files. The latest is enclosure version seventeen.",
+        "trials": [
+          {
+            "audioSeconds": 4.640000000000002,
+            "completionMs": 199.248208,
+            "firstPCMms": 8.324292,
+            "frames": 111360,
+            "index": 0,
+            "phase": "first-after-prepare"
+          },
+          {
+            "audioSeconds": 4.640000000000002,
+            "completionMs": 179.975834,
+            "firstPCMms": 7.168042,
+            "frames": 111360,
+            "index": 1,
+            "phase": "warm"
+          },
+          {
+            "audioSeconds": 4.640000000000002,
+            "completionMs": 176.063375,
+            "firstPCMms": 7.8,
+            "frames": 111360,
+            "index": 2,
+            "phase": "warm"
+          },
+          {
+            "audioSeconds": 4.640000000000002,
+            "completionMs": 186.16675,
+            "firstPCMms": 6.742583,
+            "frames": 111360,
+            "index": 3,
+            "phase": "warm"
+          },
+          {
+            "audioSeconds": 4.640000000000002,
+            "completionMs": 180.486875,
+            "firstPCMms": 7.901459,
+            "frames": 111360,
+            "index": 4,
+            "phase": "warm"
+          },
+          {
+            "audioSeconds": 4.640000000000002,
+            "completionMs": 184.41325,
+            "firstPCMms": 8.059625,
+            "frames": 111360,
+            "index": 5,
+            "phase": "warm"
+          }
+        ]
+      },
+      "status": "measured",
+      "temporaryLogicalBytesBeforeCleanup": 323569035,
+      "warmMedianMs": 7.8,
+      "warmP95Ms": 8.059625
+    },
+    {
+      "cleanupVerified": true,
+      "elapsedSeconds": 3.27499583363533e-05,
+      "engine": "qwen",
+      "freeBytesAfterCleanup": 3920715776,
+      "freeBytesBefore": 3920715776,
+      "reason": "Insufficient disk headroom for this one model.",
+      "status": "not-run",
+      "temporaryLogicalBytesBeforeCleanup": 4
+    },
+    {
+      "cleanupVerified": true,
+      "elapsedSeconds": 1.546532207983546,
+      "engine": "apple",
+      "exitCode": 0,
+      "freeBytesAfterCleanup": 3892035584,
+      "freeBytesBefore": 3920707584,
+      "measurement": {
+        "engine": "apple",
+        "generatedAt": "2026-10-22T17:00:18Z",
+        "macOS": "Version 27.2 (Build 26B5091g)",
+        "memoryBytes": 17179869184,
+        "model": "AVSpeechSynthesizer/system-default",
+        "notes": [
+          "Measures request to first non-empty generated PCM, not speaker output or speech-end-to-answer latency.",
+          "Trial zero is the first synthesis after preparation; later trials are back-to-back warm runs.",
+          "Preparation includes downloading and loading. No microphone or speaker is opened.",
+          "Compatible existing model directories are reused through APFS copy-on-write snapshots; SDK cache changes and cleanup affect only the temporary snapshot."
+        ],
+        "peakRSSBytes": 43040768,
+        "preparationMs": 1.004209,
+        "schema": "nextnotes.tts-first-pcm.v1",
+        "text": "I found three matching files. The latest is enclosure version seventeen.",
+        "trials": [
+          {
+            "audioSeconds": 4.651746031746032,
+            "completionMs": 1081.793459,
+            "firstPCMms": 1039.268084,
+            "frames": 102571,
+            "index": 0,
+            "phase": "first-after-prepare"
+          },
+          {
+            "audioSeconds": 4.6517460317460335,
+            "completionMs": 178.183334,
+            "firstPCMms": 135.688292,
+            "frames": 102571,
+            "index": 1,
+            "phase": "warm"
+          },
+          {
+            "audioSeconds": 4.651746031746032,
+            "completionMs": 51.773,
+            "firstPCMms": 8.976667,
+            "frames": 102571,
+            "index": 2,
+            "phase": "warm"
+          },
+          {
+            "audioSeconds": 4.651746031746031,
+            "completionMs": 51.741792,
+            "firstPCMms": 9.069542,
+            "frames": 102571,
+            "index": 3,
+            "phase": "warm"
+          },
+          {
+            "audioSeconds": 4.651746031746033,
+            "completionMs": 50.251792,
+            "firstPCMms": 8.850042,
+            "frames": 102571,
+            "index": 4,
+            "phase": "warm"
+          },
+          {
+            "audioSeconds": 4.651746031746032,
+            "completionMs": 51.1465,
+            "firstPCMms": 8.83425,
+            "frames": 102571,
+            "index": 5,
+            "phase": "warm"
+          }
+        ]
+      },
+      "status": "measured",
+      "temporaryLogicalBytesBeforeCleanup": 2024,
+      "warmMedianMs": 8.976667,
+      "warmP95Ms": 135.688292
+    },
+    {
+      "cleanupVerified": true,
+      "elapsedSeconds": 16.20937191596022,
+      "engine": "pocket",
+      "exitCode": 0,
+      "freeBytesAfterCleanup": 3567841280,
+      "freeBytesBefore": 3892015104,
+      "measurement": {
+        "engine": "pocket",
+        "generatedAt": "2026-10-22T17:00:34Z",
+        "macOS": "Version 27.2 (Build 26B5091g)",
+        "memoryBytes": 17179869184,
+        "model": "FluidAudio/PocketTTS-int8/alba",
+        "notes": [
+          "Measures request to first non-empty generated PCM, not speaker output or speech-end-to-answer latency.",
+          "Trial zero is the first synthesis after preparation; later trials are back-to-back warm runs.",
+          "Preparation includes downloading and loading. No microphone or speaker is opened.",
+          "Compatible existing model directories are reused through APFS copy-on-write snapshots; SDK cache changes and cleanup affect only the temporary snapshot."
+        ],
+        "peakRSSBytes": 666140672,
+        "preparationMs": 5704.298125,
+        "schema": "nextnotes.tts-first-pcm.v1",
+        "text": "I found three matching files. The latest is enclosure version seventeen.",
+        "trials": [
+          {
+            "audioSeconds": 4.400000000000002,
+            "completionMs": 2581.138917,
+            "firstPCMms": 1096.675875,
+            "frames": 105600,
+            "index": 0,
+            "phase": "first-after-prepare"
+          },
+          {
+            "audioSeconds": 4.240000000000002,
+            "completionMs": 1446.426125,
+            "firstPCMms": 64.525959,
+            "frames": 101760,
+            "index": 1,
+            "phase": "warm"
+          },
+          {
+            "audioSeconds": 4.400000000000002,
+            "completionMs": 1591.442417,
+            "firstPCMms": 58.9975,
+            "frames": 105600,
+            "index": 2,
+            "phase": "warm"
+          },
+          {
+            "audioSeconds": 4.240000000000002,
+            "completionMs": 1469.245667,
+            "firstPCMms": 56.241917,
+            "frames": 101760,
+            "index": 3,
+            "phase": "warm"
+          },
+          {
+            "audioSeconds": 4.560000000000002,
+            "completionMs": 1488.138875,
+            "firstPCMms": 54.461834,
+            "frames": 109440,
+            "index": 4,
+            "phase": "warm"
+          },
+          {
+            "audioSeconds": 5.120000000000003,
+            "completionMs": 1850.361792,
+            "firstPCMms": 84.370709,
+            "frames": 122880,
+            "index": 5,
+            "phase": "warm"
+          }
+        ]
+      },
+      "status": "measured",
+      "temporaryLogicalBytesBeforeCleanup": 454248532,
+      "warmMedianMs": 58.9975,
+      "warmP95Ms": 84.370709
+    },
+    {
+      "cleanupVerified": true,
+      "elapsedSeconds": 1.287501072511077e-05,
+      "engine": "kokoro",
+      "freeBytesAfterCleanup": 3567828992,
+      "freeBytesBefore": 3567828992,
+      "reason": "Insufficient disk headroom for this one model.",
+      "status": "not-run",
+      "temporaryLogicalBytesBeforeCleanup": 6
+    }
+  ],
+  "workload": "Standalone TTS adapters; no concurrent benchmark or build. Normal owner apps retained, inherited swap pressure; ASR-plus-voice reference workload unqualified."
+}

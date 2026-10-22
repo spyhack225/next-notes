@@ -1,0 +1,16 @@
+{
+  "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/release/NextNotes",
+  "sha256": "6369272fa8fcc9cee16658f2f56288e5200fc8cb5bd17ff81f3f8e27175b513f",
+  "bytes": 161675592,
+  "generatedAt": "2026-10-22T16:57:22.322039+00:00",
+  "signature": "Executable=/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/arm64-apple-macosx/release/NextNotes\nIdentifier=NextNotes\nFormat=Mach-O thin (arm64)\nCodeDirectory v=20400 size=1253410 flags=0x20002(adhoc,linker-signed) hashes=39166+0 location=embedded\nVersionPlatform=1\nVersionMin=1703936\nVersionSDK=1769472\nHash type=sha256 size=32\nCandidateCDHash sha256=28609ed3cc6f114234d38b328ebe933e88197c86\nCandidateCDHashFull sha256=28609ed3cc6f114234d38b328ebe933e88197c865e04d661ab0321a50ffafdde\nHash choices=sha256\nCMSDigest=28609ed3cc6f114234d38b328ebe933e88197c865e04d661ab0321a50ffafdde\nCMSDigestType=2\nExecutable Segment base=0\nExecutable Segment limit=66971592\nExecutable Segment flags=0x1\nPage size=4096\nCDHash=28609ed3cc6f114234d38b328ebe933e88197c86\nSignature=adhoc\nInfo.plist=not bound\nTeamIdentifier=not set\nSealed Resources=none\nInternal requirements=none\n",
+  "signatureQueryExit": 0,
+  "build": "Release -O, non-WMO batch,2workers; SDKs resolved per Package.resolved",
+  "fullAppSourceRegression": "TTS_SOURCE_OK",
+  "metalResource": {
+    "bytes": 2352104,
+    "sha256": "dafc773587713bb123bc2597f99548b3cb243da373c1bead475a64711152865a",
+    "publisher": "MLX Swift0.32.3; archive SHA256731dbfeebcba686e8c8face9c967eaa127e8c4d8611b5601d5d54f8f1fb4aa78",
+    "postLinkPackaging": "Passed; run after raw SwiftPM link, which can remove the manually prepared bundle."
+  }
+}

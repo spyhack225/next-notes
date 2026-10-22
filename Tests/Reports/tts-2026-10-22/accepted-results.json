@@ -1,0 +1,85 @@
+{
+  "metric": "Known text request to first non-empty generated PCM, milliseconds; not audible output.",
+  "warmSamples": 5,
+  "results": [
+    {
+      "engine": "phonon",
+      "warmMedianMs": 7.8,
+      "firstAfterPrepareMs": 8.324292,
+      "preparationMs": 7002.317875,
+      "peakRSSBytes": 200818688,
+      "cleanupVerified": true,
+      "source": "Tests/Reports/tts-2026-10-22/native-results/phonon.json",
+      "notes": [
+        "Measures request to first non-empty generated PCM, not speaker output or speech-end-to-answer latency.",
+        "Trial zero is the first synthesis after preparation; later trials are back-to-back warm runs.",
+        "Compatible existing model directories are reused through APFS copy-on-write snapshots; SDK cache changes and cleanup affect only the temporary snapshot.",
+        "After timing, this provider passed muted native source playback: pause before PCM, resume, first-render receipt and drain. No microphone was opened.",
+        "Preparation includes downloading and loading. Timed trials generate PCM without speaker playback; the separate playback check opens muted output."
+      ]
+    },
+    {
+      "engine": "apple",
+      "warmMedianMs": 8.976667,
+      "firstAfterPrepareMs": 1039.268084,
+      "preparationMs": 1.004209,
+      "peakRSSBytes": 43040768,
+      "cleanupVerified": true,
+      "source": "Tests/Reports/tts-2026-10-22/native-results/apple.json",
+      "notes": [
+        "Measures request to first non-empty generated PCM, not speaker output or speech-end-to-answer latency.",
+        "Trial zero is the first synthesis after preparation; later trials are back-to-back warm runs.",
+        "Preparation includes downloading and loading. No microphone or speaker is opened.",
+        "Compatible existing model directories are reused through APFS copy-on-write snapshots; SDK cache changes and cleanup affect only the temporary snapshot."
+      ]
+    },
+    {
+      "engine": "pocket",
+      "warmMedianMs": 58.9975,
+      "firstAfterPrepareMs": 1096.675875,
+      "preparationMs": 5704.298125,
+      "peakRSSBytes": 666140672,
+      "cleanupVerified": true,
+      "source": "Tests/Reports/tts-2026-10-22/native-results/pocket.json",
+      "notes": [
+        "Measures request to first non-empty generated PCM, not speaker output or speech-end-to-answer latency.",
+        "Trial zero is the first synthesis after preparation; later trials are back-to-back warm runs.",
+        "Preparation includes downloading and loading. No microphone or speaker is opened.",
+        "Compatible existing model directories are reused through APFS copy-on-write snapshots; SDK cache changes and cleanup affect only the temporary snapshot."
+      ]
+    },
+    {
+      "engine": "kokoro",
+      "warmMedianMs": 224.113584,
+      "firstAfterPrepareMs": 904.192583,
+      "preparationMs": 8549.639042,
+      "peakRSSBytes": 667385856,
+      "cleanupVerified": true,
+      "source": "Tests/Reports/tts-2026-10-22/native-retry/kokoro.json",
+      "notes": [
+        "Measures request to first non-empty generated PCM, not speaker output or speech-end-to-answer latency.",
+        "Trial zero is the first synthesis after preparation; later trials are back-to-back warm runs.",
+        "Preparation includes downloading and loading. No microphone or speaker is opened.",
+        "Reuses existing shared G2P assets; those user-owned files are retained. The model chain is temporary.",
+        "Compatible existing model directories are reused through APFS copy-on-write snapshots; SDK cache changes and cleanup affect only the temporary snapshot."
+      ]
+    },
+    {
+      "engine": "qwen",
+      "warmMedianMs": 2709.3025,
+      "firstAfterPrepareMs": 3093.753709,
+      "preparationMs": 17683.57625,
+      "peakRSSBytes": 1674838016,
+      "cleanupVerified": true,
+      "source": "Tests/Reports/tts-2026-10-22/native-qwen-headroom/qwen.json",
+      "notes": [
+        "Measures request to first non-empty generated PCM, not speaker output or speech-end-to-answer latency.",
+        "Trial zero is the first synthesis after preparation; later trials are back-to-back warm runs.",
+        "Qwen currently returns whole clauses: first PCM includes full-clause generation. Streaming promotion awaits a native producer join contract.",
+        "Compatible existing model directories are reused through APFS copy-on-write snapshots; SDK cache changes and cleanup affect only the temporary snapshot.",
+        "After timing, this provider passed muted native source playback: pause before PCM, resume, first-render receipt and drain. No microphone was opened.",
+        "Preparation includes downloading and loading. Timed trials generate PCM without speaker playback; the separate playback check opens muted output."
+      ]
+    }
+  ]
+}

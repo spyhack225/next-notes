@@ -1,0 +1,18 @@
+Generated tokenizer.json from vocab.json + merges.txt
+Loaded speech tokenizer decoder
+Loaded Qwen3-TTS model (custom_voice)
+[Qwen3TTS] CustomVoice: speaker 'Ryan' → spkId=3061
+[Qwen3TTS] CustomVoice: codec prefix length = 7
+[Qwen3TTS] CustomVoice: speaker 'Ryan' → spkId=3061
+[Qwen3TTS] CustomVoice: codec prefix length = 7
+[Qwen3TTS] CustomVoice: speaker 'Ryan' → spkId=3061
+[Qwen3TTS] CustomVoice: codec prefix length = 7
+[Qwen3TTS] CustomVoice: speaker 'Ryan' → spkId=3061
+[Qwen3TTS] CustomVoice: codec prefix length = 7
+[Qwen3TTS] CustomVoice: speaker 'Ryan' → spkId=3061
+[Qwen3TTS] CustomVoice: codec prefix length = 7
+[Qwen3TTS] CustomVoice: speaker 'Ryan' → spkId=3061
+[Qwen3TTS] CustomVoice: codec prefix length = 7
+[Qwen3TTS] CustomVoice: speaker 'Ryan' → spkId=3061
+[Qwen3TTS] CustomVoice: codec prefix length = 7
+TTS_BENCHMARK_OK

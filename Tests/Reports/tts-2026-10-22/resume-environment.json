@@ -1,0 +1,33 @@
+{
+  "generatedAt": "2026-10-22T16:15:10.568575+00:00",
+  "freeBytes": 3666653184,
+  "concurrentWorkload": "No ASR benchmark or TTS inference; native app compilation only, normal owner apps retained.",
+  "hardware": {
+    "exitCode": 0,
+    "output": "Apple M3\n"
+  },
+  "memoryBytes": {
+    "exitCode": 0,
+    "output": "17179869184\n"
+  },
+  "os": {
+    "exitCode": 0,
+    "output": "ProductName:\t\tmacOS\nProductVersion:\t\t27.2\nBuildVersion:\t\t26B5091g\n"
+  },
+  "swap": {
+    "exitCode": 0,
+    "output": "vm.swapusage: total = 10240.00M  used = 9298.88M  free = 941.12M  (encrypted)\n"
+  },
+  "power": {
+    "exitCode": 0,
+    "output": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=24379491)\t100%; charged; 0:00 remaining present: true\n"
+  },
+  "thermal": {
+    "exitCode": 0,
+    "output": "Note: No thermal warning level has been recorded\nNote: No performance warning level has been recorded\nNote: No CPU power status has been recorded\n"
+  },
+  "sourceRevision": {
+    "exitCode": 0,
+    "output": "0dbba9404de36b5aa45b726837a7946b88c1ae3c\n"
+  }
+}

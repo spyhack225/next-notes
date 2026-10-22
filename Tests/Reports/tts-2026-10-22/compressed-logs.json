@@ -1,0 +1,22 @@
+[
+  {
+    "path": "Tests/Reports/tts-2026-10-22/native-build-resume.log",
+    "originalBytes": 7132392,
+    "retainedGzipBytes": 105869
+  },
+  {
+    "path": "Tests/Reports/tts-2026-10-22/native-build-combined.log",
+    "originalBytes": 7108256,
+    "retainedGzipBytes": 105172
+  },
+  {
+    "path": "Tests/Reports/tts-2026-10-22/native-build-j2.log",
+    "originalBytes": 7135584,
+    "retainedGzipBytes": 119063
+  },
+  {
+    "path": "Tests/Reports/tts-2026-10-22/native-build-native.log",
+    "originalBytes": 2014238,
+    "retainedGzipBytes": 42979
+  }
+]

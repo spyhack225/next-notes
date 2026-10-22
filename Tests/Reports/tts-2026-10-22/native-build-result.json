@@ -1,0 +1,31 @@
+{
+  "command": [
+    "swift",
+    "build",
+    "-c",
+    "release",
+    "--build-system",
+    "native",
+    "--jobs",
+    "2",
+    "--scratch-path",
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch",
+    "-Xswiftc",
+    "-no-whole-module-optimization",
+    "-Xswiftc",
+    "-enable-batch-mode",
+    "-Xswiftc",
+    "-driver-batch-count",
+    "-Xswiftc",
+    "16",
+    "-Xswiftc",
+    "-num-threads",
+    "-Xswiftc",
+    "1"
+  ],
+  "exitCode": 0,
+  "stoppedReason": null,
+  "elapsedSeconds": 769.0803429159569,
+  "generatedAt": "2026-10-22T16:56:16.273131+00:00",
+  "freeBytesAfter": 4388634624
+}
