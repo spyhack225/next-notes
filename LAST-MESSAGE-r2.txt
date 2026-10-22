@@ -1,0 +1,7 @@
+Committed `4275c5b5`, `fa3f0152`, and `b42c574e` in the own worktree.
+
+- Live-card regression: four failures → zero. Font token moved.
+- Nine flags ran: eight clean; inherited Settings SIGSEGV139 and browser/duplex diagnostics retained.
+- Saved-file playback remains **not accepted for the one-channel rule**; exact gap and proposed design are in [RESULT.md](/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/catchup-final/RESULT.md).
+
+Scratch/temp cleanup and relay handoff complete. No install, push, or main merge.
