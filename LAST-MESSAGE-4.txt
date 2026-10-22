@@ -1,0 +1,5 @@
+Wrote [REVIEW-4.md](/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/review-noapple/REVIEW-4.md).
+
+**APPROVE WITH FIXES:** current-reply settlement is fixed; simple census escapes remain. Retained results support the reported counts, with Settings and inherited failures disclosed.
+
+Sent the one-line verdict through relay. No builds, tests, model loads, or source edits.
