@@ -1,0 +1,5 @@
+Stopped after 3 hours and 18 ten-minute relay polls without explicit go. No models or heavy jobs ran; MLX remains parked. Relay finish message sent.
+
+Wrote [RESULT.md](/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/bakeoff2/RESULT.md) and [the measurement report](/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/bakeoff2/MODEL-BAKEOFF-2026-10-08.md).
+
+Commits: `12ad61ad`, `3a6b70d4`. No install, push, merge, or default changes.

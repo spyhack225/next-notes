@@ -1,0 +1,5 @@
+Blocked before model runs: free disk **8.44 GiB < 10 GiB** and load **155.49 > 40**.
+
+Wrote [report](MODEL-BAKEOFF-2026-10-08.md) and 10-line [RESULT.md](RESULT.md). Report/evidence committed as `7799ba8`. Relay start and finish messages sent.
+
+No builds, model loads, installs, pushes, merges, or saved-choice changes.
