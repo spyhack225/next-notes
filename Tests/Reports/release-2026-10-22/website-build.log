@@ -81,7 +81,7 @@ computing gzip size...
 ../docs/assets/Benchmarks-AUGB--nZ.js                                 97.36 kB │ gzip:  14.21 kB
 ../docs/assets/index-CMUF80hd.js                                     530.98 kB │ gzip: 154.60 kB
 
-✓ built in 829ms
+✓ built in 418ms
 [plugin builtin:vite-reporter] 
 (!) Some chunks are larger than 500 kB after minification. Consider:
 - Using dynamic import() to code-split the application

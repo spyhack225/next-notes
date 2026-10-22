@@ -1,13 +1,9 @@
 {
-  "scanner": "8.30.1",
-  "binary_sha256": "ba52fb1bfabbcde42f032afad3d6e0b19dff8ed105229a16e7caa338bbc0e84f",
-  "source_revision": "fa8f72be3269d6e54801b33a5dd94f439d793c87",
+  "tool": "Gitleaks 8.30.1",
+  "scope": "Unpublished main ancestry after report-only privacy filtering",
+  "commits_scanned": 520,
+  "bytes_scanned": 193292083,
   "findings": 0,
-  "exit": 0,
-  "scope": "origin/main..main; archive depth3; reviewed source-digest/synthetic-label exceptions only",
-  "private_original_scan": {
-    "total_findings": 3707,
-    "actual_distinct_captured_test_credentials": 1,
-    "sha_digests_and_synthetic_labels_reviewed": true
-  }
+  "allowlist": "SHA-256 integrity digests and exact synthetic OUTPUT_TOKEN_ASSERT label only",
+  "source_and_resources_unchanged": true
 }

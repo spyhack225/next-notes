@@ -9254,6 +9254,10 @@
       "category": "other"
     },
     {
+      "path": "Tests/Reports/release-2026-10-22/publication-report-filter.json",
+      "category": "other"
+    },
+    {
       "path": "Tests/Reports/release-2026-10-22/publication-scan.json",
       "category": "other"
     },

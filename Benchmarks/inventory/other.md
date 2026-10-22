@@ -192,6 +192,7 @@ Discovery inventory, not a claim that every file is a benchmark or that its chec
 | [Tests/Reports/release-2026-10-22/primary-repair-progress.log](../../Tests/Reports/release-2026-10-22/primary-repair-progress.log) |
 | [Tests/Reports/release-2026-10-22/primary-repair.json](../../Tests/Reports/release-2026-10-22/primary-repair.json) |
 | [Tests/Reports/release-2026-10-22/publication-history.json](../../Tests/Reports/release-2026-10-22/publication-history.json) |
+| [Tests/Reports/release-2026-10-22/publication-report-filter.json](../../Tests/Reports/release-2026-10-22/publication-report-filter.json) |
 | [Tests/Reports/release-2026-10-22/publication-scan.json](../../Tests/Reports/release-2026-10-22/publication-scan.json) |
 | [Tests/Reports/release-2026-10-22/publication-scan.log](../../Tests/Reports/release-2026-10-22/publication-scan.log) |
 | [Tests/Reports/release-2026-10-22/release-notes.md](../../Tests/Reports/release-2026-10-22/release-notes.md) |

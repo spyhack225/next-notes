@@ -79,7 +79,7 @@ Status describes the stated scope only. A measured component is not production a
 - [Tts](inventory/tts.md): 70 evidence files.
 - [Workflows](inventory/workflows.md): 176 evidence files.
 - [Models](inventory/models.md): 20 evidence files.
-- [Other](inventory/other.md): 739 evidence files.
+- [Other](inventory/other.md): 740 evidence files.
 
 ## Operating rules
 
