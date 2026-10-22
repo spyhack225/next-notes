@@ -148,6 +148,15 @@ Discovery inventory, not a claim that every file is a benchmark or that its chec
 | [Tests/Reports/tts-2026-10-22/speaker-reference-asr-native/ready.json](../../Tests/Reports/tts-2026-10-22/speaker-reference-asr-native/ready.json) |
 | [Tests/Reports/tts-2026-10-22/speaker-reference-asr-native/receipt.json](../../Tests/Reports/tts-2026-10-22/speaker-reference-asr-native/receipt.json) |
 | [Tests/Reports/tts-2026-10-22/speaker-reference-asr-native/rpc.json.diagnostic.json](../../Tests/Reports/tts-2026-10-22/speaker-reference-asr-native/rpc.json.diagnostic.json) |
+| [Tests/Reports/tts-2026-10-22/speaker-reference-asr-quiet-phonon/ready.json](../../Tests/Reports/tts-2026-10-22/speaker-reference-asr-quiet-phonon/ready.json) |
+| [Tests/Reports/tts-2026-10-22/speaker-reference-asr-quiet-phonon/receipt.json](../../Tests/Reports/tts-2026-10-22/speaker-reference-asr-quiet-phonon/receipt.json) |
+| [Tests/Reports/tts-2026-10-22/speaker-reference-asr-quiet-phonon/rpc.json.diagnostic.json](../../Tests/Reports/tts-2026-10-22/speaker-reference-asr-quiet-phonon/rpc.json.diagnostic.json) |
+| [Tests/Reports/tts-2026-10-22/speaker-reference-asr-quiet-remaining/ready.json](../../Tests/Reports/tts-2026-10-22/speaker-reference-asr-quiet-remaining/ready.json) |
+| [Tests/Reports/tts-2026-10-22/speaker-reference-asr-quiet-remaining/receipt.json](../../Tests/Reports/tts-2026-10-22/speaker-reference-asr-quiet-remaining/receipt.json) |
+| [Tests/Reports/tts-2026-10-22/speaker-reference-asr-quiet-remaining/rpc.json.diagnostic.json](../../Tests/Reports/tts-2026-10-22/speaker-reference-asr-quiet-remaining/rpc.json.diagnostic.json) |
+| [Tests/Reports/tts-2026-10-22/speaker-reference-asr-quiet/ready.json](../../Tests/Reports/tts-2026-10-22/speaker-reference-asr-quiet/ready.json) |
+| [Tests/Reports/tts-2026-10-22/speaker-reference-asr-quiet/receipt.json](../../Tests/Reports/tts-2026-10-22/speaker-reference-asr-quiet/receipt.json) |
+| [Tests/Reports/tts-2026-10-22/speaker-reference-asr-quiet/rpc.json.diagnostic.json](../../Tests/Reports/tts-2026-10-22/speaker-reference-asr-quiet/rpc.json.diagnostic.json) |
 | [Tests/Reports/tts-2026-10-22/speaker-reference-asr/ready.json](../../Tests/Reports/tts-2026-10-22/speaker-reference-asr/ready.json) |
 | [Tests/Reports/tts-2026-10-22/speaker-reference-asr/receipt.json](../../Tests/Reports/tts-2026-10-22/speaker-reference-asr/receipt.json) |
 | [Tests/Reports/tts-2026-10-22/speaker-reference-asr/rpc.json.diagnostic.json](../../Tests/Reports/tts-2026-10-22/speaker-reference-asr/rpc.json.diagnostic.json) |

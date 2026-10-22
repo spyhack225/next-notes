@@ -2,6 +2,49 @@
   "schema_version": 1,
   "runs": [
     {
+      "id": "2026-10-22-tts-qwen-speaker-quiet",
+      "title": "Qwen3-TTS0.6B4bit: quiet-room speaker-output attempt",
+      "date": "2026-10-22",
+      "category": "tts",
+      "status": "failed",
+      "scope": "Actual production playback backing with native48k mono microphone observation under paced native Parakeet-v3 decoder load. Threshold-qualified arrival, not human perception or full-turn latency.",
+      "summary": "No completed native-format trial: Disk guard stopped the owned process group before cleanup. No acoustic median or fastest-default decision accepted; all attempts and refusals remain retained.",
+      "environment": {
+        "hardware": "Apple M3 MacBook Air,16GB RAM,256GB storage",
+        "os": "macOS27.2(26B5091g); source cohort environment",
+        "workload": "Paced cached native Parakeet-v3 authored English prefixes,400ms then1s updates; decoder load, not production mic/AEC/EOU integration. Owner confirmed other audio stopped before the quiet attempt.",
+        "cold_warm": "One separate first-after-prepare request; 0 completed varied warm requests, cycling five English phrases. No voice-quality inference.",
+        "audio_route": "Built-in speakers/microphone; native48000Hz mono float32. Source gain0.75. Hardware output38%,input51%,unmuted retained from setup; not audited at each trial boundary.",
+        "power_thermal": "Not continuously sampled or controlled."
+      },
+      "metrics": [
+        {
+          "name": "Attempted warm microphone trials",
+          "value": 0,
+          "unit": "trials",
+          "boundary": "Completed warm requests in the retained native report; admission refusals have zero.",
+          "samples": null,
+          "aggregation": "count"
+        },
+        {
+          "name": "Qualified warm microphone trials",
+          "value": 0,
+          "unit": "trials",
+          "boundary": "Requests passing frozen clock/room/correlation/onset/route gates; not an engine quality score.",
+          "samples": null,
+          "aggregation": "count"
+        }
+      ],
+      "limitations": [
+        "Incomplete five-model qualification prevents a fastest-audible default; owner confirmed a quiet room for this attempt.",
+        "Microphone pickup is threshold-dependent and includes acoustic/input timing; it is not human perceptual onset.",
+        "Render and queried presentation estimates are separate component boundaries and do not substitute for physical output.",
+        "Global utterance-envelope correlation does not independently prove every earliest transient belongs to the utterance; click/cough, route/format and double-talk controls remain open.",
+        "Five English phrases, one route; no general language/voice-quality or production full-duplex/EOU acceptance.",
+        "Timestamp regressions in the earlier converted16k collector are retained as superseded evidence; this report uses the native-format observer."
+      ]
+    },
+    {
       "id": "2026-10-22-tts-qwen-speaker-output",
       "title": "Qwen3-TTS0.6B4bit: native speaker-output experiment",
       "date": "2026-10-22",
@@ -127,6 +170,89 @@
       ]
     },
     {
+      "id": "2026-10-22-tts-pocket-speaker-quiet",
+      "title": "Pocket: quiet-room speaker-output attempt",
+      "date": "2026-10-22",
+      "category": "tts",
+      "status": "measured",
+      "scope": "Actual production playback backing with native48k mono microphone observation under paced native Parakeet-v3 decoder load. Threshold-qualified arrival, not human perception or full-turn latency.",
+      "summary": "30/30 warm pickups qualified. Complete threshold-qualified microphone median accepted for this route/workload; default promotion remains a separate contract.",
+      "environment": {
+        "hardware": "Apple M3 MacBook Air,16GB RAM,256GB storage",
+        "os": "Version 27.2 (Build 26B5091g)",
+        "workload": "Paced cached native Parakeet-v3 authored English prefixes,400ms then1s updates; decoder load, not production mic/AEC/EOU integration. Owner confirmed other audio stopped before the quiet attempt.",
+        "cold_warm": "One separate first-after-prepare request; 30 completed varied warm requests, cycling five English phrases. No voice-quality inference.",
+        "audio_route": "Built-in speakers/microphone; native48000Hz mono float32. Source gain0.75. Hardware output38%,input51%,unmuted retained from setup; not audited at each trial boundary.",
+        "power_thermal": "Not continuously sampled or controlled."
+      },
+      "metrics": [
+        {
+          "name": "Attempted warm microphone trials",
+          "value": 30,
+          "unit": "trials",
+          "boundary": "Completed warm requests in the retained native report; admission refusals have zero.",
+          "samples": 30,
+          "aggregation": "count"
+        },
+        {
+          "name": "Qualified warm microphone trials",
+          "value": 30,
+          "unit": "trials",
+          "boundary": "Requests passing frozen clock/room/correlation/onset/route gates; not an engine quality score.",
+          "samples": 30,
+          "aggregation": "count"
+        },
+        {
+          "name": "Warm first non-silent render",
+          "value": 183.27970833333333,
+          "unit": "ms",
+          "boundary": "Text request → actual post-gain render timestamp",
+          "samples": 30,
+          "aggregation": "median"
+        },
+        {
+          "name": "Warm estimated presentation",
+          "value": 184.821375,
+          "unit": "ms",
+          "boundary": "Render timestamp + queried output-node maximum presentation estimate; not observed sound.",
+          "samples": 30,
+          "aggregation": "median"
+        },
+        {
+          "name": "Warm microphone pickup median",
+          "value": 310.0804791666667,
+          "unit": "ms",
+          "boundary": "Text request → threshold-qualified correlated microphone pickup.",
+          "samples": 30,
+          "aggregation": "median"
+        },
+        {
+          "name": "Warm microphone pickup p95",
+          "value": 466.19629166666664,
+          "unit": "ms",
+          "boundary": "Same acoustic boundary; empirical nearest-rank p95,30 trials.",
+          "samples": 30,
+          "aggregation": "nearest-rank p95"
+        },
+        {
+          "name": "First-after-preparation microphone pickup",
+          "value": 1552.9642083333333,
+          "unit": "ms",
+          "boundary": "First text request after preparation → qualified microphone pickup; not hardware-cold.",
+          "samples": 1,
+          "aggregation": "single observation"
+        }
+      ],
+      "limitations": [
+        "Incomplete five-model qualification prevents a fastest-audible default; owner confirmed a quiet room for this attempt.",
+        "Microphone pickup is threshold-dependent and includes acoustic/input timing; it is not human perceptual onset.",
+        "Render and queried presentation estimates are separate component boundaries and do not substitute for physical output.",
+        "Global utterance-envelope correlation does not independently prove every earliest transient belongs to the utterance; click/cough, route/format and double-talk controls remain open.",
+        "Five English phrases, one route; no general language/voice-quality or production full-duplex/EOU acceptance.",
+        "Timestamp regressions in the earlier converted16k collector are retained as superseded evidence; this report uses the native-format observer."
+      ]
+    },
+    {
       "id": "2026-10-22-tts-pocket-speaker-output",
       "title": "Pocket: native speaker-output experiment",
       "date": "2026-10-22",
@@ -231,6 +357,73 @@
         "Same-text back-to-back warm runs; human-paced performance, language quality and full-duplex reference acceptance remain open.",
         "Normal owner apps and inherited swap pressure retained; no default promotion or installed-app acceptance.",
         "Child peak RSS excludes external host services and is not Mach physical footprint."
+      ]
+    },
+    {
+      "id": "2026-10-22-tts-phonon-speaker-quiet",
+      "title": "Phonon31m: quiet-room speaker-output attempt",
+      "date": "2026-10-22",
+      "category": "tts",
+      "status": "partial",
+      "scope": "Actual production playback backing with native48k mono microphone observation under paced native Parakeet-v3 decoder load. Threshold-qualified arrival, not human perception or full-turn latency.",
+      "summary": "19/30 warm pickups qualified. No acoustic median or fastest-default decision accepted; all attempts and refusals remain retained.",
+      "environment": {
+        "hardware": "Apple M3 MacBook Air,16GB RAM,256GB storage",
+        "os": "Version 27.2 (Build 26B5091g)",
+        "workload": "Paced cached native Parakeet-v3 authored English prefixes,400ms then1s updates; decoder load, not production mic/AEC/EOU integration. Owner confirmed other audio stopped before the quiet attempt.",
+        "cold_warm": "One separate first-after-prepare request; 30 completed varied warm requests, cycling five English phrases. No voice-quality inference.",
+        "audio_route": "Built-in speakers/microphone; native48000Hz mono float32. Source gain0.75. Hardware output38%,input51%,unmuted retained from setup; not audited at each trial boundary.",
+        "power_thermal": "Not continuously sampled or controlled."
+      },
+      "metrics": [
+        {
+          "name": "Attempted warm microphone trials",
+          "value": 30,
+          "unit": "trials",
+          "boundary": "Completed warm requests in the retained native report; admission refusals have zero.",
+          "samples": 30,
+          "aggregation": "count"
+        },
+        {
+          "name": "Qualified warm microphone trials",
+          "value": 19,
+          "unit": "trials",
+          "boundary": "Requests passing frozen clock/room/correlation/onset/route gates; not an engine quality score.",
+          "samples": 30,
+          "aggregation": "count"
+        },
+        {
+          "name": "Warm first non-silent render",
+          "value": 48.1601875,
+          "unit": "ms",
+          "boundary": "Text request → actual post-gain render timestamp",
+          "samples": 30,
+          "aggregation": "median"
+        },
+        {
+          "name": "Warm estimated presentation",
+          "value": 49.7018535,
+          "unit": "ms",
+          "boundary": "Render timestamp + queried output-node maximum presentation estimate; not observed sound.",
+          "samples": 30,
+          "aggregation": "median"
+        },
+        {
+          "name": "First-after-preparation microphone pickup",
+          "value": 269.17395833333336,
+          "unit": "ms",
+          "boundary": "First text request after preparation → qualified microphone pickup; not hardware-cold.",
+          "samples": 1,
+          "aggregation": "single observation"
+        }
+      ],
+      "limitations": [
+        "Incomplete five-model qualification prevents a fastest-audible default; owner confirmed a quiet room for this attempt.",
+        "Microphone pickup is threshold-dependent and includes acoustic/input timing; it is not human perceptual onset.",
+        "Render and queried presentation estimates are separate component boundaries and do not substitute for physical output.",
+        "Global utterance-envelope correlation does not independently prove every earliest transient belongs to the utterance; click/cough, route/format and double-talk controls remain open.",
+        "Five English phrases, one route; no general language/voice-quality or production full-duplex/EOU acceptance.",
+        "Timestamp regressions in the earlier converted16k collector are retained as superseded evidence; this report uses the native-format observer."
       ]
     },
     {
@@ -342,6 +535,73 @@
         "The speaker collector has authored native controls, including an original/fixed maximum-latency search regression; physical model collection awaits a coordinated optimized app build.",
         "One disposable TTS model/process at a time; each result is saved and its owned model removed before proceeding.",
         "Full-turn speech-end/ASR/EOU, physical route matrix, voice quality and default qualification remain open."
+      ]
+    },
+    {
+      "id": "2026-10-22-tts-kokoro-speaker-quiet",
+      "title": "Kokoro: quiet-room speaker-output attempt",
+      "date": "2026-10-22",
+      "category": "tts",
+      "status": "partial",
+      "scope": "Actual production playback backing with native48k mono microphone observation under paced native Parakeet-v3 decoder load. Threshold-qualified arrival, not human perception or full-turn latency.",
+      "summary": "18/30 warm pickups qualified. No acoustic median or fastest-default decision accepted; all attempts and refusals remain retained.",
+      "environment": {
+        "hardware": "Apple M3 MacBook Air,16GB RAM,256GB storage",
+        "os": "Version 27.2 (Build 26B5091g)",
+        "workload": "Paced cached native Parakeet-v3 authored English prefixes,400ms then1s updates; decoder load, not production mic/AEC/EOU integration. Owner confirmed other audio stopped before the quiet attempt.",
+        "cold_warm": "One separate first-after-prepare request; 30 completed varied warm requests, cycling five English phrases. No voice-quality inference.",
+        "audio_route": "Built-in speakers/microphone; native48000Hz mono float32. Source gain0.75. Hardware output38%,input51%,unmuted retained from setup; not audited at each trial boundary.",
+        "power_thermal": "Not continuously sampled or controlled."
+      },
+      "metrics": [
+        {
+          "name": "Attempted warm microphone trials",
+          "value": 30,
+          "unit": "trials",
+          "boundary": "Completed warm requests in the retained native report; admission refusals have zero.",
+          "samples": 30,
+          "aggregation": "count"
+        },
+        {
+          "name": "Qualified warm microphone trials",
+          "value": 18,
+          "unit": "trials",
+          "boundary": "Requests passing frozen clock/room/correlation/onset/route gates; not an engine quality score.",
+          "samples": 30,
+          "aggregation": "count"
+        },
+        {
+          "name": "Warm first non-silent render",
+          "value": 945.9650416666667,
+          "unit": "ms",
+          "boundary": "Text request → actual post-gain render timestamp",
+          "samples": 30,
+          "aggregation": "median"
+        },
+        {
+          "name": "Warm estimated presentation",
+          "value": 947.5067083333333,
+          "unit": "ms",
+          "boundary": "Render timestamp + queried output-node maximum presentation estimate; not observed sound.",
+          "samples": 30,
+          "aggregation": "median"
+        },
+        {
+          "name": "First-after-preparation microphone pickup",
+          "value": 10657.958958333333,
+          "unit": "ms",
+          "boundary": "First text request after preparation → qualified microphone pickup; not hardware-cold.",
+          "samples": 1,
+          "aggregation": "single observation"
+        }
+      ],
+      "limitations": [
+        "Incomplete five-model qualification prevents a fastest-audible default; owner confirmed a quiet room for this attempt.",
+        "Microphone pickup is threshold-dependent and includes acoustic/input timing; it is not human perceptual onset.",
+        "Render and queried presentation estimates are separate component boundaries and do not substitute for physical output.",
+        "Global utterance-envelope correlation does not independently prove every earliest transient belongs to the utterance; click/cough, route/format and double-talk controls remain open.",
+        "Five English phrases, one route; no general language/voice-quality or production full-duplex/EOU acceptance.",
+        "Timestamp regressions in the earlier converted16k collector are retained as superseded evidence; this report uses the native-format observer."
       ]
     },
     {
@@ -457,6 +717,73 @@
         "Same-text back-to-back warm runs; human-paced performance, language quality and full-duplex reference acceptance remain open.",
         "Normal owner apps and inherited swap pressure retained; no default promotion or installed-app acceptance.",
         "Child peak RSS excludes external host services and is not Mach physical footprint."
+      ]
+    },
+    {
+      "id": "2026-10-22-tts-apple-speaker-quiet",
+      "title": "macOS: quiet-room speaker-output attempt",
+      "date": "2026-10-22",
+      "category": "tts",
+      "status": "partial",
+      "scope": "Actual production playback backing with native48k mono microphone observation under paced native Parakeet-v3 decoder load. Threshold-qualified arrival, not human perception or full-turn latency.",
+      "summary": "29/30 warm pickups qualified. No acoustic median or fastest-default decision accepted; all attempts and refusals remain retained.",
+      "environment": {
+        "hardware": "Apple M3 MacBook Air,16GB RAM,256GB storage",
+        "os": "Version 27.2 (Build 26B5091g)",
+        "workload": "Paced cached native Parakeet-v3 authored English prefixes,400ms then1s updates; decoder load, not production mic/AEC/EOU integration. Owner confirmed other audio stopped before the quiet attempt.",
+        "cold_warm": "One separate first-after-prepare request; 30 completed varied warm requests, cycling five English phrases. No voice-quality inference.",
+        "audio_route": "Built-in speakers/microphone; native48000Hz mono float32. Source gain0.75. Hardware output38%,input51%,unmuted retained from setup; not audited at each trial boundary.",
+        "power_thermal": "Not continuously sampled or controlled."
+      },
+      "metrics": [
+        {
+          "name": "Attempted warm microphone trials",
+          "value": 30,
+          "unit": "trials",
+          "boundary": "Completed warm requests in the retained native report; admission refusals have zero.",
+          "samples": 30,
+          "aggregation": "count"
+        },
+        {
+          "name": "Qualified warm microphone trials",
+          "value": 29,
+          "unit": "trials",
+          "boundary": "Requests passing frozen clock/room/correlation/onset/route gates; not an engine quality score.",
+          "samples": 30,
+          "aggregation": "count"
+        },
+        {
+          "name": "Warm first non-silent render",
+          "value": 91.26872916666667,
+          "unit": "ms",
+          "boundary": "Text request → actual post-gain render timestamp",
+          "samples": 30,
+          "aggregation": "median"
+        },
+        {
+          "name": "Warm estimated presentation",
+          "value": 92.81039583333333,
+          "unit": "ms",
+          "boundary": "Render timestamp + queried output-node maximum presentation estimate; not observed sound.",
+          "samples": 30,
+          "aggregation": "median"
+        },
+        {
+          "name": "First-after-preparation microphone pickup",
+          "value": 2430.148666666667,
+          "unit": "ms",
+          "boundary": "First text request after preparation → qualified microphone pickup; not hardware-cold.",
+          "samples": 1,
+          "aggregation": "single observation"
+        }
+      ],
+      "limitations": [
+        "Incomplete five-model qualification prevents a fastest-audible default; owner confirmed a quiet room for this attempt.",
+        "Microphone pickup is threshold-dependent and includes acoustic/input timing; it is not human perceptual onset.",
+        "Render and queried presentation estimates are separate component boundaries and do not substitute for physical output.",
+        "Global utterance-envelope correlation does not independently prove every earliest transient belongs to the utterance; click/cough, route/format and double-talk controls remain open.",
+        "Five English phrases, one route; no general language/voice-quality or production full-duplex/EOU acceptance.",
+        "Timestamp regressions in the earlier converted16k collector are retained as superseded evidence; this report uses the native-format observer."
       ]
     },
     {

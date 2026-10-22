@@ -8,15 +8,20 @@ Status describes the stated scope only. A measured component is not production a
 
 | Date | Area | Benchmark | Status | Result and limits |
 |---|---|---|---|---|
+| 2026-10-22 | tts | [Qwen3-TTS0.6B4bit: quiet-room speaker-output attempt](runs/2026-10-22-tts-qwen-speaker-quiet.json) | failed | No completed native-format trial: Disk guard stopped the owned process group before cleanup. No acoustic median or fastest-default decision accepted; all attempts and refusals remain retained. |
 | 2026-10-22 | tts | [Qwen3-TTS0.6B4bit: native speaker-output experiment](runs/2026-10-22-tts-qwen-speaker-output.json) | partial | 1/3 warm pickups qualified. No acoustic median or fastest-default decision accepted. Background audio was present; all attempts and refusals remain retained. |
 | 2026-10-22 | tts | [Qwen3-TTS-0.6B-CustomVoice-4bit@08c72cad5e2fd0f41730c8bd1f28149585e46361: native first generated audio](runs/2026-10-22-tts-qwen-native.json) | measured | Warm median 2709.30 ms across 5 back-to-back runs; first synthesis after preparation 3093.75 ms. Result saved, child joined and owned model removed. |
+| 2026-10-22 | tts | [Pocket: quiet-room speaker-output attempt](runs/2026-10-22-tts-pocket-speaker-quiet.json) | measured | 30/30 warm pickups qualified. Complete threshold-qualified microphone median accepted for this route/workload; default promotion remains a separate contract. |
 | 2026-10-22 | tts | [Pocket: native speaker-output experiment](runs/2026-10-22-tts-pocket-speaker-output.json) | partial | 27/30 warm pickups qualified. No acoustic median or fastest-default decision accepted. Background audio was present; all attempts and refusals remain retained. |
 | 2026-10-22 | tts | [FluidAudio/PocketTTS-int8/alba: native first generated audio](runs/2026-10-22-tts-pocket-native.json) | measured | Warm median 59.00 ms across 5 back-to-back runs; first synthesis after preparation 1096.68 ms. Result saved, child joined and owned model removed. |
+| 2026-10-22 | tts | [Phonon31m: quiet-room speaker-output attempt](runs/2026-10-22-tts-phonon-speaker-quiet.json) | partial | 19/30 warm pickups qualified. No acoustic median or fastest-default decision accepted; all attempts and refusals remain retained. |
 | 2026-10-22 | tts | [Phonon31m: native speaker-output experiment](runs/2026-10-22-tts-phonon-speaker-output.json) | blocked | No native-format trial started: disk admission refused. No acoustic median or fastest-default decision accepted. Background audio was present; all attempts and refusals remain retained. |
 | 2026-10-22 | tts | [Phonon31m-CoreML/v0.4.0: native first generated audio](runs/2026-10-22-tts-phonon-native.json) | measured | Warm median 7.80 ms across 5 back-to-back runs; first synthesis after preparation 8.32 ms. Result saved, child joined and owned model removed. |
 | 2026-10-22 | tts | [Five native TTS generation results; speaker timing pending](runs/2026-10-22-tts-native.json) | partial | All five generation results are saved individually. Speaker output and ASR-plus-voice qualification remain pending; no fastest-audible default has been selected. |
+| 2026-10-22 | tts | [Kokoro: quiet-room speaker-output attempt](runs/2026-10-22-tts-kokoro-speaker-quiet.json) | partial | 18/30 warm pickups qualified. No acoustic median or fastest-default decision accepted; all attempts and refusals remain retained. |
 | 2026-10-22 | tts | [Kokoro: native speaker-output experiment](runs/2026-10-22-tts-kokoro-speaker-output.json) | partial | 26/30 warm pickups qualified. No acoustic median or fastest-default decision accepted. Background audio was present; all attempts and refusals remain retained. |
 | 2026-10-22 | tts | [FluidAudio/Kokoro82M/af_heart: native first generated audio](runs/2026-10-22-tts-kokoro-native.json) | measured | Warm median 224.11 ms across 5 back-to-back runs; first synthesis after preparation 904.19 ms. Result saved, child joined and owned model removed. |
+| 2026-10-22 | tts | [macOS: quiet-room speaker-output attempt](runs/2026-10-22-tts-apple-speaker-quiet.json) | partial | 29/30 warm pickups qualified. No acoustic median or fastest-default decision accepted; all attempts and refusals remain retained. |
 | 2026-10-22 | tts | [macOS: native speaker-output experiment](runs/2026-10-22-tts-apple-speaker-output.json) | partial | 28/30 warm pickups qualified. No acoustic median or fastest-default decision accepted. Background audio was present; all attempts and refusals remain retained. |
 | 2026-10-22 | tts | [macOS voice: physical speaker-to-microphone calibration](runs/2026-10-22-tts-apple-speaker-calibration.json) | partial | Original collector returned1247ms then299ms microphone pickup. Later loaded tests exposed converted-buffer host-window regressions; these historical values are not current qualified speaker timing or default evidence. |
 | 2026-10-22 | tts | [AVSpeechSynthesizer/system-default: native first generated audio](runs/2026-10-22-tts-apple-native.json) | measured | Warm median 8.98 ms across 5 back-to-back runs; first synthesis after preparation 1039.27 ms. Result saved, child joined and owned model removed. |
@@ -76,12 +81,12 @@ Status describes the stated scope only. A measured component is not production a
 
 ## Evidence by area
 
-- [Asr](inventory/asr.md): 148 evidence files.
+- [Asr](inventory/asr.md): 157 evidence files.
 - [Dictation](inventory/dictation.md): 560 evidence files.
 - [Meetings](inventory/meetings.md): 1143 evidence files.
 - [Agent](inventory/agent.md): 477 evidence files.
 - [Voice](inventory/voice.md): 321 evidence files.
-- [Tts](inventory/tts.md): 187 evidence files.
+- [Tts](inventory/tts.md): 210 evidence files.
 - [Workflows](inventory/workflows.md): 176 evidence files.
 - [Models](inventory/models.md): 20 evidence files.
 - [Other](inventory/other.md): 744 evidence files.

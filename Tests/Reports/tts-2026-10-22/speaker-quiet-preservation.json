@@ -1,0 +1,62 @@
+{
+  "ownerVoiceCacheFiles": 104,
+  "ownerVoiceCachesUnchanged": true,
+  "voicePreferencesUnchanged": true,
+  "allEightTTSProcessRootsCleaned": true,
+  "ttsAttempts": [
+    {
+      "engine": "qwen",
+      "directory": "speaker-quiet",
+      "status": "failed",
+      "cleanupVerified": true
+    },
+    {
+      "engine": "pocket",
+      "directory": "speaker-quiet",
+      "status": "measured",
+      "cleanupVerified": true
+    },
+    {
+      "engine": "kokoro",
+      "directory": "speaker-quiet",
+      "status": "not-run",
+      "cleanupVerified": true
+    },
+    {
+      "engine": "apple",
+      "directory": "speaker-quiet",
+      "status": "partial",
+      "cleanupVerified": true
+    },
+    {
+      "engine": "phonon",
+      "directory": "speaker-quiet",
+      "status": "not-run",
+      "cleanupVerified": true
+    },
+    {
+      "engine": "phonon",
+      "directory": "speaker-quiet-remaining",
+      "status": "not-run",
+      "cleanupVerified": true
+    },
+    {
+      "engine": "kokoro",
+      "directory": "speaker-quiet-remaining",
+      "status": "partial",
+      "cleanupVerified": true
+    },
+    {
+      "engine": "phonon",
+      "directory": "speaker-quiet-phonon",
+      "status": "partial",
+      "cleanupVerified": true
+    }
+  ],
+  "allThreeReferenceChildrenJoined": true,
+  "allThreeReferenceSnapshotsDeleted": true,
+  "ownerASRAssetsUnchanged": true,
+  "sameBinarySHA256": "685243da8585e7db92622e53a545e104ef169c95b7bd1181f27352ffa38ba64c",
+  "installedSHA256": "bce5ef99b315110ef535122ded59329eb6bec1d7a53d6e573ac9a07f4af95620",
+  "freeBytes": 4076355584
+}

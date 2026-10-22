@@ -1,0 +1,12 @@
+{
+  "binarySHA256": "685243da8585e7db92622e53a545e104ef169c95b7bd1181f27352ffa38ba64c",
+  "sourceSHA256": {
+    "Sources/NextNotes/Agent/Speech/TTSOutputProbe.swift": "6e870226f9de1fa88788e95ffcb9c7c64b569d7b65628e45eecbb266ca705540",
+    "Sources/NextNotes/Agent/Speech/TTSFirstAudioBenchmark.swift": "34694aaf00216b6d7c4a76bbbf99d215b4e74985961711a9b85d5048f1a7ea5d",
+    "Sources/NextNotes/Agent/Speech/NativeAgentVoice.swift": "17f9ac313dc940e4cbad9d1089405374cb0132316e00139dc9aa46af4325e9ee",
+    "Sources/NextNotes/Agent/Speech/NativeVoiceAssets.swift": "da9f29ca99df2643983e3f35d01c3c72a8e372060c28a1b307bd17fbe7545acf",
+    "Sources/NextNotes/Core/AudioCaptureHub.swift": "6d6748f0b7b5d1849c8ee4662c46e65784f987caaa01dfb2d2dee8950c74dc72",
+    "Tools/tts_compare.py": "8c5c959ad2b48819f318c98a2a2f2288f7053811e3569d8758470a82da45de68"
+  },
+  "environment": "Owner confirmed other playback/nearby audio stopped before this fresh same-binary native48k microphone cohort. Paced cached native Parakeet v3 decoder load; not full production ASR/AEC/EOU. No source, thresholds, hardware volume or voice choice changed. Five rotating authored English phrases; first-after-prepare separate then30warm."
+}

@@ -1,0 +1,85 @@
+{
+  "schema_version": 1,
+  "id": "2026-10-22-tts-phonon-speaker-quiet",
+  "title": "Phonon31m: quiet-room speaker-output attempt",
+  "date": "2026-10-22",
+  "category": "tts",
+  "status": "partial",
+  "scope": "Actual production playback backing with native48k mono microphone observation under paced native Parakeet-v3 decoder load. Threshold-qualified arrival, not human perception or full-turn latency.",
+  "summary": "19/30 warm pickups qualified. No acoustic median or fastest-default decision accepted; all attempts and refusals remain retained.",
+  "environment": {
+    "hardware": "Apple M3 MacBook Air,16GB RAM,256GB storage",
+    "os": "Version 27.2 (Build 26B5091g)",
+    "workload": "Paced cached native Parakeet-v3 authored English prefixes,400ms then1s updates; decoder load, not production mic/AEC/EOU integration. Owner confirmed other audio stopped before the quiet attempt.",
+    "cold_warm": "One separate first-after-prepare request; 30 completed varied warm requests, cycling five English phrases. No voice-quality inference.",
+    "audio_route": "Built-in speakers/microphone; native48000Hz mono float32. Source gain0.75. Hardware output38%,input51%,unmuted retained from setup; not audited at each trial boundary.",
+    "power_thermal": "Not continuously sampled or controlled."
+  },
+  "provenance": {
+    "binary_sha256": "685243da8585e7db92622e53a545e104ef169c95b7bd1181f27352ffa38ba64c",
+    "model_revision": "Phonon31m-CoreML/v0.4.0",
+    "command": "Tools/tts_compare.py --speaker-output --trials 30 --workload-ready <reference-ASR-ready-file>; Exact source, binary/probe pins and original attempts are linked in the report.",
+    "grader": "Native host timestamps; two consecutive10ms windows above max(.001RMS,4x room baseline), >=.75 rendered/microphone envelope correlation, strict timestamps/callbacktokens/route/drop gates. No survivor-only acoustic medians."
+  },
+  "metrics": [
+    {
+      "name": "Attempted warm microphone trials",
+      "value": 30,
+      "unit": "trials",
+      "boundary": "Completed warm requests in the retained native report; admission refusals have zero.",
+      "samples": 30,
+      "aggregation": "count"
+    },
+    {
+      "name": "Qualified warm microphone trials",
+      "value": 19,
+      "unit": "trials",
+      "boundary": "Requests passing frozen clock/room/correlation/onset/route gates; not an engine quality score.",
+      "samples": 30,
+      "aggregation": "count"
+    },
+    {
+      "name": "Warm first non-silent render",
+      "value": 48.1601875,
+      "unit": "ms",
+      "boundary": "Text request \u2192 actual post-gain render timestamp",
+      "samples": 30,
+      "aggregation": "median"
+    },
+    {
+      "name": "Warm estimated presentation",
+      "value": 49.7018535,
+      "unit": "ms",
+      "boundary": "Render timestamp + queried output-node maximum presentation estimate; not observed sound.",
+      "samples": 30,
+      "aggregation": "median"
+    },
+    {
+      "name": "First-after-preparation microphone pickup",
+      "value": 269.17395833333336,
+      "unit": "ms",
+      "boundary": "First text request after preparation \u2192 qualified microphone pickup; not hardware-cold.",
+      "samples": 1,
+      "aggregation": "single observation"
+    }
+  ],
+  "limitations": [
+    "Incomplete five-model qualification prevents a fastest-audible default; owner confirmed a quiet room for this attempt.",
+    "Microphone pickup is threshold-dependent and includes acoustic/input timing; it is not human perceptual onset.",
+    "Render and queried presentation estimates are separate component boundaries and do not substitute for physical output.",
+    "Global utterance-envelope correlation does not independently prove every earliest transient belongs to the utterance; click/cough, route/format and double-talk controls remain open.",
+    "Five English phrases, one route; no general language/voice-quality or production full-duplex/EOU acceptance.",
+    "Timestamp regressions in the earlier converted16k collector are retained as superseded evidence; this report uses the native-format observer."
+  ],
+  "sources": [
+    "Tests/Reports/tts-2026-10-22/speaker-quiet-phonon/phonon.json",
+    "Tests/Reports/tts-2026-10-22/speaker-quiet-phonon/summary.json",
+    "Tests/Reports/tts-2026-10-22/README.md",
+    "Tests/Reports/tts-2026-10-22/speaker-quiet-source-pins.json"
+  ],
+  "publication": {
+    "approved": true,
+    "reviewed_by": "Codex TTS: reviewed aggregate-only measurement scope; no audio, transcript, private task data or host context in public fields",
+    "reviewed_on": "2026-10-22"
+  }
+}

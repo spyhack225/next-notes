@@ -340,3 +340,55 @@ partial evidence, not a completed audible ranking. The current source makes the 
 label explicit as “Audio ready”; installed809 already has all five choices, serial preparation and
 comparison percentages, but this follow-up label/collector source is not yet installed there.
 The owner’s Pocket/Alba default remains pending a valid physical comparison and roadmap acceptance.
+
+
+### Owner-confirmed quiet interval — fresh thirty-warm attempts
+
+The owner confirmed other playback/sound had stopped. No detector threshold, microphone format,
+source gain, native source or hardware volume was changed. All fresh trials use diagnostic binary
+`685243da8585e7db92622e53a545e104ef169c95b7bd1181f27352ffa38ba64c`, native48k
+observation and the same five rotating authored English phrases.
+`speaker-quiet-source-pins.json` retains source/runner hashes and environment scope.
+
+| Voice | Warm requests qualified | Accepted microphone median / p95 | Evidence |
+|---|---:|---|---|
+| Pocket/Alba |30/30|310.080 /466.196ms|`speaker-quiet/pocket.json`|
+| macOS |29/30|None: one onset/SNR refusal|`speaker-quiet/apple.json`|
+| Kokoro |18/30|None: acoustic refusals retained|`speaker-quiet-remaining/kokoro.json`|
+| Phonon |19/30|None: acoustic refusals retained|`speaker-quiet-phonon/phonon.json`|
+| Qwen3-TTS |No completed request|None: live disk guard|`speaker-quiet/qwen.json`|
+
+These are threshold-qualified speaker-to-microphone arrivals, including acoustic and input timing,
+not human perceptual onset. Pocket's median/p95 use all30 warm requests, with empirical nearest-rank
+p95; the first-after-preparation request is separate. No survivor-only medians are calculated for
+other voices. A quiet-room declaration does not prove every baseline was uncontaminated. Acoustic
+failures are collector qualification failures, not an established model-quality defect or evidence
+that the owner failed to stop other playback. Timestamp regressions are absent in these warm cells.
+Whole/recent baseline differences and global matching limitations remain diagnostic questions; no
+threshold/window changes or claimed repairs follow from this attempt.
+
+Qwen started first with5.137GB free, then crossed the existing1.5GiB live disk floor during its
+first synthesis; the process joined and1.698GB owned model was removed. Its diagnostic MLX log
+remains retained, with no completed-clause or acoustic timing claim. Kokoro/Phonon were initially
+refused before download. After stopping/joining the reference decoder, task-owned current diagnostic
+symbols were compressed from424,129,586 to98,551,585bytes, verified by archive integrity and exact
+per-file hashes before removing the uncompressed copy. `speaker-quiet-symbol-compression.json`
+records this bounded cleanup; the entire subsequent free-space increase is not attributed to it
+because the OS was also reclaiming pressure. Installed/baseline809 symbols were untouched.
+
+The continuation used the same binary/phrases/route/detector and a fresh instance of the same paced
+reference decoder; it preserves both initial refusals and later complete request sets. Phonon was
+refused once more while Kokoro ran, then admitted after Kokoro and its decoder snapshot exited and
+headroom recovered. No model retry was used to replace individual rejected acoustic trials.
+The three reference sessions are in `speaker-reference-asr-quiet{,-remaining,-phonon}/`; each
+receipt confirms native child joined, snapshot deleted and owner ASR weights unchanged. These are
+decoder-load windows, not actual selected-ASR/AEC/endpoint/full-conversation acceptance.
+
+`speaker-quiet-preservation.json` confirms all eight attempt roots cleaned, all three reference
+children/snapshots joined/deleted,104 existing voice files and three TTS preferences unchanged,
+installed809 SHA unchanged, and4,076,355,584bytes free at the final read (about3.8GiB). The current
+useful diagnostic app/reference probe and compact symbols remain retained; no unrelated user data,
+models, swap or another agent's artifacts were removed. The requested five-model fastest-audible
+ranking remains incomplete. Pocket/Alba stays selected; no default promotion is claimed. The five
+new `*-speaker-quiet` records supplement rather than overwrite earlier noisy/calibration evidence,
+and the comparison page selects these explicitly named later attempts.

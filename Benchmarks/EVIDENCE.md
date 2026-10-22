@@ -1,12 +1,21 @@
 # Evidence discovery
 
-3776 current evidence files discovered under Tests/Reports, bench, docs and roadmaps.
+3808 current evidence files discovered under Tests/Reports, bench, docs and roadmaps.
 
 Imported third-party reference trees and website assets are excluded. Files are catalogued without moving them or extracting private payloads. Legacy files remain unclassified until a reviewed run manifest records their scope and verdict.
 
 [Machine-readable inventory](inventory/files.json) · [Git/worktree audit](inventory/README.md)
 
 ## Reviewed run sources
+
+### Qwen3-TTS0.6B4bit: quiet-room speaker-output attempt
+
+Actual production playback backing with native48k mono microphone observation under paced native Parakeet-v3 decoder load. Threshold-qualified arrival, not human perception or full-turn latency. **failed**
+
+- [Tests/Reports/tts-2026-10-22/speaker-quiet/qwen.json](../Tests/Reports/tts-2026-10-22/speaker-quiet/qwen.json)
+- [Tests/Reports/tts-2026-10-22/speaker-quiet/summary.json](../Tests/Reports/tts-2026-10-22/speaker-quiet/summary.json)
+- [Tests/Reports/tts-2026-10-22/README.md](../Tests/Reports/tts-2026-10-22/README.md)
+- [Tests/Reports/tts-2026-10-22/speaker-quiet-source-pins.json](../Tests/Reports/tts-2026-10-22/speaker-quiet-source-pins.json)
 
 ### Qwen3-TTS0.6B4bit: native speaker-output experiment
 
@@ -32,6 +41,15 @@ Known English text request to first non-empty generated PCM through the actual n
 - [Tests/Reports/tts-2026-10-22/final-model-cleanup.json](../Tests/Reports/tts-2026-10-22/final-model-cleanup.json)
 - [Tests/Reports/tts-2026-10-22/owner-cache-preservation.json](../Tests/Reports/tts-2026-10-22/owner-cache-preservation.json)
 
+### Pocket: quiet-room speaker-output attempt
+
+Actual production playback backing with native48k mono microphone observation under paced native Parakeet-v3 decoder load. Threshold-qualified arrival, not human perception or full-turn latency. **measured**
+
+- [Tests/Reports/tts-2026-10-22/speaker-quiet/pocket.json](../Tests/Reports/tts-2026-10-22/speaker-quiet/pocket.json)
+- [Tests/Reports/tts-2026-10-22/speaker-quiet/summary.json](../Tests/Reports/tts-2026-10-22/speaker-quiet/summary.json)
+- [Tests/Reports/tts-2026-10-22/README.md](../Tests/Reports/tts-2026-10-22/README.md)
+- [Tests/Reports/tts-2026-10-22/speaker-quiet-source-pins.json](../Tests/Reports/tts-2026-10-22/speaker-quiet-source-pins.json)
+
 ### Pocket: native speaker-output experiment
 
 Actual production playback backing with native48k mono microphone observation under paced native Parakeet-v3 decoder load. Threshold-qualified arrival, not human perception or full-turn latency. **partial**
@@ -53,6 +71,15 @@ Known English text request to first non-empty generated PCM through the actual n
 - [Tests/Reports/tts-2026-10-22/verification.json](../Tests/Reports/tts-2026-10-22/verification.json)
 - [Tests/Reports/tts-2026-10-22/final-model-cleanup.json](../Tests/Reports/tts-2026-10-22/final-model-cleanup.json)
 - [Tests/Reports/tts-2026-10-22/owner-cache-preservation.json](../Tests/Reports/tts-2026-10-22/owner-cache-preservation.json)
+
+### Phonon31m: quiet-room speaker-output attempt
+
+Actual production playback backing with native48k mono microphone observation under paced native Parakeet-v3 decoder load. Threshold-qualified arrival, not human perception or full-turn latency. **partial**
+
+- [Tests/Reports/tts-2026-10-22/speaker-quiet-phonon/phonon.json](../Tests/Reports/tts-2026-10-22/speaker-quiet-phonon/phonon.json)
+- [Tests/Reports/tts-2026-10-22/speaker-quiet-phonon/summary.json](../Tests/Reports/tts-2026-10-22/speaker-quiet-phonon/summary.json)
+- [Tests/Reports/tts-2026-10-22/README.md](../Tests/Reports/tts-2026-10-22/README.md)
+- [Tests/Reports/tts-2026-10-22/speaker-quiet-source-pins.json](../Tests/Reports/tts-2026-10-22/speaker-quiet-source-pins.json)
 
 ### Phonon31m: native speaker-output experiment
 
@@ -85,6 +112,15 @@ Five completed native generated-PCM comparisons plus a prepared separate physica
 - [Tests/Reports/tts-2026-10-22/output-maximum-latency-original.json](../Tests/Reports/tts-2026-10-22/output-maximum-latency-original.json)
 - [Tests/Reports/tts-2026-10-22/output-maximum-latency-fixed.json](../Tests/Reports/tts-2026-10-22/output-maximum-latency-fixed.json)
 
+### Kokoro: quiet-room speaker-output attempt
+
+Actual production playback backing with native48k mono microphone observation under paced native Parakeet-v3 decoder load. Threshold-qualified arrival, not human perception or full-turn latency. **partial**
+
+- [Tests/Reports/tts-2026-10-22/speaker-quiet-remaining/kokoro.json](../Tests/Reports/tts-2026-10-22/speaker-quiet-remaining/kokoro.json)
+- [Tests/Reports/tts-2026-10-22/speaker-quiet-remaining/summary.json](../Tests/Reports/tts-2026-10-22/speaker-quiet-remaining/summary.json)
+- [Tests/Reports/tts-2026-10-22/README.md](../Tests/Reports/tts-2026-10-22/README.md)
+- [Tests/Reports/tts-2026-10-22/speaker-quiet-source-pins.json](../Tests/Reports/tts-2026-10-22/speaker-quiet-source-pins.json)
+
 ### Kokoro: native speaker-output experiment
 
 Actual production playback backing with native48k mono microphone observation under paced native Parakeet-v3 decoder load. Threshold-qualified arrival, not human perception or full-turn latency. **partial**
@@ -106,6 +142,15 @@ Known English text request to first non-empty generated PCM through the actual n
 - [Tests/Reports/tts-2026-10-22/verification.json](../Tests/Reports/tts-2026-10-22/verification.json)
 - [Tests/Reports/tts-2026-10-22/final-model-cleanup.json](../Tests/Reports/tts-2026-10-22/final-model-cleanup.json)
 - [Tests/Reports/tts-2026-10-22/owner-cache-preservation.json](../Tests/Reports/tts-2026-10-22/owner-cache-preservation.json)
+
+### macOS: quiet-room speaker-output attempt
+
+Actual production playback backing with native48k mono microphone observation under paced native Parakeet-v3 decoder load. Threshold-qualified arrival, not human perception or full-turn latency. **partial**
+
+- [Tests/Reports/tts-2026-10-22/speaker-quiet/apple.json](../Tests/Reports/tts-2026-10-22/speaker-quiet/apple.json)
+- [Tests/Reports/tts-2026-10-22/speaker-quiet/summary.json](../Tests/Reports/tts-2026-10-22/speaker-quiet/summary.json)
+- [Tests/Reports/tts-2026-10-22/README.md](../Tests/Reports/tts-2026-10-22/README.md)
+- [Tests/Reports/tts-2026-10-22/speaker-quiet-source-pins.json](../Tests/Reports/tts-2026-10-22/speaker-quiet-source-pins.json)
 
 ### macOS: native speaker-output experiment
 

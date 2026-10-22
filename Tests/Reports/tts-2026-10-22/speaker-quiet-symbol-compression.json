@@ -1,0 +1,13 @@
+{
+  "scope": "Compress symbols emitted by this task latest portable relink; installed809 and baseline symbols untouched. Exact file hashes retained in verified zip. No owner models or other build products removed.",
+  "originalBytes": 424129586,
+  "compressedBytes": 98551585,
+  "verifiedFileHashes": {
+    "Contents/Info.plist": "924a28807848ef895af941e37d48244a0119e251648f21bb64498127b68e26b2",
+    "Contents/Resources/DWARF/NextNotes.portable.partial": "9ea2a52398a29bd89c71fe3fa99bc86c9027fb16cbcd0323f4fc5260ca5a75a4",
+    "Contents/Resources/Relocations/aarch64/NextNotes.portable.partial.yml": "8211d7d3bedc8bab9a52eab0aed64ca958cd9ab0436c75de7ede83f68911467b"
+  },
+  "freeBytesBefore": 2665775104,
+  "freeBytesAfter": 3697541120,
+  "retainedArchive": "/Users/sergekadjo/Library/Caches/NextNotesBuild/tts-output-diagnostic/symbols-685243da.zip"
+}

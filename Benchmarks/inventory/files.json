@@ -10886,6 +10886,10 @@
       "category": "tts"
     },
     {
+      "path": "Tests/Reports/tts-2026-10-22/owner-caches-quiet-after.json",
+      "category": "tts"
+    },
+    {
       "path": "Tests/Reports/tts-2026-10-22/owner-caches-speaker-after.json",
       "category": "tts"
     },
@@ -11214,6 +11218,94 @@
       "category": "tts"
     },
     {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-quiet-phonon/phonon.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-quiet-phonon/phonon.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-quiet-phonon/preflight.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-quiet-phonon/summary.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-quiet-preservation.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-quiet-remaining/kokoro.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-quiet-remaining/kokoro.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-quiet-remaining/phonon.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-quiet-remaining/preflight.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-quiet-remaining/summary.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-quiet-source-pins.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-quiet-symbol-compression.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-quiet/apple.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-quiet/apple.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-quiet/kokoro.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-quiet/phonon.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-quiet/pocket.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-quiet/pocket.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-quiet/preflight.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-quiet/qwen.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-quiet/qwen.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-quiet/summary.json",
+      "category": "tts"
+    },
+    {
       "path": "Tests/Reports/tts-2026-10-22/speaker-reference-asr-baseline/ready.json",
       "category": "asr"
     },
@@ -11271,6 +11363,42 @@
     },
     {
       "path": "Tests/Reports/tts-2026-10-22/speaker-reference-asr-native/rpc.json.diagnostic.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-reference-asr-quiet-phonon/ready.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-reference-asr-quiet-phonon/receipt.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-reference-asr-quiet-phonon/rpc.json.diagnostic.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-reference-asr-quiet-remaining/ready.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-reference-asr-quiet-remaining/receipt.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-reference-asr-quiet-remaining/rpc.json.diagnostic.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-reference-asr-quiet/ready.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-reference-asr-quiet/receipt.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-reference-asr-quiet/rpc.json.diagnostic.json",
       "category": "asr"
     },
     {

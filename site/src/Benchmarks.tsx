@@ -18,8 +18,11 @@ const ttsRows = [
   { id: "qwen", name: "Qwen3-TTS", bytes: 1698367268 },
 ].map(voice => {
   const generated = data.runs.find(run => run.id === `2026-10-22-tts-${voice.id}-native`);
-  const speaker = data.runs.find(run => run.id === `2026-10-22-tts-${voice.id}-speaker-output`);
+  const speaker = data.runs.find(run => run.id === `2026-10-22-tts-${voice.id}-speaker-quiet`)
+    ?? data.runs.find(run => run.id === `2026-10-22-tts-${voice.id}-speaker-output`);
   return { ...voice,
+    speakerId: speaker?.id,
+    status: speaker?.status,
     pcm: generated?.metrics.find(metric => metric.name === "Warm first generated PCM")?.value,
     sound: speaker?.metrics.find(metric => metric.name === "Warm microphone pickup median")?.value,
     confirmed: speaker?.metrics.find(metric => metric.name === "Qualified warm microphone trials")?.value,
@@ -74,16 +77,17 @@ export default function Benchmarks() {
             <caption>M3 MacBook Air · 16 GB · 22 October 2026</caption>
             <thead><tr><th scope="col">Voice</th><th scope="col">Audio prepared</th><th scope="col">Preparation wait vs Qwen</th><th scope="col">Sound at microphone</th><th scope="col">Extra model space</th><th scope="col">Size vs largest</th></tr></thead>
             <tbody>{ttsRows.map(voice => <tr key={voice.id}>
-              <th scope="row"><a href={`#2026-10-22-tts-${voice.id}-speaker-output`}>{voice.name}</a></th>
+              <th scope="row"><a href={`#${voice.speakerId ?? `2026-10-22-tts-${voice.id}-native`}`}>{voice.name}</a></th>
               <td>{voice.pcm !== undefined ? `${voice.pcm.toLocaleString(undefined, { maximumFractionDigits: 1 })} ms` : "Not measured"}</td>
               <td>{voice.pcm !== undefined ? `${(voice.pcm / 2709.3025 * 100).toFixed(1)}%` : "—"}</td>
-              <td>{voice.sound !== undefined ? `${Math.round(voice.sound)} ms` : voice.attempted !== undefined && voice.attempted > 0 ? `Incomplete (${voice.confirmed ?? 0}/${voice.attempted} confirmed)` : "Not run"}</td>
+              <td>{voice.sound !== undefined ? `${Math.round(voice.sound)} ms` : voice.attempted !== undefined && voice.attempted > 0 ? `Incomplete (${voice.confirmed ?? 0}/${voice.attempted} confirmed)` : voice.status === "failed" ? "Stopped: low disk space" : "Not run: low disk space"}</td>
               <td>{voice.bytes === 0 ? "Built in" : `≈${Math.round(voice.bytes / 1000000)} MB`}</td>
               <td>{`${Math.round(voice.bytes / 1698367268 * 100)}%`}</td>
             </tr>)}</tbody>
           </table></div>
           <p className="text-muted-foreground">Preparation: median of five warm same-text requests to first generated audio, before playback. The percentage is that wait divided by Qwen’s 2,709 ms; lower means less waiting. It does not rank speaker output. Model space uses prepared files, including shared Kokoro assets once; Apple’s existing system assets are excluded. Downloads and runtime memory are separate.</p>
           <p className="text-muted-foreground">Speaker tests use the actual playback backings, laptop speakers and native-format microphone, with concurrent speech-decoder load. Pickup requires matching audio and two consecutive 10 ms windows above the room threshold. This includes the acoustic and input paths; it is not human perceptual onset or full conversation latency. An incomplete result has no accepted speaker median. Each temporary model is removed before the next starts.</p>
+          <p className="text-muted-foreground">The speaker column shows the later quiet-room attempt. A median requires all 30 repeat requests to qualify; the first request after preparation is separate. Pocket completed that check. The other voices remain incomplete or stopped, so this does not establish the fastest default.</p>
         </section>
         <form className="benchmark-filters" onSubmit={event => event.preventDefault()}>
           <label>Search results<input type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Model or workflow" /></label>
