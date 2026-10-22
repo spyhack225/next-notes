@@ -1,0 +1,5 @@
+Wrote [REVIEW.md](/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/review-leak/REVIEW.md).
+
+Verdict: **REJECT**. Visible EOF prefixes such as `<thi` are deleted, and the fixture expects that loss. RED/GREEN fixture hashes match.
+
+Posted the result to `claude-positioning`. No builds or self-tests ran.
