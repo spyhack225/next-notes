@@ -1,0 +1,8 @@
+{
+  "path": "/Applications/Next Notes.app",
+  "binary_sha256": "a10290cf1fc5b4c86bff2c3a8aba4192144edb82bfef2354d6b3bbc4a3d87687",
+  "version": "0.2.24",
+  "build": "1",
+  "bundle_id": "ai.pivotstudio.nextnotes",
+  "signature_check_exit": 0
+}

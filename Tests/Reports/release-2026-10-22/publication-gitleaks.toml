@@ -1,0 +1,10 @@
+[extend]
+useDefault = true
+[[allowlists]]
+description = "SHA source/binary digests are integrity evidence"
+regexTarget = "secret"
+regexes = ['''\b[0-9a-fA-F]{64}\b''']
+[[allowlists]]
+description = "Synthetic playback assertion label, not an authorization token"
+regexTarget = "match"
+regexes = ['''OUTPUT_TOKEN_ASSERT label=''']

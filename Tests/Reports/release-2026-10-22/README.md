@@ -14,6 +14,10 @@ The original installer unconditionally used `pkill -x NextNotes` and swept unrel
 
 [Regression](check-installer.py) redirects only `/Applications` into a disposable directory; it uses real signed Mach-O bundles and intercepts the old `pkill` rather than executing it. Original fails preservation; fixed passes. Separate invalid-signature and actual active-process cases refuse installation with the old app intact. [Results](installer-check.json). No owner app/data is used by this fixture.
 
+## Obsolete compiler cleanup
+
+Both active owners acknowledged the exact scope. Old cache metadata points to the removed dictation-perf and voice-ack worktrees; no process had files open in either root. Seven named compiler-intermediate folders were retired, preserving all Products, executables, dependency artifacts/checkouts, the current shared native cache and owner data. [Receipt](obsolete-cache-cleanup.json): 2,868,121,600 allocated bytes unlinked; observed free space 5,713,080,320 → 8,594,358,272 bytes. Native and retained old executable hashes are unchanged. The ASR agent separately retired 2,297,290,752 allocated bytes of unused SwiftBuild intermediates under the shared scratch's separate `out/` tree. These are scoped removals, not unique APFS physical attribution.
+
 ## Pending receipts
 
 Combined source freeze, optimized build, candidate native checks, unchanged owner witness, installed signature/binary receipt, public history scan and live website asset verification remain pending.
