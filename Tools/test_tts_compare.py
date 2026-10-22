@@ -28,9 +28,14 @@ assert pathlib.Path(tempfile.gettempdir()).resolve() == root.resolve()
 engine = arg("--tts-engine")
 if arg("--tts-text") == "timeout": time.sleep(30)
 if arg("--tts-text") == "failure": sys.exit(1)
+speaker = "--tts-speaker-output" in a
+trial = {"phase": "warm", "firstPCMms": 12.0}
+if speaker:
+ trial = {"phase": "warm", "output": {"qualified": arg("--tts-text") != "unqualified",
+          "acousticOnsetMs": None if arg("--tts-text") == "unqualified" else 34.0}}
 pathlib.Path(arg("--tts-report")).write_text(json.dumps({
- "schema": "nextnotes.tts-first-pcm.v1", "engine": engine,
- "trials": [{"phase": "warm", "firstPCMms": 12.0}] * int(arg("--tts-trials"))}))
+ "schema": "nextnotes.tts-speaker-output.v1" if speaker else "nextnotes.tts-first-pcm.v1", "engine": engine,
+ "trials": [trial] * int(arg("--tts-trials"))}))
 ''')
         self.app.chmod(0o700)
         self.created = []
@@ -61,6 +66,19 @@ pathlib.Path(arg("--tts-report")).write_text(json.dumps({
             self.assertTrue(result["cleanupVerified"])
             self.assertTrue((self.output / (engine + ".json")).exists())
         self.assertEqual(len(self.created), 2)
+
+    def test_speaker_mode_preserves_qualified_pickup_boundary(self):
+        result = bench.run_one(self.app, "phonon", self.output, 3, "fixture", 5, speaker_output=True)
+        self.assertEqual(result["timingBoundary"], "microphone-pickup")
+        self.assertEqual(result["warmMedianMs"], 34)
+        self.assertTrue(result["cleanupVerified"])
+
+    def test_unqualified_acoustic_samples_never_become_a_zero_or_generated_pcm_result(self):
+        result = bench.run_one(self.app, "phonon", self.output, 3, "unqualified", 5, speaker_output=True)
+        self.assertEqual(result["status"], "partial")
+        self.assertNotIn("warmMedianMs", result)
+        self.assertIsNone(result["measurement"]["trials"][0]["output"]["acousticOnsetMs"])
+        self.assertTrue(result["cleanupVerified"])
 
     def test_result_is_on_disk_before_model_deletion(self):
         original = bench.shutil.rmtree

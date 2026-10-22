@@ -24,6 +24,7 @@ with tempfile.TemporaryDirectory(prefix='nextnotes-tts-source-') as directory:
 import Foundation
 import OSLog
 ''' + protocol + '''
+struct AudioChunk: @unchecked Sendable { let buffer: AVAudioPCMBuffer; let captureHostTime: UInt64? }
 enum SelfTest {
     static let isRunning = true
     static let requested: String? = "--selftest-tts-source"
@@ -69,7 +70,7 @@ final class AcousticEchoProcessor: @unchecked Sendable {
         if arguments[i] in ('-I','-F','-sdk','-Xcc','-target'):
             imports += arguments[i:i+2]; i += 2
         else: i += 1
-    sources = [speech / n for n in ('AgentPCMRenderer.swift','PocketSourceSpeechBacking.swift','RealtimePCMFloatRing.swift','RealtimePCMReferenceRing.swift')]
+    sources = [speech / n for n in ('AgentPCMRenderer.swift','PocketSourceSpeechBacking.swift','RealtimePCMFloatRing.swift','RealtimePCMReferenceRing.swift','TTSOutputProbe.swift')]
     if phase in ('original','pause-only'):
         baseline = subprocess.check_output(['git','show','0dbba940:Sources/NextNotes/Agent/Speech/AgentPCMRenderer.swift'],text=True,cwd=repo)
         if phase == 'pause-only':

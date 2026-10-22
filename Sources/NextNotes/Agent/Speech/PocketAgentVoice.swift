@@ -21,6 +21,15 @@ final class PocketAgentVoice {
         terminationFixtureTrace = nil
     }
 
+    /// Reuse the sole already-loaded, disposable benchmark manager.
+    init(benchmarkManager: PocketTtsManager) {
+        precondition(SelfTest.requested == "--selftest-tts-benchmark")
+        manager = benchmarkManager
+        terminationFixtureRoot = nil
+        terminationFixtureTrace = nil
+        isReady = true
+    }
+
     init(terminationFixtureRoot: URL, trace: StartupTerminationTrace) throws {
         let root = try NativeStartupTerminationSelfTest.validateAssets(terminationFixtureRoot, pocket: true)
         self.terminationFixtureRoot = root
@@ -423,8 +432,9 @@ final class PocketSpeechBacking: AgentReplySpeechBacking {
     var onFailure: ((String, Float, UInt64) -> Void)?
 
     init(voiceForTesting: String? = nil, voiceOwnerForTesting: PocketAgentVoice? = nil) {
-        let fixture = SelfTest.requested == "--selftest-tts-pocket"
-            && CommandLine.arguments.contains("--tts-pocket-pipeline")
+        let fixture = (SelfTest.requested == "--selftest-tts-pocket"
+            && CommandLine.arguments.contains("--tts-pocket-pipeline"))
+            || SelfTest.requested == "--selftest-tts-benchmark"
         self.voiceForTesting = fixture ? voiceForTesting : nil
         voiceOwner = fixture ? (voiceOwnerForTesting ?? .shared) : .shared
         engine.attach(player)

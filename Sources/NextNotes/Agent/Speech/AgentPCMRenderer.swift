@@ -240,6 +240,11 @@ final class AgentPCMRenderer {
                 buffer.frameLength = 160
                 let frame = core.reference.read(into: samples, count: 160)
                 guard frame.frames == 160 else { break }
+                if TTSOutputProbe.enabled {
+                    TTSOutputProbe.rendered(buffer, host: frame.firstHostTime == 0 ? nil : frame.firstHostTime,
+                        latency: Double(core.outputLatencyNanoseconds.load(ordering: .acquiring)) / 1_000_000_000,
+                        origin: "source-\(ObjectIdentifier(core).hashValue)-token-\(core.renderedToken.load(ordering: .acquiring))")
+                }
                 AcousticEchoProcessor.shared.feedRendered(buffer,
                     renderHostTime: frame.firstHostTime == 0 ? nil : frame.firstHostTime,
                     outputPresentationLatency: Double(core.outputLatencyNanoseconds.load(

@@ -53,7 +53,7 @@ def stop_process_group(process):
     process.wait()
 
 
-def run_one(app, engine, output, trials, text, timeout):
+def run_one(app, engine, output, trials, text, timeout, speaker_output=False):
     """Return only after result persistence, process exit and verified cleanup."""
     root = Path(tempfile.mkdtemp(prefix="nextnotes-tts-"))
     (root / ".benchmark-owned").write_text(engine)
@@ -71,7 +71,9 @@ def run_one(app, engine, output, trials, text, timeout):
             args = [str(app), "--selftest-tts-benchmark", "--tts-engine", engine,
                     "--tts-model-root", str(root), "--tts-trials", str(trials),
                     "--tts-text", text, "--tts-report", str(child_path)]
-            if engine in ("phonon", "qwen"):
+            if speaker_output:
+                args.append("--tts-speaker-output")
+            if not speaker_output and engine in ("phonon", "qwen"):
                 args.append("--tts-playback-check")
             print(f"{engine}: preparing one model, then measuring; log: {output / (engine + '.log')}", flush=True)
             with (output / (engine + ".log")).open("w") as log:
@@ -99,15 +101,22 @@ def run_one(app, engine, output, trials, text, timeout):
             result["exitCode"] = code
             if code == 0 and child_path.exists():
                 measurement = json.loads(child_path.read_text())
-                if measurement.get("schema") != "nextnotes.tts-first-pcm.v1" or measurement.get("engine") != engine:
+                if measurement.get("schema") != ("nextnotes.tts-speaker-output.v1" if speaker_output else "nextnotes.tts-first-pcm.v1") or measurement.get("engine") != engine:
                     raise ValueError("Wrong measurement schema or engine")
-                values = [row["firstPCMms"] for row in measurement["trials"] if row["phase"] == "warm"]
-                if len(values) != trials or not all(isinstance(v, (int, float)) and math.isfinite(v) and v >= 0 for v in values):
+                values = [(row.get("output", {}).get("acousticOnsetMs") if speaker_output else row["firstPCMms"])
+                          for row in measurement["trials"] if row["phase"] == "warm"]
+                if speaker_output and (any(v is None for v in values) or
+                        any(not row.get("output", {}).get("qualified", False) for row in measurement["trials"] if row["phase"] == "warm")):
+                    result.update(status="partial", measurement=measurement,
+                                  reason="At least one acoustic trial unqualified; no audible median accepted.")
+                elif len(values) != trials or not all(isinstance(v, (int, float)) and math.isfinite(v) and v >= 0 for v in values):
                     raise ValueError("Missing or invalid warm samples")
-                ordered = sorted(values)
-                result.update(status="measured", measurement=measurement,
-                              warmMedianMs=statistics.median(values),
-                              warmP95Ms=ordered[max(0, math.ceil(.95 * len(ordered)) - 1)])
+                else:
+                    ordered = sorted(values)
+                    result.update(status="measured", measurement=measurement,
+                                  timingBoundary="microphone-pickup" if speaker_output else "first-generated-pcm",
+                                  warmMedianMs=statistics.median(values),
+                                  warmP95Ms=ordered[max(0, math.ceil(.95 * len(ordered)) - 1)])
             elif "reason" not in result:
                 result["reason"] = "Engine failed; see its log. No timing result was accepted."
         result["elapsedSeconds"] = time.monotonic() - started
@@ -142,6 +151,7 @@ def main():
     parser.add_argument("--text", default="I found three matching files. The latest is enclosure version seventeen.")
     parser.add_argument("--timeout", type=float, default=600, help="Per-engine preparation and measurement deadline")
     parser.add_argument("--workload", default="Standalone; ASR-plus-voice reference workload is unqualified")
+    parser.add_argument("--speaker-output", action="store_true", help="Measure actual playback and correlated microphone pickup; requires granted mic and speakers")
     parser.add_argument("--preflight-only", action="store_true", help="Save resource/claim state without loading or downloading anything")
     parser.add_argument("--relay-owner", help="Reuse this agent's existing heavy claim; never release another owner's claim")
     parser.add_argument("--max-swap-gb", type=float, default=8,
@@ -193,7 +203,8 @@ def main():
             digest = hashlib.file_digest(binary, "sha256").hexdigest()
         for engine in engines:
             # Sequential by construction: run_one saves, joins and deletes before returning.
-            results.append(run_one(options.app, engine, options.output, options.trials, options.text, options.timeout))
+            results.append(run_one(options.app, engine, options.output, options.trials, options.text, options.timeout,
+                                   speaker_output=options.speaker_output))
             save(options.output / "summary.json", {"appSHA256": digest, "machine": platform.platform(),
                  "workload": options.workload, "results": results})
     finally:

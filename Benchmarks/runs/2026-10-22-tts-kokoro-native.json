@@ -27,7 +27,7 @@
       "name": "Warm first generated PCM",
       "value": 224.113584,
       "unit": "ms",
-      "boundary": "Known text request → first non-empty generated PCM; not speaker output.",
+      "boundary": "Known text request \u2192 first non-empty generated PCM; not speaker output.",
       "samples": 5,
       "aggregation": "median"
     },
@@ -35,7 +35,7 @@
       "name": "First synthesis after preparation",
       "value": 904.192583,
       "unit": "ms",
-      "boundary": "Known text request → first non-empty generated PCM on first synthesis after load; not hardware-cold.",
+      "boundary": "Known text request \u2192 first non-empty generated PCM on first synthesis after load; not hardware-cold.",
       "samples": 1,
       "aggregation": "single observation"
     },
@@ -43,7 +43,7 @@
       "name": "Preparation",
       "value": 8549.639042,
       "unit": "ms",
-      "boundary": "Start preparation → runtime ready; includes download/load or APFS cache adoption.",
+      "boundary": "Start preparation \u2192 runtime ready; includes download/load or APFS cache adoption.",
       "samples": 1,
       "aggregation": "single observation"
     }
@@ -65,8 +65,8 @@
     "Tests/Reports/tts-2026-10-22/owner-cache-preservation.json"
   ],
   "publication": {
-    "approved": false,
-    "reviewed_by": null,
-    "reviewed_on": null
+    "approved": true,
+    "reviewed_by": "Codex TTS: public fields reviewed for privacy and generated-PCM scope",
+    "reviewed_on": "2026-10-22"
   }
 }

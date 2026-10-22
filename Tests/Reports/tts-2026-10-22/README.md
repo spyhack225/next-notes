@@ -131,3 +131,41 @@ Physical-device route changes, rapid real-room barge-in, actual first audible ou
 clicks, narration UI, linguistic quality and full-duplex ASR-plus-voice reference acceptance remain open.
 The new native generation/playback and scoped TTFA comparison are verified; broader release readiness
 and model/default promotion are not claimed. The older independent Apple/Piper probe remains intact.
+
+
+## Speaker-start follow-up (source prepared, native measurements pending)
+
+The owner's next request adds five-choice speed/space comparison in Models Settings,
+links to the same public benchmark page, and a separate `--tts-speaker-output` mode in
+`Tools/tts_compare.py`. Component records have been privacy-reviewed for publication.
+The fastest speaker default is deliberately undecided until actual qualified evidence;
+existing saved voice selections and the current fallback remain unchanged.
+
+The new observer reads the existing AudioCaptureHub raw subscription and actual rendered
+reference; it opens no second microphone or AEC pipeline and saves no microphone recording.
+It retains at most 8,000 timestamped 10 ms energy windows per stream/trial. Capture begins
+before synthesis; a 700 ms quiet baseline precedes each varied phrase. Actual production
+Apple/Pocket/Kokoro playback backings and the existing injected native source backing are
+used with the single already-loaded temporary model. Pocket's native reply session is
+included, rather than re-labelling its earlier one-shot generation result as playback.
+
+The report separates first post-gain non-silent rendered sample (absolute threshold 0.001),
+its native host timestamp, output graph/epoch or renderer token, the output-node maximum
+presentation-latency estimate, and microphone pickup. Presentation is an estimate, never
+an acoustic receipt. Pickup requires a matching rendered/microphone envelope (correlation
+>=0.75 over up to 1.5 s), room RMS <0.01, >=300 ms baseline, onset >max(0.001 RMS, 4x
+baseline), consistent input/output device IDs, timestamps and no capture overflow. Missing
+qualification remains null/partial and cannot supply an audible median or default winner.
+Detection is threshold-dependent at 10 ms energy resolution, not human perceptual onset.
+One prepared trial plus 30 varied paced warm trials/model are planned. Each model is saved,
+joined and deleted before the next; native runs must wait for the combined build window.
+
+Focused validation before combined compilation: the exact observer compiles under Swift 6;
+authored correlated 80 ms pickup controls pass, silence supplies no rendered/acoustic start,
+and overflow invalidates a previously qualified observation. Ten actual child-process runner
+regressions pass, including qualified pickup, absent acoustic data, save-before-delete,
+timeout/low-disk cleanup and owner-model preservation. These controls are not physical data.
+
+Reviewed alignment: [voice-turn detection handoff](../../../roadmap/in-progress/VOICE-TURN-DETECTION/04-TTS-AUDIBLE-ALIGNMENT.md).
+Full-turn ASR/EOU, normal concurrent ASR workload, double-talk, language/voice quality,
+physical-route matrix and fastest-default qualification remain separate open contracts.

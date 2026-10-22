@@ -20,6 +20,10 @@ enum VoicePlaybackReference {
                 // Engine graph getters can wait for shutdown; never call them from its tap.
                 let presentationLatency = engine.outputNode.outputPresentationLatency
                 guard generation == currentEpoch() else { return }
+                if TTSOutputProbe.enabled {
+                    TTSOutputProbe.rendered(owned.buffer, host: hostTime, latency: presentationLatency,
+                        origin: "mixer-\(ObjectIdentifier(engine).hashValue)-epoch-\(generation)")
+                }
                 AcousticEchoProcessor.shared.feedRendered(owned.buffer,
                     renderHostTime: hostTime, tapArrivalHostTime: tapArrivalHostTime,
                     outputPresentationLatency: presentationLatency)

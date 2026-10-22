@@ -22,6 +22,8 @@ struct ModelsSettingsTab: View {
     @State private var qwenVoice = NativeAgentVoice.qwen
     @State private var phononVoice = NativeAgentVoice.phonon
     @State private var functionCalls = FunctionCallStore.shared
+    @State private var isSelectingVoice = false
+    @State private var showingVoiceBenchmarks = false
     @State private var isPreviewing = false
     @State private var previewTask: Task<Void, Never>?
     @State private var previewOutput: OutputHandle?
@@ -813,11 +815,15 @@ struct ModelsSettingsTab: View {
 
     private var speechSynthesis: some View {
         Section {
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 120))], spacing: DS.Space.s) {
-                ForEach(VoiceEngine.allCases) { engine in
-                    engineChoice(engine)
-                }
+            ForEach(VoiceEngine.allCases) { engine in
+                engineChoice(engine)
             }
+            Text("Audio generation · lower is quicker. Percentages compare each wait with Qwen3-TTS, the slowest measured here. Speaker-start results are separate.")
+                .font(DS.Font.caption).foregroundStyle(DS.Color.textSecondary)
+            Text("Space · approximate prepared files on this Mac, as a percentage of the largest model. Setup can temporarily need more. These are disk sizes, not memory use.")
+                .font(DS.Font.caption).foregroundStyle(DS.Color.textSecondary)
+            Button("Compare all voice results") { showingVoiceBenchmarks = true }
+                .sheet(isPresented: $showingVoiceBenchmarks) { BenchmarkResultsView() }
 
             if pocket.isPreparing || kokoro.isPreparing {
                 ProgressView(pocket.isPreparing ? "Preparing Pocket TTS…" : "Preparing Kokoro…")
@@ -906,12 +912,20 @@ struct ModelsSettingsTab: View {
         return Button {
             select(engine)
         } label: {
-            VStack(alignment: .leading, spacing: DS.Space.xxs) {
-                Label(engine.name, systemImage: engine.icon)
-                    .font(DS.Font.callout)
-                Text(engineStatus(engine))
-                    .font(DS.Font.caption)
-                    .foregroundStyle(DS.Color.textSecondary)
+            HStack(spacing: DS.Space.m) {
+                Image(systemName: selected ? "checkmark.circle.fill" : "circle")
+                    .foregroundStyle(selected ? DS.Color.accent : DS.Color.textSecondary)
+                VStack(alignment: .leading, spacing: DS.Space.xxs) {
+                    Text(engine.name).font(DS.Font.callout)
+                    Text(engineStatus(engine)).font(DS.Font.caption)
+                        .foregroundStyle(DS.Color.textSecondary)
+                }
+                Spacer()
+                VStack(alignment: .trailing, spacing: DS.Space.xxs) {
+                    Text(generationComparison(engine)).font(DS.Font.caption)
+                    Text(spaceComparison(engine)).font(DS.Font.caption)
+                        .foregroundStyle(DS.Color.textSecondary)
+                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(DS.Space.s)
@@ -923,8 +937,7 @@ struct ModelsSettingsTab: View {
             }
         }
         .buttonStyle(.plain)
-        .disabled(qwenVoice.isPreparing || phononVoice.isPreparing || unavailable || (engine == .pocket && pocket.isPreparing)
-                  || (engine == .kokoro && kokoro.isPreparing))
+        .disabled(voicePreparationInProgress || unavailable)
         .help(unavailable ? KokoroAgentVoice.unavailableMessage : "Use \(engine.name) for Agent speech")
     }
 
@@ -941,33 +954,58 @@ struct ModelsSettingsTab: View {
         }
     }
 
+    private var voicePreparationInProgress: Bool {
+        isSelectingVoice || pocket.isPreparing || kokoro.isPreparing
+            || qwenVoice.isPreparing || phononVoice.isPreparing
+    }
+
+    private func generationComparison(_ engine: VoiceEngine) -> String {
+        let wait: Double = switch engine {
+        case .apple: 8.976667
+        case .pocket: 58.9975
+        case .kokoro: 224.113584
+        case .phonon: 7.8
+        case .qwen: 2709.3025
+        }
+        return String(format: "%.0f ms · %.1f%% of longest wait", wait, wait / 2709.3025 * 100)
+    }
+
+    private func spaceComparison(_ engine: VoiceEngine) -> String {
+        // Same serial diagnostic's logical temporary model-root sizes; shared
+        // Kokoro G2P is included. Rounded estimates exclude built-in system voices.
+        let bytes: Double = switch engine {
+        case .apple: 0
+        case .pocket: 454_246_490
+        case .kokoro: 107_370_410
+        case .phonon: 323_569_035
+        case .qwen: 1_698_367_268
+        }
+        if bytes == 0 { return "Built in · 0% extra model space" }
+        return String(format: "≈%.0f MB · %.0f%% of largest model", bytes / 1_000_000, bytes / 1_698_367_268 * 100)
+    }
+
     private func select(_ engine: VoiceEngine) {
+        // Set admission synchronously, before the Task can yield. All five
+        // buttons share this existing preparation state, so rapid clicks cannot
+        // start downloads for two different voices.
+        guard !voicePreparationInProgress else { return }
+        guard engine != .kokoro || KokoroAgentVoice.isSupportedOS else { return }
         stopPreview()
-        switch engine {
-        case .qwen, .phonon:
-            let voice = engine == .qwen ? qwenVoice : phononVoice
-            Task {
+        isSelectingVoice = true
+        Task { @MainActor in
+            defer { isSelectingVoice = false }
+            switch engine {
+            case .apple: settings.agentVoiceEngine = engine.rawValue
+            case .pocket:
+                await pocket.prepare()
+                if pocket.isReady { settings.agentVoiceEngine = engine.rawValue }
+            case .kokoro:
+                await kokoro.prepare()
+                if kokoro.isReady { settings.agentVoiceEngine = engine.rawValue }
+            case .qwen, .phonon:
+                let voice = engine == .qwen ? qwenVoice : phononVoice
                 await voice.prepare(download: true)
                 if voice.isReady { settings.agentVoiceEngine = engine.rawValue }
-            }
-        case .apple:
-            settings.agentVoiceEngine = engine.rawValue
-        case .pocket:
-            if pocket.isReady { settings.agentVoiceEngine = engine.rawValue }
-            else {
-                Task {
-                    await pocket.prepare()
-                    if pocket.isReady { settings.agentVoiceEngine = engine.rawValue }
-                }
-            }
-        case .kokoro:
-            guard KokoroAgentVoice.isSupportedOS else { return }
-            if kokoro.isReady { settings.agentVoiceEngine = engine.rawValue }
-            else {
-                Task {
-                    await kokoro.prepare()
-                    if kokoro.isReady { settings.agentVoiceEngine = engine.rawValue }
-                }
             }
         }
     }
@@ -989,8 +1027,7 @@ struct ModelsSettingsTab: View {
             return "Pocket TTS and macOS voices work now. Kokoro is disabled on macOS 26.4–26.5 "
                 + "because its Core ML runtime can crash; macOS 26.6 is required."
         }
-        return "Choose one engine, then a voice, and preview it here. Pocket TTS downloads "
-            + "about 550 MB on first use. Qwen3-TTS needs about 1.7 GB; Phonon downloads 137 MB and uses more space to prepare. Only the voice you choose is downloaded."
+        return "Choose a voice and preview it here. Downloads happen one at a time. The comparison uses five warm English trials on a 16 GB M3 MacBook Air; first use and speaker output can take longer. Benchmarks save each result and remove their temporary model before testing the next."
     }
 
     private func startPreview() {

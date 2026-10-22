@@ -130,7 +130,9 @@ final class KokoroSpeechBacking: NSObject, AgentSpeechBacking {
     var outputGain: Float { player.volume }
     func setOutputGain(_ gain: Float) { player.volume = max(0, min(1, gain)) }
 
-    override init() {
+    private let benchmarkSynthesis: (@MainActor (String) async throws -> Data)?
+    init(benchmarkSynthesis: (@MainActor (String) async throws -> Data)? = nil) {
+        self.benchmarkSynthesis = SelfTest.requested == "--selftest-tts-benchmark" ? benchmarkSynthesis : nil
         super.init()
         playbackEngine.attach(player)
         playbackEngine.connect(player, to: playbackEngine.mainMixerNode,
@@ -148,7 +150,9 @@ final class KokoroSpeechBacking: NSObject, AgentSpeechBacking {
         task = Task { @MainActor [weak self] in
             guard let self else { return }
             do {
-                let data = try await KokoroAgentVoice.shared.wav(for: text)
+                let data: Data
+                if let benchmarkSynthesis { data = try await benchmarkSynthesis(text) }
+                else { data = try await KokoroAgentVoice.shared.wav(for: text) }
                 try Task.checkCancellation()
                 guard generation == token else { return }
                 let path = FileManager.default.temporaryDirectory
