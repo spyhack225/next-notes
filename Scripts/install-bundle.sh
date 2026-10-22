@@ -9,7 +9,23 @@ BUNDLE=${BUNDLE:?}
 STAGE=${STAGE:-$(dirname "$(dirname "$BUNDLE")")}
 OPEN=${OPEN:-1}
 
-pkill -x "$EXEC" 2>/dev/null || true
+# Never stop another checkout's diagnostics (or interrupt an active recording).
+# The release caller closes the installed app gracefully before taking this lock.
+python3 - "/Applications/$APPNAME/Contents/MacOS/$EXEC" <<'PY'
+import ctypes, os, subprocess, sys
+installed = os.path.realpath(sys.argv[1])
+libproc = ctypes.CDLL('/usr/lib/libproc.dylib')
+active = []
+processes = subprocess.run(['pgrep', '-x', os.path.basename(installed)], capture_output=True, text=True)
+if processes.returncode not in (0, 1):
+    sys.exit('Could not check whether Next Notes is open; installed app retained.')
+for pid in processes.stdout.split():
+    path = ctypes.create_string_buffer(4096)
+    if libproc.proc_pidpath(int(pid), path, len(path)) > 0 and os.path.realpath(os.fsdecode(path.value)) == installed:
+        active.append(pid)
+if active:
+    sys.exit('Please quit Next Notes before installing. Your current work has not been interrupted.')
+PY
 
 # Our staging bundle lives in a directory named after this make invocation
 # (`install-<pid>`), so nothing here can be another run's half-assembled bundle.
@@ -17,14 +33,8 @@ pkill -x "$EXEC" 2>/dev/null || true
 # with respect to other installs and to a self-test waiting on the same lock.
 STAGE_RUN=$(dirname "$BUNDLE")
 
-# Old probe/rollback bundles in the stage root also register with LaunchServices and can
-# be selected in place of the installed app. Each is a `*.app` directly in the root, so
-# this cannot reach a live `install-<pid>/` directory.
-find "$STAGE" -maxdepth 1 -type d -name '*.app' -exec rm -rf {} +
-
-# A make that died between staging and swapping leaves its `install-<pid>/` behind. Reap
-# only directories older than a day, so a slow concurrent install is never touched.
-find "$STAGE" -maxdepth 1 -type d -name 'install-*' -mtime +1 -exec rm -rf {} +
+# Other build and rollback folders belong to their owners; install cleans only its
+# own staging directory after success.
 
 # Swap via a sibling `.new` bundle so LaunchServices never sees a half-deleted app.
 rm -rf "/Applications/${APPNAME}.new"
@@ -34,8 +44,22 @@ if [[ ! -x "/Applications/${APPNAME}.new/Contents/MacOS/${EXEC}" ]]; then
   rm -rf "/Applications/${APPNAME}.new"
   exit 1
 fi
-rm -rf "/Applications/${APPNAME}"
-mv "/Applications/${APPNAME}.new" "/Applications/${APPNAME}"
+if ! codesign --verify --deep --strict "/Applications/${APPNAME}.new"; then
+  rm -rf "/Applications/${APPNAME}.new"
+  echo "error: candidate signature failed; installed app retained" >&2
+  exit 1
+fi
+rollback=""
+if [[ -d "/Applications/${APPNAME}" ]]; then
+  rollback="$STAGE/rollback/$(date +%Y%m%d-%H%M%S)-$$"
+  mkdir -p "$rollback"
+  mv "/Applications/${APPNAME}" "$rollback/$APPNAME"
+fi
+if ! mv "/Applications/${APPNAME}.new" "/Applications/${APPNAME}"; then
+  if [[ -n "$rollback" ]]; then mv "$rollback/$APPNAME" "/Applications/${APPNAME}"; fi
+  exit 1
+fi
+if [[ -n "$rollback" ]]; then echo "previous app retained at $rollback/$APPNAME"; fi
 rm -rf "$STAGE_RUN"
 
 if [[ "$OPEN" != "0" ]]; then

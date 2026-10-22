@@ -1,0 +1,38 @@
+[
+  {
+    "case": "original",
+    "exit": 0,
+    "global_stop_called": true,
+    "unrelated_rollback_preserved": false,
+    "old_app_preserved": false,
+    "candidate_installed": true,
+    "own_stage_removed": true
+  },
+  {
+    "case": "fixed",
+    "exit": 0,
+    "global_stop_called": false,
+    "unrelated_rollback_preserved": true,
+    "old_app_preserved": true,
+    "candidate_installed": true,
+    "own_stage_removed": true
+  },
+  {
+    "case": "fixed-invalid",
+    "exit": 1,
+    "global_stop_called": false,
+    "unrelated_rollback_preserved": true,
+    "old_app_preserved": false,
+    "candidate_installed": true,
+    "own_stage_removed": false
+  },
+  {
+    "case": "fixed-active",
+    "exit": 1,
+    "global_stop_called": false,
+    "unrelated_rollback_preserved": true,
+    "old_app_preserved": false,
+    "candidate_installed": true,
+    "own_stage_removed": false
+  }
+]

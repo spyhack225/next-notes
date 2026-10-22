@@ -1,5 +1,7 @@
 # Archived source integration — 22 October 2026
 
+Publication follow-up: original source/snapshot pins below remain recoverable locally through `refs/archive/private-worktree-history-20261022`. Public unpublished ancestry is filtered to exclude recovery command/session archives and a captured test credential. This preserves the accepted application tree. See the [release record](../release-2026-10-22/README.md).
+
 Baseline: `0dbba940`. The earlier archive merges retain source snapshots but do not activate their implementations. This follow-up ports selected source hunks into the canonical application. No checkout, model, owner store or installed app is replaced.
 
 ## Reviewed selection
