@@ -9363,6 +9363,8 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
         let pocket = startupTerminationFixtureForTesting?.pocket ?? PocketAgentVoice.shared
         let parakeet = startupTerminationFixtureForTesting?.parakeet ?? ParakeetModels.shared
         let asrQueue = startupTerminationFixtureForTesting?.queue ?? TranscriptionQueue.shared
+        // Cancel file-render callers before native admission closes; join these same handles below.
+        let catchUpRenderTasks = CatchUpTemplate.beginTermination()
         pocket.beginTermination()
         // Loaded-only MainActor parents: never read a model manifest or saved role
         // merely to quit. Capture existing handles before backend closes admission.
@@ -9416,6 +9418,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
             await finalTranscripts.finishTermination(ownedFinalTasks)
             await diarization.finishTermination(ownedDiarizationTasks)
             await diarizer.finishTermination()
+            for task in catchUpRenderTasks { await task.value }
             await pocket.finishTermination()
             await parakeet.finishTermination()
             let drained = await runtime.finishTermination()

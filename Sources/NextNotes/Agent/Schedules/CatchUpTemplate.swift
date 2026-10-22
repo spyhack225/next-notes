@@ -242,7 +242,45 @@ enum CatchUpTemplate {
 
     /// The default: render on its own task, so the run — and with it the delivery of the
     /// text — never waits for a voice.
-    static let detached: Spawn = { work in Task { @MainActor in await work() } }
+    static let detached: Spawn = { work in
+        guard !terminationRequested else { return }
+        let id = UUID()
+        let task = Task { @MainActor in
+            defer { renderTasks[id] = nil }
+            guard !Task.isCancelled else { return }
+            await work()
+        }
+        renderTasks[id] = task
+        renderTaskObserverForTesting?(task)
+    }
+
+    @MainActor private static var renderTasks: [UUID: Task<Void, Never>] = [:]
+    @MainActor private static var terminationRequested = false
+
+    @MainActor private static var renderTaskObserverForTesting: ((Task<Void, Never>) -> Void)?
+
+    /// Capture the actual created caller before it can return; nil outside this suite.
+    @MainActor
+    static func observeRenderTasksForTesting(
+        root: URL, observer: ((Task<Void, Never>) -> Void)?
+    ) -> Bool {
+        let safe = root.standardizedFileURL.resolvingSymlinksInPath()
+        let temp = FileManager.default.temporaryDirectory.standardizedFileURL.resolvingSymlinksInPath()
+        guard SelfTest.isRunning,
+              ["--selftest-catch-up", "--selftest-digest", "--selftest-podcast"].contains(SelfTest.requested ?? ""),
+              safe.path.hasPrefix(temp.path + "/"), !safe.pathComponents.contains("Application Support") else { return false }
+        renderTaskObserverForTesting = observer
+        return true
+    }
+
+    /// Close admission and cancel the same callers the App joins before closing Pocket.
+    @MainActor
+    static func beginTermination() -> [Task<Void, Never>] {
+        terminationRequested = true
+        let owned = Array(renderTasks.values)
+        for task in owned { task.cancel() }
+        return owned
+    }
 
     /// The runner transform: the answer is the result, unchanged, and the same words are
     /// then rendered with one voice into the Library. Only this template's schedules are
@@ -286,6 +324,7 @@ enum CatchUpTemplate {
     ) async {
         do {
             let rendered = try await renderer.render(script, title: title, edition: edition)
+            try Task.checkCancellation()
             AgentArtifactLedger.capture(taskID: taskID, artifact: rendered.url.absoluteString)
             attach(taskID)
             let detail = "catch-up rendered \(rendered.byteCount) bytes, "

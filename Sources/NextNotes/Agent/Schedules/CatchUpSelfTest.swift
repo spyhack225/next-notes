@@ -53,6 +53,7 @@ enum CatchUpSelfTest {
         failures += await audioFailures(root: root)
         failures += detectorFailures()
         failures += await triggerFailures(root: root)
+        failures += await renderTerminationFailures(root: root)
         for failure in failures { print("CATCH_UP_CHECK_FAILED: \(failure)") }
         print(failures.isEmpty ? "CATCH_UP_OK" : "CATCH_UP_FAILED")
         return failures.isEmpty
@@ -1087,6 +1088,67 @@ enum CatchUpSelfTest {
         for failure in failures { print("CATCH_UP_REAL_VOICE_CHECK_FAILED: \(failure)") }
         print(failures.isEmpty ? "CATCH_UP_REAL_VOICE_OK" : "CATCH_UP_REAL_VOICE_FAILED")
         return failures.isEmpty
+    }
+
+    private static func renderTerminationFailures(root: URL) async -> [String] {
+        var failures: [String] = []
+        func check(_ name: String, _ value: Bool) { if !value { failures.append("render retirement: " + name) } }
+        var created: [Task<Void, Never>] = []
+        guard CatchUpTemplate.observeRenderTasksForTesting(root: root, observer: { created.append($0) }) else {
+            return ["render retirement: actual caller observation was refused"]
+        }
+        var entered = false
+        var returned = false
+        var synthesisCalls = 0
+        var release: CheckedContinuation<Void, Never>?
+        var linked: [String] = []
+        let directory = root.appendingPathComponent("render-retirement", isDirectory: true)
+        let renderer = LongFormRenderer(directory: directory, container: .wav, synthesis: { _ in
+            synthesisCalls += 1
+            guard synthesisCalls == 1, !Task.isCancelled else {
+                return LongFormRenderer.Audio(samples: [0.1, 0.1], sampleRate: 24_000)
+            }
+            entered = true
+            // Represent already-entered synthesis that ignores caller cancellation until
+            // its own backing returns. No fake completion, second owner or extra product hold.
+            await withCheckedContinuation { release = $0 }
+            returned = true
+            return LongFormRenderer.Audio(samples: [0.1, 0.1], sampleRate: 24_000)
+        }, environment: FakeYieldEnvironment())
+        let id = "catch-up-retirement-" + UUID().uuidString
+        let transform = CatchUpTemplate.resultTransform(renderer: renderer, attach: { linked.append($0) })
+        let text = "The calendar has one appointment."
+        let delivered = await transform(catchUp(), text, id, mondayMorning)
+        check("actual transform withheld the text", delivered.text == text && delivered.artifacts.isEmpty)
+        let deadline = ContinuousClock.now.advanced(by: .seconds(3))
+        while !entered, ContinuousClock.now < deadline { await Task.yield() }
+        check("actual render never entered synthesis", entered && created.count == 1)
+        let owned = CatchUpTemplate.beginTermination()
+        check("quit did not retain and cancel the SAME caller", owned.count == 1
+            && created.count == 1 && owned.first == created.first && owned.first?.isCancelled == true)
+        var joined = false
+        let join = Task { @MainActor in
+            for task in owned { await task.value }
+            joined = true
+        }
+        await Task.yield()
+        check("quit returned before entered backing returned", !joined && !returned)
+        let before = created.count
+        _ = await transform(catchUp(), text, id + "-late", mondayMorning)
+        check("quit admitted another render caller", created.count == before)
+        // Fixture cleanup retains even ORIGINAL's discarded handle. Actual consumer join
+        // remains a separate assertion; cleanup cannot turn its missing owner into a pass.
+        for task in created { task.cancel() }
+        release?.resume(); release = nil
+        for task in created { await task.value }
+        await join.value
+        check("entered synthesis did not return/join", (!entered || returned) && joined)
+        check("cancelled render published audio or its task link", linked.isEmpty
+            && AgentArtifactLedger.peekRecords(taskID: id).isEmpty && directoryContents(directory).isEmpty)
+        check("render observation did not retire", CatchUpTemplate.observeRenderTasksForTesting(root: root, observer: nil))
+        _ = AgentArtifactLedger.takeRecords(taskID: id)
+        _ = AgentArtifactLedger.takeRecords(taskID: id + "-late")
+        return failures
     }
 
     // MARK: - Fixtures for the audio
