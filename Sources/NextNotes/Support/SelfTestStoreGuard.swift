@@ -31,6 +31,7 @@ enum SelfTestStoreGuard {
         "agent-tasks.sqlite-shm",
         "agent-audit.jsonl",
         "agent-conversation.json",
+        "agent-harness-history.json",
         "next-memory.json",
         "agent-memory-review.json",
         "metrics.jsonl",

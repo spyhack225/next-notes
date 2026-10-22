@@ -112,9 +112,9 @@ final class AgentHarnessRouter {
     }
 
     private init() {
-        if SelfTest.isRunning, ["--selftest-voice-work-lifecycle", "--selftest-acp"].contains(SelfTest.requested ?? "") {
+        if SelfTest.isRunning, SelfTest.requested != "--selftest-settings-sheet" {
             persistEnabled = false
-            return // Exact diagnostic constructor isolation BEFORE owner history lookup.
+            return // Every diagnostic stays isolated BEFORE any owner history lookup.
         }
         entries = Self.load()
         if let last = entries.last(where: { $0.intentClass == AgentHarnessClass.coding.rawValue }),
@@ -177,7 +177,7 @@ final class AgentHarnessRouter {
     }
 
     func restorePersistence() {
-        if SelfTest.isRunning, ["--selftest-voice-work-lifecycle", "--selftest-acp"].contains(SelfTest.requested ?? "") {
+        if SelfTest.isRunning, SelfTest.requested != "--selftest-settings-sheet" {
             resetForTesting(); return
         }
         persistEnabled = true
