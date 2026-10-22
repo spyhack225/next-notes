@@ -1,0 +1,9 @@
+Wrote [REVIEW.md](/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/review-google/REVIEW.md). **REJECT**.
+
+- Grant binding: **FIXED**
+- Controller cache clearing: **PARTIALLY**
+- Named RED gate: **FIXED**
+
+One MEDIUM remains: an old Calendar response can restore cached entries after withdrawal/disconnect.
+
+Credential patterns clean; no builds/tests run or private OAuth JSON read. Verdict posted to `claude-positioning`.

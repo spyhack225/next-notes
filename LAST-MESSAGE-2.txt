@@ -1,0 +1,5 @@
+Wrote [REVIEW.md](/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/review-google/REVIEW.md).
+
+**REJECT:** R1/R2/R4/R5 FIXED; R3/R6 PARTIALLY. Remaining gaps concern old-token command admission after grant replacement and Calendar list withdrawal through `GoogleConnection`. Also noted a weak RED-harness gate.
+
+Posted to `claude-positioning`. No builds/tests run; private OAuth JSON untouched.
