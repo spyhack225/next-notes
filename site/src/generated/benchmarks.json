@@ -2,21 +2,337 @@
   "schema_version": 1,
   "runs": [
     {
-      "id": "2026-10-22-tts-native",
-      "title": "Native TTS comparison in progress",
+      "id": "2026-10-22-tts-qwen-native",
+      "title": "Qwen3-TTS-0.6B-CustomVoice-4bit@08c72cad5e2fd0f41730c8bd1f28149585e46361: native first generated audio",
       "date": "2026-10-22",
       "category": "tts",
-      "status": "unrun",
-      "scope": "Generated PCM benchmark preparation",
-      "summary": "Native build and timing acceptance pending; no accepted timing table yet.",
+      "status": "measured",
+      "scope": "Known English text request to first non-empty generated PCM through the actual native adapter; separate muted native playback checks for Qwen/Phonon.",
+      "summary": "Warm median 2709.30 ms across 5 back-to-back runs; first synthesis after preparation 3093.75 ms. Result saved, child joined and owned model removed.",
+      "environment": {
+        "hardware": "Apple M3,16GB RAM",
+        "os": "Version 27.2 (Build 26B5091g)",
+        "workload": "Standalone TTS; no concurrent native benchmark/build, normal owner apps retained, inherited swap pressure. ASR-plus-voice reference workload unqualified.",
+        "power_thermal": "Resume snapshot retained; continuous thermal/power state during trials unmeasured.",
+        "cold_warm": "One first synthesis after preparation, five back-to-back warm runs of same text. Not hardware-cold."
+      },
+      "metrics": [
+        {
+          "name": "Warm first generated PCM",
+          "value": 2709.3025,
+          "unit": "ms",
+          "boundary": "Known text request → first non-empty generated PCM; not speaker output.",
+          "samples": 5,
+          "aggregation": "median"
+        },
+        {
+          "name": "First synthesis after preparation",
+          "value": 3093.753709,
+          "unit": "ms",
+          "boundary": "Known text request → first non-empty generated PCM on first synthesis after load; not hardware-cold.",
+          "samples": 1,
+          "aggregation": "single observation"
+        },
+        {
+          "name": "Preparation",
+          "value": 17683.57625,
+          "unit": "ms",
+          "boundary": "Start preparation → runtime ready; includes download/load or APFS cache adoption.",
+          "samples": 1,
+          "aggregation": "single observation"
+        }
+      ],
+      "limitations": [
+        "Generated PCM is not audible output or speech-end-to-answer latency.",
+        "Same-text back-to-back warm runs; human-paced performance, language quality and full-duplex reference acceptance remain open.",
+        "Normal owner apps and inherited swap pressure retained; no default promotion or installed-app acceptance.",
+        "Child peak RSS excludes external host services and is not Mach physical footprint.",
+        "Qwen currently returns whole clauses; public streamed-producer join remains open. Earlier preparation was disk-guard stopped; successful retry used unchanged binary with more headroom, not a memory repair."
+      ]
+    },
+    {
+      "id": "2026-10-22-tts-pocket-native",
+      "title": "FluidAudio/PocketTTS-int8/alba: native first generated audio",
+      "date": "2026-10-22",
+      "category": "tts",
+      "status": "measured",
+      "scope": "Known English text request to first non-empty generated PCM through the actual native adapter; separate muted native playback checks for Qwen/Phonon.",
+      "summary": "Warm median 59.00 ms across 5 back-to-back runs; first synthesis after preparation 1096.68 ms. Result saved, child joined and owned model removed.",
+      "environment": {
+        "hardware": "Apple M3,16GB RAM",
+        "os": "Version 27.2 (Build 26B5091g)",
+        "workload": "Standalone TTS; no concurrent native benchmark/build, normal owner apps retained, inherited swap pressure. ASR-plus-voice reference workload unqualified.",
+        "power_thermal": "Resume snapshot retained; continuous thermal/power state during trials unmeasured.",
+        "cold_warm": "One first synthesis after preparation, five back-to-back warm runs of same text. Not hardware-cold."
+      },
+      "metrics": [
+        {
+          "name": "Warm first generated PCM",
+          "value": 58.9975,
+          "unit": "ms",
+          "boundary": "Known text request → first non-empty generated PCM; not speaker output.",
+          "samples": 5,
+          "aggregation": "median"
+        },
+        {
+          "name": "First synthesis after preparation",
+          "value": 1096.675875,
+          "unit": "ms",
+          "boundary": "Known text request → first non-empty generated PCM on first synthesis after load; not hardware-cold.",
+          "samples": 1,
+          "aggregation": "single observation"
+        },
+        {
+          "name": "Preparation",
+          "value": 5704.298125,
+          "unit": "ms",
+          "boundary": "Start preparation → runtime ready; includes download/load or APFS cache adoption.",
+          "samples": 1,
+          "aggregation": "single observation"
+        }
+      ],
+      "limitations": [
+        "Generated PCM is not audible output or speech-end-to-answer latency.",
+        "Same-text back-to-back warm runs; human-paced performance, language quality and full-duplex reference acceptance remain open.",
+        "Normal owner apps and inherited swap pressure retained; no default promotion or installed-app acceptance.",
+        "Child peak RSS excludes external host services and is not Mach physical footprint."
+      ]
+    },
+    {
+      "id": "2026-10-22-tts-phonon-native",
+      "title": "Phonon31m-CoreML/v0.4.0: native first generated audio",
+      "date": "2026-10-22",
+      "category": "tts",
+      "status": "measured",
+      "scope": "Known English text request to first non-empty generated PCM through the actual native adapter; separate muted native playback checks for Qwen/Phonon.",
+      "summary": "Warm median 7.80 ms across 5 back-to-back runs; first synthesis after preparation 8.32 ms. Result saved, child joined and owned model removed.",
+      "environment": {
+        "hardware": "Apple M3,16GB RAM",
+        "os": "Version 27.2 (Build 26B5091g)",
+        "workload": "Standalone TTS; no concurrent native benchmark/build, normal owner apps retained, inherited swap pressure. ASR-plus-voice reference workload unqualified.",
+        "power_thermal": "Resume snapshot retained; continuous thermal/power state during trials unmeasured.",
+        "cold_warm": "One first synthesis after preparation, five back-to-back warm runs of same text. Not hardware-cold."
+      },
+      "metrics": [
+        {
+          "name": "Warm first generated PCM",
+          "value": 7.8,
+          "unit": "ms",
+          "boundary": "Known text request → first non-empty generated PCM; not speaker output.",
+          "samples": 5,
+          "aggregation": "median"
+        },
+        {
+          "name": "First synthesis after preparation",
+          "value": 8.324292,
+          "unit": "ms",
+          "boundary": "Known text request → first non-empty generated PCM on first synthesis after load; not hardware-cold.",
+          "samples": 1,
+          "aggregation": "single observation"
+        },
+        {
+          "name": "Preparation",
+          "value": 7002.317875,
+          "unit": "ms",
+          "boundary": "Start preparation → runtime ready; includes download/load or APFS cache adoption.",
+          "samples": 1,
+          "aggregation": "single observation"
+        }
+      ],
+      "limitations": [
+        "Generated PCM is not audible output or speech-end-to-answer latency.",
+        "Same-text back-to-back warm runs; human-paced performance, language quality and full-duplex reference acceptance remain open.",
+        "Normal owner apps and inherited swap pressure retained; no default promotion or installed-app acceptance.",
+        "Child peak RSS excludes external host services and is not Mach physical footprint."
+      ]
+    },
+    {
+      "id": "2026-10-22-tts-native",
+      "title": "Five native TTS generation results; speaker timing pending",
+      "date": "2026-10-22",
+      "category": "tts",
+      "status": "partial",
+      "scope": "Five completed native generated-PCM comparisons plus a prepared separate physical speaker-start collector.",
+      "summary": "All five generation results are saved individually. Speaker output and ASR-plus-voice qualification remain pending; no fastest-audible default has been selected.",
       "environment": {
         "hardware": "Apple M3, 16 GB RAM",
         "workload": "One engine/model process at a time"
       },
       "metrics": [],
       "limitations": [
-        "Active agent owns native implementation and benchmark window. Refresh this entry when accepted evidence is saved.",
-        "Requested boundary is text request to first nonempty generated PCM; it is not first audible output or full-duplex latency."
+        "Generated PCM timings are separate from actual non-silent render, estimated presentation and microphone-observed pickup.",
+        "The speaker collector has authored native controls, including an original/fixed maximum-latency search regression; physical model collection awaits a coordinated optimized app build.",
+        "One disposable TTS model/process at a time; each result is saved and its owned model removed before proceeding.",
+        "Full-turn speech-end/ASR/EOU, physical route matrix, voice quality and default qualification remain open."
+      ]
+    },
+    {
+      "id": "2026-10-22-tts-kokoro-native",
+      "title": "FluidAudio/Kokoro82M/af_heart: native first generated audio",
+      "date": "2026-10-22",
+      "category": "tts",
+      "status": "measured",
+      "scope": "Known English text request to first non-empty generated PCM through the actual native adapter; separate muted native playback checks for Qwen/Phonon.",
+      "summary": "Warm median 224.11 ms across 5 back-to-back runs; first synthesis after preparation 904.19 ms. Result saved, child joined and owned model removed.",
+      "environment": {
+        "hardware": "Apple M3,16GB RAM",
+        "os": "Version 27.2 (Build 26B5091g)",
+        "workload": "Standalone TTS; no concurrent native benchmark/build, normal owner apps retained, inherited swap pressure. ASR-plus-voice reference workload unqualified.",
+        "power_thermal": "Resume snapshot retained; continuous thermal/power state during trials unmeasured.",
+        "cold_warm": "One first synthesis after preparation, five back-to-back warm runs of same text. Not hardware-cold."
+      },
+      "metrics": [
+        {
+          "name": "Warm first generated PCM",
+          "value": 224.113584,
+          "unit": "ms",
+          "boundary": "Known text request → first non-empty generated PCM; not speaker output.",
+          "samples": 5,
+          "aggregation": "median"
+        },
+        {
+          "name": "First synthesis after preparation",
+          "value": 904.192583,
+          "unit": "ms",
+          "boundary": "Known text request → first non-empty generated PCM on first synthesis after load; not hardware-cold.",
+          "samples": 1,
+          "aggregation": "single observation"
+        },
+        {
+          "name": "Preparation",
+          "value": 8549.639042,
+          "unit": "ms",
+          "boundary": "Start preparation → runtime ready; includes download/load or APFS cache adoption.",
+          "samples": 1,
+          "aggregation": "single observation"
+        }
+      ],
+      "limitations": [
+        "Generated PCM is not audible output or speech-end-to-answer latency.",
+        "Same-text back-to-back warm runs; human-paced performance, language quality and full-duplex reference acceptance remain open.",
+        "Normal owner apps and inherited swap pressure retained; no default promotion or installed-app acceptance.",
+        "Child peak RSS excludes external host services and is not Mach physical footprint."
+      ]
+    },
+    {
+      "id": "2026-10-22-tts-apple-speaker-calibration",
+      "title": "macOS voice: physical speaker-to-microphone calibration",
+      "date": "2026-10-22",
+      "category": "tts",
+      "status": "measured",
+      "scope": "Two actual Apple playback requests with timestamped microphone pickup and matching rendered-audio energy envelopes; collector calibration only.",
+      "summary": "First-after-preparation pickup 1247 ms; next phrase 299 ms. Both correlated with actual rendered audio. One warm sample, no ASR load, no model ranking or default choice.",
+      "environment": {
+        "hardware": "Apple M3 MacBook Air,16GB RAM",
+        "os": "Version 27.2 (Build 26B5091g)",
+        "workload": "Apple-only physical calibration; no ASR load; not model-ranking or default evidence. Built-in microphone and speakers; current hardware volume retained.",
+        "cold_warm": "One first request after preparation; one varied subsequent phrase. OS service caches not hardware-cold.",
+        "audio_route": "Built-in microphone and speakers; source volume0.75. Existing hardware volume retained; not sampled at the exact trial boundaries.",
+        "power_thermal": "Not continuously sampled; no claim of a controlled thermal/power state."
+      },
+      "metrics": [
+        {
+          "name": "First-after-preparation microphone pickup",
+          "value": 1246.5490833333333,
+          "unit": "ms",
+          "boundary": "Text request → correlated microphone pickup, above frozen detector threshold.",
+          "samples": 1,
+          "aggregation": "single observation"
+        },
+        {
+          "name": "First-after-preparation non-silent render",
+          "value": 1170.6015,
+          "unit": "ms",
+          "boundary": "Text request → first post-gain rendered sample >=0.001 amplitude, native host timestamp.",
+          "samples": 1,
+          "aggregation": "single observation"
+        },
+        {
+          "name": "First-after-preparation estimated presentation",
+          "value": 1172.1431666666667,
+          "unit": "ms",
+          "boundary": "Text request → render timestamp + queried maximum downstream presentation-latency estimate; not observed acoustic output.",
+          "samples": 1,
+          "aggregation": "single observation"
+        },
+        {
+          "name": "Subsequent phrase microphone pickup",
+          "value": 299.17245833333334,
+          "unit": "ms",
+          "boundary": "Text request → correlated microphone pickup, above frozen detector threshold.",
+          "samples": 1,
+          "aggregation": "single observation"
+        },
+        {
+          "name": "Subsequent phrase non-silent render",
+          "value": 207.92954166666667,
+          "unit": "ms",
+          "boundary": "Text request → first post-gain rendered sample >=0.001 amplitude, native host timestamp.",
+          "samples": 1,
+          "aggregation": "single observation"
+        },
+        {
+          "name": "Subsequent phrase estimated presentation",
+          "value": 209.47120833333332,
+          "unit": "ms",
+          "boundary": "Text request → render timestamp + queried maximum downstream presentation-latency estimate; not observed acoustic output.",
+          "samples": 1,
+          "aggregation": "single observation"
+        }
+      ],
+      "limitations": [
+        "Calibration only: n1 per phase; no median/tail or fastest-default conclusion.",
+        "Microphone onset uses10ms energy windows and >max(0.001RMS,4x room baseline); it is not human perceptual onset.",
+        "Native render and maximum presentation-latency estimate are separate from actual microphone observation.",
+        "No concurrent ASR/EOU/normal voice conversation, no route matrix or double-talk qualification."
+      ]
+    },
+    {
+      "id": "2026-10-22-tts-apple-native",
+      "title": "AVSpeechSynthesizer/system-default: native first generated audio",
+      "date": "2026-10-22",
+      "category": "tts",
+      "status": "measured",
+      "scope": "Known English text request to first non-empty generated PCM through the actual native adapter; separate muted native playback checks for Qwen/Phonon.",
+      "summary": "Warm median 8.98 ms across 5 back-to-back runs; first synthesis after preparation 1039.27 ms. Result saved, child joined and owned model removed.",
+      "environment": {
+        "hardware": "Apple M3,16GB RAM",
+        "os": "Version 27.2 (Build 26B5091g)",
+        "workload": "Standalone TTS; no concurrent native benchmark/build, normal owner apps retained, inherited swap pressure. ASR-plus-voice reference workload unqualified.",
+        "power_thermal": "Resume snapshot retained; continuous thermal/power state during trials unmeasured.",
+        "cold_warm": "One first synthesis after preparation, five back-to-back warm runs of same text. Not hardware-cold."
+      },
+      "metrics": [
+        {
+          "name": "Warm first generated PCM",
+          "value": 8.976667,
+          "unit": "ms",
+          "boundary": "Known text request → first non-empty generated PCM; not speaker output.",
+          "samples": 5,
+          "aggregation": "median"
+        },
+        {
+          "name": "First synthesis after preparation",
+          "value": 1039.268084,
+          "unit": "ms",
+          "boundary": "Known text request → first non-empty generated PCM on first synthesis after load; not hardware-cold.",
+          "samples": 1,
+          "aggregation": "single observation"
+        },
+        {
+          "name": "Preparation",
+          "value": 1.004209,
+          "unit": "ms",
+          "boundary": "Start preparation → runtime ready; includes download/load or APFS cache adoption.",
+          "samples": 1,
+          "aggregation": "single observation"
+        }
+      ],
+      "limitations": [
+        "Generated PCM is not audible output or speech-end-to-answer latency.",
+        "Same-text back-to-back warm runs; human-paced performance, language quality and full-duplex reference acceptance remain open.",
+        "Normal owner apps and inherited swap pressure retained; no default promotion or installed-app acceptance.",
+        "Child peak RSS excludes external host services and is not Mach physical footprint."
       ]
     },
     {
@@ -238,6 +554,438 @@
         "Two warm timing trials repeat one fixture; they are not independent quality samples.",
         "Runtime and timing boundaries differ; see source report. No default promotion or end-to-end latency claim.",
         "Raw transcripts and model/source hashes remain in original evidence; website publishes summary only."
+      ]
+    },
+    {
+      "id": "2026-10-22-asr-signed-app-whistle",
+      "title": "Whistle signed-app live ASR",
+      "date": "2026-10-22",
+      "category": "asr",
+      "status": "measured",
+      "scope": "Signed optimized application factory, segmented engine, scheduler and transcript consumer;20ms paced authored PCM",
+      "summary": "Three warmed holds per supported language; each model downloaded, tested, unloaded and removed before the next. English-only Phonon; English and French for the others.",
+      "environment": {
+        "hardware": "Apple M3,16GB RAM",
+        "os": "macOS27.2 build26B5091g",
+        "workload": "Normal desktop apps; coordinated serial window with no concurrent native build/model job. Existing swap/desktop pressure retained in per-model context; no concurrent voice qualification.",
+        "power_thermal": "Per-model power/thermal/load/swap observations retained. Cold preparation is separate from warmed timing."
+      },
+      "metrics": [
+        {
+          "name": "EN First provisional text",
+          "value": 425.6380833685398,
+          "unit": "ms",
+          "boundary": "Paced PCM start to first nonempty provisional transcript at app consumer; includes initial400ms audio window",
+          "samples": 3,
+          "aggregation": "median of three warmed holds; raw min/max retained"
+        },
+        {
+          "name": "EN Release to ASR final",
+          "value": 9.212666656821966,
+          "unit": "ms",
+          "boundary": "Actual release after final paced buffer to final app transcript consumer; includes pending inference; excludes microphone/UI/polish/insertion",
+          "samples": 3,
+          "aggregation": "median of three warmed holds; raw min/max retained"
+        },
+        {
+          "name": "FR First provisional text",
+          "value": 417.31120832264423,
+          "unit": "ms",
+          "boundary": "Paced PCM start to first nonempty provisional transcript at app consumer; includes initial400ms audio window",
+          "samples": 3,
+          "aggregation": "median of three warmed holds; raw min/max retained"
+        },
+        {
+          "name": "FR Release to ASR final",
+          "value": 38.294416677672416,
+          "unit": "ms",
+          "boundary": "Actual release after final paced buffer to final app transcript consumer; includes pending inference; excludes microphone/UI/polish/insertion",
+          "samples": 3,
+          "aggregation": "median of three warmed holds; raw min/max retained"
+        }
+      ],
+      "limitations": [
+        "One7.25sEnglish/6.65sFrench authored excerpt, three timing trials; not a broad corpus or percentile estimate.",
+        "Physical microphone, visible Settings/display, cleanup, insertion, concurrent ASR+voice and M2 hardware are unverified.",
+        "First readable provisional text may change; this is not stable-word commitment. Warm timings exclude download, cold graph compilation/load and shape warmup.",
+        "Short app final-word scoring is separate from the earlier136/151-word runtime accuracy fixture. Do not relabel earlier accuracy as current full-app quality.",
+        "Default selection is the owner-requested PhononEnglish/VozMulti setting; Whistle has the lowest raw French latency in this short app run."
+      ]
+    },
+    {
+      "id": "2026-10-22-asr-signed-app-voz",
+      "title": "Voz signed-app live ASR",
+      "date": "2026-10-22",
+      "category": "asr",
+      "status": "measured",
+      "scope": "Signed optimized application factory, segmented engine, scheduler and transcript consumer;20ms paced authored PCM",
+      "summary": "Three warmed holds per supported language; each model downloaded, tested, unloaded and removed before the next. English-only Phonon; English and French for the others.",
+      "environment": {
+        "hardware": "Apple M3,16GB RAM",
+        "os": "macOS27.2 build26B5091g",
+        "workload": "Normal desktop apps; coordinated serial window with no concurrent native build/model job. Existing swap/desktop pressure retained in per-model context; no concurrent voice qualification.",
+        "power_thermal": "Per-model power/thermal/load/swap observations retained. Cold preparation is separate from warmed timing."
+      },
+      "metrics": [
+        {
+          "name": "EN First provisional text",
+          "value": 447.6427499903366,
+          "unit": "ms",
+          "boundary": "Paced PCM start to first nonempty provisional transcript at app consumer; includes initial400ms audio window",
+          "samples": 3,
+          "aggregation": "median of three warmed holds; raw min/max retained"
+        },
+        {
+          "name": "EN Release to ASR final",
+          "value": 28.010166657622904,
+          "unit": "ms",
+          "boundary": "Actual release after final paced buffer to final app transcript consumer; includes pending inference; excludes microphone/UI/polish/insertion",
+          "samples": 3,
+          "aggregation": "median of three warmed holds; raw min/max retained"
+        },
+        {
+          "name": "FR First provisional text",
+          "value": 450.2714583068155,
+          "unit": "ms",
+          "boundary": "Paced PCM start to first nonempty provisional transcript at app consumer; includes initial400ms audio window",
+          "samples": 3,
+          "aggregation": "median of three warmed holds; raw min/max retained"
+        },
+        {
+          "name": "FR Release to ASR final",
+          "value": 57.75437504053116,
+          "unit": "ms",
+          "boundary": "Actual release after final paced buffer to final app transcript consumer; includes pending inference; excludes microphone/UI/polish/insertion",
+          "samples": 3,
+          "aggregation": "median of three warmed holds; raw min/max retained"
+        }
+      ],
+      "limitations": [
+        "One7.25sEnglish/6.65sFrench authored excerpt, three timing trials; not a broad corpus or percentile estimate.",
+        "Physical microphone, visible Settings/display, cleanup, insertion, concurrent ASR+voice and M2 hardware are unverified.",
+        "First readable provisional text may change; this is not stable-word commitment. Warm timings exclude download, cold graph compilation/load and shape warmup.",
+        "Short app final-word scoring is separate from the earlier136/151-word runtime accuracy fixture. Do not relabel earlier accuracy as current full-app quality.",
+        "Default selection is the owner-requested PhononEnglish/VozMulti setting; Whistle has the lowest raw French latency in this short app run."
+      ]
+    },
+    {
+      "id": "2026-10-22-asr-signed-app-ultra",
+      "title": "Parakeet Ultra signed-app live ASR",
+      "date": "2026-10-22",
+      "category": "asr",
+      "status": "measured",
+      "scope": "Signed optimized application factory, segmented engine, scheduler and transcript consumer;20ms paced authored PCM",
+      "summary": "Three warmed holds per supported language; each model downloaded, tested, unloaded and removed before the next. English-only Phonon; English and French for the others.",
+      "environment": {
+        "hardware": "Apple M3,16GB RAM",
+        "os": "macOS27.2 build26B5091g",
+        "workload": "Normal desktop apps; coordinated serial window with no concurrent native build/model job. Existing swap/desktop pressure retained in per-model context; no concurrent voice qualification.",
+        "power_thermal": "Per-model power/thermal/load/swap observations retained. Cold preparation is separate from warmed timing."
+      },
+      "metrics": [
+        {
+          "name": "EN First provisional text",
+          "value": 468.7494166428223,
+          "unit": "ms",
+          "boundary": "Paced PCM start to first nonempty provisional transcript at app consumer; includes initial400ms audio window",
+          "samples": 3,
+          "aggregation": "median of three warmed holds; raw min/max retained"
+        },
+        {
+          "name": "EN Release to ASR final",
+          "value": 71.5277916751802,
+          "unit": "ms",
+          "boundary": "Actual release after final paced buffer to final app transcript consumer; includes pending inference; excludes microphone/UI/polish/insertion",
+          "samples": 3,
+          "aggregation": "median of three warmed holds; raw min/max retained"
+        },
+        {
+          "name": "FR First provisional text",
+          "value": 481.4142083050683,
+          "unit": "ms",
+          "boundary": "Paced PCM start to first nonempty provisional transcript at app consumer; includes initial400ms audio window",
+          "samples": 3,
+          "aggregation": "median of three warmed holds; raw min/max retained"
+        },
+        {
+          "name": "FR Release to ASR final",
+          "value": 81.5941666951403,
+          "unit": "ms",
+          "boundary": "Actual release after final paced buffer to final app transcript consumer; includes pending inference; excludes microphone/UI/polish/insertion",
+          "samples": 3,
+          "aggregation": "median of three warmed holds; raw min/max retained"
+        }
+      ],
+      "limitations": [
+        "One7.25sEnglish/6.65sFrench authored excerpt, three timing trials; not a broad corpus or percentile estimate.",
+        "Physical microphone, visible Settings/display, cleanup, insertion, concurrent ASR+voice and M2 hardware are unverified.",
+        "First readable provisional text may change; this is not stable-word commitment. Warm timings exclude download, cold graph compilation/load and shape warmup.",
+        "Short app final-word scoring is separate from the earlier136/151-word runtime accuracy fixture. Do not relabel earlier accuracy as current full-app quality.",
+        "Default selection is the owner-requested PhononEnglish/VozMulti setting; Whistle has the lowest raw French latency in this short app run."
+      ]
+    },
+    {
+      "id": "2026-10-22-asr-signed-app-redux",
+      "title": "Parakeet Redux signed-app live ASR",
+      "date": "2026-10-22",
+      "category": "asr",
+      "status": "measured",
+      "scope": "Signed optimized application factory, segmented engine, scheduler and transcript consumer;20ms paced authored PCM",
+      "summary": "Three warmed holds per supported language; each model downloaded, tested, unloaded and removed before the next. English-only Phonon; English and French for the others.",
+      "environment": {
+        "hardware": "Apple M3,16GB RAM",
+        "os": "macOS27.2 build26B5091g",
+        "workload": "Normal desktop apps; coordinated serial window with no concurrent native build/model job. Existing swap/desktop pressure retained in per-model context; no concurrent voice qualification.",
+        "power_thermal": "Per-model power/thermal/load/swap observations retained. Cold preparation is separate from warmed timing."
+      },
+      "metrics": [
+        {
+          "name": "EN First provisional text",
+          "value": 590.8773749833927,
+          "unit": "ms",
+          "boundary": "Paced PCM start to first nonempty provisional transcript at app consumer; includes initial400ms audio window",
+          "samples": 3,
+          "aggregation": "median of three warmed holds; raw min/max retained"
+        },
+        {
+          "name": "EN Release to ASR final",
+          "value": 133.84191662771627,
+          "unit": "ms",
+          "boundary": "Actual release after final paced buffer to final app transcript consumer; includes pending inference; excludes microphone/UI/polish/insertion",
+          "samples": 3,
+          "aggregation": "median of three warmed holds; raw min/max retained"
+        },
+        {
+          "name": "FR First provisional text",
+          "value": 582.7102083712816,
+          "unit": "ms",
+          "boundary": "Paced PCM start to first nonempty provisional transcript at app consumer; includes initial400ms audio window",
+          "samples": 3,
+          "aggregation": "median of three warmed holds; raw min/max retained"
+        },
+        {
+          "name": "FR Release to ASR final",
+          "value": 151.77054167725146,
+          "unit": "ms",
+          "boundary": "Actual release after final paced buffer to final app transcript consumer; includes pending inference; excludes microphone/UI/polish/insertion",
+          "samples": 3,
+          "aggregation": "median of three warmed holds; raw min/max retained"
+        }
+      ],
+      "limitations": [
+        "One7.25sEnglish/6.65sFrench authored excerpt, three timing trials; not a broad corpus or percentile estimate.",
+        "Physical microphone, visible Settings/display, cleanup, insertion, concurrent ASR+voice and M2 hardware are unverified.",
+        "First readable provisional text may change; this is not stable-word commitment. Warm timings exclude download, cold graph compilation/load and shape warmup.",
+        "Short app final-word scoring is separate from the earlier136/151-word runtime accuracy fixture. Do not relabel earlier accuracy as current full-app quality.",
+        "Default selection is the owner-requested PhononEnglish/VozMulti setting; Whistle has the lowest raw French latency in this short app run."
+      ]
+    },
+    {
+      "id": "2026-10-22-asr-signed-app-qwen-17b",
+      "title": "Qwen3-ASR 1.7B signed-app live ASR",
+      "date": "2026-10-22",
+      "category": "asr",
+      "status": "measured",
+      "scope": "Signed optimized application factory, segmented engine, scheduler and transcript consumer;20ms paced authored PCM",
+      "summary": "Three warmed holds per supported language; each model downloaded, tested, unloaded and removed before the next. English-only Phonon; English and French for the others.",
+      "environment": {
+        "hardware": "Apple M3,16GB RAM",
+        "os": "macOS27.2 build26B5091g",
+        "workload": "Normal desktop apps; coordinated serial window with no concurrent native build/model job. Existing swap/desktop pressure retained in per-model context; no concurrent voice qualification.",
+        "power_thermal": "Per-model power/thermal/load/swap observations retained. Cold preparation is separate from warmed timing."
+      },
+      "metrics": [
+        {
+          "name": "EN First provisional text",
+          "value": 636.5525416913442,
+          "unit": "ms",
+          "boundary": "Paced PCM start to first nonempty provisional transcript at app consumer; includes initial400ms audio window",
+          "samples": 3,
+          "aggregation": "median of three warmed holds; raw min/max retained"
+        },
+        {
+          "name": "EN Release to ASR final",
+          "value": 643.7757916282862,
+          "unit": "ms",
+          "boundary": "Actual release after final paced buffer to final app transcript consumer; includes pending inference; excludes microphone/UI/polish/insertion",
+          "samples": 3,
+          "aggregation": "median of three warmed holds; raw min/max retained"
+        },
+        {
+          "name": "FR First provisional text",
+          "value": 677.19550000038,
+          "unit": "ms",
+          "boundary": "Paced PCM start to first nonempty provisional transcript at app consumer; includes initial400ms audio window",
+          "samples": 3,
+          "aggregation": "median of three warmed holds; raw min/max retained"
+        },
+        {
+          "name": "FR Release to ASR final",
+          "value": 986.6442499915138,
+          "unit": "ms",
+          "boundary": "Actual release after final paced buffer to final app transcript consumer; includes pending inference; excludes microphone/UI/polish/insertion",
+          "samples": 3,
+          "aggregation": "median of three warmed holds; raw min/max retained"
+        }
+      ],
+      "limitations": [
+        "One7.25sEnglish/6.65sFrench authored excerpt, three timing trials; not a broad corpus or percentile estimate.",
+        "Physical microphone, visible Settings/display, cleanup, insertion, concurrent ASR+voice and M2 hardware are unverified.",
+        "First readable provisional text may change; this is not stable-word commitment. Warm timings exclude download, cold graph compilation/load and shape warmup.",
+        "Short app final-word scoring is separate from the earlier136/151-word runtime accuracy fixture. Do not relabel earlier accuracy as current full-app quality.",
+        "Default selection is the owner-requested PhononEnglish/VozMulti setting; Whistle has the lowest raw French latency in this short app run."
+      ]
+    },
+    {
+      "id": "2026-10-22-asr-signed-app-qwen-06b",
+      "title": "Qwen3-ASR 0.6B signed-app live ASR",
+      "date": "2026-10-22",
+      "category": "asr",
+      "status": "measured",
+      "scope": "Signed optimized application factory, segmented engine, scheduler and transcript consumer;20ms paced authored PCM",
+      "summary": "Three warmed holds per supported language; each model downloaded, tested, unloaded and removed before the next. English-only Phonon; English and French for the others.",
+      "environment": {
+        "hardware": "Apple M3,16GB RAM",
+        "os": "macOS27.2 build26B5091g",
+        "workload": "Normal desktop apps; coordinated serial window with no concurrent native build/model job. Existing swap/desktop pressure retained in per-model context; no concurrent voice qualification.",
+        "power_thermal": "Per-model power/thermal/load/swap observations retained. Cold preparation is separate from warmed timing."
+      },
+      "metrics": [
+        {
+          "name": "EN First provisional text",
+          "value": 541.881958313752,
+          "unit": "ms",
+          "boundary": "Paced PCM start to first nonempty provisional transcript at app consumer; includes initial400ms audio window",
+          "samples": 3,
+          "aggregation": "median of three warmed holds; raw min/max retained"
+        },
+        {
+          "name": "EN Release to ASR final",
+          "value": 230.1473332918249,
+          "unit": "ms",
+          "boundary": "Actual release after final paced buffer to final app transcript consumer; includes pending inference; excludes microphone/UI/polish/insertion",
+          "samples": 3,
+          "aggregation": "median of three warmed holds; raw min/max retained"
+        },
+        {
+          "name": "FR First provisional text",
+          "value": 560.7227083528414,
+          "unit": "ms",
+          "boundary": "Paced PCM start to first nonempty provisional transcript at app consumer; includes initial400ms audio window",
+          "samples": 3,
+          "aggregation": "median of three warmed holds; raw min/max retained"
+        },
+        {
+          "name": "FR Release to ASR final",
+          "value": 328.06658337358385,
+          "unit": "ms",
+          "boundary": "Actual release after final paced buffer to final app transcript consumer; includes pending inference; excludes microphone/UI/polish/insertion",
+          "samples": 3,
+          "aggregation": "median of three warmed holds; raw min/max retained"
+        }
+      ],
+      "limitations": [
+        "One7.25sEnglish/6.65sFrench authored excerpt, three timing trials; not a broad corpus or percentile estimate.",
+        "Physical microphone, visible Settings/display, cleanup, insertion, concurrent ASR+voice and M2 hardware are unverified.",
+        "First readable provisional text may change; this is not stable-word commitment. Warm timings exclude download, cold graph compilation/load and shape warmup.",
+        "Short app final-word scoring is separate from the earlier136/151-word runtime accuracy fixture. Do not relabel earlier accuracy as current full-app quality.",
+        "Default selection is the owner-requested PhononEnglish/VozMulti setting; Whistle has the lowest raw French latency in this short app run."
+      ]
+    },
+    {
+      "id": "2026-10-22-asr-signed-app-phonon",
+      "title": "Phonon-2 signed-app live ASR",
+      "date": "2026-10-22",
+      "category": "asr",
+      "status": "measured",
+      "scope": "Signed optimized application factory, segmented engine, scheduler and transcript consumer;20ms paced authored PCM",
+      "summary": "Three warmed holds per supported language; each model downloaded, tested, unloaded and removed before the next. English-only Phonon; English and French for the others.",
+      "environment": {
+        "hardware": "Apple M3,16GB RAM",
+        "os": "macOS27.2 build26B5091g",
+        "workload": "Normal desktop apps; coordinated serial window with no concurrent native build/model job. Existing swap/desktop pressure retained in per-model context; no concurrent voice qualification.",
+        "power_thermal": "Per-model power/thermal/load/swap observations retained. Cold preparation is separate from warmed timing."
+      },
+      "metrics": [
+        {
+          "name": "EN First provisional text",
+          "value": 424.07520837150514,
+          "unit": "ms",
+          "boundary": "Paced PCM start to first nonempty provisional transcript at app consumer; includes initial400ms audio window",
+          "samples": 3,
+          "aggregation": "median of three warmed holds; raw min/max retained"
+        },
+        {
+          "name": "EN Release to ASR final",
+          "value": 5.254708288703114,
+          "unit": "ms",
+          "boundary": "Actual release after final paced buffer to final app transcript consumer; includes pending inference; excludes microphone/UI/polish/insertion",
+          "samples": 3,
+          "aggregation": "median of three warmed holds; raw min/max retained"
+        }
+      ],
+      "limitations": [
+        "One7.25sEnglish/6.65sFrench authored excerpt, three timing trials; not a broad corpus or percentile estimate.",
+        "Physical microphone, visible Settings/display, cleanup, insertion, concurrent ASR+voice and M2 hardware are unverified.",
+        "First readable provisional text may change; this is not stable-word commitment. Warm timings exclude download, cold graph compilation/load and shape warmup.",
+        "Short app final-word scoring is separate from the earlier136/151-word runtime accuracy fixture. Do not relabel earlier accuracy as current full-app quality.",
+        "Default selection is the owner-requested PhononEnglish/VozMulti setting; Whistle has the lowest raw French latency in this short app run."
+      ]
+    },
+    {
+      "id": "2026-10-22-asr-signed-app-parakeet",
+      "title": "Parakeet v3 signed-app live ASR",
+      "date": "2026-10-22",
+      "category": "asr",
+      "status": "measured",
+      "scope": "Signed optimized application factory, segmented engine, scheduler and transcript consumer;20ms paced authored PCM",
+      "summary": "Three warmed holds per supported language; each model downloaded, tested, unloaded and removed before the next. English-only Phonon; English and French for the others.",
+      "environment": {
+        "hardware": "Apple M3,16GB RAM",
+        "os": "macOS27.2 build26B5091g",
+        "workload": "Normal desktop apps; coordinated serial window with no concurrent native build/model job. Existing swap/desktop pressure retained in per-model context; no concurrent voice qualification.",
+        "power_thermal": "Per-model power/thermal/load/swap observations retained. Cold preparation is separate from warmed timing."
+      },
+      "metrics": [
+        {
+          "name": "EN First provisional text",
+          "value": 507.6617499580607,
+          "unit": "ms",
+          "boundary": "Paced PCM start to first nonempty provisional transcript at app consumer; includes initial400ms audio window",
+          "samples": 3,
+          "aggregation": "median of three warmed holds; raw min/max retained"
+        },
+        {
+          "name": "EN Release to ASR final",
+          "value": 66.26170838717371,
+          "unit": "ms",
+          "boundary": "Actual release after final paced buffer to final app transcript consumer; includes pending inference; excludes microphone/UI/polish/insertion",
+          "samples": 3,
+          "aggregation": "median of three warmed holds; raw min/max retained"
+        },
+        {
+          "name": "FR First provisional text",
+          "value": 494.38995838863775,
+          "unit": "ms",
+          "boundary": "Paced PCM start to first nonempty provisional transcript at app consumer; includes initial400ms audio window",
+          "samples": 3,
+          "aggregation": "median of three warmed holds; raw min/max retained"
+        },
+        {
+          "name": "FR Release to ASR final",
+          "value": 83.00708333263174,
+          "unit": "ms",
+          "boundary": "Actual release after final paced buffer to final app transcript consumer; includes pending inference; excludes microphone/UI/polish/insertion",
+          "samples": 3,
+          "aggregation": "median of three warmed holds; raw min/max retained"
+        }
+      ],
+      "limitations": [
+        "One7.25sEnglish/6.65sFrench authored excerpt, three timing trials; not a broad corpus or percentile estimate.",
+        "Physical microphone, visible Settings/display, cleanup, insertion, concurrent ASR+voice and M2 hardware are unverified.",
+        "First readable provisional text may change; this is not stable-word commitment. Warm timings exclude download, cold graph compilation/load and shape warmup.",
+        "Short app final-word scoring is separate from the earlier136/151-word runtime accuracy fixture. Do not relabel earlier accuracy as current full-app quality.",
+        "Default selection is the owner-requested PhononEnglish/VozMulti setting; Whistle has the lowest raw French latency in this short app run."
       ]
     },
     {
@@ -620,23 +1368,448 @@
       ]
     },
     {
-      "id": "2026-10-22-asr-live-pending",
-      "title": "Live speech recognition latency in progress",
+      "id": "2026-10-22-asr-paced-resumed-whistle",
+      "title": "Whistle resumed paced ASR latency",
       "date": "2026-10-22",
       "category": "asr",
-      "status": "unrun",
-      "scope": "Paced authored-fixture runtime replay",
-      "summary": "Native timings pending; live text, committed text and release-final clocks will be separate.",
+      "status": "measured",
+      "scope": "Paced native runtime first-word and release-to-final; no app integration or physical microphone acceptance",
+      "summary": "Three warmed paced trials per language; quiet serial candidate window, no app/default promotion.",
       "environment": {
-        "hardware": "unknown",
-        "os": "unknown",
-        "workload": "unknown",
-        "power_thermal": "unknown"
+        "hardware": "Apple M3,16GB RAM",
+        "os": "macOS27.2 build26B5091g",
+        "workload": "Normal desktop apps; coordinated serial native window, no concurrent build/model workload. Per-attempt context retained; high inherited swap remains.",
+        "power_thermal": "Per-attempt logs retained; no recorded thermal warning. Quiet ASR+voice reference workload not qualified."
+      },
+      "metrics": [
+        {
+          "name": "EN First provisional word",
+          "value": 427.6140839792788,
+          "unit": "ms",
+          "boundary": "Paced audio start to first readable provisional word; 400ms initial audio, then1s updates",
+          "samples": 3,
+          "aggregation": "median of three warmed paced holds; raw ranges retained"
+        },
+        {
+          "name": "EN Release to full ASR final",
+          "value": 85.38891701027751,
+          "unit": "ms",
+          "boundary": "Independent scheduled release to complete native ASR return, including in-flight work; excludes polish/UI/insertion",
+          "samples": 3,
+          "aggregation": "median of three warmed paced holds; raw ranges retained"
+        },
+        {
+          "name": "FR First provisional word",
+          "value": 428.71804197784513,
+          "unit": "ms",
+          "boundary": "Paced audio start to first readable provisional word; 400ms initial audio, then1s updates",
+          "samples": 3,
+          "aggregation": "median of three warmed paced holds; raw ranges retained"
+        },
+        {
+          "name": "FR Release to full ASR final",
+          "value": 155.65745899220929,
+          "unit": "ms",
+          "boundary": "Independent scheduled release to complete native ASR return, including in-flight work; excludes polish/UI/insertion",
+          "samples": 3,
+          "aggregation": "median of three warmed paced holds; raw ranges retained"
+        }
+      ],
+      "limitations": [
+        "One authored short excerpt per language, repeated for timing; no broad accuracy, physical microphone/UI/polish/insertion or concurrent ASR/voice acceptance.",
+        "Model loading/compilation and shape warmup excluded. Results are provisional word delivery, not native committed text.",
+        "Other candidate results belong to the same resumed suite; original pressure experiment and whole-file speed/accuracy remain separate.",
+        "No product default or installed app changed.",
+        "French6/22 raw edits include changed meaning; EN1/20. Native commitment is later than provisional delivery. No supported CoreML artifact/export path established."
+      ]
+    },
+    {
+      "id": "2026-10-22-asr-paced-resumed-voz",
+      "title": "Voz (CoreML CLI) resumed paced ASR latency",
+      "date": "2026-10-22",
+      "category": "asr",
+      "status": "measured",
+      "scope": "Paced native runtime first-word and release-to-final; no app integration or physical microphone acceptance",
+      "summary": "Three warmed paced trials per language; quiet serial candidate window, no app/default promotion.",
+      "environment": {
+        "hardware": "Apple M3,16GB RAM",
+        "os": "macOS27.2 build26B5091g",
+        "workload": "Normal desktop apps; coordinated serial native window, no concurrent build/model workload. Per-attempt context retained; high inherited swap remains.",
+        "power_thermal": "Per-attempt logs retained; no recorded thermal warning. Quiet ASR+voice reference workload not qualified."
+      },
+      "metrics": [
+        {
+          "name": "EN First provisional word",
+          "value": 450.5272499518469,
+          "unit": "ms",
+          "boundary": "Paced audio start to first readable provisional word;400ms first prefix,1s updates",
+          "samples": 3,
+          "aggregation": "median of three warmed paced holds; raw range retained"
+        },
+        {
+          "name": "EN Release to full ASR final",
+          "value": 65.92916598310694,
+          "unit": "ms",
+          "boundary": "Independent scheduled release to complete native ASR return; includes in-flight work, excludes UI/polish/insertion",
+          "samples": 3,
+          "aggregation": "median of three warmed paced holds; raw range retained"
+        },
+        {
+          "name": "FR First provisional word",
+          "value": 445.64670900581405,
+          "unit": "ms",
+          "boundary": "Paced audio start to first readable provisional word;400ms first prefix,1s updates",
+          "samples": 3,
+          "aggregation": "median of three warmed paced holds; raw range retained"
+        },
+        {
+          "name": "FR Release to full ASR final",
+          "value": 82.8037919709459,
+          "unit": "ms",
+          "boundary": "Independent scheduled release to complete native ASR return; includes in-flight work, excludes UI/polish/insertion",
+          "samples": 3,
+          "aggregation": "median of three warmed paced holds; raw range retained"
+        }
+      ],
+      "limitations": [
+        "Single authored excerpt per language, three timing trials; no broad corpus/physical microphone/UI/polish/insertion/concurrent ASR+voice acceptance.",
+        "Cold compilation/load/shape warmup excluded. All temporary candidate assets deleted; no app/default/install promotion.",
+        "Short French literal2/22 edits are number rendering; whole-file French18/151 includes actual errors. SDK isolated release build and offline inference."
+      ]
+    },
+    {
+      "id": "2026-10-22-asr-paced-resumed-ultra",
+      "title": "Parakeet Ultra resumed paced ASR latency",
+      "date": "2026-10-22",
+      "category": "asr",
+      "status": "measured",
+      "scope": "Paced native runtime first-word and release-to-final; no app integration or physical microphone acceptance",
+      "summary": "Three warmed paced trials per language; quiet serial candidate window, no app/default promotion.",
+      "environment": {
+        "hardware": "Apple M3,16GB RAM",
+        "os": "macOS27.2 build26B5091g",
+        "workload": "Normal desktop apps; coordinated serial native window, no concurrent build/model workload. Per-attempt context retained; high inherited swap remains.",
+        "power_thermal": "Per-attempt logs retained; no recorded thermal warning. Quiet ASR+voice reference workload not qualified."
+      },
+      "metrics": [
+        {
+          "name": "EN First provisional word",
+          "value": 514.5046249963343,
+          "unit": "ms",
+          "boundary": "Paced audio start to first readable provisional word; 400ms initial audio, then1s updates",
+          "samples": 3,
+          "aggregation": "median of three warmed paced holds; raw ranges retained"
+        },
+        {
+          "name": "EN Release to full ASR final",
+          "value": 142.08566601155326,
+          "unit": "ms",
+          "boundary": "Independent scheduled release to complete native ASR return, including in-flight work; excludes polish/UI/insertion",
+          "samples": 3,
+          "aggregation": "median of three warmed paced holds; raw ranges retained"
+        },
+        {
+          "name": "FR First provisional word",
+          "value": 505.54675003513694,
+          "unit": "ms",
+          "boundary": "Paced audio start to first readable provisional word; 400ms initial audio, then1s updates",
+          "samples": 3,
+          "aggregation": "median of three warmed paced holds; raw ranges retained"
+        },
+        {
+          "name": "FR Release to full ASR final",
+          "value": 140.66045795334503,
+          "unit": "ms",
+          "boundary": "Independent scheduled release to complete native ASR return, including in-flight work; excludes polish/UI/insertion",
+          "samples": 3,
+          "aggregation": "median of three warmed paced holds; raw ranges retained"
+        }
+      ],
+      "limitations": [
+        "One authored short excerpt per language, repeated for timing; no broad accuracy, physical microphone/UI/polish/insertion or concurrent ASR/voice acceptance.",
+        "Model loading/compilation and shape warmup excluded. Results are provisional word delivery, not native committed text.",
+        "Other candidate results belong to the same resumed suite; original pressure experiment and whole-file speed/accuracy remain separate.",
+        "No product default or installed app changed.",
+        "Short French2/22 raw edits are numeral rendering only; English0/20. This small fixture cannot establish general accuracy."
+      ]
+    },
+    {
+      "id": "2026-10-22-asr-paced-resumed-redux",
+      "title": "Parakeet Redux resumed paced ASR latency",
+      "date": "2026-10-22",
+      "category": "asr",
+      "status": "measured",
+      "scope": "Paced native runtime first-word and release-to-final; no app integration or physical microphone acceptance",
+      "summary": "Three warmed paced trials per language; quiet serial candidate window, no app/default promotion.",
+      "environment": {
+        "hardware": "Apple M3,16GB RAM",
+        "os": "macOS27.2 build26B5091g",
+        "workload": "Normal desktop apps; coordinated serial native window, no concurrent build/model workload. Per-attempt context retained; high inherited swap remains.",
+        "power_thermal": "Per-attempt logs retained; no recorded thermal warning. Quiet ASR+voice reference workload not qualified."
+      },
+      "metrics": [
+        {
+          "name": "EN First provisional word",
+          "value": 807.8295410377905,
+          "unit": "ms",
+          "boundary": "Paced audio start to first readable provisional word; 400ms initial audio, then1s updates",
+          "samples": 3,
+          "aggregation": "median of three warmed paced holds; raw ranges retained"
+        },
+        {
+          "name": "EN Release to full ASR final",
+          "value": 341.5220419992693,
+          "unit": "ms",
+          "boundary": "Independent scheduled release to complete native ASR return, including in-flight work; excludes polish/UI/insertion",
+          "samples": 3,
+          "aggregation": "median of three warmed paced holds; raw ranges retained"
+        },
+        {
+          "name": "FR First provisional word",
+          "value": 709.900584013667,
+          "unit": "ms",
+          "boundary": "Paced audio start to first readable provisional word; 400ms initial audio, then1s updates",
+          "samples": 3,
+          "aggregation": "median of three warmed paced holds; raw ranges retained"
+        },
+        {
+          "name": "FR Release to full ASR final",
+          "value": 418.51350001525134,
+          "unit": "ms",
+          "boundary": "Independent scheduled release to complete native ASR return, including in-flight work; excludes polish/UI/insertion",
+          "samples": 3,
+          "aggregation": "median of three warmed paced holds; raw ranges retained"
+        }
+      ],
+      "limitations": [
+        "One authored short excerpt per language, repeated for timing; no broad accuracy, physical microphone/UI/polish/insertion or concurrent ASR/voice acceptance.",
+        "Model loading/compilation and shape warmup excluded. Results are provisional word delivery, not native committed text.",
+        "Other candidate results belong to the same resumed suite; original pressure experiment and whole-file speed/accuracy remain separate.",
+        "No product default or installed app changed.",
+        "Short French2/22 raw edits are numeral rendering only; English0/20. This small fixture cannot establish general accuracy."
+      ]
+    },
+    {
+      "id": "2026-10-22-asr-paced-resumed-qwen-17b",
+      "title": "Qwen3-ASR 1.7B (4-bit MLX) resumed paced ASR latency",
+      "date": "2026-10-22",
+      "category": "asr",
+      "status": "measured",
+      "scope": "Paced native runtime first-word and release-to-final; no app integration or physical microphone acceptance",
+      "summary": "Three warmed paced trials per language; quiet serial candidate window, no app/default promotion.",
+      "environment": {
+        "hardware": "Apple M3,16GB RAM",
+        "os": "macOS27.2 build26B5091g",
+        "workload": "Normal desktop apps; coordinated serial native window, no concurrent build/model workload. Per-attempt context retained; high inherited swap remains.",
+        "power_thermal": "Per-attempt logs retained; no recorded thermal warning. Quiet ASR+voice reference workload not qualified."
+      },
+      "metrics": [
+        {
+          "name": "EN First provisional word",
+          "value": 571.9756249454804,
+          "unit": "ms",
+          "boundary": "Paced audio start to first readable provisional word;400ms first prefix,1s updates",
+          "samples": 3,
+          "aggregation": "median of three warmed paced holds; raw range retained"
+        },
+        {
+          "name": "EN Release to full ASR final",
+          "value": 658.8988329749554,
+          "unit": "ms",
+          "boundary": "Independent scheduled release to complete native ASR return; includes in-flight work, excludes UI/polish/insertion",
+          "samples": 3,
+          "aggregation": "median of three warmed paced holds; raw range retained"
+        },
+        {
+          "name": "FR First provisional word",
+          "value": 600.7816250203177,
+          "unit": "ms",
+          "boundary": "Paced audio start to first readable provisional word;400ms first prefix,1s updates",
+          "samples": 3,
+          "aggregation": "median of three warmed paced holds; raw range retained"
+        },
+        {
+          "name": "FR Release to full ASR final",
+          "value": 1297.4259170005098,
+          "unit": "ms",
+          "boundary": "Independent scheduled release to complete native ASR return; includes in-flight work, excludes UI/polish/insertion",
+          "samples": 3,
+          "aggregation": "median of three warmed paced holds; raw range retained"
+        }
+      ],
+      "limitations": [
+        "Single authored excerpt per language, three timing trials; no broad corpus/physical microphone/UI/polish/insertion/concurrent ASR+voice acceptance.",
+        "Cold compilation/load/shape warmup excluded. All temporary candidate assets deleted; no app/default/install promotion."
+      ]
+    },
+    {
+      "id": "2026-10-22-asr-paced-resumed-qwen-06b",
+      "title": "Qwen3-ASR 0.6B 4-bit resumed paced ASR latency",
+      "date": "2026-10-22",
+      "category": "asr",
+      "status": "measured",
+      "scope": "Paced native runtime first-word and release-to-final; no app integration or physical microphone acceptance",
+      "summary": "Three warmed paced trials per language; quiet serial candidate window, no app/default promotion.",
+      "environment": {
+        "hardware": "Apple M3,16GB RAM",
+        "os": "macOS27.2 build26B5091g",
+        "workload": "Normal desktop apps; coordinated serial native window, no concurrent build/model workload. Per-attempt context retained; high inherited swap remains.",
+        "power_thermal": "Per-attempt logs retained; no recorded thermal warning. Quiet ASR+voice reference workload not qualified."
+      },
+      "metrics": [
+        {
+          "name": "EN First provisional word",
+          "value": 545.7660839892924,
+          "unit": "ms",
+          "boundary": "Paced audio start to first readable provisional word; 400ms initial audio, then1s updates",
+          "samples": 3,
+          "aggregation": "median of three warmed paced holds; raw ranges retained"
+        },
+        {
+          "name": "EN Release to full ASR final",
+          "value": 507.3170840041712,
+          "unit": "ms",
+          "boundary": "Independent scheduled release to complete native ASR return, including in-flight work; excludes polish/UI/insertion",
+          "samples": 3,
+          "aggregation": "median of three warmed paced holds; raw ranges retained"
+        },
+        {
+          "name": "FR First provisional word",
+          "value": 551.5169589780271,
+          "unit": "ms",
+          "boundary": "Paced audio start to first readable provisional word; 400ms initial audio, then1s updates",
+          "samples": 3,
+          "aggregation": "median of three warmed paced holds; raw ranges retained"
+        },
+        {
+          "name": "FR Release to full ASR final",
+          "value": 1030.4355419939384,
+          "unit": "ms",
+          "boundary": "Independent scheduled release to complete native ASR return, including in-flight work; excludes polish/UI/insertion",
+          "samples": 3,
+          "aggregation": "median of three warmed paced holds; raw ranges retained"
+        }
+      ],
+      "limitations": [
+        "One authored short excerpt per language, repeated for timing; no broad accuracy, physical microphone/UI/polish/insertion or concurrent ASR/voice acceptance.",
+        "Model loading/compilation and shape warmup excluded. Results are provisional word delivery, not native committed text.",
+        "Other candidate results belong to the same resumed suite; original pressure experiment and whole-file speed/accuracy remain separate.",
+        "No product default or installed app changed.",
+        "Short French2/22 raw edits are numeral rendering only; English0/20. This small fixture cannot establish general accuracy."
+      ]
+    },
+    {
+      "id": "2026-10-22-asr-paced-resumed-phonon",
+      "title": "Phonon-2 (CoreML) resumed paced ASR latency",
+      "date": "2026-10-22",
+      "category": "asr",
+      "status": "measured",
+      "scope": "Paced native runtime first-word and release-to-final; no app integration or physical microphone acceptance",
+      "summary": "Three warmed paced trials per language; quiet serial candidate window, no app/default promotion.",
+      "environment": {
+        "hardware": "Apple M3,16GB RAM",
+        "os": "macOS27.2 build26B5091g",
+        "workload": "Normal desktop apps; coordinated serial native window, no concurrent build/model workload. Per-attempt context retained; high inherited swap remains.",
+        "power_thermal": "Per-attempt logs retained; no recorded thermal warning. Quiet ASR+voice reference workload not qualified."
+      },
+      "metrics": [
+        {
+          "name": "EN First provisional word",
+          "value": 421.1360000190325,
+          "unit": "ms",
+          "boundary": "Paced audio start to first readable provisional word;400ms first prefix,1s updates",
+          "samples": 3,
+          "aggregation": "median of three warmed paced holds; raw range retained"
+        },
+        {
+          "name": "EN Release to full ASR final",
+          "value": 52.29354102630168,
+          "unit": "ms",
+          "boundary": "Independent scheduled release to complete native ASR return; includes in-flight work, excludes UI/polish/insertion",
+          "samples": 3,
+          "aggregation": "median of three warmed paced holds; raw range retained"
+        }
+      ],
+      "limitations": [
+        "Single authored excerpt per language, three timing trials; no broad corpus/physical microphone/UI/polish/insertion/concurrent ASR+voice acceptance.",
+        "Cold compilation/load/shape warmup excluded. All temporary candidate assets deleted; no app/default/install promotion.",
+        "English only. Short-graph5/10s vendor options,eager5; initial default15s startup censored120s retained separately."
+      ]
+    },
+    {
+      "id": "2026-10-22-asr-paced-resumed-parakeet-v3",
+      "title": "Parakeet v3 resumed paced ASR latency",
+      "date": "2026-10-22",
+      "category": "asr",
+      "status": "measured",
+      "scope": "Paced native runtime first-word and release-to-final; no app integration or physical microphone acceptance",
+      "summary": "Three warmed paced trials per language; quiet serial candidate window, no app/default promotion.",
+      "environment": {
+        "hardware": "Apple M3,16GB RAM",
+        "os": "macOS27.2 build26B5091g",
+        "workload": "Normal desktop apps; coordinated serial native window, no concurrent build/model workload. Per-attempt context retained; high inherited swap remains.",
+        "power_thermal": "Per-attempt logs retained; no recorded thermal warning. Quiet ASR+voice reference workload not qualified."
+      },
+      "metrics": [
+        {
+          "name": "EN First provisional word",
+          "value": 512.9777920083143,
+          "unit": "ms",
+          "boundary": "Paced audio start to first readable provisional word; 400ms initial audio, then1s updates",
+          "samples": 3,
+          "aggregation": "median of three warmed paced holds; raw ranges retained"
+        },
+        {
+          "name": "EN Release to full ASR final",
+          "value": 132.57891597459093,
+          "unit": "ms",
+          "boundary": "Independent scheduled release to complete native ASR return, including in-flight work; excludes polish/UI/insertion",
+          "samples": 3,
+          "aggregation": "median of three warmed paced holds; raw ranges retained"
+        },
+        {
+          "name": "FR First provisional word",
+          "value": 511.2272499827668,
+          "unit": "ms",
+          "boundary": "Paced audio start to first readable provisional word; 400ms initial audio, then1s updates",
+          "samples": 3,
+          "aggregation": "median of three warmed paced holds; raw ranges retained"
+        },
+        {
+          "name": "FR Release to full ASR final",
+          "value": 159.73837493220344,
+          "unit": "ms",
+          "boundary": "Independent scheduled release to complete native ASR return, including in-flight work; excludes polish/UI/insertion",
+          "samples": 3,
+          "aggregation": "median of three warmed paced holds; raw ranges retained"
+        }
+      ],
+      "limitations": [
+        "One authored short excerpt per language, repeated for timing; no broad accuracy, physical microphone/UI/polish/insertion or concurrent ASR/voice acceptance.",
+        "Model loading/compilation and shape warmup excluded. Results are provisional word delivery, not native committed text.",
+        "Other candidate results belong to the same resumed suite; original pressure experiment and whole-file speed/accuracy remain separate.",
+        "No product default or installed app changed.",
+        "Short French2/22 raw edits are numeral rendering only; English0/20. This small fixture cannot establish general accuracy."
+      ]
+    },
+    {
+      "id": "2026-10-22-asr-live-pending",
+      "title": "Paced speech recognition in the signed app",
+      "date": "2026-10-22",
+      "category": "asr",
+      "status": "partial",
+      "scope": "Paced authored-fixture runtime replay",
+      "summary": "All eight signed-app model cases passed across 45 warmed paced holds. Live text, committed text and release-final clocks are reported separately.",
+      "environment": {
+        "hardware": "Apple M3,16GB RAM",
+        "os": "macOS27.2 build26B5091g",
+        "workload": "Normal desktop apps; coordinated serial window with no concurrent native build/model job. Existing swap/desktop pressure retained in per-model context; no concurrent voice qualification.",
+        "power_thermal": "Per-model power/thermal/load/swap observations retained. Cold preparation is separate from warmed timing."
       },
       "metrics": [],
       "limitations": [
-        "Active ASR agent is preparing a separate paced replay. Whole-file throughput cannot stand in for live latency.",
-        "No accepted native timing rows or app default promotion."
+        "Authored PCM replay exercises the app engine, scheduler and transcript consumer; physical microphone, UI insertion, cleanup and concurrent voice remain unverified.",
+        "Short-excerpt latency and full-fixture accuracy are separate measurements; this is not whole-app dictation latency."
       ]
     },
     {

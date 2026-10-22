@@ -1,6 +1,6 @@
 # Evidence discovery
 
-3349 current evidence files discovered under Tests/Reports, bench, docs and roadmaps.
+3435 current evidence files discovered under Tests/Reports, bench, docs and roadmaps.
 
 Imported third-party reference trees and website assets are excluded. Files are catalogued without moving them or extracting private payloads. Legacy files remain unclassified until a reviewed run manifest records their scope and verdict.
 
@@ -47,11 +47,14 @@ Known English text request to first non-empty generated PCM through the actual n
 - [Tests/Reports/tts-2026-10-22/final-model-cleanup.json](../Tests/Reports/tts-2026-10-22/final-model-cleanup.json)
 - [Tests/Reports/tts-2026-10-22/owner-cache-preservation.json](../Tests/Reports/tts-2026-10-22/owner-cache-preservation.json)
 
-### Native TTS comparison in progress
+### Five native TTS generation results; speaker timing pending
 
-Generated PCM benchmark preparation **unrun**
+Five completed native generated-PCM comparisons plus a prepared separate physical speaker-start collector. **partial**
 
 - [Tests/Reports/tts-2026-10-22/README.md](../Tests/Reports/tts-2026-10-22/README.md)
+- [Tests/Reports/tts-2026-10-22/accepted-results.json](../Tests/Reports/tts-2026-10-22/accepted-results.json)
+- [Tests/Reports/tts-2026-10-22/output-maximum-latency-original.json](../Tests/Reports/tts-2026-10-22/output-maximum-latency-original.json)
+- [Tests/Reports/tts-2026-10-22/output-maximum-latency-fixed.json](../Tests/Reports/tts-2026-10-22/output-maximum-latency-fixed.json)
 
 ### FluidAudio/Kokoro82M/af_heart: native first generated audio
 
@@ -65,6 +68,15 @@ Known English text request to first non-empty generated PCM through the actual n
 - [Tests/Reports/tts-2026-10-22/verification.json](../Tests/Reports/tts-2026-10-22/verification.json)
 - [Tests/Reports/tts-2026-10-22/final-model-cleanup.json](../Tests/Reports/tts-2026-10-22/final-model-cleanup.json)
 - [Tests/Reports/tts-2026-10-22/owner-cache-preservation.json](../Tests/Reports/tts-2026-10-22/owner-cache-preservation.json)
+
+### macOS voice: physical speaker-to-microphone calibration
+
+Two actual Apple playback requests with timestamped microphone pickup and matching rendered-audio energy envelopes; collector calibration only. **measured**
+
+- [Tests/Reports/tts-2026-10-22/speaker-calibration/apple.json](../Tests/Reports/tts-2026-10-22/speaker-calibration/apple.json)
+- [Tests/Reports/tts-2026-10-22/speaker-calibration/summary.json](../Tests/Reports/tts-2026-10-22/speaker-calibration/summary.json)
+- [Tests/Reports/tts-2026-10-22/README.md](../Tests/Reports/tts-2026-10-22/README.md)
+- [Tests/Reports/tts-2026-10-22/microphone-authorization-probe.json](../Tests/Reports/tts-2026-10-22/microphone-authorization-probe.json)
 
 ### AVSpeechSynthesizer/system-default: native first generated audio
 
@@ -102,6 +114,86 @@ Isolated runtime probe **measured**
 - [Tests/Reports/asr-candidates-2026-10-22/README.md](../Tests/Reports/asr-candidates-2026-10-22/README.md)
 - [Tests/Reports/asr-candidates-2026-10-22/comparison.json](../Tests/Reports/asr-candidates-2026-10-22/comparison.json)
 - [Tests/Reports/asr-candidates-2026-10-22/ultra.json](../Tests/Reports/asr-candidates-2026-10-22/ultra.json)
+
+### Whistle signed-app live ASR
+
+Signed optimized application factory, segmented engine, scheduler and transcript consumer;20ms paced authored PCM **measured**
+
+- [Tests/Reports/asr-app-integration-2026-10-22/README.md](../Tests/Reports/asr-app-integration-2026-10-22/README.md)
+- [Tests/Reports/asr-app-integration-2026-10-22/native/whistle.json](../Tests/Reports/asr-app-integration-2026-10-22/native/whistle.json)
+- [Tests/Reports/asr-app-integration-2026-10-22/native/whistle-quality.json](../Tests/Reports/asr-app-integration-2026-10-22/native/whistle-quality.json)
+- [Tests/Reports/asr-app-integration-2026-10-22/native/whistle-context.json](../Tests/Reports/asr-app-integration-2026-10-22/native/whistle-context.json)
+- [Tests/Reports/asr-app-integration-2026-10-22/native/runner.json](../Tests/Reports/asr-app-integration-2026-10-22/native/runner.json)
+
+### Voz signed-app live ASR
+
+Signed optimized application factory, segmented engine, scheduler and transcript consumer;20ms paced authored PCM **measured**
+
+- [Tests/Reports/asr-app-integration-2026-10-22/README.md](../Tests/Reports/asr-app-integration-2026-10-22/README.md)
+- [Tests/Reports/asr-app-integration-2026-10-22/native/voz.json](../Tests/Reports/asr-app-integration-2026-10-22/native/voz.json)
+- [Tests/Reports/asr-app-integration-2026-10-22/native/voz-quality.json](../Tests/Reports/asr-app-integration-2026-10-22/native/voz-quality.json)
+- [Tests/Reports/asr-app-integration-2026-10-22/native/voz-context.json](../Tests/Reports/asr-app-integration-2026-10-22/native/voz-context.json)
+- [Tests/Reports/asr-app-integration-2026-10-22/native/runner.json](../Tests/Reports/asr-app-integration-2026-10-22/native/runner.json)
+
+### Parakeet Ultra signed-app live ASR
+
+Signed optimized application factory, segmented engine, scheduler and transcript consumer;20ms paced authored PCM **measured**
+
+- [Tests/Reports/asr-app-integration-2026-10-22/README.md](../Tests/Reports/asr-app-integration-2026-10-22/README.md)
+- [Tests/Reports/asr-app-integration-2026-10-22/native/ultra.json](../Tests/Reports/asr-app-integration-2026-10-22/native/ultra.json)
+- [Tests/Reports/asr-app-integration-2026-10-22/native/ultra-quality.json](../Tests/Reports/asr-app-integration-2026-10-22/native/ultra-quality.json)
+- [Tests/Reports/asr-app-integration-2026-10-22/native/ultra-context.json](../Tests/Reports/asr-app-integration-2026-10-22/native/ultra-context.json)
+- [Tests/Reports/asr-app-integration-2026-10-22/native/runner.json](../Tests/Reports/asr-app-integration-2026-10-22/native/runner.json)
+
+### Parakeet Redux signed-app live ASR
+
+Signed optimized application factory, segmented engine, scheduler and transcript consumer;20ms paced authored PCM **measured**
+
+- [Tests/Reports/asr-app-integration-2026-10-22/README.md](../Tests/Reports/asr-app-integration-2026-10-22/README.md)
+- [Tests/Reports/asr-app-integration-2026-10-22/native/redux.json](../Tests/Reports/asr-app-integration-2026-10-22/native/redux.json)
+- [Tests/Reports/asr-app-integration-2026-10-22/native/redux-quality.json](../Tests/Reports/asr-app-integration-2026-10-22/native/redux-quality.json)
+- [Tests/Reports/asr-app-integration-2026-10-22/native/redux-context.json](../Tests/Reports/asr-app-integration-2026-10-22/native/redux-context.json)
+- [Tests/Reports/asr-app-integration-2026-10-22/native/runner.json](../Tests/Reports/asr-app-integration-2026-10-22/native/runner.json)
+
+### Qwen3-ASR 1.7B signed-app live ASR
+
+Signed optimized application factory, segmented engine, scheduler and transcript consumer;20ms paced authored PCM **measured**
+
+- [Tests/Reports/asr-app-integration-2026-10-22/README.md](../Tests/Reports/asr-app-integration-2026-10-22/README.md)
+- [Tests/Reports/asr-app-integration-2026-10-22/native/qwen-17b.json](../Tests/Reports/asr-app-integration-2026-10-22/native/qwen-17b.json)
+- [Tests/Reports/asr-app-integration-2026-10-22/native/qwen-17b-quality.json](../Tests/Reports/asr-app-integration-2026-10-22/native/qwen-17b-quality.json)
+- [Tests/Reports/asr-app-integration-2026-10-22/native/qwen-17b-context.json](../Tests/Reports/asr-app-integration-2026-10-22/native/qwen-17b-context.json)
+- [Tests/Reports/asr-app-integration-2026-10-22/native/runner.json](../Tests/Reports/asr-app-integration-2026-10-22/native/runner.json)
+
+### Qwen3-ASR 0.6B signed-app live ASR
+
+Signed optimized application factory, segmented engine, scheduler and transcript consumer;20ms paced authored PCM **measured**
+
+- [Tests/Reports/asr-app-integration-2026-10-22/README.md](../Tests/Reports/asr-app-integration-2026-10-22/README.md)
+- [Tests/Reports/asr-app-integration-2026-10-22/native/qwen-06b.json](../Tests/Reports/asr-app-integration-2026-10-22/native/qwen-06b.json)
+- [Tests/Reports/asr-app-integration-2026-10-22/native/qwen-06b-quality.json](../Tests/Reports/asr-app-integration-2026-10-22/native/qwen-06b-quality.json)
+- [Tests/Reports/asr-app-integration-2026-10-22/native/qwen-06b-context.json](../Tests/Reports/asr-app-integration-2026-10-22/native/qwen-06b-context.json)
+- [Tests/Reports/asr-app-integration-2026-10-22/native/runner.json](../Tests/Reports/asr-app-integration-2026-10-22/native/runner.json)
+
+### Phonon-2 signed-app live ASR
+
+Signed optimized application factory, segmented engine, scheduler and transcript consumer;20ms paced authored PCM **measured**
+
+- [Tests/Reports/asr-app-integration-2026-10-22/README.md](../Tests/Reports/asr-app-integration-2026-10-22/README.md)
+- [Tests/Reports/asr-app-integration-2026-10-22/native/phonon.json](../Tests/Reports/asr-app-integration-2026-10-22/native/phonon.json)
+- [Tests/Reports/asr-app-integration-2026-10-22/native/phonon-quality.json](../Tests/Reports/asr-app-integration-2026-10-22/native/phonon-quality.json)
+- [Tests/Reports/asr-app-integration-2026-10-22/native/phonon-context.json](../Tests/Reports/asr-app-integration-2026-10-22/native/phonon-context.json)
+- [Tests/Reports/asr-app-integration-2026-10-22/native/runner.json](../Tests/Reports/asr-app-integration-2026-10-22/native/runner.json)
+
+### Parakeet v3 signed-app live ASR
+
+Signed optimized application factory, segmented engine, scheduler and transcript consumer;20ms paced authored PCM **measured**
+
+- [Tests/Reports/asr-app-integration-2026-10-22/README.md](../Tests/Reports/asr-app-integration-2026-10-22/README.md)
+- [Tests/Reports/asr-app-integration-2026-10-22/native/parakeet.json](../Tests/Reports/asr-app-integration-2026-10-22/native/parakeet.json)
+- [Tests/Reports/asr-app-integration-2026-10-22/native/parakeet-quality.json](../Tests/Reports/asr-app-integration-2026-10-22/native/parakeet-quality.json)
+- [Tests/Reports/asr-app-integration-2026-10-22/native/parakeet-context.json](../Tests/Reports/asr-app-integration-2026-10-22/native/parakeet-context.json)
+- [Tests/Reports/asr-app-integration-2026-10-22/native/runner.json](../Tests/Reports/asr-app-integration-2026-10-22/native/runner.json)
 
 ### Parakeet Redux (CoreML)
 
@@ -263,10 +355,11 @@ Paced native runtime first-word and release-to-final; no app integration or phys
 - [Tests/Reports/asr-live-latency-2026-10-22/comparison.json](../Tests/Reports/asr-live-latency-2026-10-22/comparison.json)
 - [Tests/Reports/asr-live-latency-2026-10-22/aborted-attempt.json](../Tests/Reports/asr-live-latency-2026-10-22/aborted-attempt.json)
 
-### Live speech recognition latency in progress
+### Paced speech recognition in the signed app
 
-Paced authored-fixture runtime replay **unrun**
+Paced authored-fixture runtime replay **partial**
 
+- [Tests/Reports/asr-app-integration-2026-10-22/README.md](../Tests/Reports/asr-app-integration-2026-10-22/README.md)
 - [Tests/Reports/asr-live-latency-2026-10-22/README.md](../Tests/Reports/asr-live-latency-2026-10-22/README.md)
 
 ### Archived runtime producer integration
@@ -505,9 +598,11 @@ These links cover completed, active and planned work. Completion labels do not o
 - [roadmap/in-progress/VOICE-TURN-DETECTION/01-IMPLEMENTATION.md](../roadmap/in-progress/VOICE-TURN-DETECTION/01-IMPLEMENTATION.md)
 - [roadmap/in-progress/VOICE-TURN-DETECTION/02-BENCHMARKS.md](../roadmap/in-progress/VOICE-TURN-DETECTION/02-BENCHMARKS.md)
 - [roadmap/in-progress/VOICE-TURN-DETECTION/03-ASR-TTS-ALIGNMENT.md](../roadmap/in-progress/VOICE-TURN-DETECTION/03-ASR-TTS-ALIGNMENT.md)
+- [roadmap/in-progress/VOICE-TURN-DETECTION/04-TTS-AUDIBLE-ALIGNMENT.md](../roadmap/in-progress/VOICE-TURN-DETECTION/04-TTS-AUDIBLE-ALIGNMENT.md)
 - [roadmap/in-progress/VOICE-TURN-DETECTION/STATUS.md](../roadmap/in-progress/VOICE-TURN-DETECTION/STATUS.md)
 - [roadmap/in-progress/VOICE-TURN-DETECTION/benchmark/README.md](../roadmap/in-progress/VOICE-TURN-DETECTION/benchmark/README.md)
 - [roadmap/in-progress/VOICE-TURN-DETECTION/benchmark/VERIFICATION.md](../roadmap/in-progress/VOICE-TURN-DETECTION/benchmark/VERIFICATION.md)
+- [roadmap/in-progress/VOICE-TURN-DETECTION/benchmark/cases.json](../roadmap/in-progress/VOICE-TURN-DETECTION/benchmark/cases.json)
 - [roadmap/in-progress/WEBSITE-TO-MAC-EXPERIENCE/00-README.md](../roadmap/in-progress/WEBSITE-TO-MAC-EXPERIENCE/00-README.md)
 - [roadmap/in-progress/WEBSITE-TO-MAC-EXPERIENCE/01-IMPLEMENTATION.md](../roadmap/in-progress/WEBSITE-TO-MAC-EXPERIENCE/01-IMPLEMENTATION.md)
 - [roadmap/in-progress/WEBSITE-TO-MAC-EXPERIENCE/STATUS.md](../roadmap/in-progress/WEBSITE-TO-MAC-EXPERIENCE/STATUS.md)

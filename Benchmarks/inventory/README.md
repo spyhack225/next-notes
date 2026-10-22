@@ -1,6 +1,6 @@
 # Branch and worktree evidence audit
 
-Audited 2026-10-22T18:21:55.907605+00:00. Read-only snapshot; no branch was merged or worktree removed.
+Audited 2026-10-22T19:49:10.914051+00:00. Read-only snapshot; no branch was merged or worktree removed.
 
 [Full pinned inventory, compressed JSON](git-audit.json.gz) · [Compact summary](git-audit-summary.json) · [Conversation audit](../CONVERSATIONS.md)
 
@@ -8,7 +8,7 @@ Git blobs preserve committed versions. Uncommitted differences are pointers to t
 
 | Git ref or preserved snapshot | Pinned commit | Evidence files |
 |---|---|---:|
-| refs/heads/main | `fa8f72be3269d6e54801b33a5dd94f439d793c87` | 3371 |
+| refs/heads/main | `899e02723b7bcb87d27d56c505f2251b085887b2` | 3435 |
 | refs/remotes/origin/HEAD | `f2f5b6067e6283026d417edf007420113681941b` | 830 |
 | refs/remotes/origin/claude/open-source-license-setup-d0l8u9 | `7290fd2086c397d11b898b954d0e6329096e258d` | 107 |
 | refs/remotes/origin/main | `f2f5b6067e6283026d417edf007420113681941b` | 830 |
@@ -47,7 +47,7 @@ Git blobs preserve committed versions. Uncommitted differences are pointers to t
 
 | Worktree | Branch / detached | Evidence files | Different or absent in canonical |
 |---|---|---:|---:|
-| [next-notes](/Users/sergekadjo/Documents/Claude/Projects/next-notes) | refs/heads/main | 3379 | 0 |
+| [next-notes](/Users/sergekadjo/Documents/Claude/Projects/next-notes) | refs/heads/main | 3630 | 0 |
 
 ## Retrieve a historical result
 

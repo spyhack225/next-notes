@@ -10,6 +10,7 @@ Discovery inventory, not a claim that every file is a benchmark or that its chec
 | [Tests/Reports/tts-2026-10-22/fixed-component-pins.json](../../Tests/Reports/tts-2026-10-22/fixed-component-pins.json) |
 | [Tests/Reports/tts-2026-10-22/metal-packaging-after-link.log](../../Tests/Reports/tts-2026-10-22/metal-packaging-after-link.log) |
 | [Tests/Reports/tts-2026-10-22/metal-packaging.log](../../Tests/Reports/tts-2026-10-22/metal-packaging.log) |
+| [Tests/Reports/tts-2026-10-22/microphone-authorization-probe.json](../../Tests/Reports/tts-2026-10-22/microphone-authorization-probe.json) |
 | [Tests/Reports/tts-2026-10-22/native-binary.json](../../Tests/Reports/tts-2026-10-22/native-binary.json) |
 | [Tests/Reports/tts-2026-10-22/native-build-result.json](../../Tests/Reports/tts-2026-10-22/native-build-result.json) |
 | [Tests/Reports/tts-2026-10-22/native-build.log](../../Tests/Reports/tts-2026-10-22/native-build.log) |
@@ -39,6 +40,9 @@ Discovery inventory, not a claim that every file is a benchmark or that its chec
 | [Tests/Reports/tts-2026-10-22/native-retry/summary.json](../../Tests/Reports/tts-2026-10-22/native-retry/summary.json) |
 | [Tests/Reports/tts-2026-10-22/native-typecheck.log](../../Tests/Reports/tts-2026-10-22/native-typecheck.log) |
 | [Tests/Reports/tts-2026-10-22/original-component-pins.json](../../Tests/Reports/tts-2026-10-22/original-component-pins.json) |
+| [Tests/Reports/tts-2026-10-22/output-maximum-latency-fixed.json](../../Tests/Reports/tts-2026-10-22/output-maximum-latency-fixed.json) |
+| [Tests/Reports/tts-2026-10-22/output-maximum-latency-original.json](../../Tests/Reports/tts-2026-10-22/output-maximum-latency-original.json) |
+| [Tests/Reports/tts-2026-10-22/output-observer-control.json](../../Tests/Reports/tts-2026-10-22/output-observer-control.json) |
 | [Tests/Reports/tts-2026-10-22/owner-cache-preservation.json](../../Tests/Reports/tts-2026-10-22/owner-cache-preservation.json) |
 | [Tests/Reports/tts-2026-10-22/owner-caches-after.json](../../Tests/Reports/tts-2026-10-22/owner-caches-after.json) |
 | [Tests/Reports/tts-2026-10-22/owner-caches-before.json](../../Tests/Reports/tts-2026-10-22/owner-caches-before.json) |
@@ -54,7 +58,15 @@ Discovery inventory, not a claim that every file is a benchmark or that its chec
 | [Tests/Reports/tts-2026-10-22/source-original.log](../../Tests/Reports/tts-2026-10-22/source-original.log) |
 | [Tests/Reports/tts-2026-10-22/source-pause-only.log](../../Tests/Reports/tts-2026-10-22/source-pause-only.log) |
 | [Tests/Reports/tts-2026-10-22/source-pins.json](../../Tests/Reports/tts-2026-10-22/source-pins.json) |
+| [Tests/Reports/tts-2026-10-22/speaker-calibration/apple.json](../../Tests/Reports/tts-2026-10-22/speaker-calibration/apple.json) |
+| [Tests/Reports/tts-2026-10-22/speaker-calibration/apple.log](../../Tests/Reports/tts-2026-10-22/speaker-calibration/apple.log) |
+| [Tests/Reports/tts-2026-10-22/speaker-calibration/preflight.json](../../Tests/Reports/tts-2026-10-22/speaker-calibration/preflight.json) |
+| [Tests/Reports/tts-2026-10-22/speaker-calibration/summary.json](../../Tests/Reports/tts-2026-10-22/speaker-calibration/summary.json) |
+| [Tests/Reports/tts-2026-10-22/speaker-followup-prebuild-validation.json](../../Tests/Reports/tts-2026-10-22/speaker-followup-prebuild-validation.json) |
+| [Tests/Reports/tts-2026-10-22/speaker-workload-runner-validation.json](../../Tests/Reports/tts-2026-10-22/speaker-workload-runner-validation.json) |
 | [Tests/Reports/tts-2026-10-22/typecheck-command.json](../../Tests/Reports/tts-2026-10-22/typecheck-command.json) |
 | [Tests/Reports/tts-2026-10-22/typecheck-sources.txt](../../Tests/Reports/tts-2026-10-22/typecheck-sources.txt) |
 | [Tests/Reports/tts-2026-10-22/verification.json](../../Tests/Reports/tts-2026-10-22/verification.json) |
+| [Tests/Reports/tts-2026-10-22/voice-preferences-before-speaker-suite.json](../../Tests/Reports/tts-2026-10-22/voice-preferences-before-speaker-suite.json) |
 | [Tests/Reports/tts-benchmark-2026-09-13.md](../../Tests/Reports/tts-benchmark-2026-09-13.md) |
+| [roadmap/in-progress/VOICE-TURN-DETECTION/04-TTS-AUDIBLE-ALIGNMENT.md](../../roadmap/in-progress/VOICE-TURN-DETECTION/04-TTS-AUDIBLE-ALIGNMENT.md) |

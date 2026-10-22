@@ -19,7 +19,7 @@
     "binary_sha256": "32a35bfcf9220dbdc87734466ccd63b9df1dc0a5e2488d1541b7e08a4207c8ed",
     "model_revision": "AVSpeechSynthesizer/system-default",
     "fixture_sha256": "89bc2cbbb042d3eac7a0fbf040798d0828cdb2b2a4128795042218ef22e1b2ad",
-    "command": "Tools/tts_compare.py --engines apple --trials1 --speaker-output; complete command/source context in retained report",
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 Tools/tts_compare.py --app '/Users/sergekadjo/Library/Caches/NextNotesBuild/install-36587/Next Notes.app/Contents/MacOS/NextNotes' --output Tests/Reports/tts-2026-10-22/speaker-calibration --engines apple --trials 1 --speaker-output --timeout 35 --relay-owner codex-tts-20261022 --max-swap-gb 12 --workload 'Apple-only physical calibration; no ASR load; not model-ranking or default evidence. Built-in microphone and speakers; current hardware volume retained.'",
     "grader": "Native captured host timestamps; >=0.75 rendered/microphone envelope correlation; quiet baseline, threshold and route/drop gates. No microphone recording saved."
   },
   "metrics": [

@@ -11,12 +11,21 @@ Status describes the stated scope only. A measured component is not production a
 | 2026-10-22 | tts | [Qwen3-TTS-0.6B-CustomVoice-4bit@08c72cad5e2fd0f41730c8bd1f28149585e46361: native first generated audio](runs/2026-10-22-tts-qwen-native.json) | measured | Warm median 2709.30 ms across 5 back-to-back runs; first synthesis after preparation 3093.75 ms. Result saved, child joined and owned model removed. |
 | 2026-10-22 | tts | [FluidAudio/PocketTTS-int8/alba: native first generated audio](runs/2026-10-22-tts-pocket-native.json) | measured | Warm median 59.00 ms across 5 back-to-back runs; first synthesis after preparation 1096.68 ms. Result saved, child joined and owned model removed. |
 | 2026-10-22 | tts | [Phonon31m-CoreML/v0.4.0: native first generated audio](runs/2026-10-22-tts-phonon-native.json) | measured | Warm median 7.80 ms across 5 back-to-back runs; first synthesis after preparation 8.32 ms. Result saved, child joined and owned model removed. |
-| 2026-10-22 | tts | [Native TTS comparison in progress](runs/2026-10-22-tts-native.json) | unrun | Native build and timing acceptance pending; no accepted timing table yet. |
+| 2026-10-22 | tts | [Five native TTS generation results; speaker timing pending](runs/2026-10-22-tts-native.json) | partial | All five generation results are saved individually. Speaker output and ASR-plus-voice qualification remain pending; no fastest-audible default has been selected. |
 | 2026-10-22 | tts | [FluidAudio/Kokoro82M/af_heart: native first generated audio](runs/2026-10-22-tts-kokoro-native.json) | measured | Warm median 224.11 ms across 5 back-to-back runs; first synthesis after preparation 904.19 ms. Result saved, child joined and owned model removed. |
+| 2026-10-22 | tts | [macOS voice: physical speaker-to-microphone calibration](runs/2026-10-22-tts-apple-speaker-calibration.json) | measured | First-after-preparation pickup 1247 ms; next phrase 299 ms. Both correlated with actual rendered audio. One warm sample, no ASR load, no model ranking or default choice. |
 | 2026-10-22 | tts | [AVSpeechSynthesizer/system-default: native first generated audio](runs/2026-10-22-tts-apple-native.json) | measured | Warm median 8.98 ms across 5 back-to-back runs; first synthesis after preparation 1039.27 ms. Result saved, child joined and owned model removed. |
 | 2026-10-22 | asr | [Whistle](runs/2026-10-22-asr-whistle.json) | measured | English 150.2× throughput, 5.15% word error. App provider acceptance remains open. |
 | 2026-10-22 | asr | [Voz (CoreML CLI)](runs/2026-10-22-asr-voz.json) | measured | English 375.3× throughput, 3.68% word error. App provider acceptance remains open. |
 | 2026-10-22 | asr | [Parakeet Ultra (CoreML)](runs/2026-10-22-asr-ultra.json) | measured | English 256.1× throughput, 4.41% word error. App provider acceptance remains open. |
+| 2026-10-22 | asr | [Whistle signed-app live ASR](runs/2026-10-22-asr-signed-app-whistle.json) | measured | Three warmed holds per supported language; each model downloaded, tested, unloaded and removed before the next. English-only Phonon; English and French for the others. |
+| 2026-10-22 | asr | [Voz signed-app live ASR](runs/2026-10-22-asr-signed-app-voz.json) | measured | Three warmed holds per supported language; each model downloaded, tested, unloaded and removed before the next. English-only Phonon; English and French for the others. |
+| 2026-10-22 | asr | [Parakeet Ultra signed-app live ASR](runs/2026-10-22-asr-signed-app-ultra.json) | measured | Three warmed holds per supported language; each model downloaded, tested, unloaded and removed before the next. English-only Phonon; English and French for the others. |
+| 2026-10-22 | asr | [Parakeet Redux signed-app live ASR](runs/2026-10-22-asr-signed-app-redux.json) | measured | Three warmed holds per supported language; each model downloaded, tested, unloaded and removed before the next. English-only Phonon; English and French for the others. |
+| 2026-10-22 | asr | [Qwen3-ASR 1.7B signed-app live ASR](runs/2026-10-22-asr-signed-app-qwen-17b.json) | measured | Three warmed holds per supported language; each model downloaded, tested, unloaded and removed before the next. English-only Phonon; English and French for the others. |
+| 2026-10-22 | asr | [Qwen3-ASR 0.6B signed-app live ASR](runs/2026-10-22-asr-signed-app-qwen-06b.json) | measured | Three warmed holds per supported language; each model downloaded, tested, unloaded and removed before the next. English-only Phonon; English and French for the others. |
+| 2026-10-22 | asr | [Phonon-2 signed-app live ASR](runs/2026-10-22-asr-signed-app-phonon.json) | measured | Three warmed holds per supported language; each model downloaded, tested, unloaded and removed before the next. English-only Phonon; English and French for the others. |
+| 2026-10-22 | asr | [Parakeet v3 signed-app live ASR](runs/2026-10-22-asr-signed-app-parakeet.json) | measured | Three warmed holds per supported language; each model downloaded, tested, unloaded and removed before the next. English-only Phonon; English and French for the others. |
 | 2026-10-22 | asr | [Parakeet Redux (CoreML)](runs/2026-10-22-asr-redux.json) | measured | English 102.0× throughput, 5.15% word error. App provider acceptance remains open. |
 | 2026-10-22 | asr | [Qwen3-ASR 1.7B (4-bit MLX)](runs/2026-10-22-asr-qwen-17b.json) | measured | English 14.3× throughput, 3.68% word error. App provider acceptance remains open. |
 | 2026-10-22 | asr | [Qwen3-ASR 0.6B (4-bit MLX)](runs/2026-10-22-asr-qwen-06b.json) | measured | English 31.6× throughput, 0.74% word error. App provider acceptance remains open. |
@@ -38,7 +47,7 @@ Status describes the stated scope only. A measured component is not production a
 | 2026-10-22 | asr | [Qwen3-ASR 0.6B (4-bit MLX) paced ASR latency](runs/2026-10-22-asr-paced-qwen-06b.json) | blocked | Not started: insufficient internal storage after pressure incident; model not downloaded. |
 | 2026-10-22 | asr | [Phonon-2 (CoreML) paced ASR latency](runs/2026-10-22-asr-paced-phonon.json) | blocked | Not started: insufficient internal storage after pressure incident; model not downloaded. |
 | 2026-10-22 | asr | [Parakeet v3 (cached FluidAudio) paced ASR latency](runs/2026-10-22-asr-paced-parakeet-v3.json) | blocked | Cached model short-prefix warmup aborted during disk/swap pressure; no timing accepted. |
-| 2026-10-22 | asr | [Live speech recognition latency in progress](runs/2026-10-22-asr-live-pending.json) | unrun | Native timings pending; live text, committed text and release-final clocks will be separate. |
+| 2026-10-22 | asr | [Paced speech recognition in the signed app](runs/2026-10-22-asr-live-pending.json) | partial | All eight signed-app model cases passed across 45 warmed paced holds. Live text, committed text and release-final clocks are reported separately. |
 | 2026-10-22 | models | [Archived runtime producer integration](runs/2026-10-22-archived-runtime-integration.json) | partial | Optimized build and11native rootflags pass: Google402assertions, stream658/0, notes, scriptedclock2/2 andonce-onlynativeprefixcache646/666tokensreused. Owner21files/89preferencekeys/modelhashunchanged. Inherited18nestedbrowserfailures remainopen. |
 | 2026-10-13 | meetings | [Whole meeting pipeline baseline](runs/2026-10-13-meeting-full-pipeline.json) | partial | 21 scoped checks pass; saved audio coverage, hardware routes and semantic acceptance remain open. |
 | 2026-10-08 | voice | [Voice response latency audit](runs/2026-10-08-voice-latency.json) | partial | First-audio median improved from 3.78 s to 2.65 s; 0.9 s target remains unmet. |
@@ -62,15 +71,15 @@ Status describes the stated scope only. A measured component is not production a
 
 ## Evidence by area
 
-- [Asr](inventory/asr.md): 62 evidence files.
-- [Dictation](inventory/dictation.md): 554 evidence files.
+- [Asr](inventory/asr.md): 119 evidence files.
+- [Dictation](inventory/dictation.md): 555 evidence files.
 - [Meetings](inventory/meetings.md): 1127 evidence files.
 - [Agent](inventory/agent.md): 473 evidence files.
-- [Voice](inventory/voice.md): 308 evidence files.
-- [Tts](inventory/tts.md): 54 evidence files.
+- [Voice](inventory/voice.md): 309 evidence files.
+- [Tts](inventory/tts.md): 66 evidence files.
 - [Workflows](inventory/workflows.md): 176 evidence files.
 - [Models](inventory/models.md): 20 evidence files.
-- [Other](inventory/other.md): 575 evidence files.
+- [Other](inventory/other.md): 590 evidence files.
 
 ## Operating rules
 

@@ -894,6 +894,234 @@
       "category": "other"
     },
     {
+      "path": "Tests/Reports/asr-app-integration-2026-10-22/README.md",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/asr-app-integration-2026-10-22/app-publication-validation.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/asr-app-integration-2026-10-22/artifact-preflight.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/asr-app-integration-2026-10-22/build-MLXAudioSTT.log",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/asr-app-integration-2026-10-22/build-PhononCoreML.log",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/asr-app-integration-2026-10-22/build-Voz.log",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/asr-app-integration-2026-10-22/build-native-MLXAudioSTT.log",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/asr-app-integration-2026-10-22/build-native-PhononCoreML.log",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/asr-app-integration-2026-10-22/build-native-Voz.log",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/asr-app-integration-2026-10-22/dependency-builds.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/asr-app-integration-2026-10-22/dependency-native-builds.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/asr-app-integration-2026-10-22/implicit-ui-launch-cleanup.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/asr-app-integration-2026-10-22/initial-typecheck-command.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/asr-app-integration-2026-10-22/initial-typecheck-result.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/asr-app-integration-2026-10-22/initial-typecheck.log",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/asr-app-integration-2026-10-22/native/cleanup.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/asr-app-integration-2026-10-22/native/comparison.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/asr-app-integration-2026-10-22/native/parakeet-context.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/asr-app-integration-2026-10-22/native/parakeet-quality.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/asr-app-integration-2026-10-22/native/parakeet.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/asr-app-integration-2026-10-22/native/parakeet.log",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/asr-app-integration-2026-10-22/native/phonon-context.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/asr-app-integration-2026-10-22/native/phonon-quality.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/asr-app-integration-2026-10-22/native/phonon.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/asr-app-integration-2026-10-22/native/phonon.log",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/asr-app-integration-2026-10-22/native/qwen-06b-context.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/asr-app-integration-2026-10-22/native/qwen-06b-quality.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/asr-app-integration-2026-10-22/native/qwen-06b.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/asr-app-integration-2026-10-22/native/qwen-06b.log",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/asr-app-integration-2026-10-22/native/qwen-17b-context.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/asr-app-integration-2026-10-22/native/qwen-17b-quality.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/asr-app-integration-2026-10-22/native/qwen-17b.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/asr-app-integration-2026-10-22/native/qwen-17b.log",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/asr-app-integration-2026-10-22/native/redux-context.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/asr-app-integration-2026-10-22/native/redux-quality.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/asr-app-integration-2026-10-22/native/redux.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/asr-app-integration-2026-10-22/native/redux.log",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/asr-app-integration-2026-10-22/native/runner.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/asr-app-integration-2026-10-22/native/ultra-context.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/asr-app-integration-2026-10-22/native/ultra-quality.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/asr-app-integration-2026-10-22/native/ultra.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/asr-app-integration-2026-10-22/native/ultra.log",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/asr-app-integration-2026-10-22/native/voz-context.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/asr-app-integration-2026-10-22/native/voz-quality.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/asr-app-integration-2026-10-22/native/voz.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/asr-app-integration-2026-10-22/native/voz.log",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/asr-app-integration-2026-10-22/native/whistle-context.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/asr-app-integration-2026-10-22/native/whistle-quality.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/asr-app-integration-2026-10-22/native/whistle.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/asr-app-integration-2026-10-22/native/whistle.log",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/asr-app-integration-2026-10-22/obsolete-swiftbuild-cleanup.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/asr-app-integration-2026-10-22/parent-http-original-fixed.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/asr-app-integration-2026-10-22/temporary-source-cleanup.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/asr-app-integration-2026-10-22/typecheck-command.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/asr-app-integration-2026-10-22/typecheck-result.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/asr-app-integration-2026-10-22/typecheck.log",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/asr-app-integration-2026-10-22/website-preview.json",
+      "category": "asr"
+    },
+    {
       "path": "Tests/Reports/asr-candidates-2026-10-22/README.md",
       "category": "asr"
     },
@@ -8378,6 +8606,70 @@
       "category": "other"
     },
     {
+      "path": "Tests/Reports/release-2026-10-22/README.md",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/build-source-interrupted.json",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-build-interrupted.json",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-build-interrupted.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/catalog-public-clean-clone.json",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/catalog-public-clean-clone.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/catalog-public-fixed.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/catalog-public-original.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/catalog-tests.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/installed-before.json",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/installer-check.json",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/obsolete-cache-cleanup.json",
+      "category": "dictation"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/owner-before.json",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/publication-history.json",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/publication-scan.json",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/publication-scan.log",
+      "category": "other"
+    },
+    {
       "path": "Tests/Reports/roadmap-dispatch-2026-10-01.md",
       "category": "other"
     },
@@ -9502,6 +9794,10 @@
       "category": "tts"
     },
     {
+      "path": "Tests/Reports/tts-2026-10-22/microphone-authorization-probe.json",
+      "category": "tts"
+    },
+    {
       "path": "Tests/Reports/tts-2026-10-22/native-binary.json",
       "category": "tts"
     },
@@ -9618,6 +9914,18 @@
       "category": "tts"
     },
     {
+      "path": "Tests/Reports/tts-2026-10-22/output-maximum-latency-fixed.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/output-maximum-latency-original.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/output-observer-control.json",
+      "category": "tts"
+    },
+    {
       "path": "Tests/Reports/tts-2026-10-22/owner-cache-preservation.json",
       "category": "tts"
     },
@@ -9678,6 +9986,30 @@
       "category": "tts"
     },
     {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-calibration/apple.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-calibration/apple.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-calibration/preflight.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-calibration/summary.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-followup-prebuild-validation.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-workload-runner-validation.json",
+      "category": "tts"
+    },
+    {
       "path": "Tests/Reports/tts-2026-10-22/typecheck-command.json",
       "category": "tts"
     },
@@ -9687,6 +10019,10 @@
     },
     {
       "path": "Tests/Reports/tts-2026-10-22/verification.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/voice-preferences-before-speaker-suite.json",
       "category": "tts"
     },
     {
@@ -13350,6 +13686,10 @@
       "category": "asr"
     },
     {
+      "path": "roadmap/in-progress/VOICE-TURN-DETECTION/04-TTS-AUDIBLE-ALIGNMENT.md",
+      "category": "tts"
+    },
+    {
       "path": "roadmap/in-progress/VOICE-TURN-DETECTION/STATUS.md",
       "category": "voice"
     },
@@ -13359,6 +13699,10 @@
     },
     {
       "path": "roadmap/in-progress/VOICE-TURN-DETECTION/benchmark/VERIFICATION.md",
+      "category": "voice"
+    },
+    {
+      "path": "roadmap/in-progress/VOICE-TURN-DETECTION/benchmark/cases.json",
       "category": "voice"
     },
     {
