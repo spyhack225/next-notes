@@ -1,0 +1,7 @@
+Completed and committed: `9f1261ff`, `20e66ae2`, `4dff9348`.
+
+Matching native regressions went from 25 failures to zero; all six requested flags exited 0. Known nested browser failures remain documented.
+
+[RESULT.md](/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/catchup-audio/RESULT.md) records evidence, open audio/UI contracts and the `RealtimeAgent.swift` integration conflict.
+
+Relay finish posted. Worktree clean; scratch removed. No install, push or merge.
