@@ -1,0 +1,14 @@
+{
+  "at": "2026-10-22T18:45:39.916636+00:00",
+  "pid": 26073,
+  "started": "Thu Oct 22 13:57:53 2026",
+  "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/asr-latency-before/Next Notes.app/Contents/MacOS/NextNotes",
+  "ownership": "Process start coincides with our17:57:53UTC CUA getApp lookup; retained baseline was started implicitly despite lookup timeout.",
+  "observedOpenAudioFiles": 0,
+  "observedOpenMeetingDataFiles": 0,
+  "signal": "SIGTERM only this verified idle baseline PID",
+  "exited": true,
+  "binarySHA256": "92b572b48cb4de8d5fc08b19eff7af77dcac2836a824fa6397c400cfccc48909",
+  "binaryPreserved": true,
+  "otherProcessesUntouched": true
+}

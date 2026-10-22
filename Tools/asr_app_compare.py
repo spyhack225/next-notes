@@ -1,7 +1,14 @@
 """Serial optimized-app ASR check; one candidate/process/temp root at a time."""
-import argparse,fcntl,hashlib,json,os,shutil,signal,subprocess,time,tempfile
+import argparse,fcntl,hashlib,importlib.util,json,os,shutil,signal,subprocess,time,tempfile
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
+from run_asr_live_serial import context
+
+def memory_sampler(pid):
+ spec=importlib.util.spec_from_file_location('asr_existing_model_bench',ROOT/'Scripts/model-bench.py')
+ module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+ sampler=module.Sampler(pid,1,float('inf'));sampler.pid=pid;sampler.start()
+ return sampler
 
 def main():
  def interrupted(signum, frame): raise KeyboardInterrupt("diagnostic parent interrupted")
@@ -20,10 +27,12 @@ def main():
    if output.exists():raise RuntimeError(f'Review saved result before retry: {output}')
    beforeRoots=set(cache.glob('app-*'));before=shutil.disk_usage(cache).free
    command=[str(args.app.resolve()),'--selftest-asr-live','--asr-model',model,'--asr-fixtures',str(ROOT/'Tests/Fixtures/meetings'),'--asr-output',str(output.resolve())]
-   began=time.monotonic();reason=None
+   beforeContext=context();began=time.monotonic();reason=None
    with tempfile.TemporaryDirectory(prefix='app-http-',dir=cache) as http_temp, (args.output/f'{model}.log').open('w') as log:
     child=subprocess.Popen(command,stdout=log,stderr=subprocess.STDOUT,start_new_session=True,env={**os.environ,'TMPDIR':http_temp+os.sep})
+    sampler=None
     try:
+     sampler=memory_sampler(child.pid)
      while child.poll() is None:
       if shutil.disk_usage(cache).free<1536*1024**2:reason='disk below1.5GiB'
       if time.monotonic()-began>600:reason='bounded600s diagnostic deadline'
@@ -33,12 +42,15 @@ def main():
     except BaseException as error:
      if child.poll() is None:os.killpg(child.pid,signal.SIGKILL);child.wait()
      reason='parent interrupted: '+repr(error)
+    finally:
+     if sampler is not None:sampler.finish()
    deleted=[]
    for folder in set(cache.glob('app-*'))-beforeRoots:
     marker=folder/'.pid'
     if marker.is_file() and marker.read_text().strip()==str(child.pid):
      shutil.rmtree(folder);deleted.append(str(folder))
    row=dict(model=model,appSHA256=binarySHA,command=command,exit=child.returncode,seconds=time.monotonic()-began,stopped=reason,freeBefore=before,freeAfter=shutil.disk_usage(cache).free,ownedFailureRootsDeleted=deleted,childJoined=child.poll() is not None,httpTemporaryDeleted=not Path(http_temp).exists())
+   (args.output/f'{model}-context.json').write_text(json.dumps(dict(before=beforeContext,after=context(),memory=sampler.result() if sampler else None),indent=2)+'\n')
    results.append(row);(args.output/'runner.json').write_text(json.dumps(results,indent=2)+'\n');print(json.dumps(row),flush=True)
    if child.returncode or not output.exists():raise SystemExit(1)
    result=json.loads(output.read_text());assert result['temporaryAssetsDeleted']
