@@ -1,0 +1,7 @@
+Completed Round 4 in this worktree. Commits: `f6265ca2`, `8097108a`.
+
+- Reply regression: RED 36 failures → GREEN.
+- Census: all 29 mutations detected; zero forbidden hits.
+- Focused flags: 18/19 pass. Settings remains exit `-11`; inherited diagnostics remain open.
+
+[RESULT.md](/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/no-apple/RESULT.md) contains the evidence and limits. Relay sent, own scratch deleted. No install, push, or main merge.

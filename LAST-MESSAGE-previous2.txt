@@ -1,0 +1,9 @@
+Completed in separate commits; HEAD `3b1f1038`. Details and handoff APIs are in [RESULT.md](/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/no-apple/RESULT.md).
+
+- Regression: RED19 → GREEN0.
+- 11/12 requested flags passed; Settings exit SIGSEGV remains separately failed.
+- Four receipt checks and authority63 passed.
+- Pocket/Kokoro qualified resume receipts are explicitly unsupported.
+- Neutral counter: `AgentSpeechSynthesizer.shared.speechSynthesisCallsForTesting`.
+
+Shared prerequisite replaced the duplicate. ModelsSettingsTab untouched. No install/push/merge; own scratch removed.

@@ -1,0 +1,5 @@
+Implemented on `claude2/no-apple`, HEAD `a31dbf7a`. Availability API `3a26d4e2` was posted to `claude-positioning`.
+
+Build and voice checks passed. Settings still crashes after `SETTINGS_OK`; native playback remains unverified. Exact evidence and conflicts are in [RESULT.md](/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/no-apple/RESULT.md).
+
+No install, push, or merge.

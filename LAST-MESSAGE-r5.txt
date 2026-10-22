@@ -1,0 +1,8 @@
+Round 5 completed: `e728d84e` and `19a212a8`.
+
+- Original missed 27/63 mutations; fixed catches all 63.
+- Final census: forbidden 0, unchanged 30 exceptions.
+- Unchanged Swift census wrapper passed.
+- No install, push, or main merge. Relay sent.
+
+[RESULT.md](/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/no-apple/RESULT.md) records the evidence and limits: the census is a tripwire, not proof against obfuscation.
