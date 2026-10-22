@@ -1,0 +1,5 @@
+Committed producer fix `8e4243d6` and report `98700836`.
+
+Same fixture: RED 543 failures → GREEN zero. All four requested checks passed; prefix-cache ran once. Isolation observed 21 files and 0 default keys.
+
+Scratch removed; no install, push, or merge. Details: [RESULT.md](/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/thinking-review/RESULT.md).
