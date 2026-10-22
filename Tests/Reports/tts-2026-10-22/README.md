@@ -169,3 +169,16 @@ timeout/low-disk cleanup and owner-model preservation. These controls are not ph
 Reviewed alignment: [voice-turn detection handoff](../../../roadmap/in-progress/VOICE-TURN-DETECTION/04-TTS-AUDIBLE-ALIGNMENT.md).
 Full-turn ASR/EOU, normal concurrent ASR workload, double-talk, language/voice quality,
 physical-route matrix and fastest-default qualification remain separate open contracts.
+
+
+The observer's maximum-latency regression was reproduced before collection: the original
+`fa8f72be` source rejects authored microphone pickup 80 ms after render when the reported
+maximum presentation latency is 300 ms (correlation 0.219). The producer incorrectly used
+that maximum estimate as the acoustic search origin. The repair searches from native
+render time and retains the estimate only as a separate reported boundary. The unchanged
+external fixture now passes (correlation 1.0, pickup within 10 ms of 280 ms after request,
+estimated presentation still 500 ms). Silence/overflow controls also pass. This exact
+80/300 ms separation is now in the actual full-app source self-test's observer control.
+Original/fixed source and fixture SHA pins/logs are retained in
+`output-maximum-latency-{original,fixed}.json`; the shared build was deliberately held
+before app compilation while correcting this diagnostic producer.

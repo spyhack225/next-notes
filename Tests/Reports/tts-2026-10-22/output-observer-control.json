@@ -1,0 +1,9 @@
+{
+  "sourceSHA256": "3bd03709108f61cdbdaba67c4e044941954e6de1574078a80c492c5512361035",
+  "fixtureSHA256": "ed84f64ab670b1ef1d67aa5b8530af0971eceab55326b1a6eff46726059b03a3",
+  "compileExit": 0,
+  "compileLog": "",
+  "scope": "Authored correlated pickup, silence and overflow controls; no physical measurement.",
+  "exit": 0,
+  "log": "TTS_OUTPUT_OBSERVER_OK\n"
+}

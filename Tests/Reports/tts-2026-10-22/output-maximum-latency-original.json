@@ -1,0 +1,9 @@
+{
+  "sourceSHA256": "cda4fa8eabdcfe8f2f4aa8fc5b19f47243ef9c226fadec5d6af5d3b70777bc37",
+  "fixtureSHA256": "b9d7b08bf3b5415843ed4f9b17f421621882a1fe339ea54599cc5d2b1bbfec71",
+  "compileExit": 0,
+  "compileLog": "",
+  "scope": "Authored correlated pickup, silence and overflow controls; no physical measurement.",
+  "exit": 1,
+  "log": "{\"reason\":\"Acoustic onset unqualified: missing\\/quiet echo, noisy baseline, correlation, timestamps, overflow or route change. No audible result accepted.\",\"firstRenderedOrigin\":\"authored-render-generation-17\",\"firstRenderedHost\":12480735738260,\"acousticCorrelation\":0.2191889519071801,\"estimatedPresentationMs\":500,\"callerToken\":17,\"qualified\":false,\"route\":[90,83],\"firstRenderedMs\":200,\"requestHost\":12480730938260,\"presentationLatencyMs\":300,\"renderOrigins\":[\"authored-render-generation-17\"],\"baselineRMS\":9.999999747378752e-06,\"captureWindows\":251,\"referenceWindows\":250}\nTTS_MAXIMUM_LATENCY_CONTROL_FAILED\n"
+}

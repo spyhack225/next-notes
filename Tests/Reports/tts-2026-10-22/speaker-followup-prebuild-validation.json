@@ -1,0 +1,13 @@
+{
+  "sourceFreeze": "219b1d07 (original local revision; publication mapping retained by release agent)",
+  "combinedTypecheck": {
+    "exit": 0,
+    "seconds": 61.04847666702699
+  },
+  "runnerTests": {
+    "count": 10,
+    "exit": 0,
+    "log": ".phonon: preparing one model, then measuring; log: /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/tts-runner-test-wxjj80n9/reports/phonon.log\nphonon: failed; temporary model removed\n.phonon: preparing one model, then measuring; log: /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/tts-runner-test-ecuta47s/reports/phonon.log\nphonon: failed; temporary model removed\n.phonon: preparing one model, then measuring; log: /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/tts-runner-test-85gf4qzo/reports/phonon.log\nphonon: measured; temporary model removed\nqwen: preparing one model, then measuring; log: /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/tts-runner-test-85gf4qzo/reports/qwen.log\nqwen: measured; temporary model removed\n.phonon: not-run; temporary model removed\n.phonon: preparing one model, then measuring; log: /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/tts-runner-test-p8k1bho5/reports/phonon.log\nphonon: measured; temporary model removed\n.phonon: preparing one model, then measuring; log: /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/tts-runner-test-lbypj1_h/reports/phonon.log\nResult not safely saved; retained owned files at /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/tts-runner-test-lbypj1_h/nextnotes-tts-8mkb5jb2\n.phonon: preparing one model, then measuring; log: /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/tts-runner-test-m38mwd1w/reports/phonon.log\nphonon: measured; temporary model removed\n.phonon: preparing one model, then measuring; log: /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/tts-runner-test-pv3vwcle/reports/phonon.log\nphonon: failed; temporary model removed\n.phonon: preparing one model, then measuring; log: /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/tts-runner-test-q2jxn4sd/reports/phonon.log\nphonon: partial; temporary model removed\n.\n----------------------------------------------------------------------\nRan 10 tests in 0.770s\n\nOK\n"
+  },
+  "status": "Native acoustic model trials pending shared candidate/ASR check window; no default change."
+}

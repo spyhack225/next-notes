@@ -123,7 +123,7 @@ final class TTSOutputProbe: @unchecked Sendable {
         for index in 0..<250 {
             let value: Float = index < 20 ? 0 : Float(0.01 + Double((index * 73 + index * index * 7) % 97) / 2_000)
             let host = request + AVAudioTime.hostTime(forSeconds: Double(index) / 100)
-            probe.append(buffer(value), host: host, reference: true, latency: 0)
+            probe.append(buffer(value), host: host, reference: true, latency: 0.300)
             let micHost = host + AVAudioTime.hostTime(forSeconds: 0.08)
             probe.append(buffer(value * 0.25), host: micHost, reference: false, latency: 0)
             silent.append(buffer(0), host: host, reference: true, latency: 0)
@@ -133,6 +133,7 @@ final class TTSOutputProbe: @unchecked Sendable {
         probe.dropped()
         let overflow = probe.finish(request: request, route: route())
         return observed.qualified && abs((observed.acousticOnsetMs ?? 0) - 280) <= 20
+            && abs((observed.estimatedPresentationMs ?? 0) - 500) <= 5
             && !missing.qualified && missing.firstRenderedMs == nil
             && !overflow.qualified && overflow.acousticOnsetMs == nil
     }
@@ -164,10 +165,12 @@ final class TTSOutputProbe: @unchecked Sendable {
         if let firstVoice = voice.first {
             let window = reference.filter { $0.host >= firstVoice.host }.prefix(150)
             if window.count >= 40, mic.count >= 40 {
+                // The maximum presentation estimate must not gate observed
+                // arrival: sound can reach the mic before that conservative bound.
                 for lag in 0...50 {
                     var x: [Double] = [], y: [Double] = []
                     for frame in window {
-                        let target = Double(frame.host) + ((latency ?? 0) + Double(lag) / 100) * ticks
+                        let target = Double(frame.host) + Double(lag) / 100 * ticks
                         var lower = 0, upper = mic.count
                         while lower < upper {
                             let middle = (lower + upper) / 2
@@ -189,8 +192,8 @@ final class TTSOutputProbe: @unchecked Sendable {
             }
         }
         var onset: Double?
-        if let first, let latency {
-            let expected = Double(first) + (latency + bestLag) * ticks
+        if let first {
+            let expected = Double(first) + bestLag * ticks
             onset = mic.first { $0.host >= request && abs(Double($0.host) - expected) / ticks < 0.080
                 && $0.rms > max(0.001, baselineRMS * 4) }.map { ms($0.host) }
         }
