@@ -8610,7 +8610,187 @@
       "category": "other"
     },
     {
+      "path": "Tests/Reports/release-2026-10-22/asr-metadata-repair-compile.log",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/asr-metadata-repair-progress.log",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/asr-metadata-repair.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/asr-settings-copy-repair-compile.log",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/asr-settings-copy-repair-progress.log",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/asr-settings-copy-repair.json",
+      "category": "asr"
+    },
+    {
       "path": "Tests/Reports/release-2026-10-22/build-source-interrupted.json",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/build-source.json",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-before-history-isolation-progress.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-before-history-isolation.json",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-before-history-isolation/agent-presentation.log",
+      "category": "agent"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-before-history-isolation/asr-settings.log",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-before-history-isolation/audio-conversion-stream.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-before-history-isolation/calendar.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-before-history-isolation/capability-manifest.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-before-history-isolation/chat-template.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-before-history-isolation/diarize-eligibility.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-before-history-isolation/dictation-segments.log",
+      "category": "dictation"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-before-history-isolation/google-connect.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-before-history-isolation/gws.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-before-history-isolation/mac-accounts.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-before-history-isolation/meeting-capture-coverage.log",
+      "category": "meetings"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-before-history-isolation/meeting-frame-layout.log",
+      "category": "meetings"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-before-history-isolation/meeting-frame-shape.log",
+      "category": "meetings"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-before-history-isolation/meeting-title-match.log",
+      "category": "meetings"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-before-history-isolation/notes-coverage.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-before-history-isolation/notes-truncation.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-before-history-isolation/playback-ledger.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-before-history-isolation/receipt-persistence.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-before-history-isolation/routine-authority.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-before-history-isolation/store-isolation.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-before-history-isolation/stream.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-before-history-isolation/task-authority.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-before-history-isolation/task-durability.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-before-history-isolation/task-history-repair.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-before-history-isolation/task-recovery.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-before-history-isolation/task-restoration.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-before-history-isolation/task-worker-attempt.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-before-history-isolation/tts-source.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-before-history-isolation/ui-strings.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-before-history-isolation/usage-log.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-before-history-isolation/voice-playback-projection.log",
+      "category": "voice"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-before-history-isolation/voice-playback-resume-receipt.log",
+      "category": "voice"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-before-history-isolation/voice-session-reducer.log",
+      "category": "voice"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-before-usage-fix-package.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-before-usage-fix.json",
       "category": "other"
     },
     {
@@ -8620,6 +8800,318 @@
     {
       "path": "Tests/Reports/release-2026-10-22/candidate-build-interrupted.log",
       "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-build-resource-permissions.json",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-build-resource-permissions.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-original-usage-failure-progress.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-original-usage-failure.json",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-original-usage-failure/agent-presentation.log",
+      "category": "agent"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-original-usage-failure/asr-settings.log",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-original-usage-failure/audio-conversion-stream.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-original-usage-failure/calendar.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-original-usage-failure/capability-manifest.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-original-usage-failure/chat-template.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-original-usage-failure/diarize-eligibility.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-original-usage-failure/dictation-segments.log",
+      "category": "dictation"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-original-usage-failure/google-connect.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-original-usage-failure/gws.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-original-usage-failure/mac-accounts.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-original-usage-failure/meeting-capture-coverage.log",
+      "category": "meetings"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-original-usage-failure/meeting-frame-layout.log",
+      "category": "meetings"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-original-usage-failure/meeting-frame-shape.log",
+      "category": "meetings"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-original-usage-failure/meeting-title-match.log",
+      "category": "meetings"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-original-usage-failure/notes-coverage.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-original-usage-failure/notes-truncation.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-original-usage-failure/playback-ledger.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-original-usage-failure/receipt-persistence.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-original-usage-failure/routine-authority.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-original-usage-failure/store-isolation.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-original-usage-failure/stream.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-original-usage-failure/task-authority.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-original-usage-failure/task-durability.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-original-usage-failure/task-history-repair.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-original-usage-failure/task-recovery.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-original-usage-failure/task-restoration.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-original-usage-failure/task-worker-attempt.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-original-usage-failure/tts-source.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-original-usage-failure/ui-strings.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-original-usage-failure/usage-log.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-original-usage-failure/voice-playback-projection.log",
+      "category": "voice"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-original-usage-failure/voice-playback-resume-receipt.log",
+      "category": "voice"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-original-usage-failure/voice-session-reducer.log",
+      "category": "voice"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-package-root-layout.json",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-package-root-layout.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-package.json",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-package.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-progress.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate-summary.json",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate/agent-presentation.log",
+      "category": "agent"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate/asr-settings.log",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate/audio-conversion-stream.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate/calendar.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate/capability-manifest.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate/chat-template.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate/diarize-eligibility.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate/dictation-segments.log",
+      "category": "dictation"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate/google-connect.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate/gws.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate/mac-accounts.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate/meeting-capture-coverage.log",
+      "category": "meetings"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate/meeting-frame-layout.log",
+      "category": "meetings"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate/meeting-frame-shape.log",
+      "category": "meetings"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate/meeting-title-match.log",
+      "category": "meetings"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate/notes-coverage.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate/notes-truncation.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate/playback-ledger.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate/receipt-persistence.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate/routine-authority.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate/store-isolation.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate/stream.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate/task-authority.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate/task-durability.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate/task-history-repair.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate/task-recovery.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate/task-restoration.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate/task-worker-attempt.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate/tts-source.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate/ui-strings.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate/usage-log.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate/voice-playback-projection.log",
+      "category": "voice"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate/voice-playback-resume-receipt.log",
+      "category": "voice"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/candidate/voice-session-reducer.log",
+      "category": "voice"
     },
     {
       "path": "Tests/Reports/release-2026-10-22/catalog-public-clean-clone.json",
@@ -8642,7 +9134,43 @@
       "category": "other"
     },
     {
+      "path": "Tests/Reports/release-2026-10-22/dmg-package.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/final-package.json",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/harness-history-restoration.json",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/harness-isolation-repair-compile.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/harness-isolation-repair-progress.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/harness-isolation-repair.json",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/install.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/installed-baseline-worker.log",
+      "category": "other"
+    },
+    {
       "path": "Tests/Reports/release-2026-10-22/installed-before.json",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/installed.json",
       "category": "other"
     },
     {
@@ -8654,7 +9182,71 @@
       "category": "dictation"
     },
     {
+      "path": "Tests/Reports/release-2026-10-22/owner-admission.json",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/owner-after-install.json",
+      "category": "other"
+    },
+    {
       "path": "Tests/Reports/release-2026-10-22/owner-before.json",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/owner-candidate-checks.json",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/owner-final-checks.json",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/owner-guard-repair-compile.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/owner-guard-repair-progress.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/owner-guard-repair.json",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/owner-sdk-preferences.json",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/portable-resource-build-final.json",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/portable-resource-build-final.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/portable-resource-build-release.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/portable-resource-build.json",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/portable-resource-build.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/primary-repair-compile.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/primary-repair-progress.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/primary-repair.json",
       "category": "other"
     },
     {
@@ -8667,6 +9259,210 @@
     },
     {
       "path": "Tests/Reports/release-2026-10-22/publication-scan.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/release-notes.md",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/release-package.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/resource-fixture-build.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/resource-fixture-fixed.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/resource-fixture-original.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/resource-fixture-relink.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/resource-fixture-results.json",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/resource-plan-probe.json",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/resource-quarantine.json",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/resource-symlink-probe.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/signature-refused-progress.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/signature-refused-summary.json",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/signature-refused/agent-presentation.log",
+      "category": "agent"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/signature-refused/asr-settings.log",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/signature-refused/audio-conversion-stream.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/signature-refused/calendar.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/signature-refused/capability-manifest.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/signature-refused/chat-template.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/signature-refused/diarize-eligibility.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/signature-refused/dictation-segments.log",
+      "category": "dictation"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/signature-refused/google-connect.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/signature-refused/gws.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/signature-refused/mac-accounts.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/signature-refused/meeting-capture-coverage.log",
+      "category": "meetings"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/signature-refused/meeting-frame-layout.log",
+      "category": "meetings"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/signature-refused/meeting-frame-shape.log",
+      "category": "meetings"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/signature-refused/meeting-title-match.log",
+      "category": "meetings"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/signature-refused/notes-coverage.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/signature-refused/notes-truncation.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/signature-refused/playback-ledger.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/signature-refused/receipt-persistence.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/signature-refused/routine-authority.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/signature-refused/store-isolation.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/signature-refused/stream.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/signature-refused/task-authority.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/signature-refused/task-durability.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/signature-refused/task-history-repair.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/signature-refused/task-recovery.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/signature-refused/task-restoration.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/signature-refused/task-worker-attempt.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/signature-refused/tts-source.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/signature-refused/ui-strings.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/signature-refused/usage-log.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/signature-refused/voice-playback-projection.log",
+      "category": "voice"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/signature-refused/voice-playback-resume-receipt.log",
+      "category": "voice"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/signature-refused/voice-session-reducer.log",
+      "category": "voice"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/startup.json",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/website-build.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/website-links.json",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/website-lint.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/website-preview.json",
       "category": "other"
     },
     {

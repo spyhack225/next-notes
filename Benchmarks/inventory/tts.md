@@ -4,6 +4,10 @@ Discovery inventory, not a claim that every file is a benchmark or that its chec
 
 | Evidence |
 |---|
+| [Tests/Reports/release-2026-10-22/candidate-before-history-isolation/tts-source.log](../../Tests/Reports/release-2026-10-22/candidate-before-history-isolation/tts-source.log) |
+| [Tests/Reports/release-2026-10-22/candidate-original-usage-failure/tts-source.log](../../Tests/Reports/release-2026-10-22/candidate-original-usage-failure/tts-source.log) |
+| [Tests/Reports/release-2026-10-22/candidate/tts-source.log](../../Tests/Reports/release-2026-10-22/candidate/tts-source.log) |
+| [Tests/Reports/release-2026-10-22/signature-refused/tts-source.log](../../Tests/Reports/release-2026-10-22/signature-refused/tts-source.log) |
 | [Tests/Reports/tts-2026-10-22/README.md](../../Tests/Reports/tts-2026-10-22/README.md) |
 | [Tests/Reports/tts-2026-10-22/accepted-results.json](../../Tests/Reports/tts-2026-10-22/accepted-results.json) |
 | [Tests/Reports/tts-2026-10-22/compressed-logs.json](../../Tests/Reports/tts-2026-10-22/compressed-logs.json) |

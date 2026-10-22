@@ -71,15 +71,15 @@ Status describes the stated scope only. A measured component is not production a
 
 ## Evidence by area
 
-- [Asr](inventory/asr.md): 119 evidence files.
-- [Dictation](inventory/dictation.md): 555 evidence files.
-- [Meetings](inventory/meetings.md): 1127 evidence files.
-- [Agent](inventory/agent.md): 473 evidence files.
-- [Voice](inventory/voice.md): 309 evidence files.
-- [Tts](inventory/tts.md): 66 evidence files.
+- [Asr](inventory/asr.md): 129 evidence files.
+- [Dictation](inventory/dictation.md): 559 evidence files.
+- [Meetings](inventory/meetings.md): 1143 evidence files.
+- [Agent](inventory/agent.md): 477 evidence files.
+- [Voice](inventory/voice.md): 321 evidence files.
+- [Tts](inventory/tts.md): 70 evidence files.
 - [Workflows](inventory/workflows.md): 176 evidence files.
 - [Models](inventory/models.md): 20 evidence files.
-- [Other](inventory/other.md): 590 evidence files.
+- [Other](inventory/other.md): 739 evidence files.
 
 ## Operating rules
 

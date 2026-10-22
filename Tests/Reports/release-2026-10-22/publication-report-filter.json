@@ -1,0 +1,10 @@
+{
+  "unpublished_commits": 524,
+  "changed_report_paths": 11,
+  "production_inputs_identical": true,
+  "published_boundary_unchanged": true,
+  "private_original_ref": "refs/archive/private-worktree-history-20261022",
+  "private_release_source_ref": "refs/archive/pre-release-source-20261022",
+  "sanitized_main": "4e234df5761e6dbcb395bf455bc95b0d1080c6dd",
+  "remapped_public_snapshots": 31
+}

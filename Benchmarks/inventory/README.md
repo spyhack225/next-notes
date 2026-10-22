@@ -1,6 +1,6 @@
 # Branch and worktree evidence audit
 
-Audited 2026-10-22T19:49:10.914051+00:00. Read-only snapshot; no branch was merged or worktree removed.
+Audited 2026-10-22T19:52:02.297585+00:00. Read-only snapshot; no branch was merged or worktree removed.
 
 [Full pinned inventory, compressed JSON](git-audit.json.gz) · [Compact summary](git-audit-summary.json) · [Conversation audit](../CONVERSATIONS.md)
 
@@ -8,17 +8,17 @@ Git blobs preserve committed versions. Uncommitted differences are pointers to t
 
 | Git ref or preserved snapshot | Pinned commit | Evidence files |
 |---|---|---:|
-| refs/heads/main | `899e02723b7bcb87d27d56c505f2251b085887b2` | 3435 |
+| refs/heads/main | `4e234df5761e6dbcb395bf455bc95b0d1080c6dd` | 3634 |
 | refs/remotes/origin/HEAD | `f2f5b6067e6283026d417edf007420113681941b` | 830 |
 | refs/remotes/origin/claude/open-source-license-setup-d0l8u9 | `7290fd2086c397d11b898b954d0e6329096e258d` | 107 |
 | refs/remotes/origin/main | `f2f5b6067e6283026d417edf007420113681941b` | 830 |
 | refs/remotes/origin/personal-agent | `871b699e5e7ffb75cd0978e42ffaf3f25bc5ec40` | 107 |
 | preserved/agent-delivery | `61fadf0a206cf460d301a58a75e5238bd9483a2a` | 947 |
 | preserved/dictation-perf | `b9f3ee6fc944aaae6bd42efc6c0ca0caa9ae6e66` | 2289 |
-| preserved/bakeoff2 | `8b6391c59fda6d7a21346f88e5289bdf324220ca` | 2288 |
+| preserved/bakeoff2 | `040bc5273a9085724322a57f3446eeea5e2fdb7f` | 2288 |
 | preserved/catchup | `33bc14f0f0c2d943a9f83922bf2aff53ba0a70d0` | 815 |
 | preserved/catchup-audio | `b117c8941ac1c7eeb6a3292a214bcdf0734e24a2` | 2361 |
-| preserved/catchup-final | `01dc32276ec5222b1b95a10849ad2cc401d44671` | 2450 |
+| preserved/catchup-final | `b06b2e069b58278cfcf41290dd69d716b1366700` | 2450 |
 | preserved/catchup-port | `134f485b00fd31ded3388fc8081ec4d8e53c8600` | 2288 |
 | preserved/catchup-ui | `b4a56a66524b8afbd2b596628c92d69a8d71e1ea` | 815 |
 | preserved/catchup-ui2 | `c0d3746236719dfa994abecd47918754f26d0c08` | 2288 |
@@ -31,8 +31,8 @@ Git blobs preserve committed versions. Uncommitted differences are pointers to t
 | preserved/thinking | `54136866adaca3e5eae0d8d0dd0cf6f84fe0b14b` | 815 |
 | preserved/thinking-review | `5def549f5d9af6a9558f8b488f961d78939ada84` | 2321 |
 | preserved/tooling | `ad9783ed5868a1b2349617cd70d22aebc6a0a4e0` | 2292 |
-| preserved/voice-ack | `700f865650d10928d0ff7af6482d811ca516c9c9` | 2657 |
-| preserved/voice-mini | `52ef3734100df232d2711d59792f8ba88ce5e951` | 2484 |
+| preserved/voice-ack | `db91c7fb94c3e3680aeb18c2a0d4dde97c09787d` | 2657 |
+| preserved/voice-mini | `d4b2708324cd212e6f2d30c39635380dc26968c4` | 2484 |
 | preserved/voice-settings-ui | `08fd03c47a2a4cccedfb3113a8fd02b5394d3084` | 2652 |
 | preserved/scratch-review-google | `db262996486ff1ef6740aaaa007f433e4c7c5cab` | 0 |
 | preserved/scratch-voice-audit | `3775d5022b60f1728dcc35ad4965ca017b515736` | 0 |
@@ -47,7 +47,7 @@ Git blobs preserve committed versions. Uncommitted differences are pointers to t
 
 | Worktree | Branch / detached | Evidence files | Different or absent in canonical |
 |---|---|---:|---:|
-| [next-notes](/Users/sergekadjo/Documents/Claude/Projects/next-notes) | refs/heads/main | 3630 | 0 |
+| [next-notes](/Users/sergekadjo/Documents/Claude/Projects/next-notes) | refs/heads/main | 3635 | 0 |
 
 ## Retrieve a historical result
 

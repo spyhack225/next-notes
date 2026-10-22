@@ -14,7 +14,7 @@
     },
     "cfadc1d5d63d2728f2ec11b9326bfa8e0e17efa1": {
       "name": "bakeoff2",
-      "public_commit": "8b6391c59fda6d7a21346f88e5289bdf324220ca",
+      "public_commit": "040bc5273a9085724322a57f3446eeea5e2fdb7f",
       "empty_private_snapshot": false
     },
     "2d41f7930894f30ac4bbae7c74a254d4f3984597": {
@@ -29,7 +29,7 @@
     },
     "6b2779376cf719102cf73f59ccc86e064e3c0e0b": {
       "name": "catchup-final",
-      "public_commit": "01dc32276ec5222b1b95a10849ad2cc401d44671",
+      "public_commit": "b06b2e069b58278cfcf41290dd69d716b1366700",
       "empty_private_snapshot": false
     },
     "772a350f143e8080961b1c51537a133df88fc1c5": {
@@ -94,12 +94,12 @@
     },
     "fc8aa2af6e492987a81f1a5672a70af8eb9afa67": {
       "name": "voice-ack",
-      "public_commit": "700f865650d10928d0ff7af6482d811ca516c9c9",
+      "public_commit": "db91c7fb94c3e3680aeb18c2a0d4dde97c09787d",
       "empty_private_snapshot": false
     },
     "b168b67f0535afb3f53c8a669e96dc3a1b881e35": {
       "name": "voice-mini",
-      "public_commit": "52ef3734100df232d2711d59792f8ba88ce5e951",
+      "public_commit": "d4b2708324cd212e6f2d30c39635380dc26968c4",
       "empty_private_snapshot": true
     },
     "e15fee2ca7076f6298796def5dbe3498097989b5": {

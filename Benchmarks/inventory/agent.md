@@ -158,6 +158,10 @@ Discovery inventory, not a claim that every file is a benchmark or that its chec
 | [Tests/Reports/durable-tasks/2026-10-01-p6-04a-2/core/selftest-toolloop.log](../../Tests/Reports/durable-tasks/2026-10-01-p6-04a-2/core/selftest-toolloop.log) |
 | [Tests/Reports/durable-tasks/2026-10-01-p6-04a-2/installed-final-agent-panes.log](../../Tests/Reports/durable-tasks/2026-10-01-p6-04a-2/installed-final-agent-panes.log) |
 | [Tests/Reports/durable-tasks/2026-10-01-p6-04a-2/installed-final-toolloop-production.log](../../Tests/Reports/durable-tasks/2026-10-01-p6-04a-2/installed-final-toolloop-production.log) |
+| [Tests/Reports/release-2026-10-22/candidate-before-history-isolation/agent-presentation.log](../../Tests/Reports/release-2026-10-22/candidate-before-history-isolation/agent-presentation.log) |
+| [Tests/Reports/release-2026-10-22/candidate-original-usage-failure/agent-presentation.log](../../Tests/Reports/release-2026-10-22/candidate-original-usage-failure/agent-presentation.log) |
+| [Tests/Reports/release-2026-10-22/candidate/agent-presentation.log](../../Tests/Reports/release-2026-10-22/candidate/agent-presentation.log) |
+| [Tests/Reports/release-2026-10-22/signature-refused/agent-presentation.log](../../Tests/Reports/release-2026-10-22/signature-refused/agent-presentation.log) |
 | [Tests/Reports/toolloop-live/2026-09-25-P1-02-full-takeover.md](../../Tests/Reports/toolloop-live/2026-09-25-P1-02-full-takeover.md) |
 | [Tests/Reports/toolloop-live/2026-09-25-P1-02-full-takeover.md.jsonl](../../Tests/Reports/toolloop-live/2026-09-25-P1-02-full-takeover.md.jsonl) |
 | [Tests/Reports/toolloop-live/2026-09-25-P1-02-full.md](../../Tests/Reports/toolloop-live/2026-09-25-P1-02-full.md) |

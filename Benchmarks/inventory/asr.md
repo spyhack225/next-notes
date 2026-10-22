@@ -122,4 +122,14 @@ Discovery inventory, not a claim that every file is a benchmark or that its chec
 | [Tests/Reports/asr-live-latency-2026-10-22/whistle.json](../../Tests/Reports/asr-live-latency-2026-10-22/whistle.json) |
 | [Tests/Reports/dictation-latency/2026-10-07-evidence/asr-continuity/source-review.json](../../Tests/Reports/dictation-latency/2026-10-07-evidence/asr-continuity/source-review.json) |
 | [Tests/Reports/meeting-reliability/2026-10-07-quality-loop/sixth-single-quiet-asr-resource-exception.json](../../Tests/Reports/meeting-reliability/2026-10-07-quality-loop/sixth-single-quiet-asr-resource-exception.json) |
+| [Tests/Reports/release-2026-10-22/asr-metadata-repair-compile.log](../../Tests/Reports/release-2026-10-22/asr-metadata-repair-compile.log) |
+| [Tests/Reports/release-2026-10-22/asr-metadata-repair-progress.log](../../Tests/Reports/release-2026-10-22/asr-metadata-repair-progress.log) |
+| [Tests/Reports/release-2026-10-22/asr-metadata-repair.json](../../Tests/Reports/release-2026-10-22/asr-metadata-repair.json) |
+| [Tests/Reports/release-2026-10-22/asr-settings-copy-repair-compile.log](../../Tests/Reports/release-2026-10-22/asr-settings-copy-repair-compile.log) |
+| [Tests/Reports/release-2026-10-22/asr-settings-copy-repair-progress.log](../../Tests/Reports/release-2026-10-22/asr-settings-copy-repair-progress.log) |
+| [Tests/Reports/release-2026-10-22/asr-settings-copy-repair.json](../../Tests/Reports/release-2026-10-22/asr-settings-copy-repair.json) |
+| [Tests/Reports/release-2026-10-22/candidate-before-history-isolation/asr-settings.log](../../Tests/Reports/release-2026-10-22/candidate-before-history-isolation/asr-settings.log) |
+| [Tests/Reports/release-2026-10-22/candidate-original-usage-failure/asr-settings.log](../../Tests/Reports/release-2026-10-22/candidate-original-usage-failure/asr-settings.log) |
+| [Tests/Reports/release-2026-10-22/candidate/asr-settings.log](../../Tests/Reports/release-2026-10-22/candidate/asr-settings.log) |
+| [Tests/Reports/release-2026-10-22/signature-refused/asr-settings.log](../../Tests/Reports/release-2026-10-22/signature-refused/asr-settings.log) |
 | [roadmap/in-progress/VOICE-TURN-DETECTION/03-ASR-TTS-ALIGNMENT.md](../../roadmap/in-progress/VOICE-TURN-DETECTION/03-ASR-TTS-ALIGNMENT.md) |
