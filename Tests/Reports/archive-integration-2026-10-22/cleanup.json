@@ -1,0 +1,83 @@
+{
+  "removed_owned_files": [
+    {
+      "path": "/tmp/nextnotes-stream-integration.patch",
+      "bytes": 20087
+    },
+    {
+      "path": "/tmp/nextnotes-google-integration.patch",
+      "bytes": 234548
+    },
+    {
+      "path": "/tmp/nextnotes-clock-integration.patch",
+      "bytes": 10232
+    },
+    {
+      "path": "/tmp/nextnotes-oauth-make.patch",
+      "bytes": 2739
+    },
+    {
+      "path": "/tmp/nextnotes-google-dispatch.patch",
+      "bytes": 770
+    },
+    {
+      "path": "/tmp/nextnotes-archive-integration/CalendarService.swift.base",
+      "bytes": 12834
+    },
+    {
+      "path": "/tmp/nextnotes-archive-integration/CalendarService.swift.current",
+      "bytes": 17799
+    },
+    {
+      "path": "/tmp/nextnotes-archive-integration/CalendarService.swift.candidate",
+      "bytes": 16781
+    },
+    {
+      "path": "/tmp/nextnotes-archive-integration/CalendarService.swift.merged",
+      "bytes": 21740
+    },
+    {
+      "path": "/tmp/nextnotes-archive-integration/GoogleTokenStore.swift.base",
+      "bytes": 2318
+    },
+    {
+      "path": "/tmp/nextnotes-archive-integration/GoogleTokenStore.swift.current",
+      "bytes": 2481
+    },
+    {
+      "path": "/tmp/nextnotes-archive-integration/GoogleTokenStore.swift.candidate",
+      "bytes": 7786
+    },
+    {
+      "path": "/tmp/nextnotes-archive-integration/GoogleTokenStore.swift.merged",
+      "bytes": 7961
+    },
+    {
+      "path": "/tmp/nextnotes-archive-integration/ChatTemplate.fixed.swift",
+      "bytes": 14939
+    },
+    {
+      "path": "/tmp/nextnotes-archive-integration/ChatTemplate.original.swift",
+      "bytes": 11831
+    },
+    {
+      "path": "/tmp/nextnotes-archive-integration/ChatTemplate.reviewed-original.swift",
+      "bytes": 15025
+    },
+    {
+      "path": "/tmp/nextnotes-archive-integration/StreamTests.swift",
+      "bytes": 9887
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/toolloop-live/2026-10-22-1258.md",
+      "bytes": 2214
+    },
+    {
+      "path": "Tests/Reports/archive-integration-2026-10-22/__pycache__/check-native.cpython-314.pyc",
+      "bytes": 7092
+    }
+  ],
+  "disposable_native_binaries": "TemporaryDirectory context removed both component executables after exited children",
+  "native_fixture_roots": "TemporaryDirectory contexts removed after joined native processes",
+  "retained": "Current useful optimized executable, shared SDK caches, owner models/data and all compact evidence"
+}

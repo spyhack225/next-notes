@@ -105,13 +105,10 @@ def load_runs():
 
 
 def scan():
-    # rg respects ignore rules; no traversal into build caches or model folders.
-    if shutil.which('rg'):
-        names = subprocess.check_output(['rg', '--files', '--hidden', '-g', '!.git', 'Tests/Reports', 'bench', 'docs', 'roadmap'], cwd=ROOT, text=True).splitlines()
-    else:
-        names = git('ls-files', '--cached', '--others', '--exclude-standard', '--', 'Tests/Reports', 'bench', 'docs', 'roadmap').splitlines()
-    # Include tracked evidence even when a later ignore rule hides its extension.
-    names += git('ls-files', '--cached', '--', 'Tests/Reports', 'bench', 'docs', 'roadmap').splitlines()
+    # Generate repository links from the Git index, which includes staged evidence
+    # but excludes another agent's unfinished, uncommitted report. A clean checkout
+    # must reproduce this inventory. Registered runs are still discovered directly.
+    names = git('ls-files', '--cached', '--', 'Tests/Reports', 'bench', 'docs', 'roadmap').splitlines()
     rows = []
     for name in sorted(set(names)):
         if not evidence_path(name):

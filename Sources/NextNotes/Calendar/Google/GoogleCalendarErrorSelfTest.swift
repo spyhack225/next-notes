@@ -17,6 +17,12 @@ enum GoogleCalendarErrorSelfTest {
             if !accepted { failures.append(name) }
         }
 
+        // New grant/credential failures retain the current privacy-safe failure stage.
+        for error in [GoogleCalendarError.signInChanged, .tokenStoreUnreadable, .tokenStoreFailed] {
+            check(CalendarService.fetchFailureStage(for: error) == .auth,
+                  "grant/credential failure stages as auth: \(error)")
+        }
+
         // All descriptions deliberately differ from their machine codes. The old
         // producer discarded the code and invalidated every HTTP 400 grant.
         for (name, status, code, shouldClear) in [

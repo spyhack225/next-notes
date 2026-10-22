@@ -1,0 +1,491 @@
+{
+  "baseline": "0dbba9404de36b5aa45b726837a7946b88c1ae3c",
+  "branches": [
+    {
+      "branch": "claude/catchup",
+      "snapshot": "2d41f7930894f30ac4bbae7c74a254d4f3984597",
+      "source_identical": [
+        "Sources/NextNotes/Agent/Schedules/AgentSchedule.swift",
+        "Sources/NextNotes/Agent/Schedules/AgentScheduler.swift",
+        "Sources/NextNotes/Agent/Schedules/AgentTriggerEvents.swift",
+        "Sources/NextNotes/Agent/Schedules/DigestSelfTest.swift",
+        "Sources/NextNotes/Agent/Schedules/DigestTemplate.swift",
+        "Sources/NextNotes/Agent/Schedules/PodcastSelfTest.swift",
+        "Sources/NextNotes/Agent/Schedules/PodcastTemplate.swift",
+        "Sources/NextNotes/Agent/Schedules/ScheduleStore.swift"
+      ],
+      "source_different": [
+        "Sources/NextNotes/Agent/Schedules/CatchUpSelfTest.swift",
+        "Sources/NextNotes/Agent/Schedules/CatchUpTemplate.swift",
+        "Sources/NextNotes/Agent/Schedules/ScheduleSelfTest.swift",
+        "Sources/NextNotes/Agent/Schedules/ScheduleTools.swift",
+        "Sources/NextNotes/Agent/Schedules/ScheduledRunner.swift",
+        "Sources/NextNotes/Agent/Speech/LongFormRenderer.swift",
+        "Sources/NextNotes/NextNotesApp.swift"
+      ]
+    },
+    {
+      "branch": "claude/catchup-ui",
+      "snapshot": "06f00f90d1980d1285b29290d574650a0293873d",
+      "source_identical": [
+        "Sources/NextNotes/Agent/Schedules/AgentSchedule.swift",
+        "Sources/NextNotes/Agent/Schedules/AgentTriggerEvents.swift",
+        "Sources/NextNotes/Agent/Schedules/DigestSelfTest.swift",
+        "Sources/NextNotes/Agent/Schedules/DigestTemplate.swift",
+        "Sources/NextNotes/Agent/Schedules/PodcastSelfTest.swift",
+        "Sources/NextNotes/Agent/Schedules/PodcastTemplate.swift",
+        "Sources/NextNotes/Agent/Schedules/ScheduleStore.swift"
+      ],
+      "source_different": [
+        "Sources/NextNotes/Agent/Schedules/AgentScheduler.swift",
+        "Sources/NextNotes/Agent/Schedules/CatchUpSelfTest.swift",
+        "Sources/NextNotes/Agent/Schedules/CatchUpTemplate.swift",
+        "Sources/NextNotes/Agent/Schedules/ScheduleSelfTest.swift",
+        "Sources/NextNotes/Agent/Schedules/ScheduleTools.swift",
+        "Sources/NextNotes/Agent/Schedules/ScheduledRunner.swift",
+        "Sources/NextNotes/Agent/Speech/LongFormRenderer.swift",
+        "Sources/NextNotes/NextNotesApp.swift",
+        "Sources/NextNotes/UI/Agent/AgentPaneSelfTest.swift",
+        "Sources/NextNotes/UI/Agent/CatchUpLibrary.swift",
+        "Sources/NextNotes/UI/Agent/CatchUpModel.swift",
+        "Sources/NextNotes/UI/Agent/CatchUpPresentationSelfTest.swift",
+        "Sources/NextNotes/UI/Agent/CatchUpViews.swift",
+        "Sources/NextNotes/UI/Agent/RoutinesView.swift",
+        "Sources/NextNotes/UI/DesignSystem.swift",
+        "Sources/NextNotes/UI/Island/IslandState.swift",
+        "Sources/NextNotes/UI/Island/IslandView.swift",
+        "Sources/NextNotes/UI/Settings/AgentSettingsTab.swift",
+        "Sources/NextNotes/UI/Settings/CatchUpSection.swift"
+      ]
+    },
+    {
+      "branch": "claude/google",
+      "snapshot": "55e856d710d250d0e6ad3b9fd816e90ce0eae6a8",
+      "source_identical": [
+        "Resources/Info.plist",
+        "Sources/NextNotes/Agent/Mac/MacAccountModel.swift",
+        "Sources/NextNotes/Agent/Mac/MacAccountsLiveSelfTest.swift",
+        "Sources/NextNotes/Agent/Mac/MacCalendar.swift",
+        "Sources/NextNotes/Agent/Mac/MailDatabase.swift",
+        "Sources/NextNotes/Agent/Permissions/FirstIngestionGate.swift",
+        "Sources/NextNotes/UI/UIStringsLint.swift"
+      ],
+      "source_different": [
+        "Sources/NextNotes/Agent/ActionRuntime.swift",
+        "Sources/NextNotes/Agent/AgentCapabilityManifest.swift",
+        "Sources/NextNotes/Agent/AgentService.swift",
+        "Sources/NextNotes/Agent/GoogleWorkspaceCLI.swift",
+        "Sources/NextNotes/Agent/Mac/MacAccounts.swift",
+        "Sources/NextNotes/Agent/Mac/MacAccountsSelfTest.swift",
+        "Sources/NextNotes/Agent/Mac/MacWorkspace.swift",
+        "Sources/NextNotes/Agent/Mac/MailScripting.swift",
+        "Sources/NextNotes/Agent/MeetingAgent.swift",
+        "Sources/NextNotes/Agent/Tools/AgentToolExecutor.swift",
+        "Sources/NextNotes/Agent/WorkspaceToolRunner+Mac.swift",
+        "Sources/NextNotes/Agent/WorkspaceToolRunner+UnknownOutcome.swift",
+        "Sources/NextNotes/Agent/WorkspaceToolRunner.swift",
+        "Sources/NextNotes/NextNotesApp.swift",
+        "Sources/NextNotes/Support/Settings.swift"
+      ]
+    },
+    {
+      "branch": "claude/listen",
+      "snapshot": "224ba2d01f3792dcd7cd3a7f4f9e0613633d8ff9",
+      "source_identical": [],
+      "source_different": [
+        "Sources/NextNotes/Agent/Voice/VoiceLatencySelfTest.swift",
+        "Sources/NextNotes/Agent/Voice/VoicePreparationSelfTest.swift",
+        "Sources/NextNotes/Agent/VoiceConversationCoordinator.swift"
+      ]
+    },
+    {
+      "branch": "claude/thinking",
+      "snapshot": "2d19780a26265a48d3fbf6bacc49ec7f55c29150",
+      "source_identical": [],
+      "source_different": [
+        "Sources/NextNotes/Agent/Planner/AgentPlannerBackend.swift",
+        "Sources/NextNotes/Formatting/AppLLMCleanupFormatter.swift",
+        "Sources/NextNotes/Formatting/LLM/ChatTemplate.swift",
+        "Sources/NextNotes/Formatting/LLM/ChatTemplateSelfTest.swift",
+        "Sources/NextNotes/Formatting/LLM/NotesModelRuntime.swift",
+        "Sources/NextNotes/Meetings/NotesGenerator.swift"
+      ]
+    },
+    {
+      "branch": "claude2/bakeoff2",
+      "snapshot": "cfadc1d5d63d2728f2ec11b9326bfa8e0e17efa1",
+      "source_identical": [],
+      "source_different": []
+    },
+    {
+      "branch": "claude2/catchup-audio",
+      "snapshot": "fb932322883f7ec0da8ee1fcf4c7932e7e5112a9",
+      "source_identical": [
+        "Sources/NextNotes/Agent/Tasks/AgentTaskStore.swift"
+      ],
+      "source_different": [
+        "Sources/NextNotes/Activation/WakeWord/WakeWordAudioMonitor.swift",
+        "Sources/NextNotes/Agent/RealtimeAgent+ToolLoop.swift",
+        "Sources/NextNotes/Agent/RealtimeAgent.swift",
+        "Sources/NextNotes/Agent/Schedules/CatchUpSelfTest.swift",
+        "Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift",
+        "Sources/NextNotes/Agent/Tasks/TaskBridge.swift",
+        "Sources/NextNotes/Agent/VoiceConversationWork.swift",
+        "Sources/NextNotes/UI/Agent/AgentPaneSelfTest.swift",
+        "Sources/NextNotes/UI/Agent/RoutinesView.swift",
+        "Sources/NextNotes/UI/CatchUp/CatchUpAcceptanceSelfTest.swift",
+        "Sources/NextNotes/UI/CatchUp/CatchUpConversationContext.swift",
+        "Sources/NextNotes/UI/CatchUp/CatchUpHandoffSelfTest.swift",
+        "Sources/NextNotes/UI/CatchUp/CatchUpLibrary.swift",
+        "Sources/NextNotes/UI/CatchUp/CatchUpModel.swift",
+        "Sources/NextNotes/UI/CatchUp/CatchUpPermissionSelfTest.swift",
+        "Sources/NextNotes/UI/CatchUp/CatchUpPresentationSelfTest.swift",
+        "Sources/NextNotes/UI/CatchUp/CatchUpProvenanceSelfTest.swift",
+        "Sources/NextNotes/UI/CatchUp/CatchUpSettingsSection.swift",
+        "Sources/NextNotes/UI/CatchUp/CatchUpViews.swift",
+        "Sources/NextNotes/UI/Island/IslandState.swift",
+        "Sources/NextNotes/UI/Island/IslandView.swift",
+        "Sources/NextNotes/UI/Settings/RemindersSection.swift"
+      ]
+    },
+    {
+      "branch": "claude2/catchup-final",
+      "snapshot": "6b2779376cf719102cf73f59ccc86e064e3c0e0b",
+      "source_identical": [
+        "Sources/NextNotes/Agent/Tasks/AgentTaskStore.swift"
+      ],
+      "source_different": [
+        "Sources/NextNotes/Activation/WakeWord/WakeWordAudioMonitor.swift",
+        "Sources/NextNotes/Agent/RealtimeAgent+ToolLoop.swift",
+        "Sources/NextNotes/Agent/RealtimeAgent.swift",
+        "Sources/NextNotes/Agent/Schedules/CatchUpSelfTest.swift",
+        "Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift",
+        "Sources/NextNotes/Agent/Tasks/TaskBridge.swift",
+        "Sources/NextNotes/Agent/VoiceConversationWork.swift",
+        "Sources/NextNotes/UI/Agent/AgentPaneSelfTest.swift",
+        "Sources/NextNotes/UI/Agent/RoutinesView.swift",
+        "Sources/NextNotes/UI/CatchUp/CatchUpAcceptanceSelfTest.swift",
+        "Sources/NextNotes/UI/CatchUp/CatchUpConversationContext.swift",
+        "Sources/NextNotes/UI/CatchUp/CatchUpHandoffSelfTest.swift",
+        "Sources/NextNotes/UI/CatchUp/CatchUpLibrary.swift",
+        "Sources/NextNotes/UI/CatchUp/CatchUpModel.swift",
+        "Sources/NextNotes/UI/CatchUp/CatchUpPermissionSelfTest.swift",
+        "Sources/NextNotes/UI/CatchUp/CatchUpPresentationSelfTest.swift",
+        "Sources/NextNotes/UI/CatchUp/CatchUpProvenanceSelfTest.swift",
+        "Sources/NextNotes/UI/CatchUp/CatchUpSettingsSection.swift",
+        "Sources/NextNotes/UI/CatchUp/CatchUpViews.swift",
+        "Sources/NextNotes/UI/DesignSystem.swift",
+        "Sources/NextNotes/UI/Island/IslandState.swift",
+        "Sources/NextNotes/UI/Island/IslandView.swift",
+        "Sources/NextNotes/UI/Settings/RemindersSection.swift"
+      ]
+    },
+    {
+      "branch": "claude2/catchup-port",
+      "snapshot": "772a350f143e8080961b1c51537a133df88fc1c5",
+      "source_identical": [],
+      "source_different": []
+    },
+    {
+      "branch": "claude2/catchup-ui2",
+      "snapshot": "7b092587661617f089a7f799358f2ff0362b0418",
+      "source_identical": [
+        "Sources/NextNotes/Agent/Tasks/AgentTaskStore.swift"
+      ],
+      "source_different": [
+        "Sources/NextNotes/UI/Agent/AgentPaneSelfTest.swift",
+        "Sources/NextNotes/UI/Agent/RoutinesView.swift",
+        "Sources/NextNotes/UI/CatchUp/CatchUpLibrary.swift",
+        "Sources/NextNotes/UI/CatchUp/CatchUpModel.swift",
+        "Sources/NextNotes/UI/CatchUp/CatchUpPresentationSelfTest.swift",
+        "Sources/NextNotes/UI/CatchUp/CatchUpSettingsSection.swift",
+        "Sources/NextNotes/UI/CatchUp/CatchUpViews.swift",
+        "Sources/NextNotes/UI/Island/IslandState.swift",
+        "Sources/NextNotes/UI/Island/IslandView.swift",
+        "Sources/NextNotes/UI/Settings/RemindersSection.swift"
+      ]
+    },
+    {
+      "branch": "claude2/clockfix",
+      "snapshot": "4effa7b2dbc9def9a39a6fabd829270621517e97",
+      "source_identical": [
+        "Sources/NextNotes/Agent/Tasks/AgentTaskStore.swift"
+      ],
+      "source_different": [
+        "Sources/NextNotes/Agent/AgentAccountRead.swift",
+        "Sources/NextNotes/Agent/AgentToolLoop.swift",
+        "Sources/NextNotes/Agent/LiveEval/LiveEvalClockProvider.swift",
+        "Sources/NextNotes/Agent/LiveEval/ToolLoopLiveEval.swift"
+      ]
+    },
+    {
+      "branch": "claude2/google-c",
+      "snapshot": "9634bb996b4f31218d6b0607c55dbac6a90f6217",
+      "source_identical": [
+        "Sources/NextNotes/Agent/Tasks/AgentTaskStore.swift"
+      ],
+      "source_different": [
+        "Makefile",
+        "Resources/Info.plist",
+        "Sources/NextNotes/Agent/AgentCapabilityManifest.swift",
+        "Sources/NextNotes/Agent/GoogleWorkspaceCLI.swift",
+        "Sources/NextNotes/Agent/Mac/MacWorkspace.swift",
+        "Sources/NextNotes/Calendar/CalendarService.swift",
+        "Sources/NextNotes/Calendar/Google/GoogleAccessTokens.swift",
+        "Sources/NextNotes/Calendar/Google/GoogleAppClient.swift",
+        "Sources/NextNotes/Calendar/Google/GoogleCalendarModels.swift",
+        "Sources/NextNotes/Calendar/Google/GoogleCalendarProvider.swift",
+        "Sources/NextNotes/Calendar/Google/GoogleCalendarScopeSelfTest.swift",
+        "Sources/NextNotes/Calendar/Google/GoogleCalendarWithdrawalSelfTest.swift",
+        "Sources/NextNotes/Calendar/Google/GoogleConcurrentRejectionSelfTest.swift",
+        "Sources/NextNotes/Calendar/Google/GoogleConnectSelfTest.swift",
+        "Sources/NextNotes/Calendar/Google/GoogleConnection.swift",
+        "Sources/NextNotes/Calendar/Google/GoogleGrantLaunchSelfTest.swift",
+        "Sources/NextNotes/Calendar/Google/GoogleGrantReadSelfTest.swift",
+        "Sources/NextNotes/Calendar/Google/GoogleGrantReplacementSelfTest.swift",
+        "Sources/NextNotes/Calendar/Google/GoogleLaunchCancellationSelfTest.swift",
+        "Sources/NextNotes/Calendar/Google/GoogleOAuthClient.swift",
+        "Sources/NextNotes/Calendar/Google/GoogleProbingScopeSelfTest.swift",
+        "Sources/NextNotes/Calendar/Google/GoogleReviewFixture.swift",
+        "Sources/NextNotes/Calendar/Google/GoogleScopeBoundarySelfTest.swift",
+        "Sources/NextNotes/Calendar/Google/GoogleTokenStore.swift",
+        "Sources/NextNotes/Calendar/Google/ManagedWorkspaceTool.swift",
+        "Sources/NextNotes/NextNotesApp.swift"
+      ]
+    },
+    {
+      "branch": "claude2/listen2",
+      "snapshot": "e2e578776281344a41aca0d31752c963236fd1f6",
+      "source_identical": [
+        "Sources/NextNotes/Agent/Tasks/AgentTaskStore.swift"
+      ],
+      "source_different": [
+        "Sources/NextNotes/Agent/Voice/VoiceLatencySelfTest.swift",
+        "Sources/NextNotes/Agent/Voice/VoicePreparationSelfTest.swift",
+        "Sources/NextNotes/Formatting/LLM/LocalVoiceFrontend.swift",
+        "Sources/NextNotes/Formatting/LLM/NotesModelRuntime.swift",
+        "Sources/NextNotes/Formatting/LLM/PrefixCacheSelfTest.swift"
+      ]
+    },
+    {
+      "branch": "claude2/no-apple",
+      "snapshot": "c6d59c4128721e3e7b7a084b1985b56e7c0a5af9",
+      "source_identical": [
+        "Sources/NextNotes/Agent/Tasks/AgentTaskStore.swift"
+      ],
+      "source_different": [
+        "Sources/NextNotes/Agent/AcousticHybridProbe.swift",
+        "Sources/NextNotes/Agent/AcousticLiveProbe.swift",
+        "Sources/NextNotes/Agent/Duplex/ApplePlaybackTimelineSelfTest.swift",
+        "Sources/NextNotes/Agent/Duplex/AppleResumeOwnerSelfTest.swift",
+        "Sources/NextNotes/Agent/Duplex/IslandOwnership.swift",
+        "Sources/NextNotes/Agent/Duplex/NativePCMReceiptSelfTest.swift",
+        "Sources/NextNotes/Agent/Duplex/OutputScheduler.swift",
+        "Sources/NextNotes/Agent/Duplex/PCMReceiptOwnerSelfTest.swift",
+        "Sources/NextNotes/Agent/Duplex/SpokenApprovalSelfTest.swift",
+        "Sources/NextNotes/Agent/Duplex/UnsupportedResumePresentationSelfTest.swift",
+        "Sources/NextNotes/Agent/Duplex/VoiceContracts.swift",
+        "Sources/NextNotes/Agent/Duplex/VoicePlaybackProjectionSelfTest.swift",
+        "Sources/NextNotes/Agent/Duplex/VoicePlaybackResumeReceiptSelfTest.swift",
+        "Sources/NextNotes/Agent/Duplex/VoiceSession.swift",
+        "Sources/NextNotes/Agent/RealtimeAudioSession.swift",
+        "Sources/NextNotes/Agent/Schedules/CatchUpSelfTest.swift",
+        "Sources/NextNotes/Agent/Schedules/CatchUpTemplate.swift",
+        "Sources/NextNotes/Agent/Speech/AgentSpeechPolicy.swift",
+        "Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift",
+        "Sources/NextNotes/Agent/Speech/AgentVoiceAvailability.swift",
+        "Sources/NextNotes/Agent/Speech/AgentVoicePolicySelfTest.swift",
+        "Sources/NextNotes/Agent/Speech/KokoroAgentVoice.swift",
+        "Sources/NextNotes/Agent/Speech/LongFormRenderer.swift",
+        "Sources/NextNotes/Agent/Speech/PCMReceiptSpeechBacking.swift",
+        "Sources/NextNotes/Agent/Speech/PocketAgentVoice.swift",
+        "Sources/NextNotes/Agent/Speech/PreparedPCMSpeechBacking.swift",
+        "Sources/NextNotes/Agent/Speech/UnknownPressurePreparationSelfTest.swift",
+        "Sources/NextNotes/Agent/Speech/VoiceFailureEpochSelfTest.swift",
+        "Sources/NextNotes/Agent/Speech/VoicePolicyReviewSelfTest.swift",
+        "Sources/NextNotes/Agent/Tasks/AgentTaskManager.swift",
+        "Sources/NextNotes/Agent/VoiceDeliverySelfTest.swift",
+        "Sources/NextNotes/Agent/VoicePlaybackDelivery.swift",
+        "Sources/NextNotes/Core/Compute/ModelResidencyPolicy.swift",
+        "Sources/NextNotes/NextNotesApp.swift",
+        "Sources/NextNotes/Support/Settings.swift",
+        "Sources/NextNotes/Support/SettingsVoicePolicySelfTest.swift",
+        "Sources/NextNotes/UI/Agent/AgentView.swift",
+        "Sources/NextNotes/UI/Island/IslandView.swift"
+      ]
+    },
+    {
+      "branch": "claude2/thinking-review",
+      "snapshot": "a1c850242cb1af0cb1ebd0e9ba9bde56f9fb4928",
+      "source_identical": [
+        "Sources/NextNotes/Agent/Tasks/AgentTaskStore.swift"
+      ],
+      "source_different": [
+        "Sources/NextNotes/Formatting/LLM/ChatTemplate.swift",
+        "Sources/NextNotes/Formatting/LLM/ChatTemplateSelfTest.swift",
+        "Sources/NextNotes/Formatting/LLM/NotesModelRuntime.swift"
+      ]
+    },
+    {
+      "branch": "claude2/tooling",
+      "snapshot": "90aea6c48471729f83563d3e5a152bedaad8586b",
+      "source_identical": [],
+      "source_different": []
+    },
+    {
+      "branch": "claude2/voice-ack",
+      "snapshot": "baf562318b5002ec645852ef6aca5234d7170c44",
+      "source_identical": [
+        "Sources/NextNotes/Agent/Tasks/AgentTaskStore.swift"
+      ],
+      "source_different": [
+        "Sources/NextNotes/Activation/AgentCaptureController.swift",
+        "Sources/NextNotes/Agent/Duplex/OutputScheduler.swift",
+        "Sources/NextNotes/Agent/RealtimeAudioSession.swift",
+        "Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift",
+        "Sources/NextNotes/Agent/Voice/VoiceAcknowledgement.swift",
+        "Sources/NextNotes/Agent/Voice/VoiceAcknowledgementClipSelfTest.swift",
+        "Sources/NextNotes/Agent/Voice/VoiceAcknowledgementClips.swift",
+        "Sources/NextNotes/Agent/Voice/VoiceAcknowledgementSelfTest.swift",
+        "Sources/NextNotes/Agent/Voice/VoiceDiagnosticSpeech.swift",
+        "Sources/NextNotes/Agent/Voice/VoiceLatencySelfTest.swift",
+        "Sources/NextNotes/Agent/Voice/VoiceLatencyTimeline.swift",
+        "Sources/NextNotes/Agent/Voice/VoicePreparationSelfTest.swift",
+        "Sources/NextNotes/Agent/VoiceConversationCoordinator.swift",
+        "Sources/NextNotes/Formatting/LLM/LocalVoiceFrontend.swift",
+        "Sources/NextNotes/Formatting/LLM/NotesModelRuntime.swift",
+        "Sources/NextNotes/Formatting/LLM/PrefixCacheSelfTest.swift"
+      ]
+    },
+    {
+      "branch": "claude2/voice-ack2",
+      "snapshot": "fc8aa2af6e492987a81f1a5672a70af8eb9afa67",
+      "source_identical": [
+        "Sources/NextNotes/Agent/Tasks/AgentTaskStore.swift"
+      ],
+      "source_different": [
+        "Sources/NextNotes/Activation/AgentCaptureController.swift",
+        "Sources/NextNotes/Agent/AcousticHybridProbe.swift",
+        "Sources/NextNotes/Agent/AcousticLiveProbe.swift",
+        "Sources/NextNotes/Agent/Duplex/ApplePlaybackTimelineSelfTest.swift",
+        "Sources/NextNotes/Agent/Duplex/AppleResumeOwnerSelfTest.swift",
+        "Sources/NextNotes/Agent/Duplex/IslandOwnership.swift",
+        "Sources/NextNotes/Agent/Duplex/NativePCMReceiptSelfTest.swift",
+        "Sources/NextNotes/Agent/Duplex/OutputScheduler.swift",
+        "Sources/NextNotes/Agent/Duplex/PCMReceiptOwnerSelfTest.swift",
+        "Sources/NextNotes/Agent/Duplex/SpokenApprovalSelfTest.swift",
+        "Sources/NextNotes/Agent/Duplex/UnsupportedResumePresentationSelfTest.swift",
+        "Sources/NextNotes/Agent/Duplex/VoiceContracts.swift",
+        "Sources/NextNotes/Agent/Duplex/VoicePlaybackProjectionSelfTest.swift",
+        "Sources/NextNotes/Agent/Duplex/VoicePlaybackResumeReceiptSelfTest.swift",
+        "Sources/NextNotes/Agent/Duplex/VoiceSession.swift",
+        "Sources/NextNotes/Agent/RealtimeAudioSession.swift",
+        "Sources/NextNotes/Agent/Schedules/CatchUpSelfTest.swift",
+        "Sources/NextNotes/Agent/Schedules/CatchUpTemplate.swift",
+        "Sources/NextNotes/Agent/Speech/AgentSpeechPolicy.swift",
+        "Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift",
+        "Sources/NextNotes/Agent/Speech/AgentVoiceAvailability.swift",
+        "Sources/NextNotes/Agent/Speech/AgentVoicePolicySelfTest.swift",
+        "Sources/NextNotes/Agent/Speech/KokoroAgentVoice.swift",
+        "Sources/NextNotes/Agent/Speech/LongFormRenderer.swift",
+        "Sources/NextNotes/Agent/Speech/PCMReceiptSpeechBacking.swift",
+        "Sources/NextNotes/Agent/Speech/PocketAgentVoice.swift",
+        "Sources/NextNotes/Agent/Speech/PreparedPCMSpeechBacking.swift",
+        "Sources/NextNotes/Agent/Speech/UnknownPressurePreparationSelfTest.swift",
+        "Sources/NextNotes/Agent/Speech/VoiceFailureEpochSelfTest.swift",
+        "Sources/NextNotes/Agent/Speech/VoicePolicyReviewSelfTest.swift",
+        "Sources/NextNotes/Agent/Tasks/AgentTaskManager.swift",
+        "Sources/NextNotes/Agent/Voice/VoiceAcknowledgement.swift",
+        "Sources/NextNotes/Agent/Voice/VoiceAcknowledgementClipSelfTest.swift",
+        "Sources/NextNotes/Agent/Voice/VoiceAcknowledgementClips.swift",
+        "Sources/NextNotes/Agent/Voice/VoiceAcknowledgementSelfTest.swift",
+        "Sources/NextNotes/Agent/Voice/VoiceDiagnosticSpeech.swift",
+        "Sources/NextNotes/Agent/Voice/VoiceLatencySelfTest.swift",
+        "Sources/NextNotes/Agent/Voice/VoiceLatencyTimeline.swift",
+        "Sources/NextNotes/Agent/VoiceConversationCoordinator.swift",
+        "Sources/NextNotes/Agent/VoiceDeliverySelfTest.swift",
+        "Sources/NextNotes/Agent/VoicePlaybackDelivery.swift",
+        "Sources/NextNotes/Core/Compute/ModelResidencyPolicy.swift",
+        "Sources/NextNotes/NextNotesApp.swift",
+        "Sources/NextNotes/Support/Settings.swift",
+        "Sources/NextNotes/Support/SettingsVoicePolicySelfTest.swift",
+        "Sources/NextNotes/UI/Agent/AgentView.swift",
+        "Sources/NextNotes/UI/Island/IslandView.swift"
+      ]
+    },
+    {
+      "branch": "claude2/voice-mini",
+      "snapshot": "b168b67f0535afb3f53c8a669e96dc3a1b881e35",
+      "source_identical": [
+        "Sources/NextNotes/Agent/Tasks/AgentTaskStore.swift"
+      ],
+      "source_different": [
+        "Sources/NextNotes/Activation/AgentCaptureController.swift",
+        "Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift",
+        "Sources/NextNotes/Agent/Voice/VoiceDiagnosticSpeech.swift",
+        "Sources/NextNotes/Agent/Voice/VoiceLatencySelfTest.swift",
+        "Sources/NextNotes/Agent/Voice/VoicePreparationSelfTest.swift",
+        "Sources/NextNotes/Agent/Voice/VoiceResidentAnswerSelfTest.swift",
+        "Sources/NextNotes/Agent/VoiceCapabilityConversationSelfTest.swift",
+        "Sources/NextNotes/Agent/VoiceConversationCoordinator.swift",
+        "Sources/NextNotes/Formatting/LLM/LocalVoiceFrontend.swift",
+        "Sources/NextNotes/Formatting/LLM/NotesModelRuntime.swift",
+        "Sources/NextNotes/Formatting/LLM/PrefixCacheSelfTest.swift"
+      ]
+    },
+    {
+      "branch": "claude2/voice-settings-ui",
+      "snapshot": "e15fee2ca7076f6298796def5dbe3498097989b5",
+      "source_identical": [
+        "Sources/NextNotes/Agent/Tasks/AgentTaskStore.swift"
+      ],
+      "source_different": [
+        "Sources/NextNotes/Agent/AcousticHybridProbe.swift",
+        "Sources/NextNotes/Agent/AcousticLiveProbe.swift",
+        "Sources/NextNotes/Agent/Duplex/ApplePlaybackTimelineSelfTest.swift",
+        "Sources/NextNotes/Agent/Duplex/AppleResumeOwnerSelfTest.swift",
+        "Sources/NextNotes/Agent/Duplex/IslandOwnership.swift",
+        "Sources/NextNotes/Agent/Duplex/NativePCMReceiptSelfTest.swift",
+        "Sources/NextNotes/Agent/Duplex/OutputScheduler.swift",
+        "Sources/NextNotes/Agent/Duplex/PCMReceiptOwnerSelfTest.swift",
+        "Sources/NextNotes/Agent/Duplex/SpokenApprovalSelfTest.swift",
+        "Sources/NextNotes/Agent/Duplex/UnsupportedResumePresentationSelfTest.swift",
+        "Sources/NextNotes/Agent/Duplex/VoiceContracts.swift",
+        "Sources/NextNotes/Agent/Duplex/VoicePlaybackProjectionSelfTest.swift",
+        "Sources/NextNotes/Agent/Duplex/VoicePlaybackResumeReceiptSelfTest.swift",
+        "Sources/NextNotes/Agent/Duplex/VoiceSession.swift",
+        "Sources/NextNotes/Agent/RealtimeAudioSession.swift",
+        "Sources/NextNotes/Agent/Schedules/CatchUpSelfTest.swift",
+        "Sources/NextNotes/Agent/Schedules/CatchUpTemplate.swift",
+        "Sources/NextNotes/Agent/Speech/AgentSpeechPolicy.swift",
+        "Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift",
+        "Sources/NextNotes/Agent/Speech/AgentVoiceAvailability.swift",
+        "Sources/NextNotes/Agent/Speech/AgentVoicePolicySelfTest.swift",
+        "Sources/NextNotes/Agent/Speech/KokoroAgentVoice.swift",
+        "Sources/NextNotes/Agent/Speech/LongFormRenderer.swift",
+        "Sources/NextNotes/Agent/Speech/PCMReceiptSpeechBacking.swift",
+        "Sources/NextNotes/Agent/Speech/PocketAgentVoice.swift",
+        "Sources/NextNotes/Agent/Speech/PreparedPCMSpeechBacking.swift",
+        "Sources/NextNotes/Agent/Speech/UnknownPressurePreparationSelfTest.swift",
+        "Sources/NextNotes/Agent/Speech/VoiceFailureEpochSelfTest.swift",
+        "Sources/NextNotes/Agent/Speech/VoicePolicyReviewSelfTest.swift",
+        "Sources/NextNotes/Agent/Tasks/AgentTaskManager.swift",
+        "Sources/NextNotes/Agent/VoiceDeliverySelfTest.swift",
+        "Sources/NextNotes/Agent/VoicePlaybackDelivery.swift",
+        "Sources/NextNotes/Core/Compute/ModelResidencyPolicy.swift",
+        "Sources/NextNotes/NextNotesApp.swift",
+        "Sources/NextNotes/Support/Settings.swift",
+        "Sources/NextNotes/Support/SettingsVoicePolicySelfTest.swift",
+        "Sources/NextNotes/UI/Agent/AgentView.swift",
+        "Sources/NextNotes/UI/Components/VoiceTextOnlyNote.swift",
+        "Sources/NextNotes/UI/Island/IslandView.swift",
+        "Sources/NextNotes/UI/Settings/ModelsSettingsTab.swift",
+        "Sources/NextNotes/UI/Settings/SettingsSheet.swift",
+        "Sources/NextNotes/UI/Settings/VoiceSettingsPreview.swift",
+        "Sources/NextNotes/UI/Settings/VoiceSettingsSection.swift",
+        "Sources/NextNotes/UI/Settings/VoiceSettingsSelfTest.swift",
+        "Sources/NextNotes/UI/UIStringsLint.swift"
+      ]
+    }
+  ]
+}

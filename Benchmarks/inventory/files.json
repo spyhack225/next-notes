@@ -658,6 +658,242 @@
       "category": "agent"
     },
     {
+      "path": "Tests/Reports/archive-integration-2026-10-22/README.md",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/archive-integration-2026-10-22/ack-latest-retained-verdict.json",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/archive-integration-2026-10-22/baseline-stream-loop.txt",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/archive-integration-2026-10-22/catalog-peer-fixed.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/archive-integration-2026-10-22/catalog-peer-original.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/archive-integration-2026-10-22/chat-template.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/archive-integration-2026-10-22/chat-template.stdout.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/archive-integration-2026-10-22/cleanup.json",
+      "category": "dictation"
+    },
+    {
+      "path": "Tests/Reports/archive-integration-2026-10-22/clock.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/archive-integration-2026-10-22/clock.stdout.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/archive-integration-2026-10-22/combined-typecheck.json",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/archive-integration-2026-10-22/dictation-snapshot-comparison.json",
+      "category": "dictation"
+    },
+    {
+      "path": "Tests/Reports/archive-integration-2026-10-22/fixed-stream-build.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/archive-integration-2026-10-22/fixed-stream.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/archive-integration-2026-10-22/google-batch.stdout.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/archive-integration-2026-10-22/native-clock.md",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/archive-integration-2026-10-22/native-google/calendar.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/archive-integration-2026-10-22/native-google/calendar.stdout.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/archive-integration-2026-10-22/native-google/capability-manifest.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/archive-integration-2026-10-22/native-google/capability-manifest.stdout.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/archive-integration-2026-10-22/native-google/exits.txt",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/archive-integration-2026-10-22/native-google/google-connect.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/archive-integration-2026-10-22/native-google/google-connect.stdout.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/archive-integration-2026-10-22/native-google/gws.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/archive-integration-2026-10-22/native-google/gws.stdout.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/archive-integration-2026-10-22/native-google/mac-accounts.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/archive-integration-2026-10-22/native-google/mac-accounts.stdout.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/archive-integration-2026-10-22/native-google/store-isolation.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/archive-integration-2026-10-22/native-google/store-isolation.stdout.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/archive-integration-2026-10-22/native-google/ui-strings.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/archive-integration-2026-10-22/native-google/ui-strings.stdout.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/archive-integration-2026-10-22/native-summary.json",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/archive-integration-2026-10-22/notes-truncation.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/archive-integration-2026-10-22/notes-truncation.stdout.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/archive-integration-2026-10-22/oauth-packaging.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/archive-integration-2026-10-22/older-reflog-feature-comparison.json",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/archive-integration-2026-10-22/original-stream-build.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/archive-integration-2026-10-22/original-stream.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/archive-integration-2026-10-22/prefix-cache-summary.json",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/archive-integration-2026-10-22/prefix-cache.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/archive-integration-2026-10-22/prefix-cache.stdout.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/archive-integration-2026-10-22/reflog-revision-review.json",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/archive-integration-2026-10-22/retained/clock/checks.json",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/archive-integration-2026-10-22/retained/clock/final-build-pin.json",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/archive-integration-2026-10-22/retained/google/grant-transition-red/google-connect.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/archive-integration-2026-10-22/retained/google/green-binary-sha256.txt",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/archive-integration-2026-10-22/retained/google/green-source-sha256.txt",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/archive-integration-2026-10-22/retained/google/green/exits.txt",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/archive-integration-2026-10-22/retained/google/green/google-connect.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/archive-integration-2026-10-22/retained/google/verification.json",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/archive-integration-2026-10-22/retained/provenance.json",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/archive-integration-2026-10-22/retained/stream/green-chat-template.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/archive-integration-2026-10-22/retained/stream/green-summary.json",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/archive-integration-2026-10-22/retained/stream/red-chat-template.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/archive-integration-2026-10-22/retained/stream/red-summary.json",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/archive-integration-2026-10-22/retained/stream/source-pins.json",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/archive-integration-2026-10-22/source-comparison-before.json",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/archive-integration-2026-10-22/source-ready.json",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/archive-integration-2026-10-22/stream-component-summary.json",
+      "category": "other"
+    },
+    {
       "path": "Tests/Reports/asr-candidates-2026-10-22/README.md",
       "category": "asr"
     },
@@ -739,6 +975,110 @@
     },
     {
       "path": "Tests/Reports/asr-candidates-2026-10-22/whistle.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/asr-live-latency-2026-10-22-resumed/README.md",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/asr-live-latency-2026-10-22-resumed/comparison.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/asr-live-latency-2026-10-22-resumed/final-cleanup.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/asr-live-latency-2026-10-22-resumed/interim-comparison.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/asr-live-latency-2026-10-22-resumed/parakeet-v3-context.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/asr-live-latency-2026-10-22-resumed/parakeet-v3.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/asr-live-latency-2026-10-22-resumed/phonon-context.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/asr-live-latency-2026-10-22-resumed/phonon-default-readiness-failure.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/asr-live-latency-2026-10-22-resumed/phonon-remaining-context.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/asr-live-latency-2026-10-22-resumed/phonon.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/asr-live-latency-2026-10-22-resumed/probe-build.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/asr-live-latency-2026-10-22-resumed/qwen-06b.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/asr-live-latency-2026-10-22-resumed/qwen-17b-remaining-context.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/asr-live-latency-2026-10-22-resumed/qwen-17b.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/asr-live-latency-2026-10-22-resumed/redux-context.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/asr-live-latency-2026-10-22-resumed/redux.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/asr-live-latency-2026-10-22-resumed/rpc-stderr-original-fixed.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/asr-live-latency-2026-10-22-resumed/rpc-stderr-regression.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/asr-live-latency-2026-10-22-resumed/sdk-timeout-original-fixed.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/asr-live-latency-2026-10-22-resumed/slot-one-cleanup.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/asr-live-latency-2026-10-22-resumed/ultra-context.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/asr-live-latency-2026-10-22-resumed/ultra.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/asr-live-latency-2026-10-22-resumed/voz-remaining-context.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/asr-live-latency-2026-10-22-resumed/voz.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/asr-live-latency-2026-10-22-resumed/whistle-context.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/asr-live-latency-2026-10-22-resumed/whistle.json",
       "category": "asr"
     },
     {
@@ -9138,19 +9478,159 @@
       "category": "tts"
     },
     {
+      "path": "Tests/Reports/tts-2026-10-22/accepted-results.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/compressed-logs.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/final-model-cleanup.json",
+      "category": "dictation"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/fixed-component-pins.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/metal-packaging-after-link.log",
+      "category": "tts"
+    },
+    {
       "path": "Tests/Reports/tts-2026-10-22/metal-packaging.log",
       "category": "tts"
     },
     {
-      "path": "Tests/Reports/tts-2026-10-22/native-build-j2.log",
+      "path": "Tests/Reports/tts-2026-10-22/native-binary.json",
       "category": "tts"
     },
     {
-      "path": "Tests/Reports/tts-2026-10-22/native-build-native.log",
+      "path": "Tests/Reports/tts-2026-10-22/native-build-result.json",
       "category": "tts"
     },
     {
       "path": "Tests/Reports/tts-2026-10-22/native-build.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/native-qwen-headroom/preflight.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/native-qwen-headroom/qwen.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/native-qwen-headroom/qwen.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/native-qwen-headroom/summary.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/native-qwen/preflight.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/native-qwen/qwen.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/native-qwen/qwen.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/native-qwen/summary.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/native-results/apple.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/native-results/apple.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/native-results/kokoro.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/native-results/phonon.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/native-results/phonon.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/native-results/pocket.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/native-results/pocket.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/native-results/preflight.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/native-results/qwen.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/native-results/summary.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/native-retry/kokoro.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/native-retry/kokoro.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/native-retry/preflight.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/native-retry/qwen.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/native-retry/qwen.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/native-retry/summary.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/native-typecheck.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/original-component-pins.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/owner-cache-preservation.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/owner-caches-after.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/owner-caches-before.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/pause-only-component-pins.json",
       "category": "tts"
     },
     {
@@ -9162,7 +9642,47 @@
       "category": "tts"
     },
     {
+      "path": "Tests/Reports/tts-2026-10-22/resume-environment.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/resume-progress.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/retired-app-build-artifacts.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/runner-tests-resume.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/source-fixed.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/source-full-app.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/source-original.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/source-pause-only.log",
+      "category": "tts"
+    },
+    {
       "path": "Tests/Reports/tts-2026-10-22/source-pins.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/typecheck-command.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/typecheck-sources.txt",
       "category": "tts"
     },
     {
@@ -12610,14 +13130,6 @@
       "category": "agent"
     },
     {
-      "path": "roadmap/done/agent-analysis-2026-09-23/barge-run.txt",
-      "category": "agent"
-    },
-    {
-      "path": "roadmap/done/agent-analysis-2026-09-23/pipeline-run2.txt",
-      "category": "agent"
-    },
-    {
       "path": "roadmap/in-progress/AGENT-OVERHAUL/00-README.md",
       "category": "agent"
     },
@@ -12850,10 +13362,6 @@
       "category": "voice"
     },
     {
-      "path": "roadmap/in-progress/VOICE-TURN-DETECTION/benchmark/cases.json",
-      "category": "voice"
-    },
-    {
       "path": "roadmap/in-progress/WEBSITE-TO-MAC-EXPERIENCE/00-README.md",
       "category": "other"
     },
@@ -12879,10 +13387,6 @@
     },
     {
       "path": "roadmap/todo/DURABLE-AGENT-SESSIONS/03-ACCEPTANCE.md",
-      "category": "agent"
-    },
-    {
-      "path": "roadmap/todo/DURABLE-AGENT-SESSIONS/COORDINATION.json",
       "category": "agent"
     },
     {

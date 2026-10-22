@@ -26,8 +26,8 @@ enum WorkspaceAuthState: Equatable, Sendable {
 
     var displayName: String {
         switch self {
-        case .notInstalled: "Not installed"
-        case .needsOAuthClient: "No OAuth client"
+        case .notInstalled: "Getting ready"
+        case .needsOAuthClient: "Not connected"
         case .signedOut: "Signed out"
         case .signedIn: "Signed in"
         case .failed: "Unavailable"
@@ -38,15 +38,13 @@ enum WorkspaceAuthState: Equatable, Sendable {
     var detail: String {
         switch self {
         case .notInstalled:
-            "The Google Workspace CLI isn\u{2019}t on this Mac. Next Notes runs it to read and "
-                + "write your Workspace; nothing is attempted without it."
+            "Next Notes is getting ready to reach Google."
         case .needsOAuthClient:
-            "Google only issues Workspace access to an OAuth client you own. Set one up "
-                + "before signing in."
+            GoogleAppClient.unavailableMessage
         case .signedOut:
-            "The CLI has a client but no account. Sign in to let Next Notes act as you."
+            "Connect your Google account in Settings to use it here."
         case .signedIn(let method):
-            "Credentials are stored by \(method)."
+            "Connected through \(method)."
         case .failed(let reason):
             reason
         }
@@ -87,19 +85,19 @@ enum WorkspaceCLIError: LocalizedError, Equatable {
     var errorDescription: String? {
         switch self {
         case .notInstalled:
-            "The Google Workspace CLI isn\u{2019}t installed."
+            "Next Notes isn’t ready to reach Google yet."
         case .notAuthenticated:
-            "The Google Workspace CLI isn\u{2019}t signed in."
+            "Google isn’t connected; connect your account in Settings."
         case .invalidRequest(let detail):
-            "The Workspace CLI rejected the request: \(detail)"
+            "Google couldn’t use this request: \(detail)"
         case .apiFailed(let detail):
             "Google refused the request: \(detail)"
         case .timedOut(let seconds):
-            "The Workspace CLI didn\u{2019}t answer within \(Int(seconds)) seconds."
+            "Google didn’t answer within \(Int(seconds)) seconds."
         case .launchFailed(let detail):
-            "The Workspace CLI wouldn\u{2019}t start: \(detail)"
+            "Next Notes couldn’t reach Google: \(detail)"
         case .badOutput:
-            "The Workspace CLI printed something that isn\u{2019}t JSON."
+            "Google’s answer couldn’t be read."
         }
     }
 
@@ -187,16 +185,46 @@ actor GoogleWorkspaceCLI {
     /// Status probes answer in milliseconds or they are broken.
     static let probeTimeout: TimeInterval = 10
 
+    static let tokenVariable = "GOOGLE_WORKSPACE_CLI_TOKEN"
     private var cachedPath: URL?
 
     /// The normal actor has no override. This admitted fixture still uses run/spawn and
     /// their real pipe, exit-code and cancellation handling; it never locates owner gws.
     private let testingExecutable: URL?
+    private let usesAppAccount: Bool
+    private let testingExecutableIsManaged: Bool
     nonisolated var hasIsolatedTestingExecutable: Bool { testingExecutable != nil }
 
-    init() { testingExecutable = nil }
+    struct TestHooks: Sendable {
+        var beforeToken: (@Sendable () async -> Void)?
+        var afterToken: (@Sendable () async -> Void)?
+        var beforeLaunch: (@Sendable () async -> Void)?
+        var beforeAuthProbe: (@Sendable () async -> Void)?
+    }
+    private let testHooks: TestHooks
+    init() { testHooks = TestHooks(); testingExecutable = nil; usesAppAccount = true; testingExecutableIsManaged = false }
 
-    private init(testingExecutable: URL) { self.testingExecutable = testingExecutable }
+    private init(testingExecutable: URL, usesAppAccount: Bool = false, isManaged: Bool = false, hooks: TestHooks = TestHooks()) {
+        self.testHooks = hooks
+        self.testingExecutable = testingExecutable
+        self.usesAppAccount = usesAppAccount
+        self.testingExecutableIsManaged = isManaged
+    }
+    static func appAccountFixture(executable: URL, isManaged: Bool = true, hooks: TestHooks = TestHooks()) -> GoogleWorkspaceCLI? {
+        let safe = executable.resolvingSymlinksInPath().standardizedFileURL
+        let temporary = FileManager.default.temporaryDirectory.resolvingSymlinksInPath()
+        guard GoogleAccessTokens.testHooksAdmitted, safe == executable.standardizedFileURL,
+              safe.path.hasPrefix(temporary.path + "/"),
+              FileManager.default.isExecutableFile(atPath: safe.path) else { return nil }
+        return GoogleWorkspaceCLI(testingExecutable: safe, usesAppAccount: true, isManaged: isManaged, hooks: hooks)
+    }
+    func appSignInInEffect() -> Bool {
+        usesAppAccount && GoogleTokenStore.appRouteInEffect
+    }
+    func managedExecutable() -> URL? {
+        if let testingExecutable, usesAppAccount, testingExecutableIsManaged { return testingExecutable }
+        return ManagedWorkspaceTool.executable()
+    }
 
     static func isolatedForTesting(root: URL, executable: URL) -> GoogleWorkspaceCLI? {
         let safe = root.resolvingSymlinksInPath().standardizedFileURL
@@ -217,6 +245,7 @@ actor GoogleWorkspaceCLI {
     /// The binary, or nil when there isn't one. Cached; `forget()` drops the cache after an
     /// install so the Settings tab sees the new binary without a relaunch.
     func binaryURL() async -> URL? {
+        if appSignInInEffect() { return managedExecutable() }
         if let testingExecutable {
             guard testingExecutable.resolvingSymlinksInPath().standardizedFileURL.path == testingExecutable.path,
                   FileManager.default.isExecutableFile(atPath: testingExecutable.path) else { return nil }
@@ -295,6 +324,16 @@ actor GoogleWorkspaceCLI {
     /// not anyone is signed in, and the four fields below are what separate "no client",
     /// "client but no account" and "ready".
     func authState() async -> WorkspaceAuthState {
+        await testHooks.beforeAuthProbe?()
+        let grantState = usesAppAccount ? GoogleTokenStore.readState : .absent
+        if grantState == .unavailable {
+            return .failed(GoogleCalendarError.tokenStoreUnreadable.localizedDescription)
+        }
+        if usesAppAccount && (GoogleTokenStore.appSignInSelected || grantState != .absent) {
+            guard case .available = grantState else { return .signedOut }
+            guard await GoogleAccessTokens.shared.currentClient != nil else { return .needsOAuthClient }
+            return managedExecutable() == nil ? .notInstalled : .signedIn(method: "your Google account")
+        }
         guard await binaryURL() != nil else { return .notInstalled }
         do {
             let output = try await run(["auth", "status"], timeout: Self.probeTimeout)
@@ -344,6 +383,7 @@ actor GoogleWorkspaceCLI {
     /// tag is never invented — an invented tag would refuse every approval on a machine whose
     /// profile read failed, which is the worst failure a safety check can have.
     func accountTag() async -> String? {
+        if usesAppAccount, GoogleTokenStore.readState == .unavailable { return nil }
         if accountTagRead { return cachedAccountTag }
         accountTagRead = true
         cachedAccountTag = await readAccountTag()
@@ -443,8 +483,42 @@ actor GoogleWorkspaceCLI {
         _ arguments: [String],
         timeout: TimeInterval = GoogleWorkspaceCLI.defaultTimeout
     ) async throws -> WorkspaceCLIOutput {
-        guard let executable = await binaryURL() else { throw WorkspaceCLIError.notInstalled }
+        let grant: GoogleTokenStore.StoredGrant?
+        do { grant = usesAppAccount ? try GoogleTokenStore.savedGrant() : nil }
+        catch { throw WorkspaceCLIError.launchFailed(GoogleCalendarError.tokenStoreUnreadable.localizedDescription) }
+        let appSignedIn = usesAppAccount && (GoogleTokenStore.appSignInSelected || grant != nil)
+        let executable: URL
+        var additions: [String: String] = [:]
+        if appSignedIn {
+            guard let grant else { throw WorkspaceCLIError.notAuthenticated }
+            guard let managed = managedExecutable() else { throw WorkspaceCLIError.notInstalled }
+            executable = managed
+            if let capability = GoogleCapability.needed(byArguments: arguments),
+               !capability.isGranted(by: grant.scopes, readOnly: arguments.first == "calendar" && !arguments.contains("insert")) {
+                throw WorkspaceCLIError.invalidRequest(capability.permissionSentence)
+            }
+            do {
+                if let beforeToken = testHooks.beforeToken { await beforeToken() }
+                guard let token = try await GoogleAccessTokens.shared.workspaceToken(expectedGrantIdentity: grant.identity) else { throw WorkspaceCLIError.notAuthenticated }
+                additions[Self.tokenVariable] = token
+            } catch GoogleCalendarError.accessRevoked, GoogleCalendarError.notSignedIn {
+                throw WorkspaceCLIError.notAuthenticated
+            } catch is CancellationError { throw CancellationError() }
+            catch GoogleCalendarError.signInChanged {
+                throw WorkspaceCLIError.launchFailed(GoogleCalendarError.signInChanged.localizedDescription)
+            }
+            catch GoogleCalendarError.tokenStoreUnreadable {
+                throw WorkspaceCLIError.launchFailed(GoogleCalendarError.tokenStoreUnreadable.localizedDescription)
+            }
+            catch { throw WorkspaceCLIError.launchFailed("Check your connection and try again.") }
+        } else {
+            guard let found = await binaryURL() else { throw WorkspaceCLIError.notInstalled }
+            executable = found
+        }
 
+        await testHooks.afterToken?()
+        // Token delivery crossed an actor hop. The caller owns executable admission.
+        try Task.checkCancellation()
         // Arguments, never the values inside them: a proposal's body is an email the user
         // is about to send, and a log is not where it belongs.
         Log.agent.info("gws \(arguments.first ?? "", privacy: .public) \(arguments.dropFirst().first ?? "", privacy: .public)")
@@ -452,7 +526,7 @@ actor GoogleWorkspaceCLI {
         let output = try await Self.spawn(
             executable: executable,
             arguments: arguments,
-            timeout: timeout
+            timeout: timeout, environmentAdditions: additions, beforeLaunchForTesting: testHooks.beforeLaunch, grantIdentity: appSignedIn ? grant?.identity : nil
         )
         switch output.exitCode {
         case 0:
@@ -511,12 +585,17 @@ actor GoogleWorkspaceCLI {
     static func spawn(
         executable: URL,
         arguments: [String],
-        timeout: TimeInterval
+        timeout: TimeInterval,
+        environmentAdditions: [String: String] = [:],
+        beforeLaunchForTesting: (@Sendable () async -> Void)? = nil,
+        grantIdentity: Data? = nil
     ) async throws -> WorkspaceCLIOutput {
+        precondition(beforeLaunchForTesting == nil || GoogleAccessTokens.testHooksAdmitted)
+        try Task.checkCancellation()
         let box = ProcessBox(process: Process())
         box.process.executableURL = executable
         box.process.arguments = arguments
-        box.process.environment = childEnvironment()
+        box.process.environment = childEnvironment().merging(environmentAdditions) { _, new in new }
 
         let outPipe = Pipe()
         let errPipe = Pipe()
@@ -525,7 +604,8 @@ actor GoogleWorkspaceCLI {
         box.process.standardInput = FileHandle.nullDevice
 
         return try await withTaskCancellationHandler {
-            try await withCheckedThrowingContinuation { continuation in
+            await beforeLaunchForTesting?()
+            return try await withCheckedThrowingContinuation { continuation in
                 let buffers = OutputBuffers()
                 let group = DispatchGroup()
                 DispatchQueue.global(qos: .userInitiated).async(group: group) {
@@ -550,7 +630,9 @@ actor GoogleWorkspaceCLI {
                 }
 
                 do {
-                    try box.process.run()
+                    if let grantIdentity {
+                        try GoogleTokenStore.withMatchingGrant(grantIdentity) { try box.launch() }
+                    } else { try box.launch() }
                 } catch {
                     // The two readers above are blocked on pipes whose write ends nobody
                     // now holds open, and `readDataToEndOfFile` on those never returns.
@@ -560,7 +642,7 @@ actor GoogleWorkspaceCLI {
                     try? errPipe.fileHandleForWriting.close()
                     box.resume(
                         continuation,
-                        with: .failure(WorkspaceCLIError.launchFailed(error.localizedDescription))
+                        with: .failure(error is CancellationError ? CancellationError() : WorkspaceCLIError.launchFailed(error.localizedDescription))
                     )
                     return
                 }
@@ -598,6 +680,7 @@ private final class ProcessBox: @unchecked Sendable {
     private let lock = NSLock()
     private var isResumed = false
     private var timedOutFlag = false
+    private var cancelled = false
 
     init(process: Process) {
         self.process = process
@@ -622,7 +705,16 @@ private final class ProcessBox: @unchecked Sendable {
         continuation.resume(with: result)
     }
 
+    /// The same lock admits launch and remembers a cancellation received before run().
+    func launch() throws {
+        lock.lock(); defer { lock.unlock() }
+        try Task.checkCancellation()
+        guard !cancelled else { throw CancellationError() }
+        try process.run()
+    }
     func cancel() {
+        lock.lock(); defer { lock.unlock() }
+        cancelled = true
         if process.isRunning { process.terminate() }
     }
 }

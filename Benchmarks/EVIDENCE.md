@@ -1,6 +1,6 @@
 # Evidence discovery
 
-3223 current evidence files discovered under Tests/Reports, bench, docs and roadmaps.
+3349 current evidence files discovered under Tests/Reports, bench, docs and roadmaps.
 
 Imported third-party reference trees and website assets are excluded. Files are catalogued without moving them or extracting private payloads. Legacy files remain unclassified until a reviewed run manifest records their scope and verdict.
 
@@ -8,11 +8,76 @@ Imported third-party reference trees and website assets are excluded. Files are 
 
 ## Reviewed run sources
 
+### Qwen3-TTS-0.6B-CustomVoice-4bit@08c72cad5e2fd0f41730c8bd1f28149585e46361: native first generated audio
+
+Known English text request to first non-empty generated PCM through the actual native adapter; separate muted native playback checks for Qwen/Phonon. **measured**
+
+- [Tests/Reports/tts-2026-10-22/native-qwen-headroom/qwen.json](../Tests/Reports/tts-2026-10-22/native-qwen-headroom/qwen.json)
+- [Tests/Reports/tts-2026-10-22/README.md](../Tests/Reports/tts-2026-10-22/README.md)
+- [Tests/Reports/tts-2026-10-22/accepted-results.json](../Tests/Reports/tts-2026-10-22/accepted-results.json)
+- [Tests/Reports/tts-2026-10-22/native-binary.json](../Tests/Reports/tts-2026-10-22/native-binary.json)
+- [Tests/Reports/tts-2026-10-22/source-pins.json](../Tests/Reports/tts-2026-10-22/source-pins.json)
+- [Tests/Reports/tts-2026-10-22/verification.json](../Tests/Reports/tts-2026-10-22/verification.json)
+- [Tests/Reports/tts-2026-10-22/final-model-cleanup.json](../Tests/Reports/tts-2026-10-22/final-model-cleanup.json)
+- [Tests/Reports/tts-2026-10-22/owner-cache-preservation.json](../Tests/Reports/tts-2026-10-22/owner-cache-preservation.json)
+
+### FluidAudio/PocketTTS-int8/alba: native first generated audio
+
+Known English text request to first non-empty generated PCM through the actual native adapter; separate muted native playback checks for Qwen/Phonon. **measured**
+
+- [Tests/Reports/tts-2026-10-22/native-results/pocket.json](../Tests/Reports/tts-2026-10-22/native-results/pocket.json)
+- [Tests/Reports/tts-2026-10-22/README.md](../Tests/Reports/tts-2026-10-22/README.md)
+- [Tests/Reports/tts-2026-10-22/accepted-results.json](../Tests/Reports/tts-2026-10-22/accepted-results.json)
+- [Tests/Reports/tts-2026-10-22/native-binary.json](../Tests/Reports/tts-2026-10-22/native-binary.json)
+- [Tests/Reports/tts-2026-10-22/source-pins.json](../Tests/Reports/tts-2026-10-22/source-pins.json)
+- [Tests/Reports/tts-2026-10-22/verification.json](../Tests/Reports/tts-2026-10-22/verification.json)
+- [Tests/Reports/tts-2026-10-22/final-model-cleanup.json](../Tests/Reports/tts-2026-10-22/final-model-cleanup.json)
+- [Tests/Reports/tts-2026-10-22/owner-cache-preservation.json](../Tests/Reports/tts-2026-10-22/owner-cache-preservation.json)
+
+### Phonon31m-CoreML/v0.4.0: native first generated audio
+
+Known English text request to first non-empty generated PCM through the actual native adapter; separate muted native playback checks for Qwen/Phonon. **measured**
+
+- [Tests/Reports/tts-2026-10-22/native-results/phonon.json](../Tests/Reports/tts-2026-10-22/native-results/phonon.json)
+- [Tests/Reports/tts-2026-10-22/README.md](../Tests/Reports/tts-2026-10-22/README.md)
+- [Tests/Reports/tts-2026-10-22/accepted-results.json](../Tests/Reports/tts-2026-10-22/accepted-results.json)
+- [Tests/Reports/tts-2026-10-22/native-binary.json](../Tests/Reports/tts-2026-10-22/native-binary.json)
+- [Tests/Reports/tts-2026-10-22/source-pins.json](../Tests/Reports/tts-2026-10-22/source-pins.json)
+- [Tests/Reports/tts-2026-10-22/verification.json](../Tests/Reports/tts-2026-10-22/verification.json)
+- [Tests/Reports/tts-2026-10-22/final-model-cleanup.json](../Tests/Reports/tts-2026-10-22/final-model-cleanup.json)
+- [Tests/Reports/tts-2026-10-22/owner-cache-preservation.json](../Tests/Reports/tts-2026-10-22/owner-cache-preservation.json)
+
 ### Native TTS comparison in progress
 
 Generated PCM benchmark preparation **unrun**
 
 - [Tests/Reports/tts-2026-10-22/README.md](../Tests/Reports/tts-2026-10-22/README.md)
+
+### FluidAudio/Kokoro82M/af_heart: native first generated audio
+
+Known English text request to first non-empty generated PCM through the actual native adapter; separate muted native playback checks for Qwen/Phonon. **measured**
+
+- [Tests/Reports/tts-2026-10-22/native-retry/kokoro.json](../Tests/Reports/tts-2026-10-22/native-retry/kokoro.json)
+- [Tests/Reports/tts-2026-10-22/README.md](../Tests/Reports/tts-2026-10-22/README.md)
+- [Tests/Reports/tts-2026-10-22/accepted-results.json](../Tests/Reports/tts-2026-10-22/accepted-results.json)
+- [Tests/Reports/tts-2026-10-22/native-binary.json](../Tests/Reports/tts-2026-10-22/native-binary.json)
+- [Tests/Reports/tts-2026-10-22/source-pins.json](../Tests/Reports/tts-2026-10-22/source-pins.json)
+- [Tests/Reports/tts-2026-10-22/verification.json](../Tests/Reports/tts-2026-10-22/verification.json)
+- [Tests/Reports/tts-2026-10-22/final-model-cleanup.json](../Tests/Reports/tts-2026-10-22/final-model-cleanup.json)
+- [Tests/Reports/tts-2026-10-22/owner-cache-preservation.json](../Tests/Reports/tts-2026-10-22/owner-cache-preservation.json)
+
+### AVSpeechSynthesizer/system-default: native first generated audio
+
+Known English text request to first non-empty generated PCM through the actual native adapter; separate muted native playback checks for Qwen/Phonon. **measured**
+
+- [Tests/Reports/tts-2026-10-22/native-results/apple.json](../Tests/Reports/tts-2026-10-22/native-results/apple.json)
+- [Tests/Reports/tts-2026-10-22/README.md](../Tests/Reports/tts-2026-10-22/README.md)
+- [Tests/Reports/tts-2026-10-22/accepted-results.json](../Tests/Reports/tts-2026-10-22/accepted-results.json)
+- [Tests/Reports/tts-2026-10-22/native-binary.json](../Tests/Reports/tts-2026-10-22/native-binary.json)
+- [Tests/Reports/tts-2026-10-22/source-pins.json](../Tests/Reports/tts-2026-10-22/source-pins.json)
+- [Tests/Reports/tts-2026-10-22/verification.json](../Tests/Reports/tts-2026-10-22/verification.json)
+- [Tests/Reports/tts-2026-10-22/final-model-cleanup.json](../Tests/Reports/tts-2026-10-22/final-model-cleanup.json)
+- [Tests/Reports/tts-2026-10-22/owner-cache-preservation.json](../Tests/Reports/tts-2026-10-22/owner-cache-preservation.json)
 
 ### Whistle
 
@@ -102,6 +167,62 @@ Paced native runtime first-word and release-to-final; no app integration or phys
 - [Tests/Reports/asr-live-latency-2026-10-22/comparison.json](../Tests/Reports/asr-live-latency-2026-10-22/comparison.json)
 - [Tests/Reports/asr-live-latency-2026-10-22/aborted-attempt.json](../Tests/Reports/asr-live-latency-2026-10-22/aborted-attempt.json)
 
+### Whistle resumed paced ASR latency
+
+Paced native runtime first-word and release-to-final; no app integration or physical microphone acceptance **measured**
+
+- [Tests/Reports/asr-live-latency-2026-10-22-resumed/README.md](../Tests/Reports/asr-live-latency-2026-10-22-resumed/README.md)
+- [Tests/Reports/asr-live-latency-2026-10-22-resumed/whistle.json](../Tests/Reports/asr-live-latency-2026-10-22-resumed/whistle.json)
+
+### Voz (CoreML CLI) resumed paced ASR latency
+
+Paced native runtime first-word and release-to-final; no app integration or physical microphone acceptance **measured**
+
+- [Tests/Reports/asr-live-latency-2026-10-22-resumed/README.md](../Tests/Reports/asr-live-latency-2026-10-22-resumed/README.md)
+- [Tests/Reports/asr-live-latency-2026-10-22-resumed/voz.json](../Tests/Reports/asr-live-latency-2026-10-22-resumed/voz.json)
+
+### Parakeet Ultra resumed paced ASR latency
+
+Paced native runtime first-word and release-to-final; no app integration or physical microphone acceptance **measured**
+
+- [Tests/Reports/asr-live-latency-2026-10-22-resumed/README.md](../Tests/Reports/asr-live-latency-2026-10-22-resumed/README.md)
+- [Tests/Reports/asr-live-latency-2026-10-22-resumed/ultra.json](../Tests/Reports/asr-live-latency-2026-10-22-resumed/ultra.json)
+
+### Parakeet Redux resumed paced ASR latency
+
+Paced native runtime first-word and release-to-final; no app integration or physical microphone acceptance **measured**
+
+- [Tests/Reports/asr-live-latency-2026-10-22-resumed/README.md](../Tests/Reports/asr-live-latency-2026-10-22-resumed/README.md)
+- [Tests/Reports/asr-live-latency-2026-10-22-resumed/redux.json](../Tests/Reports/asr-live-latency-2026-10-22-resumed/redux.json)
+
+### Qwen3-ASR 1.7B (4-bit MLX) resumed paced ASR latency
+
+Paced native runtime first-word and release-to-final; no app integration or physical microphone acceptance **measured**
+
+- [Tests/Reports/asr-live-latency-2026-10-22-resumed/README.md](../Tests/Reports/asr-live-latency-2026-10-22-resumed/README.md)
+- [Tests/Reports/asr-live-latency-2026-10-22-resumed/qwen-17b.json](../Tests/Reports/asr-live-latency-2026-10-22-resumed/qwen-17b.json)
+
+### Qwen3-ASR 0.6B 4-bit resumed paced ASR latency
+
+Paced native runtime first-word and release-to-final; no app integration or physical microphone acceptance **measured**
+
+- [Tests/Reports/asr-live-latency-2026-10-22-resumed/README.md](../Tests/Reports/asr-live-latency-2026-10-22-resumed/README.md)
+- [Tests/Reports/asr-live-latency-2026-10-22-resumed/qwen-06b.json](../Tests/Reports/asr-live-latency-2026-10-22-resumed/qwen-06b.json)
+
+### Phonon-2 (CoreML) resumed paced ASR latency
+
+Paced native runtime first-word and release-to-final; no app integration or physical microphone acceptance **measured**
+
+- [Tests/Reports/asr-live-latency-2026-10-22-resumed/README.md](../Tests/Reports/asr-live-latency-2026-10-22-resumed/README.md)
+- [Tests/Reports/asr-live-latency-2026-10-22-resumed/phonon.json](../Tests/Reports/asr-live-latency-2026-10-22-resumed/phonon.json)
+
+### Parakeet v3 resumed paced ASR latency
+
+Paced native runtime first-word and release-to-final; no app integration or physical microphone acceptance **measured**
+
+- [Tests/Reports/asr-live-latency-2026-10-22-resumed/README.md](../Tests/Reports/asr-live-latency-2026-10-22-resumed/README.md)
+- [Tests/Reports/asr-live-latency-2026-10-22-resumed/parakeet-v3.json](../Tests/Reports/asr-live-latency-2026-10-22-resumed/parakeet-v3.json)
+
 ### Parakeet Redux (CoreML) paced ASR latency
 
 Paced native runtime first-word and release-to-final; no app integration or physical microphone acceptance **blocked**
@@ -147,6 +268,17 @@ Paced native runtime first-word and release-to-final; no app integration or phys
 Paced authored-fixture runtime replay **unrun**
 
 - [Tests/Reports/asr-live-latency-2026-10-22/README.md](../Tests/Reports/asr-live-latency-2026-10-22/README.md)
+
+### Archived runtime producer integration
+
+Optimized app integration of stream output, Google grant/cache boundaries and pinned evaluation clock; synthetic account/model fixtures **partial**
+
+- [Tests/Reports/archive-integration-2026-10-22/README.md](../Tests/Reports/archive-integration-2026-10-22/README.md)
+- [Tests/Reports/archive-integration-2026-10-22/stream-component-summary.json](../Tests/Reports/archive-integration-2026-10-22/stream-component-summary.json)
+- [Tests/Reports/archive-integration-2026-10-22/oauth-packaging.log](../Tests/Reports/archive-integration-2026-10-22/oauth-packaging.log)
+- [Tests/Reports/archive-integration-2026-10-22/native-summary.json](../Tests/Reports/archive-integration-2026-10-22/native-summary.json)
+- [Tests/Reports/archive-integration-2026-10-22/combined-typecheck.json](../Tests/Reports/archive-integration-2026-10-22/combined-typecheck.json)
+- [Tests/Reports/archive-integration-2026-10-22/prefix-cache-summary.json](../Tests/Reports/archive-integration-2026-10-22/prefix-cache-summary.json)
 
 ### Whole meeting pipeline baseline
 
@@ -318,8 +450,6 @@ These links cover completed, active and planned work. Completion labels do not o
 - [roadmap/done/agent-analysis-2026-09-23/I1-caps-dictation.md](../roadmap/done/agent-analysis-2026-09-23/I1-caps-dictation.md)
 - [roadmap/done/agent-analysis-2026-09-23/I2-caps-meetings.md](../roadmap/done/agent-analysis-2026-09-23/I2-caps-meetings.md)
 - [roadmap/done/agent-analysis-2026-09-23/J-live-log-audit-2026-09-27.md](../roadmap/done/agent-analysis-2026-09-23/J-live-log-audit-2026-09-27.md)
-- [roadmap/done/agent-analysis-2026-09-23/barge-run.txt](../roadmap/done/agent-analysis-2026-09-23/barge-run.txt)
-- [roadmap/done/agent-analysis-2026-09-23/pipeline-run2.txt](../roadmap/done/agent-analysis-2026-09-23/pipeline-run2.txt)
 - [roadmap/in-progress/AGENT-OVERHAUL/00-README.md](../roadmap/in-progress/AGENT-OVERHAUL/00-README.md)
 - [roadmap/in-progress/AGENT-OVERHAUL/01-PHASE-0-MAKE-IT-ANSWER.md](../roadmap/in-progress/AGENT-OVERHAUL/01-PHASE-0-MAKE-IT-ANSWER.md)
 - [roadmap/in-progress/AGENT-OVERHAUL/02-PHASE-1-TOOLS.md](../roadmap/in-progress/AGENT-OVERHAUL/02-PHASE-1-TOOLS.md)
@@ -378,7 +508,6 @@ These links cover completed, active and planned work. Completion labels do not o
 - [roadmap/in-progress/VOICE-TURN-DETECTION/STATUS.md](../roadmap/in-progress/VOICE-TURN-DETECTION/STATUS.md)
 - [roadmap/in-progress/VOICE-TURN-DETECTION/benchmark/README.md](../roadmap/in-progress/VOICE-TURN-DETECTION/benchmark/README.md)
 - [roadmap/in-progress/VOICE-TURN-DETECTION/benchmark/VERIFICATION.md](../roadmap/in-progress/VOICE-TURN-DETECTION/benchmark/VERIFICATION.md)
-- [roadmap/in-progress/VOICE-TURN-DETECTION/benchmark/cases.json](../roadmap/in-progress/VOICE-TURN-DETECTION/benchmark/cases.json)
 - [roadmap/in-progress/WEBSITE-TO-MAC-EXPERIENCE/00-README.md](../roadmap/in-progress/WEBSITE-TO-MAC-EXPERIENCE/00-README.md)
 - [roadmap/in-progress/WEBSITE-TO-MAC-EXPERIENCE/01-IMPLEMENTATION.md](../roadmap/in-progress/WEBSITE-TO-MAC-EXPERIENCE/01-IMPLEMENTATION.md)
 - [roadmap/in-progress/WEBSITE-TO-MAC-EXPERIENCE/STATUS.md](../roadmap/in-progress/WEBSITE-TO-MAC-EXPERIENCE/STATUS.md)
@@ -386,6 +515,5 @@ These links cover completed, active and planned work. Completion labels do not o
 - [roadmap/todo/DURABLE-AGENT-SESSIONS/01-DESIGN.md](../roadmap/todo/DURABLE-AGENT-SESSIONS/01-DESIGN.md)
 - [roadmap/todo/DURABLE-AGENT-SESSIONS/02-IMPLEMENTATION.md](../roadmap/todo/DURABLE-AGENT-SESSIONS/02-IMPLEMENTATION.md)
 - [roadmap/todo/DURABLE-AGENT-SESSIONS/03-ACCEPTANCE.md](../roadmap/todo/DURABLE-AGENT-SESSIONS/03-ACCEPTANCE.md)
-- [roadmap/todo/DURABLE-AGENT-SESSIONS/COORDINATION.json](../roadmap/todo/DURABLE-AGENT-SESSIONS/COORDINATION.json)
 - [roadmap/todo/DURABLE-AGENT-SESSIONS/STATUS.md](../roadmap/todo/DURABLE-AGENT-SESSIONS/STATUS.md)
 - [roadmap/todo/PAID-RELEASE.md](../roadmap/todo/PAID-RELEASE.md)

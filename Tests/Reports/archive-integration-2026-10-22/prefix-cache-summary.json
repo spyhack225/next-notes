@@ -1,0 +1,240 @@
+{
+  "binary_sha256": "6369272fa8fcc9cee16658f2f56288e5200fc8cb5bd17ff81f3f8e27175b513f",
+  "model_sha256": "3b41ebe2502cbd03e811d5d16b022f5ab551eda58d62597d152f89535003c634",
+  "before": {
+    "files": {
+      "runs.jsonl": {
+        "size": 309388,
+        "mtime_ns": 1792431765517323625,
+        "sha256": "09e1e98cc43a6384687729a40543df904e7c170c4072ae09b02f406a27ebe6cc"
+      },
+      "agent-tasks.json": {
+        "size": 47810,
+        "mtime_ns": 1791644583718842827,
+        "sha256": "695012471c7bf6e52b7df1856b01a69bfb9599059c7486f5004a20af36738ed0"
+      },
+      "agent-tasks.sqlite": {
+        "size": 90112,
+        "mtime_ns": 1791644583715331625,
+        "sha256": "71e46922002ed9b314ebc57542565c0f81464632e6162ae21cd13b796618e06c"
+      },
+      "agent-tasks.sqlite-wal": {
+        "size": 0,
+        "mtime_ns": 1791644583716511164,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "agent-tasks.sqlite-shm": {
+        "size": 32768,
+        "mtime_ns": 1792496991999250230,
+        "sha256": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb"
+      },
+      "agent-audit.jsonl": {
+        "size": 389193,
+        "mtime_ns": 1792426069536123947,
+        "sha256": "244eb7e2a50712f5f62a542f0c5ac208a8bded2620dd34d7e370c53a7aeadccb"
+      },
+      "agent-conversation.json": {
+        "size": 16577,
+        "mtime_ns": 1791644583720485949,
+        "sha256": "ff3b39f35b88a832be3fb98a980597e228548c9c91c5dad6dc9841b28a3253e4"
+      },
+      "next-memory.json": {
+        "size": 20275,
+        "mtime_ns": 1792496992460597124,
+        "sha256": "1b74a31cbc7a16bc498232d9c5bfeaa6bfee0da7f8c12de815fbd7429df77033"
+      },
+      "agent-memory-review.json": {
+        "size": 95453,
+        "mtime_ns": 1792463930415662219,
+        "sha256": "bd0ecc05c0a8efb8102b6d3a6a179225616cb2b3f0899df9667989f4e92e445f"
+      },
+      "metrics.jsonl": {
+        "size": 330481,
+        "mtime_ns": 1792497028144286631,
+        "sha256": "14bb7637bde5ba99edab9c0224ad9edbf5bf3bbee974cb2ca97131a41e423548"
+      },
+      "usage.jsonl": {
+        "size": 1576047,
+        "mtime_ns": 1792463930470055288,
+        "sha256": "6ffc04b3b5a1e50f48f292332b3a60a692ef12ae727781239baaa24060437a8a"
+      },
+      "action-receipts.json": {
+        "size": 361947,
+        "mtime_ns": 1792423439265306171,
+        "sha256": "bb39ee74e83a2172ab2f3b8c1857e85ff9e3135412ef2084491e7b2dacc92231"
+      },
+      "permission-grants.json": {
+        "size": 623,
+        "mtime_ns": 1791644053747586873,
+        "sha256": "0f5197ae348aef160336633fb80b76e8233085d0af8ffb30485fbfefd132078b"
+      },
+      "persona.md": {
+        "size": 1683,
+        "mtime_ns": 1791345728887314203,
+        "sha256": "3d3d80d0e75b0ae4607d5fe4d48cbf401b0597280a9ab17b2143ea47c4aecb81"
+      },
+      "agent-identity.json": {
+        "size": 150,
+        "mtime_ns": 1791345867223177027,
+        "sha256": "936f39ebacbac0caca0e895217cf77ea66e0c8a7a94632ac95514f2e1e1a412a"
+      },
+      "portrait-insights.json": {
+        "size": 84,
+        "mtime_ns": 1791519540911259239,
+        "sha256": "54d4cacd077787299eccc3e679fe3b7ee2676ee4eb54eadd0a551339db9462be"
+      },
+      "imessage-outbound.sqlite": {
+        "size": 4096,
+        "mtime_ns": 1790785421913178081,
+        "sha256": "2e96884c16791c7d4bde90a6db2c9da33c2a2aab3e52088adc148c368552a423"
+      },
+      "imessage-outbound.sqlite-wal": {
+        "size": 90672,
+        "mtime_ns": 1791315863917856919,
+        "sha256": "922e9f4d8eef38a2c0e5e221a319f0a733d90bcd5eaa5d7942038354ef01b422"
+      },
+      "imessage-outbound.sqlite-shm": {
+        "size": 32768,
+        "mtime_ns": 1791316644193151954,
+        "sha256": "b95316488ad8333fd231e8e94663a444cbf07cfbf3b96d59c45c4c7eb4f8f11f"
+      },
+      "imessage-settings.json": {
+        "size": 234,
+        "mtime_ns": 1790781610104699743,
+        "sha256": "d8d743eb92e0d096b5593b4ae837d61e2fedaaf63567b769af06c632379e1f5e"
+      },
+      "Models/library.json": {
+        "size": 1469,
+        "mtime_ns": 1790799150929312385,
+        "sha256": "69a7034262ee02ae979d0e5466b00ac5d522285d92c7a552a5455010fb15a218"
+      }
+    },
+    "defaults_exit": 0,
+    "defaults_keys": 89,
+    "defaults_sha256": "eb615030f43eab7d4e9eba2d68dda42f58549ddb4d4e67182d4aa08763cf49b2"
+  },
+  "exit": 0,
+  "seconds": 27.141600000031758,
+  "after": {
+    "files": {
+      "runs.jsonl": {
+        "size": 309388,
+        "mtime_ns": 1792431765517323625,
+        "sha256": "09e1e98cc43a6384687729a40543df904e7c170c4072ae09b02f406a27ebe6cc"
+      },
+      "agent-tasks.json": {
+        "size": 47810,
+        "mtime_ns": 1791644583718842827,
+        "sha256": "695012471c7bf6e52b7df1856b01a69bfb9599059c7486f5004a20af36738ed0"
+      },
+      "agent-tasks.sqlite": {
+        "size": 90112,
+        "mtime_ns": 1791644583715331625,
+        "sha256": "71e46922002ed9b314ebc57542565c0f81464632e6162ae21cd13b796618e06c"
+      },
+      "agent-tasks.sqlite-wal": {
+        "size": 0,
+        "mtime_ns": 1791644583716511164,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "agent-tasks.sqlite-shm": {
+        "size": 32768,
+        "mtime_ns": 1792496991999250230,
+        "sha256": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb"
+      },
+      "agent-audit.jsonl": {
+        "size": 389193,
+        "mtime_ns": 1792426069536123947,
+        "sha256": "244eb7e2a50712f5f62a542f0c5ac208a8bded2620dd34d7e370c53a7aeadccb"
+      },
+      "agent-conversation.json": {
+        "size": 16577,
+        "mtime_ns": 1791644583720485949,
+        "sha256": "ff3b39f35b88a832be3fb98a980597e228548c9c91c5dad6dc9841b28a3253e4"
+      },
+      "next-memory.json": {
+        "size": 20275,
+        "mtime_ns": 1792496992460597124,
+        "sha256": "1b74a31cbc7a16bc498232d9c5bfeaa6bfee0da7f8c12de815fbd7429df77033"
+      },
+      "agent-memory-review.json": {
+        "size": 95453,
+        "mtime_ns": 1792463930415662219,
+        "sha256": "bd0ecc05c0a8efb8102b6d3a6a179225616cb2b3f0899df9667989f4e92e445f"
+      },
+      "metrics.jsonl": {
+        "size": 330481,
+        "mtime_ns": 1792497028144286631,
+        "sha256": "14bb7637bde5ba99edab9c0224ad9edbf5bf3bbee974cb2ca97131a41e423548"
+      },
+      "usage.jsonl": {
+        "size": 1576047,
+        "mtime_ns": 1792463930470055288,
+        "sha256": "6ffc04b3b5a1e50f48f292332b3a60a692ef12ae727781239baaa24060437a8a"
+      },
+      "action-receipts.json": {
+        "size": 361947,
+        "mtime_ns": 1792423439265306171,
+        "sha256": "bb39ee74e83a2172ab2f3b8c1857e85ff9e3135412ef2084491e7b2dacc92231"
+      },
+      "permission-grants.json": {
+        "size": 623,
+        "mtime_ns": 1791644053747586873,
+        "sha256": "0f5197ae348aef160336633fb80b76e8233085d0af8ffb30485fbfefd132078b"
+      },
+      "persona.md": {
+        "size": 1683,
+        "mtime_ns": 1791345728887314203,
+        "sha256": "3d3d80d0e75b0ae4607d5fe4d48cbf401b0597280a9ab17b2143ea47c4aecb81"
+      },
+      "agent-identity.json": {
+        "size": 150,
+        "mtime_ns": 1791345867223177027,
+        "sha256": "936f39ebacbac0caca0e895217cf77ea66e0c8a7a94632ac95514f2e1e1a412a"
+      },
+      "portrait-insights.json": {
+        "size": 84,
+        "mtime_ns": 1791519540911259239,
+        "sha256": "54d4cacd077787299eccc3e679fe3b7ee2676ee4eb54eadd0a551339db9462be"
+      },
+      "imessage-outbound.sqlite": {
+        "size": 4096,
+        "mtime_ns": 1790785421913178081,
+        "sha256": "2e96884c16791c7d4bde90a6db2c9da33c2a2aab3e52088adc148c368552a423"
+      },
+      "imessage-outbound.sqlite-wal": {
+        "size": 90672,
+        "mtime_ns": 1791315863917856919,
+        "sha256": "922e9f4d8eef38a2c0e5e221a319f0a733d90bcd5eaa5d7942038354ef01b422"
+      },
+      "imessage-outbound.sqlite-shm": {
+        "size": 32768,
+        "mtime_ns": 1791316644193151954,
+        "sha256": "b95316488ad8333fd231e8e94663a444cbf07cfbf3b96d59c45c4c7eb4f8f11f"
+      },
+      "imessage-settings.json": {
+        "size": 234,
+        "mtime_ns": 1790781610104699743,
+        "sha256": "d8d743eb92e0d096b5593b4ae837d61e2fedaaf63567b769af06c632379e1f5e"
+      },
+      "Models/library.json": {
+        "size": 1469,
+        "mtime_ns": 1790799150929312385,
+        "sha256": "69a7034262ee02ae979d0e5466b00ac5d522285d92c7a552a5455010fb15a218"
+      }
+    },
+    "defaults_exit": 0,
+    "defaults_keys": 89,
+    "defaults_sha256": "eb615030f43eab7d4e9eba2d68dda42f58549ddb4d4e67182d4aa08763cf49b2"
+  },
+  "command": [
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/arm64-apple-macosx/release/NextNotes",
+    "--selftest-llm-prefix-cache",
+    "--selftest-timeout",
+    "75",
+    "--selftest-out",
+    "/Users/sergekadjo/Documents/Claude/Projects/next-notes/Tests/Reports/archive-integration-2026-10-22/prefix-cache.log"
+  ],
+  "owner_unchanged": true,
+  "model_unchanged": true
+}

@@ -298,7 +298,7 @@ enum AgentToolLoop {
     /// the second rule unreachable the day someone added a third.
     static func groundedArguments(
         for tool: String, proposed: [String: String], request: String,
-        now: Date = Date(), calendar: Calendar = .current
+        now: Date = SelfTest.fixtureClock ?? Date(), calendar: Calendar = .current
     ) -> [String: String] {
         switch tool {
         case "get_agenda": return groundCalendarDay(proposed, request: request, now: now, calendar: calendar)

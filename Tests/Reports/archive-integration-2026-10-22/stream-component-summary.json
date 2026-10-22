@@ -1,0 +1,22 @@
+{
+  "fixture_sha256": "26c194fe8a5660b7be1a640420af8900bd3175f715f2d99f38f699fd5f7f3d3a",
+  "substitutions": "Minimal LLMChatMessage/SelfTest and scripted stream creation; native decoding, model/actor setup absent. Baseline adapter mechanically exposes the old decoded-piece loop. Fixed code is current ChatTemplate.swift.",
+  "runs": [
+    {
+      "arm": "original",
+      "exit": 1,
+      "seconds": 0.24966033396776766,
+      "compile_seconds": 3.091627832967788,
+      "source_sha256": "57be2c88cafa4b27a66c85e1dd69949c2636164e754591a049484d2e97b6b57e",
+      "binary_sha256": "ae12d95ab70965b152f8486dadf8b078c8d0112234fc842e32b7e861aa034b4c"
+    },
+    {
+      "arm": "fixed",
+      "exit": 0,
+      "seconds": 0.2109782500192523,
+      "compile_seconds": 1.2205985420150682,
+      "source_sha256": "d0761ef9a2ed92144021aa222bf94298360e910e04087022584c71f7fd9f4a79",
+      "binary_sha256": "1ad2a195d9737c796dee8ab44f2c737220ebfa963b3da7d580faef8af9b042db"
+    }
+  ]
+}

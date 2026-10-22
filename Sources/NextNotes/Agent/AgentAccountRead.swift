@@ -61,7 +61,7 @@ enum AgentAccountRead {
     /// The read each class gets when the person asked about it in general, and the tool that
     /// performs it. `nil` for a class with no default read.
     static func defaultRead(for intent: AgentIntentClass, request: String,
-                            now: Date = Date()) -> (toolID: String, arguments: [String: String])? {
+                            now: Date = SelfTest.fixtureClock ?? Date()) -> (toolID: String, arguments: [String: String])? {
         switch intent {
         case .browser:
             guard requestsBrowserVideoInspection(request) else { return nil }
@@ -131,7 +131,7 @@ enum AgentAccountRead {
     static func pendingRead(
         reply: String, selectedIntents: Set<AgentIntentClass>,
         completedThisTurn: [String], completedThisSession: Set<String>,
-        toolIDFor: (AgentIntentClass) -> String?, request: String, now: Date = Date(),
+        toolIDFor: (AgentIntentClass) -> String?, request: String, now: Date = SelfTest.fixtureClock ?? Date(),
         manifest: AgentCapabilityManifest? = nil
     ) -> (intent: AgentIntentClass, toolID: String, arguments: [String: String])? {
         // Opening the requested site does not inspect the named video. This

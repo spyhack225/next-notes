@@ -1,0 +1,156 @@
+{
+  "snapshot": "fc8aa2af6e492987a81f1a5672a70af8eb9afa67",
+  "checks": [
+    {
+      "name": "webrtc-build",
+      "exit": 0,
+      "marker": "NO_FINAL_MARKER",
+      "expected": null,
+      "elapsed": 0.19304203987121582
+    },
+    {
+      "name": "red-build",
+      "exit": 0,
+      "marker": "NO_FINAL_MARKER",
+      "expected": null,
+      "elapsed": 557.6968667507172
+    },
+    {
+      "name": "review-red",
+      "exit": 1,
+      "marker": "VOICE_ACK_FAILED",
+      "expected": "VOICE_ACK",
+      "elapsed": 6.515465974807739
+    },
+    {
+      "name": "census-red",
+      "exit": 1,
+      "marker": "VOICE_LATENCY_FAILED: two fresh Pocket courtesy renders must enter permitted request census",
+      "expected": "VOICE_LATENCY",
+      "elapsed": 6.101963758468628
+    },
+    {
+      "name": "green-build",
+      "exit": 0,
+      "marker": "NO_FINAL_MARKER",
+      "expected": null,
+      "elapsed": 564.5816242694855
+    },
+    {
+      "name": "review-green",
+      "exit": 1,
+      "marker": "VOICE_ACK_FAILED",
+      "expected": "VOICE_ACK",
+      "elapsed": 14.552297115325928
+    },
+    {
+      "name": "census-green",
+      "exit": 0,
+      "marker": "VOICE_LATENCY_OK",
+      "expected": "VOICE_LATENCY",
+      "elapsed": 2.5906338691711426
+    },
+    {
+      "name": "instrumentation",
+      "exit": 0,
+      "marker": "VOICE_LATENCY_OK",
+      "expected": "VOICE_LATENCY",
+      "elapsed": 0.8914451599121094
+    },
+    {
+      "name": "first-token-contract",
+      "exit": 0,
+      "marker": "VOICE_LATENCY_OK",
+      "expected": "VOICE_LATENCY",
+      "elapsed": 0.5405840873718262
+    },
+    {
+      "name": "no-apple-review",
+      "exit": 0,
+      "marker": "VOICE_POLICY_REVIEW_OK",
+      "expected": "VOICE_POLICY_REVIEW",
+      "elapsed": 13.931993007659912
+    },
+    {
+      "name": "voice-turn-routing",
+      "exit": 0,
+      "marker": "VOICE_TURN_ROUTING_OK",
+      "expected": "VOICE_TURN_ROUTING",
+      "elapsed": 2.936837911605835
+    },
+    {
+      "name": "concurrent-voice",
+      "exit": 0,
+      "marker": "CONCURRENT_VOICE_OK",
+      "expected": "CONCURRENT_VOICE",
+      "elapsed": 1.3343820571899414
+    },
+    {
+      "name": "voice-conversation",
+      "exit": 0,
+      "marker": "VOICE_CONVERSATION_OK",
+      "expected": "VOICE_CONVERSATION",
+      "elapsed": 0.6036958694458008
+    },
+    {
+      "name": "duplex",
+      "exit": 0,
+      "marker": "DUPLEX_OK",
+      "expected": "DUPLEX",
+      "elapsed": 0.27019333839416504
+    },
+    {
+      "name": "voice-scheduling",
+      "exit": 0,
+      "marker": "VOICE_SCHEDULING_OK",
+      "expected": "VOICE_SCHEDULING",
+      "elapsed": 2.490446090698242
+    },
+    {
+      "name": "tts",
+      "exit": 0,
+      "marker": "TTS_OK",
+      "expected": "TTS",
+      "elapsed": 2.9875478744506836
+    },
+    {
+      "name": "store-isolation",
+      "exit": 0,
+      "marker": "STORE_ISOLATION_OK: 21 files and 0 defaults unchanged",
+      "expected": "STORE_ISOLATION",
+      "elapsed": 30.633714199066162
+    },
+    {
+      "name": "before-no-ack",
+      "exit": 0,
+      "marker": "VOICE_LATENCY_OK",
+      "expected": "VOICE_LATENCY",
+      "elapsed": 98.90820288658142
+    },
+    {
+      "name": "after-ack",
+      "exit": 0,
+      "marker": "VOICE_LATENCY_OK",
+      "expected": "VOICE_LATENCY",
+      "elapsed": 117.49459886550903
+    },
+    {
+      "name": "voice-pipeline",
+      "exit": 0,
+      "marker": "VOICE_PIPELINE_OK",
+      "expected": "VOICE_PIPELINE",
+      "elapsed": 13.064474105834961
+    }
+  ],
+  "review_green_tail": [
+    "VOICE_ACK_UNAVAILABLE stage=clip-0-prepare reason=silent",
+    "VOICE_ACK_UNAVAILABLE stage=clip-0-publish-file reason=cancelled",
+    "VOICE_DIAGNOSTIC forbidden_entries=1 silent_drops=0 ready=false stand_in=true",
+    "VOICE_DIAGNOSTIC forbidden_entries=0 silent_drops=0 ready=true stand_in=true",
+    "VOICE_ACK_CACHE_CHECKS=57 failures=1",
+    "VOICE_DIAGNOSTIC forbidden_entries=0 silent_drops=1 ready=false stand_in=false",
+    "VOICE_DIAGNOSTIC forbidden_entries=0 silent_drops=0 ready=true stand_in=false",
+    "VOICE_ACK_WRONG: held prewarm entered actual cache producer",
+    "VOICE_ACK_FAILED"
+  ]
+}

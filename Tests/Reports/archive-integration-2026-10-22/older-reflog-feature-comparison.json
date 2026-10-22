@@ -1,0 +1,103 @@
+[
+  {
+    "revision": "f6563f06",
+    "paths": [
+      "Sources/NextNotes/Core/DictationController.swift"
+    ],
+    "identical_to_current_baseline": []
+  },
+  {
+    "revision": "3303205d",
+    "paths": [
+      "Sources/NextNotes/Knowledge/KnowledgeExtractSelfTest.swift",
+      "Sources/NextNotes/Meetings/DiarizationService.swift",
+      "Sources/NextNotes/Meetings/MeetingResumeSelfTest.swift",
+      "Sources/NextNotes/Meetings/MeetingResumer.swift",
+      "Sources/NextNotes/Meetings/MeetingSession.swift",
+      "Sources/NextNotes/Meetings/MeetingStore.swift",
+      "Sources/NextNotes/Meetings/NotesService.swift",
+      "Sources/NextNotes/Meetings/StageWatchdog.swift",
+      "Sources/NextNotes/NextNotesApp.swift"
+    ],
+    "identical_to_current_baseline": [
+      "Sources/NextNotes/Meetings/StageWatchdog.swift"
+    ]
+  },
+  {
+    "revision": "d07dc69a",
+    "paths": [
+      "Sources/NextNotes/Agent/RealtimeAgent+ToolLoop.swift",
+      "Sources/NextNotes/Agent/RealtimeAgent.swift",
+      "Sources/NextNotes/Core/AudioCaptureHub.swift",
+      "Sources/NextNotes/Core/DictationController.swift",
+      "Sources/NextNotes/Core/SystemAudioCapture.swift",
+      "Sources/NextNotes/Core/TextInjector.swift",
+      "Sources/NextNotes/Meetings/AudioRetentionSelfTest.swift",
+      "Sources/NextNotes/Meetings/FinalTranscriptService.swift",
+      "Sources/NextNotes/Meetings/MeetingAudioWriter.swift",
+      "Sources/NextNotes/Meetings/MeetingBacklogSelfTest.swift",
+      "Sources/NextNotes/Meetings/MeetingController.swift",
+      "Sources/NextNotes/Meetings/MeetingFinalsSelfTest.swift",
+      "Sources/NextNotes/Meetings/MeetingPipeline.swift",
+      "Sources/NextNotes/Meetings/MeetingScratchpad.swift",
+      "Sources/NextNotes/Meetings/MeetingScratchpadSelfTest.swift",
+      "Sources/NextNotes/Meetings/MeetingSession.swift",
+      "Sources/NextNotes/Meetings/MeetingTapRetrySelfTest.swift",
+      "Sources/NextNotes/NextNotesApp.swift",
+      "Sources/NextNotes/Support/DictationHygieneSelfTest.swift",
+      "Sources/NextNotes/UI/Meetings/MeetingConsoleActionsSection.swift",
+      "Sources/NextNotes/UI/Meetings/MeetingConsoleAskSection.swift",
+      "Sources/NextNotes/UI/Meetings/MeetingConsoleHistorySection.swift",
+      "Sources/NextNotes/UI/Meetings/MeetingConsoleNotesSection.swift",
+      "Sources/NextNotes/UI/Meetings/MeetingConsoleSelfTest.swift",
+      "Sources/NextNotes/UI/Meetings/MeetingConsoleSheet.swift",
+      "Sources/NextNotes/UI/Meetings/MeetingDetailView.swift"
+    ],
+    "identical_to_current_baseline": [
+      "Sources/NextNotes/Core/TextInjector.swift",
+      "Sources/NextNotes/Meetings/AudioRetentionSelfTest.swift",
+      "Sources/NextNotes/Meetings/MeetingBacklogSelfTest.swift",
+      "Sources/NextNotes/Meetings/MeetingFinalsSelfTest.swift",
+      "Sources/NextNotes/Meetings/MeetingScratchpad.swift",
+      "Sources/NextNotes/Meetings/MeetingScratchpadSelfTest.swift",
+      "Sources/NextNotes/Support/DictationHygieneSelfTest.swift",
+      "Sources/NextNotes/UI/Meetings/MeetingConsoleActionsSection.swift",
+      "Sources/NextNotes/UI/Meetings/MeetingConsoleAskSection.swift",
+      "Sources/NextNotes/UI/Meetings/MeetingConsoleHistorySection.swift",
+      "Sources/NextNotes/UI/Meetings/MeetingConsoleNotesSection.swift"
+    ]
+  },
+  {
+    "revision": "d22fc7cc",
+    "paths": [
+      "Sources/NextNotes/Agent/Tasks/AgentTaskManager.swift",
+      "Sources/NextNotes/Agent/Tasks/Durable/TaskDurability.swift",
+      "Sources/NextNotes/Agent/Tasks/Durable/TaskEventJournal.swift",
+      "Sources/NextNotes/Agent/Tasks/Durable/TaskWorkerAttemptSelfTest.swift",
+      "Sources/NextNotes/Agent/Tasks/Durable/TaskWorkerToolBackingSelfTest.swift",
+      "Sources/NextNotes/Agent/Tools/AgentToolExecutor.swift"
+    ],
+    "identical_to_current_baseline": [
+      "Sources/NextNotes/Agent/Tasks/Durable/TaskWorkerToolBackingSelfTest.swift"
+    ]
+  },
+  {
+    "revision": "7290fd20",
+    "paths": [
+      "windows/Directory.Build.props"
+    ],
+    "identical_to_current_baseline": [
+      "windows/Directory.Build.props"
+    ]
+  },
+  {
+    "revision": "9677468a",
+    "paths": [
+      "LICENSE",
+      "windows/Directory.Build.props"
+    ],
+    "identical_to_current_baseline": [
+      "LICENSE"
+    ]
+  }
+]

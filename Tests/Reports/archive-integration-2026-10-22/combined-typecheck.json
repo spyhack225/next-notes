@@ -1,0 +1,13 @@
+{
+  "owner": "codex-tts-20261022",
+  "relay_cursor": 1333,
+  "reported_exit": 0,
+  "scope": "Whole891-source application module with archive ports and current TTS changes",
+  "log": "Tests/Reports/tts-2026-10-22/native-typecheck.log",
+  "log_sha256": "0eb67b78f903ecb4bed799b664434a22a6a80498827c44823f0a10ebcb7dd821",
+  "introduced_error_diagnostics": 0,
+  "release_link_and_native_flags": "passed",
+  "release_binary_sha256": "6369272fa8fcc9cee16658f2f56288e5200fc8cb5bd17ff81f3f8e27175b513f",
+  "release_build_log": "Tests/Reports/tts-2026-10-22/native-build-combined.log",
+  "release_build_log_sha256": "aefcb6dbe2d059ac6f0ebb13f8b5549eafbefdb6eb4c0840fea3fe4f5f4688d6"
+}

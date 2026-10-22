@@ -1,0 +1,23 @@
+{
+  "baseline": "8e4243d6837737f1c2c23b18399237dcf0dff214",
+  "buildHEAD": "987008360cee06b59975e549095b2c67947d8537",
+  "v1SHA256": "2e8009db5d72670706f7e934a21eda9d9e74c22aeb86fb2fcac9aac19cd88dc4",
+  "v2SHA256": "bbd42ce79c68ca516014f5eba82bc6a4006d2594ee8ad78a8f97a7cb71544d49",
+  "redProducerSHA256": "ad2be0354dd6c925a2da6c5d23d5d42ae6b3614dd85fee2e2ecd180cd0f0b307",
+  "llamaHelpersSHA256": "c77b839bc067e7bf13213beb212e217fda56996ac925881503af0f0670cfee5c",
+  "reviewSHA256": "329a180c2d7b13e2123b13cf51da3e8369f1c0335913d118e1f49bfbb63a99c7",
+  "machine": {
+    "os": "ProductName:\t\tmacOS\nProductVersion:\t\t27.2\nBuildVersion:\t\t26B5091g",
+    "hardware": "Apple M3",
+    "memoryBytes": "17179869184",
+    "swift": "Apple Swift version 6.4 (swiftlang-6.4.0.34.1 clang-2100.3.34.1)\nTarget: arm64-apple-macosx27.2.0"
+  },
+  "commands": {
+    "red": "RELAY_ID=claude2-thinking-review ../heavy.sh 'make webrtc-audio && swift build -c debug -j 2 --scratch-path /Users/sergekadjo/Library/Caches/NextNotesBuild/wt-scratch/thinking-review && python3 Tests/Reports/thinking-stream-producer-v2/run-checks.py red'",
+    "green": "RELAY_ID=claude2-thinking-review ../heavy.sh 'swift build -c debug -j 2 --scratch-path /Users/sergekadjo/Library/Caches/NextNotesBuild/wt-scratch/thinking-review && python3 Tests/Reports/thinking-stream-producer-v2/run-checks.py green'"
+  },
+  "greenProducerSHA256": "d0761ef9a2ed92144021aa222bf94298360e910e04087022584c71f7fd9f4a79",
+  "Sources/NextNotes/Formatting/LLM/NotesModelRuntime.swiftSHA256": "37f90aa2f5a9c9e2fdafc28aa691d7c52e036aa0352ea35ce0ee86100a90f5ae",
+  "Sources/NextNotes/Formatting/LLM/LlamaHelpers.swiftSHA256": "c77b839bc067e7bf13213beb212e217fda56996ac925881503af0f0670cfee5c",
+  "Package.resolvedSHA256": "15231fee19604b7e1f5f830db65cf5d91291bb3a14e8d479b15137ab84e6842f"
+}

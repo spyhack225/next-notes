@@ -1,0 +1,106 @@
+[
+  {
+    "area": "stream",
+    "commit": "0be933e6f08e83248ef16d9360d2585ef599b0c3",
+    "original_path": "Tests/Reports/thinking-stream-producer-v2/red-summary.json",
+    "retained_path": "Tests/Reports/archive-integration-2026-10-22/retained/stream/red-summary.json",
+    "sha256": "e753232b2e945ba520a1a3905e8b1e757302472200ae122cd490321432b9b401",
+    "bytes": 843
+  },
+  {
+    "area": "stream",
+    "commit": "0be933e6f08e83248ef16d9360d2585ef599b0c3",
+    "original_path": "Tests/Reports/thinking-stream-producer-v2/green-summary.json",
+    "retained_path": "Tests/Reports/archive-integration-2026-10-22/retained/stream/green-summary.json",
+    "sha256": "37239ce156a0d40dc977273c49e94fa2258f123eb44560a2daa885e46b9f4d77",
+    "bytes": 2639
+  },
+  {
+    "area": "stream",
+    "commit": "0be933e6f08e83248ef16d9360d2585ef599b0c3",
+    "original_path": "Tests/Reports/thinking-stream-producer-v2/source-pins.json",
+    "retained_path": "Tests/Reports/archive-integration-2026-10-22/retained/stream/source-pins.json",
+    "sha256": "ecc806ef8bcdf3e28f0ebc2c01399b2b776da4ccd9ad28fd05cee163be7af274",
+    "bytes": 1833
+  },
+  {
+    "area": "stream",
+    "commit": "0be933e6f08e83248ef16d9360d2585ef599b0c3",
+    "original_path": "Tests/Reports/thinking-stream-producer-v2/red-chat-template.log",
+    "retained_path": "Tests/Reports/archive-integration-2026-10-22/retained/stream/red-chat-template.log",
+    "sha256": "7ca6a4d8de4b417daa5590535e60acdeb9394da61cec357720aea0d01a1c0a15",
+    "bytes": 20647
+  },
+  {
+    "area": "stream",
+    "commit": "0be933e6f08e83248ef16d9360d2585ef599b0c3",
+    "original_path": "Tests/Reports/thinking-stream-producer-v2/green-chat-template.log",
+    "retained_path": "Tests/Reports/archive-integration-2026-10-22/retained/stream/green-chat-template.log",
+    "sha256": "94965579217b73891ef6dd3f6832b7e627848a47e41b1d321804c9274bf31e7a",
+    "bytes": 192
+  },
+  {
+    "area": "google",
+    "commit": "7ac342cece493248caa947ec716048abc1ac453d",
+    "original_path": "Tests/Reports/google-option-c-repair-v5/verification.json",
+    "retained_path": "Tests/Reports/archive-integration-2026-10-22/retained/google/verification.json",
+    "sha256": "67e64d7c3c2d371b91c5f99957a716fcb908a12e5508745307dbe46b3878078f",
+    "bytes": 7836
+  },
+  {
+    "area": "google",
+    "commit": "7ac342cece493248caa947ec716048abc1ac453d",
+    "original_path": "Tests/Reports/google-option-c-repair-v5/green-source-sha256.txt",
+    "retained_path": "Tests/Reports/archive-integration-2026-10-22/retained/google/green-source-sha256.txt",
+    "sha256": "331c57abfc18fba47878976ce00b29a296d6c3c7995caf934c5eacf77b7ce906",
+    "bytes": 238
+  },
+  {
+    "area": "google",
+    "commit": "7ac342cece493248caa947ec716048abc1ac453d",
+    "original_path": "Tests/Reports/google-option-c-repair-v5/green-binary-sha256.txt",
+    "retained_path": "Tests/Reports/archive-integration-2026-10-22/retained/google/green-binary-sha256.txt",
+    "sha256": "8721b00f7fd80b947aad42c46f13fe3d28ff86188cd67545ebb5239c9b3b0be3",
+    "bytes": 150
+  },
+  {
+    "area": "google",
+    "commit": "7ac342cece493248caa947ec716048abc1ac453d",
+    "original_path": "Tests/Reports/google-option-c-repair-v5/grant-transition-red/google-connect.log",
+    "retained_path": "Tests/Reports/archive-integration-2026-10-22/retained/google/grant-transition-red/google-connect.log",
+    "sha256": "f1a24ffd26f994ac5737bc50a04784cf86fe823339233f72abf15d47f525b15e",
+    "bytes": 31713
+  },
+  {
+    "area": "google",
+    "commit": "7ac342cece493248caa947ec716048abc1ac453d",
+    "original_path": "Tests/Reports/google-option-c-repair-v5/green/google-connect.log",
+    "retained_path": "Tests/Reports/archive-integration-2026-10-22/retained/google/green/google-connect.log",
+    "sha256": "488b1e32d0dd6490d30520cf346c997318bff990972583836b727faf709f1a04",
+    "bytes": 31614
+  },
+  {
+    "area": "google",
+    "commit": "7ac342cece493248caa947ec716048abc1ac453d",
+    "original_path": "Tests/Reports/google-option-c-repair-v5/green/exits.txt",
+    "retained_path": "Tests/Reports/archive-integration-2026-10-22/retained/google/green/exits.txt",
+    "sha256": "c54661284763659aef14cba47bd3cef5db2a6dfe487231a18a2c2f33d5ddb88d",
+    "bytes": 137
+  },
+  {
+    "area": "clock",
+    "commit": "bac18b68d8ea38f1b4f276b52ba03c2728360d17",
+    "original_path": "Tests/Reports/clockfix/2026-10-09/checks.json",
+    "retained_path": "Tests/Reports/archive-integration-2026-10-22/retained/clock/checks.json",
+    "sha256": "6c168de8f33be23897f18ea44e9bdd8d2f35fe47d427538ecf14d78503539578",
+    "bytes": 13926
+  },
+  {
+    "area": "clock",
+    "commit": "bac18b68d8ea38f1b4f276b52ba03c2728360d17",
+    "original_path": "Tests/Reports/clockfix/2026-10-09/final-build-pin.json",
+    "retained_path": "Tests/Reports/archive-integration-2026-10-22/retained/clock/final-build-pin.json",
+    "sha256": "5dc761c8e5ab0680b438f310bff37061bc03fdeff02d58271bf0d4cce8b7b55a",
+    "bytes": 108716
+  }
+]

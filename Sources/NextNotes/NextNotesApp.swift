@@ -1313,6 +1313,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             return true
         }
+        if arguments.contains("--selftest-google-connect") {
+            Task { @MainActor in
+                SelfTest.failed = !(await GoogleConnectSelfTest.run())
+                SelfTest.requestTermination()
+            }
+            return true
+        }
         if arguments.contains("--selftest-mac-accounts") {
             Task { @MainActor in
                 SelfTest.failed = !(await MacAccountsSelfTest.run())

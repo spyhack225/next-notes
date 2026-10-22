@@ -42,7 +42,11 @@ enum GoogleSource: String, Sendable, CaseIterable {
 
     static func effective(cli: GoogleWorkspaceCLI = .shared) async -> GoogleSource {
         let (stored, fixture) = await MainActor.run { (Settings.shared.googleSource, macForTesting != nil) }
+        if GoogleTokenStore.readState == .unavailable { return .googleSignIn }
         if let stored { return stored }
+        // A selected app grant remains the route even when revoked; resolving from a
+        // failed CLI probe must not silently switch the next call to another account.
+        if GoogleTokenStore.appRouteInEffect { return .googleSignIn }
         // A self-test answers from its fixture and never asks the owner's `gws`.
         if SelfTest.isRunning { return fixture ? .thisMac : .googleSignIn }
         if let cached = cache.value() { return cached }
@@ -65,20 +69,44 @@ enum GoogleSource: String, Sendable, CaseIterable {
     /// The one producer of "is Google connected, and how". `AgentService`, the connect card,
     /// the first-use consent and the permissions row all read this, so they cannot disagree.
     static func status(cli: GoogleWorkspaceCLI = .shared) async -> Status {
+        let grantState = GoogleTokenStore.readState
+        if grantState == .unavailable {
+            return Status(state: .failed(GoogleCalendarError.tokenStoreUnreadable.localizedDescription),
+                gaps: Dictionary(uniqueKeysWithValues: allTools.map { ($0, GoogleCalendarError.tokenStoreUnreadable.localizedDescription) }))
+        }
         let source = await effective(cli: cli)
         let workspace = await cli.authState()
+        if workspace == .failed(GoogleCalendarError.tokenStoreUnreadable.localizedDescription) {
+            return Status(state: workspace,
+                gaps: Dictionary(uniqueKeysWithValues: allTools.map { ($0, GoogleCalendarError.tokenStoreUnreadable.localizedDescription) }))
+        }
+        let scopes: Set<String>
+        if case .available(let grant) = grantState { scopes = grant.scopes } else { scopes = [] }
+        let appRoute = grantState != .absent || GoogleTokenStore.appSignInSelected
         switch source {
         case .googleSignIn:
-            return Status(state: workspace, gaps: [:])
+            return Status(state: workspace, gaps: appRoute
+                ? scopeGaps(granted: scopes, tools: allTools) : [:])
         case .thisMac:
             let setup = await MacAccounts.shared.setup()
             let state: WorkspaceAuthState = setup.accountFound ? .signedIn(method: macMethod) : .signedOut
             var gaps = setup.gaps()
+            if appRoute {
+                gaps.merge(scopeGaps(granted: scopes, tools: googleOnlyTools)) { _, new in new }
+            }
             if !workspace.isSignedIn {
                 for tool in googleOnlyTools { gaps[tool] = needsGoogleSignInSentence(for: "") }
             }
             return Status(state: state, gaps: gaps)
         }
+    }
+
+    static func scopeGaps(granted: Set<String>, tools: [String]) -> [String: String] {
+        Dictionary(uniqueKeysWithValues: tools.compactMap { tool in
+            guard let capability = GoogleCapability.needed(byTool: tool),
+                  !capability.isGranted(by: granted, readOnly: tool == "get_agenda") else { return nil }
+            return (tool, capability.permissionSentence)
+        })
     }
 
     static func authState(cli: GoogleWorkspaceCLI = .shared) async -> WorkspaceAuthState {

@@ -2,6 +2,8 @@
 
 Owner authorized repair, preservation of all work, consolidation and removal of secondary checkouts/local task branches. The TTS and ASR agents confirmed a development write freeze and no retention needs in the retired checkouts. Their shared `NextNotesBuild/scratch`, models, source and reports remain retained. No build, model inference, push, installation or owner-store change is part of this operation.
 
+Follow-up: [actual application source integration and per-branch decisions](../../../Tests/Reports/archive-integration-2026-10-22/README.md) records the subsequent owner-requested ports and their current verification. The preservation operation described below remains a historical account.
+
 ## What “merged” means here
 
 The current shared checkout was committed first, with its original staged state in `10f29d4f` and the complete working source/benchmark/owned-roadmap checkpoint in `8b3d4f8a`. Native acceptance remains open exactly as recorded in those reports.

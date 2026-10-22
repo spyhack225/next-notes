@@ -61,7 +61,15 @@ final class CalendarService {
     private(set) var lastPartialFetchFailures: [CalendarFetchFailure] = []
     private(set) var isRefreshing = false
     /// The Google calendars available to tick in Settings.
-    private(set) var googleCalendars: [GoogleCalendarListEntry] = []
+    private var googleCalendarList: [GoogleCalendarListEntry] = []
+    @ObservationIgnored private var googleCalendarGrant: GoogleTokenStore.StoredGrant?
+    var googleCalendars: [GoogleCalendarListEntry] {
+        // A producer transition can precede its MainActor notification. Never expose
+        // the old snapshot during that hop, even when no replacement read finishes.
+        let list = googleCalendarList // Track the backing even while the grant is absent.
+        guard let grant = googleCalendarGrant, (try? GoogleTokenStore.savedGrant()) == grant else { return [] }
+        return list
+    }
 
     /// How far ahead to look. A day is enough for "what's next" and small enough that a
     /// busy account is a couple of hundred events rather than a couple of thousand.
@@ -73,9 +81,15 @@ final class CalendarService {
     static let pollInterval: TimeInterval = 5 * 60
 
     private let eventKit = EventKitCalendarProvider()
-    private let google = GoogleCalendarProvider()
+    private let google: GoogleCalendarProvider
     private let fake: FakeCalendarProvider?
     private let providersForTesting: [any CalendarProvider]?
+
+    // Latest read wins within one grant; grant transitions are owned by the record,
+    // not by entry to connect/disconnect or by a later controller callback.
+    @ObservationIgnored private var googleCalendarsEpoch: UInt64 = 0
+
+    @ObservationIgnored private var googleGrantObserver: (any NSObjectProtocol)?
 
     private var poll: Task<Void, Never>?
     /// The last refresh queued, if any. Each new one waits for it, so the reads stay
@@ -85,16 +99,57 @@ final class CalendarService {
     private var observers: [any NSObjectProtocol] = []
 
     private init() {
+        google = GoogleCalendarProvider()
         fake = FakeCalendarProvider.isEnabled ? FakeCalendarProvider() : nil
         providersForTesting = nil
+        observeGoogleGrant()
     }
 
     /// Runs the real refresh consumer over fixture-owned providers without reading
     /// configured accounts or publishing the fixture into the shared Agent context.
     init(providersForTesting: [any CalendarProvider]) {
+        google = GoogleCalendarProvider()
         precondition(GoogleCalendarErrorSelfTest.isRequested)
         fake = nil
         self.providersForTesting = providersForTesting
+        observeGoogleGrant()
+    }
+
+    init(googleForTesting: GoogleCalendarProvider) {
+        precondition(GoogleAccessTokens.testHooksAdmitted)
+        google = googleForTesting
+        fake = nil
+        providersForTesting = [googleForTesting]
+        observeGoogleGrant()
+    }
+
+    isolated deinit {
+        if let googleGrantObserver { NotificationCenter.default.removeObserver(googleGrantObserver) }
+    }
+
+    private func observeGoogleGrant() {
+        googleGrantObserver = NotificationCenter.default.addObserver(
+            forName: GoogleTokenStore.grantDidChange, object: nil, queue: nil
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                // Read the current record, never a queued transition's old identity.
+                // A late notification must not erase an already published B snapshot.
+                if self.googleCalendarGrant != (try? GoogleTokenStore.savedGrant()) {
+                    self.clearGoogleCalendars()
+                }
+            }
+        }
+    }
+
+    private func clearGoogleCalendars() {
+        googleCalendarGrant = nil
+        googleCalendarList = []
+    }
+
+    var googleCalendarCacheForTesting: [GoogleCalendarListEntry] {
+        precondition(GoogleAccessTokens.testHooksAdmitted)
+        return googleCalendarList
     }
 
     // MARK: - Lifecycle
@@ -193,8 +248,8 @@ final class CalendarService {
         if providersForTesting == nil {
             let settings = Settings.shared
             await google.configure(
-                clientID: settings.googleClientID,
-                clientSecret: settings.googleClientSecret,
+                clientID: GoogleAppClient.current?.clientID ?? settings.googleClientID,
+                clientSecret: GoogleAppClient.current?.clientSecret ?? settings.googleClientSecret,
                 calendarIDs: settings.googleCalendarIDs
             )
         }
@@ -285,36 +340,62 @@ final class CalendarService {
     @discardableResult
     func connectGoogle() async -> CalendarAuthorizationState {
         let settings = Settings.shared
-        await google.configure(
-            clientID: settings.googleClientID,
-            clientSecret: settings.googleClientSecret,
+        if providersForTesting == nil { await google.configure(
+            clientID: GoogleAppClient.current?.clientID ?? settings.googleClientID,
+            clientSecret: GoogleAppClient.current?.clientSecret ?? settings.googleClientSecret,
             calendarIDs: settings.googleCalendarIDs
-        )
+        ) }
         let state = await google.authorize()
         providerStates[.google] = state
         if state.isAuthorized {
             await refreshGoogleCalendars()
+            await refresh()
+        } else if case .disabled = state {
+            // A successful replacement without Calendar also withdraws the old cached
+            // entries. The existing refresh skips this disabled provider before reads.
+            clearGoogleCalendars()
             await refresh()
         }
         return state
     }
 
     func disconnectGoogle() async {
+        clearGoogleCalendars()
         await google.signOut()
-        googleCalendars = []
         // The state is recomputed rather than assigned: with the provider still switched
         // on, signing out means "not connected", not "off".
         await refresh()
     }
 
-    func refreshGoogleCalendars() async {
-        // Offscreen fixture lifecycle is not an account refresh. Other live tests retain it.
+    func refreshGoogleCalendars(enabledForTesting: Bool? = nil) async {
+        // Offscreen fixture lifecycle must not read credentials or refresh an account.
         guard SelfTest.requested != "--selftest-settings-sheet" else { return }
-        guard Settings.shared.calendarGoogleEnabled else { return }
+        precondition(enabledForTesting == nil || GoogleAccessTokens.testHooksAdmitted)
+        googleCalendarsEpoch &+= 1
+        let epoch = googleCalendarsEpoch
+        let grant = try? GoogleTokenStore.savedGrant()
+        guard enabledForTesting ?? (providersForTesting != nil || Settings.shared.calendarGoogleEnabled) else {
+            clearGoogleCalendars()
+            return
+        }
+        let authorized = await google.authorizationState().isAuthorized
+        guard epoch == googleCalendarsEpoch, grant == (try? GoogleTokenStore.savedGrant()) else { return }
+        guard authorized, let grant else {
+            clearGoogleCalendars()
+            return
+        }
         do {
-            googleCalendars = try await google.calendars()
+            let calendars = try await google.calendars()
+            guard epoch == googleCalendarsEpoch else { return }
+            // Use the token/launch seam's same record lock for comparison AND
+            // publication. Identity includes the unique save generation and scopes.
+            try GoogleTokenStore.withMatchingGrant(grant.identity) {
+                googleCalendarGrant = grant
+                googleCalendarList = calendars
+            }
         } catch {
-            googleCalendars = []
+            guard epoch == googleCalendarsEpoch, grant == (try? GoogleTokenStore.savedGrant()) else { return }
+            clearGoogleCalendars()
             Log.calendar.error("couldn't list Google calendars: \(error.localizedDescription, privacy: .public)")
         }
     }
@@ -331,6 +412,7 @@ final class CalendarService {
         if let google = error as? GoogleCalendarError {
             switch google {
             case .notSignedIn, .accessRevoked, .accessTokenRejected, .noRefreshToken,
+                 .signInChanged, .tokenStoreUnreadable, .tokenStoreFailed,
                  .tokenRequestFailed, .authorizationDenied, .stateMismatch,
                  .authorizationTimedOut, .callbackListenerFailed, .noClientID,
                  .badAuthorizationURL:

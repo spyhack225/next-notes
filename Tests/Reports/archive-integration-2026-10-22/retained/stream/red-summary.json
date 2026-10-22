@@ -1,0 +1,22 @@
+{
+  "phase": "red",
+  "binarySHA256": "8f065d5e20c72b04020bdb30f22ff2994386deada4f1e8b3ba70384ea21d4444",
+  "fixtureSHA256": "bbd42ce79c68ca516014f5eba82bc6a4006d2594ee8ad78a8f97a7cb71544d49",
+  "producerSHA256": "ad2be0354dd6c925a2da6c5d23d5d42ae6b3614dd85fee2e2ecd180cd0f0b307",
+  "checks": [
+    {
+      "flag": "chat-template",
+      "command": [
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt-scratch/thinking-review/debug/NextNotes",
+        "--selftest-chat-template",
+        "--selftest-out",
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/thinking-review/Tests/Reports/thinking-stream-producer-v2/red-chat-template.log"
+      ],
+      "exitCode": 1,
+      "marker": "CHAT_TEMPLATE_FAILED: 201 problem(s)",
+      "embeddedFailureMarkers": [
+        "CHAT_TEMPLATE_FAILED: 201 problem(s)"
+      ]
+    }
+  ]
+}

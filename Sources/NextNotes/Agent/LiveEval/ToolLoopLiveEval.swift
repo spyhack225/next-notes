@@ -123,6 +123,14 @@ enum ToolLoopLiveEval {
             return false
         }
         let selected = selectCases(options)
+        // A substituted provider diagnoses clock propagation through the same case runner.
+        // It cannot be used to qualify a model or run the quick/full quality gates.
+        if options.model == "scripted-clock",
+           SelfTest.fixtureClock == nil || options.needleFirst || options.quick
+            || options.only != ["C01", "C04"] {
+            SelfTest.diagnostic("TOOLLOOP_LIVE_FAILED: scripted-clock requires --only C01,C04 and --fixture-now")
+            return false
+        }
         guard !selected.isEmpty else {
             SelfTest.diagnostic("TOOLLOOP_LIVE_FAILED: no cases selected")
             return false
@@ -186,6 +194,9 @@ enum ToolLoopLiveEval {
         let began = ContinuousClock.now
         let results = await runCases(
             selected, options: options, fixtures: LiveEvalFixtures(), provider: resolved.provider)
+        let clockFailures = options.model == "scripted-clock"
+            ? LiveEvalClockProvider.checkDefaults() : []
+        for failure in clockFailures { SelfTest.diagnostic("TOOLLOOP_LIVE_CLOCK_FAILED: " + failure) }
         let elapsed = began.duration(to: .now).secondsValue
 
         // P1-27: the score counts the thirty and only the thirty. The owner-log set is
@@ -251,6 +262,10 @@ enum ToolLoopLiveEval {
                 "TOOLLOOP_LIVE_OK: no scored case in this selection — the "
                     + "TOOLLOOP_LIVE_OWNER line above is the result")
             return true
+        }
+        if !clockFailures.isEmpty {
+            SelfTest.diagnostic("TOOLLOOP_LIVE_FAILED: scripted clock defaults failed (\(clockFailures.count))")
+            return false
         }
         if passed >= bar {
             SelfTest.diagnostic(
@@ -465,6 +480,12 @@ enum ToolLoopLiveEval {
     static func resolveModel(
         argument: String?, allowCloud: Bool, contextTokens: Int? = nil
     ) async -> ResolvedModel? {
+        if argument == "scripted-clock", SelfTest.requested == "--selftest-toolloop-live",
+           SelfTest.fixtureClock != nil {
+            return ResolvedModel(provider: LiveEvalClockProvider(),
+                label: "scripted clock diagnostic (no model qualification)",
+                roleChoice: "scripted-clock", isFallback: false)
+        }
         if argument == "apple" {
             guard FoundationModelFormatter.unavailableReason == nil else { return nil }
             return ResolvedModel(

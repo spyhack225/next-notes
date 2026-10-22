@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "id": "2026-10-22-archived-runtime-integration",
+  "title": "Archived runtime producer integration",
+  "date": "2026-10-22",
+  "category": "models",
+  "status": "partial",
+  "scope": "Optimized app integration of stream output, Google grant/cache boundaries and pinned evaluation clock; synthetic account/model fixtures",
+  "summary": "Optimized build and11native rootflags pass: Google402assertions, stream658/0, notes, scriptedclock2/2 andonce-onlynativeprefixcache646/666tokensreused. Owner21files/89preferencekeys/modelhashunchanged. Inherited18nestedbrowserfailures remainopen.",
+  "environment": {
+    "hardware": "Apple M3; 16 GiB RAM",
+    "os": "27.2",
+    "workload": "Serial native fixture slot and later private CPU S1-mini cache slot; no overlapping agent model job; normal owner apps retained, physical ASR/voice workload not sampled",
+    "power_thermal": "Not sampled; no latency or power claim"
+  },
+  "provenance": {
+    "source_revision": "0dbba940 baseline + source-ready.json content pins",
+    "binary_sha256": "6369272fa8fcc9cee16658f2f56288e5200fc8cb5bd17ff81f3f8e27175b513f",
+    "model_revision": "none; scripted decoded pieces",
+    "fixture_sha256": "26c194fe8a5660b7be1a640420af8900bd3175f715f2d99f38f699fd5f7f3d3a",
+    "command": "python3 Tests/Reports/archive-integration-2026-10-22/check-native.py <optimized NextNotes executable>",
+    "grader": "Unchanged658-case callback/output assertions from archived reviewed fixture"
+  },
+  "metrics": [
+    {
+      "name": "original_stream_failures",
+      "value": 552,
+      "unit": "failures",
+      "boundary": "658 unchanged scripted decoded-piece cases; model and actor setup substituted",
+      "samples": 658,
+      "aggregation": "count"
+    },
+    {
+      "name": "integrated_stream_failures",
+      "value": 0,
+      "unit": "failures",
+      "boundary": "658 unchanged scripted decoded-piece cases; model and actor setup substituted",
+      "samples": 658,
+      "aggregation": "count"
+    }
+  ],
+  "limitations": [
+    "Inherited nested browser functional scope has18failures. Real consent, physical voice, aggregate model/default acceptance and reference-machine performance remain untested.",
+    "Component pass does not establish native token UTF-8 decoding, physical voice, real consent, performance or model/default promotion.",
+    "Latest archived ACK2 still fails its retained review regression; unqualified voice/Catch-up experiments remain excluded."
+  ],
+  "sources": [
+    "Tests/Reports/archive-integration-2026-10-22/README.md",
+    "Tests/Reports/archive-integration-2026-10-22/stream-component-summary.json",
+    "Tests/Reports/archive-integration-2026-10-22/oauth-packaging.log",
+    "Tests/Reports/archive-integration-2026-10-22/native-summary.json",
+    "Tests/Reports/archive-integration-2026-10-22/combined-typecheck.json",
+    "Tests/Reports/archive-integration-2026-10-22/prefix-cache-summary.json"
+  ],
+  "publication": {
+    "approved": false,
+    "reviewed_by": null,
+    "reviewed_on": null
+  }
+}

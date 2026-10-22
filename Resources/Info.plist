@@ -70,5 +70,9 @@
 	<string>Next Notes lists the names of what is in your Documents folder so your assistant can find your files. It never reads what is inside them.</string>
 	<key>NSDownloadsFolderUsageDescription</key>
 	<string>Next Notes lists the names of what is in your Downloads folder so your assistant can find your files. It never reads what is inside them.</string>
+	<key>NextNotesGoogleClientID</key>
+	<string>NEXT_NOTES_GOOGLE_CLIENT_ID_NOT_REGISTERED</string>
+	<key>NextNotesGoogleClientSecret</key>
+	<string></string>
 </dict>
 </plist>

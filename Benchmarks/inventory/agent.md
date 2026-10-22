@@ -459,8 +459,6 @@ Discovery inventory, not a claim that every file is a benchmark or that its chec
 | [roadmap/done/agent-analysis-2026-09-23/H1-caps-model-tools.md](../../roadmap/done/agent-analysis-2026-09-23/H1-caps-model-tools.md) |
 | [roadmap/done/agent-analysis-2026-09-23/H3-caps-proactive-memory.md](../../roadmap/done/agent-analysis-2026-09-23/H3-caps-proactive-memory.md) |
 | [roadmap/done/agent-analysis-2026-09-23/J-live-log-audit-2026-09-27.md](../../roadmap/done/agent-analysis-2026-09-23/J-live-log-audit-2026-09-27.md) |
-| [roadmap/done/agent-analysis-2026-09-23/barge-run.txt](../../roadmap/done/agent-analysis-2026-09-23/barge-run.txt) |
-| [roadmap/done/agent-analysis-2026-09-23/pipeline-run2.txt](../../roadmap/done/agent-analysis-2026-09-23/pipeline-run2.txt) |
 | [roadmap/in-progress/AGENT-OVERHAUL/00-README.md](../../roadmap/in-progress/AGENT-OVERHAUL/00-README.md) |
 | [roadmap/in-progress/AGENT-OVERHAUL/01-PHASE-0-MAKE-IT-ANSWER.md](../../roadmap/in-progress/AGENT-OVERHAUL/01-PHASE-0-MAKE-IT-ANSWER.md) |
 | [roadmap/in-progress/AGENT-OVERHAUL/02-PHASE-1-TOOLS.md](../../roadmap/in-progress/AGENT-OVERHAUL/02-PHASE-1-TOOLS.md) |
@@ -478,5 +476,4 @@ Discovery inventory, not a claim that every file is a benchmark or that its chec
 | [roadmap/todo/DURABLE-AGENT-SESSIONS/01-DESIGN.md](../../roadmap/todo/DURABLE-AGENT-SESSIONS/01-DESIGN.md) |
 | [roadmap/todo/DURABLE-AGENT-SESSIONS/02-IMPLEMENTATION.md](../../roadmap/todo/DURABLE-AGENT-SESSIONS/02-IMPLEMENTATION.md) |
 | [roadmap/todo/DURABLE-AGENT-SESSIONS/03-ACCEPTANCE.md](../../roadmap/todo/DURABLE-AGENT-SESSIONS/03-ACCEPTANCE.md) |
-| [roadmap/todo/DURABLE-AGENT-SESSIONS/COORDINATION.json](../../roadmap/todo/DURABLE-AGENT-SESSIONS/COORDINATION.json) |
 | [roadmap/todo/DURABLE-AGENT-SESSIONS/STATUS.md](../../roadmap/todo/DURABLE-AGENT-SESSIONS/STATUS.md) |

@@ -1,0 +1,83 @@
+{
+  "binary": "/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/arm64-apple-macosx/release/NextNotes",
+  "binary_sha256": "6369272fa8fcc9cee16658f2f56288e5200fc8cb5bd17ff81f3f8e27175b513f",
+  "owner_domain": "ai.pivotstudio.nextnotes",
+  "defaults_before": {
+    "export_exit": 0,
+    "keys": 89,
+    "sha256": "eb615030f43eab7d4e9eba2d68dda42f58549ddb4d4e67182d4aa08763cf49b2"
+  },
+  "runs": [
+    {
+      "name": "google-batch",
+      "arguments": [
+        "sh",
+        "Tests/GoogleOptionCChecks.sh",
+        "restored",
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/arm64-apple-macosx/release/NextNotes",
+        "/Users/sergekadjo/Documents/Claude/Projects/next-notes/Tests/Reports/archive-integration-2026-10-22/native-google"
+      ],
+      "exit": 0,
+      "seconds": 40.48746079200646,
+      "timeout": false,
+      "expected": "seven root fixture flags"
+    },
+    {
+      "name": "chat-template",
+      "arguments": [
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/arm64-apple-macosx/release/NextNotes",
+        "--selftest-chat-template",
+        "--selftest-timeout",
+        "60",
+        "--selftest-out",
+        "/Users/sergekadjo/Documents/Claude/Projects/next-notes/Tests/Reports/archive-integration-2026-10-22/chat-template.log"
+      ],
+      "exit": 0,
+      "seconds": 15.041569416993298,
+      "timeout": false,
+      "expected": "CHAT_TEMPLATE_OK"
+    },
+    {
+      "name": "notes-truncation",
+      "arguments": [
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/arm64-apple-macosx/release/NextNotes",
+        "--selftest-notes-truncation",
+        "--selftest-timeout",
+        "60",
+        "--selftest-out",
+        "/Users/sergekadjo/Documents/Claude/Projects/next-notes/Tests/Reports/archive-integration-2026-10-22/notes-truncation.log"
+      ],
+      "exit": 0,
+      "seconds": 0.07464562501991168,
+      "timeout": false,
+      "expected": "NOTES_TRUNCATION_OK"
+    },
+    {
+      "name": "clock",
+      "arguments": [
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/arm64-apple-macosx/release/NextNotes",
+        "--selftest-toolloop-live",
+        "--model",
+        "scripted-clock",
+        "--only",
+        "C01,C04",
+        "--fixture-now",
+        "2026-10-05T09:00:00-04:00",
+        "--selftest-timeout",
+        "60",
+        "--selftest-out",
+        "/Users/sergekadjo/Documents/Claude/Projects/next-notes/Tests/Reports/archive-integration-2026-10-22/clock.log"
+      ],
+      "exit": 0,
+      "seconds": 0.3422881249571219,
+      "timeout": false,
+      "expected": "TOOLLOOP_LIVE_OK"
+    }
+  ],
+  "defaults_after": {
+    "export_exit": 0,
+    "keys": 89,
+    "sha256": "eb615030f43eab7d4e9eba2d68dda42f58549ddb4d4e67182d4aa08763cf49b2"
+  },
+  "owner_defaults_unchanged": true
+}

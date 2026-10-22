@@ -1,0 +1,15 @@
+F
+======================================================================
+FAIL: test_uncommitted_peer_report_cannot_create_missing_repo_links (Scripts.test_benchmarks.CatalogTests.test_uncommitted_peer_report_cannot_create_missing_repo_links)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/sergekadjo/Documents/Claude/Projects/next-notes/Scripts/test_benchmarks.py", line 131, in test_uncommitted_peer_report_cannot_create_missing_repo_links
+    self.assertEqual(before, b.outputs())
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+AssertionError: {Posi[225 chars]    }\n  ]\n}\n', PosixPath('/var/folders/ht/g[5526 chars]n\n'} != {Posi[225 chars]    },\n    {\n      "path": "Tests/Reports/pe[5702 chars]n\n'}
+Diff is 74345 characters long. Set self.maxDiff to None to see it.
+
+----------------------------------------------------------------------
+Ran 1 test in 0.171s
+
+FAILED (failures=1)

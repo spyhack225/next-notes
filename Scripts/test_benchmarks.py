@@ -118,6 +118,18 @@ class CatalogTests(unittest.TestCase):
         evidence.write_text('{"private_transcript":"DO_NOT_PUBLISH_MORE"}')
         self.assertEqual(before, b.outputs())
 
+    def test_uncommitted_peer_report_cannot_create_missing_repo_links(self):
+        subprocess.run(['git', 'init', '-q', str(self.root)], check=True)
+        for name in ('bench', 'docs', 'roadmap'):
+            (self.root / name).mkdir()
+        subprocess.run(['git', '-C', str(self.root), 'add', 'Tests/Reports/evidence.json'], check=True)
+        self.save()
+        before = b.outputs()
+        # Another agent has not checkpointed this report: a clean CI checkout
+        # cannot resolve a generated link to it. Registered runs remain separate.
+        (self.root / 'Tests/Reports/peer-in-progress.md').write_text('Synthetic unfinished peer report')
+        self.assertEqual(before, b.outputs())
+
     def test_retired_snapshot_evidence_remains_discoverable(self):
         def git(*args):
             return subprocess.check_output(['git', '-C', str(self.root), '-c', 'user.name=Catalog fixture',

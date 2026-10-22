@@ -12,6 +12,8 @@ Discovery inventory, not a claim that every file is a benchmark or that its chec
 | [Tests/Reports/MODEL-COMPARE-CLEANUP-2026-09-30.md](../../Tests/Reports/MODEL-COMPARE-CLEANUP-2026-09-30.md) |
 | [Tests/Reports/agent-overhaul-verification/evidence-cleanup/verification.md](../../Tests/Reports/agent-overhaul-verification/evidence-cleanup/verification.md) |
 | [Tests/Reports/agent-overhaul-verification/native-cleanup/verification.md](../../Tests/Reports/agent-overhaul-verification/native-cleanup/verification.md) |
+| [Tests/Reports/archive-integration-2026-10-22/cleanup.json](../../Tests/Reports/archive-integration-2026-10-22/cleanup.json) |
+| [Tests/Reports/archive-integration-2026-10-22/dictation-snapshot-comparison.json](../../Tests/Reports/archive-integration-2026-10-22/dictation-snapshot-comparison.json) |
 | [Tests/Reports/dictation-gates/2026-09-30-f01a-green.txt](../../Tests/Reports/dictation-gates/2026-09-30-f01a-green.txt) |
 | [Tests/Reports/dictation-gates/2026-09-30-f01a-reader.md](../../Tests/Reports/dictation-gates/2026-09-30-f01a-reader.md) |
 | [Tests/Reports/dictation-gates/2026-09-30-f01a-red.txt](../../Tests/Reports/dictation-gates/2026-09-30-f01a-red.txt) |
@@ -531,6 +533,7 @@ Discovery inventory, not a claim that every file is a benchmark or that its chec
 | [Tests/Reports/meeting-reliability/2026-10-13-full-pipeline/owned-cleanup.json](../../Tests/Reports/meeting-reliability/2026-10-13-full-pipeline/owned-cleanup.json) |
 | [Tests/Reports/toolloop-live/2026-09-30-p1-31c/final-production-after-cache-cleanup.txt](../../Tests/Reports/toolloop-live/2026-09-30-p1-31c/final-production-after-cache-cleanup.txt) |
 | [Tests/Reports/toolloop-live/2026-09-30-p1-31c/integrated-cleanup-router.txt](../../Tests/Reports/toolloop-live/2026-09-30-p1-31c/integrated-cleanup-router.txt) |
+| [Tests/Reports/tts-2026-10-22/final-model-cleanup.json](../../Tests/Reports/tts-2026-10-22/final-model-cleanup.json) |
 | [Tests/Reports/voice-production/2026-10-01-p3-01/core/selftest-dictation.log](../../Tests/Reports/voice-production/2026-10-01-p3-01/core/selftest-dictation.log) |
 | [Tests/Reports/voice-production/2026-10-01-p3-06a/core/selftest-dictation.log](../../Tests/Reports/voice-production/2026-10-01-p3-06a/core/selftest-dictation.log) |
 | [Tests/Reports/voice-production/2026-10-01-p3-06a/wake-isolated-core/selftest-dictation.log](../../Tests/Reports/voice-production/2026-10-01-p3-06a/wake-isolated-core/selftest-dictation.log) |
