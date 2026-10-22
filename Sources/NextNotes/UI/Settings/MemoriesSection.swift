@@ -89,6 +89,15 @@ struct MemoriesEditor: View {
 
             MemoryLookAgainRow(isEnabled: settings.agentMemoryEnabled)
 
+            Text(reviewState.lastLookedLine())
+                .font(DS.Font.caption)
+                .foregroundStyle(DS.Color.textSecondary)
+            if let lifetimeLine = reviewState.lifetimeLine {
+                Text(lifetimeLine)
+                    .font(DS.Font.caption)
+                    .foregroundStyle(DS.Color.textSecondary)
+            }
+
             if memory.entries.isEmpty {
                 // Why the list is empty, in the reviewer's own words. The sentence comes from
                 // `MemoryReviewScheduler.emptyListLine` — never composed here, because the

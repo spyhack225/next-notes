@@ -29,6 +29,14 @@ final class IndexedFoldersStore {
     /// Desktop, Documents and Downloads — the three the onboarding sheet and Settings offer
     /// with one click. Only folders that actually exist are offered.
     static var suggested: [URL] {
+        if SelfTest.requested == "--selftest-settings-sheet" {
+            let root = FileManager.default.temporaryDirectory.appendingPathComponent(
+                "NextNotesSelfTest-folders-\(ProcessInfo.processInfo.processIdentifier)", isDirectory: true
+            )
+            return ["Desktop", "Documents", "Downloads"].map {
+                root.appendingPathComponent($0, isDirectory: true)
+            }
+        }
         let manager = FileManager.default
         return [FileManager.SearchPathDirectory.desktopDirectory, .documentDirectory, .downloadsDirectory]
             .compactMap { manager.urls(for: $0, in: .userDomainMask).first }
@@ -40,7 +48,11 @@ final class IndexedFoldersStore {
     var isEnabled: Bool {
         didSet {
             guard isEnabled != oldValue else { return }
-            UserDefaults.standard.set(isEnabled, forKey: Self.enabledKey)
+            defaults.set(isEnabled, forKey: Self.enabledKey)
+            if SelfTest.requested == "--selftest-settings-sheet" {
+                revision &+= 1
+                return
+            }
             if isEnabled {
                 FileIndexer.shared.start()
                 FileIndexer.shared.scanAll()
@@ -64,7 +76,7 @@ final class IndexedFoldersStore {
     var cloudConsent: Bool {
         didSet {
             guard cloudConsent != oldValue else { return }
-            UserDefaults.standard.set(cloudConsent, forKey: Self.cloudConsentKey)
+            defaults.set(cloudConsent, forKey: Self.cloudConsentKey)
             revision &+= 1
         }
     }
@@ -84,6 +96,9 @@ final class IndexedFoldersStore {
 
     @ObservationIgnored private var probeTask: Task<Void, Never>?
 
+    private let defaults = SelfTest.requested == "--selftest-settings-sheet"
+        ? SelfTestHarnessDefaults.suite : UserDefaults.standard
+
     private let fileURL: URL
 
     init(directory: URL? = nil) {
@@ -99,15 +114,38 @@ final class IndexedFoldersStore {
         } else {
             root = AppIdentity.applicationSupportDirectory
         }
-        try? FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
-        fileURL = root.appendingPathComponent(Self.fileName)
-        isEnabled = UserDefaults.standard.object(forKey: Self.enabledKey) as? Bool ?? false
-        cloudConsent = UserDefaults.standard.object(forKey: Self.cloudConsentKey) as? Bool ?? false
+        let checkedRoot = SelfTest.requested == "--selftest-settings-sheet"
+            ? SelfTest.checkedSettingsFixturePath(root) : root
+        let input = checkedRoot.appendingPathComponent(Self.fileName)
+        fileURL = SelfTest.requested == "--selftest-settings-sheet"
+            ? SelfTest.checkedSettingsFixturePath(input) : input
+        try? FileManager.default.createDirectory(at: checkedRoot, withIntermediateDirectories: true)
+        isEnabled = defaults.object(forKey: Self.enabledKey) as? Bool ?? false
+        cloudConsent = defaults.object(forKey: Self.cloudConsentKey) as? Bool ?? false
         if let data = try? Data(contentsOf: fileURL),
            let saved = try? JSONDecoder().decode(Snapshot.self, from: data) {
             folders = Self.deduplicated(saved.paths.map { FileIndexStore.canonical(URL(fileURLWithPath: $0)) })
         }
         refreshAccessProblems()
+    }
+
+    func settingsSheetIsolationFailures() -> [String] {
+        guard SelfTest.requested == "--selftest-settings-sheet" else {
+            return ["Folder fixture check requires the settings-sheet self-test"]
+        }
+        var failures: [String] = []
+        let expected = FileManager.default.temporaryDirectory.appendingPathComponent(
+            "NextNotesSelfTest-folders-\(ProcessInfo.processInfo.processIdentifier)", isDirectory: true
+        ).appendingPathComponent(Self.fileName)
+        if fileURL.standardizedFileURL.resolvingSymlinksInPath()
+            != expected.standardizedFileURL.resolvingSymlinksInPath() {
+            failures.append("Folder fixture used another file root")
+        }
+        if defaults !== SelfTestHarnessDefaults.suite { failures.append("Folder fixture used owner preferences") }
+        if isEnabled || cloudConsent { failures.append("Folder fixture enabled indexing or cloud access") }
+        if !folders.isEmpty { failures.append("Folder fixture is not the empty placeholder") }
+        if probeTask != nil { failures.append("Folder fixture started an access probe") }
+        return failures
     }
 
     // MARK: - The list
@@ -173,6 +211,7 @@ final class IndexedFoldersStore {
     /// the verdicts appears. Cheap when nothing is wrong; when something is, the wait happens
     /// on a utility thread instead of in front of the user.
     func refreshAccessProblems() {
+        guard SelfTest.requested != "--selftest-settings-sheet" else { return }
         // Nothing is looked at while the switch is off, and that includes this: asking macOS to
         // list the user's Desktop is what *raises* the TCC prompt, so a probe on a feature
         // nobody has turned on would put a permission sheet in front of someone who never asked

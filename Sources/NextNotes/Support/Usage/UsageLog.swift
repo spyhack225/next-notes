@@ -46,13 +46,19 @@ final class UsageLog: @unchecked Sendable {
         maxAgeDays: Int = UsageLog.defaultMaxAgeDays,
         now: @escaping @Sendable () -> Date = { Date() }
     ) {
-        self.directory = directory
-        self.fileURL = directory.appendingPathComponent(Self.fileName)
-        self.rotatedURL = directory.appendingPathComponent(Self.rotatedName)
+        let inputRoot = SelfTest.requested == "--selftest-settings-sheet"
+            ? SelfTest.checkedSettingsFixturePath(directory) : directory
+        self.directory = inputRoot
+        let current = inputRoot.appendingPathComponent(Self.fileName)
+        let rotated = inputRoot.appendingPathComponent(Self.rotatedName)
+        self.fileURL = SelfTest.requested == "--selftest-settings-sheet"
+            ? SelfTest.checkedSettingsFixturePath(current) : current
+        self.rotatedURL = SelfTest.requested == "--selftest-settings-sheet"
+            ? SelfTest.checkedSettingsFixturePath(rotated) : rotated
         self.maxBytes = max(1, maxBytes)
         self.maxAgeDays = max(1, maxAgeDays)
         self.now = now
-        try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        try? FileManager.default.createDirectory(at: inputRoot, withIntermediateDirectories: true)
         // Age compaction is the only rewrite this store ever performs, and it happens once,
         // off the main actor, on the rotated file only.
         queue.async { [weak self] in self?.compactLocked() }

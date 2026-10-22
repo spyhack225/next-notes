@@ -222,7 +222,7 @@ struct KnowledgeAssembler {
 
         var sources: [AssembleSource] = []
         var seenPaths = Set<String>()
-        for hit in fileHits where seenPaths.insert(hit.path).inserted != nil {
+        for hit in fileHits where seenPaths.insert(hit.path).inserted {
             sources.append(AssembleSource(kind: .file, title: hit.path, citation: nil))
         }
         var seenSources = Set<String>()
@@ -444,15 +444,23 @@ enum AssemblerToolExecutor {
     /// touching this Mac's routing or its models. Never set outside a self-test.
     nonisolated(unsafe) static var composeForSelfTest: (@Sendable (_ system: String, _ user: String) async -> String?)?
 
+    /// A scripted provider at the actual routing seam, under the explicit fixture flag only.
+    nonisolated(unsafe) static var composeProviderForSelfTest: (any LLMProvider)?
+
     /// The compose step, through the model routing the rest of the Agent already uses. Nil
     /// means "no model on this Mac right now" and the page is written from the snippets with
     /// a line saying so — an assembly that fails to write a page because a model was out is
     /// the failure mode this whole step refuses.
     static func compose(system: String, user: String) async -> String? {
         if let scripted = composeForSelfTest { return await scripted(system, user) }
-        guard let provider = await AgentModelRouting.provider(for: user, voice: false) else {
-            return nil
-        }
-        return try? await provider.complete(system: system, user: user, maxTokens: 600).text
+        let provider: any LLMProvider
+        if SelfTest.requested == "--selftest-assemble", let supplied = composeProviderForSelfTest {
+            provider = supplied
+        } else if let resolved = await AgentModelRouting.provider(for: user, voice: false) {
+            provider = resolved
+        } else { return nil }
+        let window = await AgentAnswerBudget.readerContextTokens(for: provider)
+        let output = min(1_500, max(600, window / 4))
+        return try? await provider.complete(system: system, user: user, maxTokens: output).text
     }
 }

@@ -12,7 +12,11 @@ enum AgentPrompts {
     /// appended by `LLMProvider.complete(…, tools:)` — the capability section — so there is
     /// one description of how a tool is called rather than one per prompt.
     static var system: String {
-        AgentPromptContext.assemble(.meetingAssistant, rules: rules).system
+        system(contextTokens: nil)
+    }
+
+    static func system(contextTokens: Int?) -> String {
+        AgentPromptContext.assemble(.meetingAssistant, rules: rules, contextTokens: contextTokens).system
     }
 
     static let rules = """

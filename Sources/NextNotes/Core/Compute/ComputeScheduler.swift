@@ -189,6 +189,21 @@ actor ComputeScheduler: ComputeScheduling {
         return acquired ? job.id : nil
     }
 
+    /// Takes the lane now or not at all: `nil` when work of the same or a more urgent
+    /// class holds it, so nothing is queued and nothing waits. A less urgent runner is
+    /// preempted exactly as `submit` would (it parks at its next checkpoint).
+    ///
+    /// For a caller with a person waiting and a cheaper answer in hand — dictation
+    /// cleanup, whose staged Apple session answers when the shared llama lane is busy.
+    /// A queued job would also read as `.background`/ASR occupancy to the cleanup
+    /// pressure probe, which is how a hold's own pre-clean used to defer its own tail.
+    func tryAcquire(_ workClass: WorkClass) -> UUID? {
+        if let current = running, !workClass.preempts(current.workClass) { return nil }
+        let job = ComputeJob(workClass: workClass)
+        submit(job)
+        return running?.id == job.id ? job.id : nil
+    }
+
     /// Drops a cancelled waiter: it leaves both queues and its continuation
     /// resumes with `false`, so `acquireCancellable` returns nil.
     private func cancelWaiter(_ id: UUID) {
@@ -210,6 +225,11 @@ actor ComputeScheduler: ComputeScheduling {
         if running?.id == id { return }
         let known = parked.contains { $0.id == id } || queued.contains { $0.id == id }
         guard known else { return }
+        // Only a real parked/queued checkpoint is timed; the hot no-op writes nothing.
+        let parkedTrace = LatencyTrace.start(.modelQueue)
+        defer {
+            parkedTrace.end(note: "checkpoint job=\(id) cancelled=\(Task.isCancelled)")
+        }
         let _: Bool = await withTaskCancellationHandler {
             await withCheckedContinuation { (continuation: CheckedContinuation<Bool, Never>) in
                 if Task.isCancelled {
@@ -539,6 +559,30 @@ extension ComputeScheduler {
         let agentID = await agent.value
         await fairness.release(agentID)
         await fairness.release(backgroundID)
+
+        // tryAcquire: never queues. Behind live ASR it answers nil at once and leaves
+        // no job behind (the cleanup pressure probe must not see one); over a running
+        // background job it preempts and starts immediately.
+        let attempt = ComputeScheduler()
+        let heldASR = await attempt.acquire(.realtimeASR)
+        if await attempt.tryAcquire(.realtimeAgent) != nil {
+            failures.append("tryAcquire(realtimeAgent) took the lane from live realtimeASR")
+        }
+        let afterRefusal = await attempt.occupancy()
+        if afterRefusal.busy != [.realtimeASR] {
+            failures.append("a refused tryAcquire left a job behind: \(afterRefusal.busy.map(\.rawValue))")
+        }
+        await attempt.release(heldASR)
+        let backgroundAttempt = await attempt.acquire(.background)
+        if let cleanup = await attempt.tryAcquire(.realtimeAgent) {
+            if !(await attempt.didYield(.background, to: .realtimeAgent)) {
+                failures.append("tryAcquire over background did not record the yield")
+            }
+            await attempt.release(cleanup)
+        } else {
+            failures.append("tryAcquire(realtimeAgent) waited behind a background job")
+        }
+        await attempt.release(backgroundAttempt)
 
         failures += await cancelledCheckpointFailures()
 

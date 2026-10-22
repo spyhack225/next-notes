@@ -32,6 +32,13 @@ enum MemoryReviewSelfTest {
         let modelName = SelfTest.value(after: "--model") ?? "scripted"
         failures += await fixtureFailures(root: root.appendingPathComponent("fixtures"), modelName: modelName)
         if modelName == "scripted" {
+            failures += await MemoryReviewProviderCapacitySelfTest.failures(root: root.appendingPathComponent("provider-capacity"))
+            failures += await MemoryReviewDecisionTotalsSelfTest.failures(root: root.appendingPathComponent("decisions-totals"))
+            failures += await MemoryReviewEnvironmentSelfTest.failures(root: root.appendingPathComponent("environment-modal"))
+            failures += await MemoryReviewPreferenceSubjectSelfTest.failures(root: root.appendingPathComponent("preference-subject"))
+            failures += await MemoryReviewReaderHarvestSelfTest.failures(root: root.appendingPathComponent("reader-harvest"))
+            failures += ExplicitMemoryStatementSelfTest.failures(root: root.appendingPathComponent("extractor"))
+            failures += await ExplicitMemoryTurnSelfTest.failures(root: root.appendingPathComponent("explicit-turns"))
             failures += guardFailures()
             failures += routerFailures()
             failures += await grammarFailures()
@@ -137,7 +144,8 @@ enum MemoryReviewSelfTest {
             if let reason = await provider.unavailableReason {
                 return ["the \(modelName) model is unavailable: \(reason)"]
             }
-            realModel = ProviderMemoryReviewModel(provider: provider)
+            let capacity = await AgentAnswerBudget.readerContextTokens(for: provider)
+            realModel = ProviderMemoryReviewModel(provider: provider, resolvedContextTokens: capacity)
         default:
             return ["unknown --model \(modelName); use scripted, local, apple or cloud"]
         }
@@ -644,9 +652,13 @@ enum MemoryReviewSelfTest {
         check(&failures, "the review prompt does not offer only memory tools",
               MemoryReviewer.system.contains("the only tools that exist here")
                 && !MemoryReviewer.system.contains("schedule.") && !MemoryReviewer.system.contains("mail."))
+        // COMMON semantic contract: the wording amendment names the same saved-fact skip.
+        let savedFactSkip = ["- anything already in current memory.",
+                             "- anything in the facts already saved."]
+            .contains { MemoryReviewer.system.contains($0) }
         check(&failures, "the review prompt lacks a skip rule", ["one-off", "did not state about themselves",
-                                                                 "environment failures", "already in current memory"]
-            .allSatisfy { MemoryReviewer.system.contains($0) })
+                                                                 "environment failures"]
+            .allSatisfy { MemoryReviewer.system.contains($0) } && savedFactSkip)
         // A session with nothing the user said is not sent to a model at all.
         let quiet = AgentSession.ReviewRequest(sessionID: sessionID, reason: .idle, messages: [rows[1], rows[2], rows[4]])
         check(&failures, "a session without user turns became a job", MemoryReviewJob(quiet, reviewedThrough: nil) == nil)

@@ -79,16 +79,26 @@ struct IMessageSettingsSection: View {
         )
     }
 
+    static var identityDirectory: URL {
+        if SelfTest.requested == "--selftest-settings-sheet" {
+            let root = SelfTest.checkedSettingsFixturePath(FileManager.default.temporaryDirectory
+                .appendingPathComponent("NextNotesSelfTest-\(ProcessInfo.processInfo.processIdentifier)", isDirectory: true))
+            _ = SelfTest.checkedSettingsFixturePath(root.appendingPathComponent(RemoteIdentityStore.fileName))
+            return root
+        }
+        return AppIdentity.applicationSupportDirectory
+    }
+
     private func stop() {
         settings.imessageEnabled = false
         // Local act, like the flip that calls it: stopping must always work.
-        try? RemoteIdentityStore(directory: AppIdentity.applicationSupportDirectory)
+        try? RemoteIdentityStore(directory: Self.identityDirectory)
             .suspendRemoteAccess()
         refresh()
     }
 
     private func refresh() {
-        let config = RemoteIdentityStore(directory: AppIdentity.applicationSupportDirectory)
+        let config = RemoteIdentityStore(directory: Self.identityDirectory)
             .configuration
         isPaired = config.isPaired
         canaryUnreadable = config.canaryUnreadable

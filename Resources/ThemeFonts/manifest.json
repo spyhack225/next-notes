@@ -1,0 +1,56 @@
+[
+  {
+    "input": "site/node_modules/@fontsource/inter/files/inter-latin-400-normal.woff",
+    "input_sha256": "e20fa0b4fd2dd26e4d14b3ac3cc922509c3a63fa5e910e90c614544aa042dd45",
+    "output": "Resources/ThemeFonts/Inter-Regular.ttf",
+    "output_sha256": "ee5db7d9709c84d3a013d780e4ff436fc81c8d2c618d99bfdec0e678bbf33446",
+    "postscript_name": "Inter-Regular",
+    "glyphs": 230,
+    "bytes": 67952
+  },
+  {
+    "input": "site/node_modules/@fontsource/inter/files/inter-latin-500-normal.woff",
+    "input_sha256": "9b42c108da48b5ed55a3072e815ffee2d271562e6c0dd6998910e8f9c09e0a3d",
+    "output": "Resources/ThemeFonts/Inter-Medium.ttf",
+    "output_sha256": "8d2df172662ea8b727793c752296f21ed3384b565b49ebd20378fb10393ebd69",
+    "postscript_name": "Inter-Medium",
+    "glyphs": 230,
+    "bytes": 68008
+  },
+  {
+    "input": "site/node_modules/@fontsource/inter/files/inter-latin-600-normal.woff",
+    "input_sha256": "6a9cb3a509b4eeaf12b7dda6c4aacac3e85d07f4201bf4dd716e332e692b87bd",
+    "output": "Resources/ThemeFonts/Inter-SemiBold.ttf",
+    "output_sha256": "fc17ae28f958f5826e903510926d3aed86240e948c59df337a2d68b95a481247",
+    "postscript_name": "Inter-SemiBold",
+    "glyphs": 230,
+    "bytes": 68060
+  },
+  {
+    "input": "site/node_modules/@fontsource/inter/files/inter-latin-700-normal.woff",
+    "input_sha256": "7c5ed5655730de337704d3fc94628515cd7e3d8d32368871709bf56ac0397e7a",
+    "output": "Resources/ThemeFonts/Inter-Bold.ttf",
+    "output_sha256": "50d2e7434b31e6a1092030b07255ac68ff3a7764f2038d0e465454db464e1aae",
+    "postscript_name": "Inter-Bold",
+    "glyphs": 230,
+    "bytes": 67988
+  },
+  {
+    "input": "site/node_modules/@fontsource/instrument-serif/files/instrument-serif-latin-400-normal.woff",
+    "input_sha256": "6d0b022af858becb27f1a033de5d3c0604fc6f2191a7f3ff4dba5d3515e95051",
+    "output": "Resources/ThemeFonts/InstrumentSerif-Regular.ttf",
+    "output_sha256": "aaf1ca921710639b1e685b1a7c9cfdbc7daf0d1aa47818309bedd6ed6c3cd387",
+    "postscript_name": "InstrumentSerif-Regular",
+    "glyphs": 206,
+    "bytes": 35916
+  },
+  {
+    "input": "site/node_modules/@fontsource/instrument-serif/files/instrument-serif-latin-400-italic.woff",
+    "input_sha256": "9bc25f743ba6bf9091d37de465dedb2d2cb0c0614738bec1c551922fb2794d1d",
+    "output": "Resources/ThemeFonts/InstrumentSerif-Italic.ttf",
+    "output_sha256": "8564755a783a6b6e337c2f19c90fd4acf7bb94d62eaf51a47f7ada320ad78f6f",
+    "postscript_name": "InstrumentSerif-Italic",
+    "glyphs": 206,
+    "bytes": 35936
+  }
+]

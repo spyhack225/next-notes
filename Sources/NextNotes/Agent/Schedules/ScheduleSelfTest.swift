@@ -41,6 +41,7 @@ enum ScheduleSelfTest {
         failures += await toolFailures(root: root)
         failures += await routineFailures(root: root)
         failures += await p412Failures(root: root)
+        failures += await ScheduleReaderBudgetSelfTest.failures(root: root)
         failures += await triggerFailures(root: root)
         failures += await GoalSelfTest.failures(root: root.appendingPathComponent("goals"))
         failures += policyFailures()

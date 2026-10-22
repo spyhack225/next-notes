@@ -4,6 +4,64 @@ import Foundation
 /// The executor seam delegates to the real memory guards and a durable temporary store.
 @MainActor
 enum ExplicitMemorySaveSelfTest {
+    /// Actual direct shortcut callers; the executor delegates to the real guarded writer.
+    /// This is a diagnostic companion, not an alternate request/provenance producer.
+    static func preferenceDirectiveControls(store: NextMemory) async -> (checks: Int, failures: [String]) {
+        guard SelfTest.isRunning, SelfTest.requested == "--selftest-memory-review",
+              AgentSession.shared.fileURL == nil else {
+            return (0, ["preference directive: isolated conversation required"])
+        }
+        let agent = RealtimeAgent.shared
+        let oldProvider = agent.localModelProviderForTesting
+        let oldInputs = AgentCapabilityManifestBuilder.inputsOverrideForTesting
+        let oldFake = AgentToolExecutor.fakeForTesting
+        let oldNeedle = ToolLoopLiveEval.needleFirstForTesting
+        defer {
+            agent.localModelProviderForTesting = oldProvider
+            AgentCapabilityManifestBuilder.inputsOverrideForTesting = oldInputs
+            AgentToolExecutor.fakeForTesting = oldFake
+            ToolLoopLiveEval.needleFirstForTesting = oldNeedle
+        }
+        AgentCapabilityManifestBuilder.inputsOverrideForTesting = RealtimeAgentToolLoopSelfTest.allEnabledFixture()
+        ToolLoopLiveEval.needleFirstForTesting = false
+        var failures: [String] = []
+        var checks = 0
+        func check(_ name: String, _ good: Bool) {
+            checks += 1
+            if !good { failures.append("preference directive: " + name) }
+        }
+        let cases = [
+            ("Please remember I like jazz.", "The user likes jazz.", "Noted — you like jazz."),
+            ("Can you remember that I prefer short answers", "The user prefers short answers.", "Noted — you prefer short answers."),
+            ("Could you remember I like classical music", "The user likes classical music.", "Noted — you like classical music."),
+            ("Would you remember that I prefer concise replies", "The user prefers concise replies.", "Noted — you prefer concise replies."),
+        ]
+        for (index, item) in cases.enumerated() {
+            AgentSession.shared.startNewConversation()
+            var calls: [String] = []
+            var observedWords: [[String]] = []
+            AgentToolExecutor.fakeForTesting = { tool, arguments in
+                calls.append(tool.id)
+                observedWords.append(MemoryProvenance.current?.userText ?? [])
+                return try MemoryToolExecutor.run(tool, arguments: arguments,
+                    provenance: MemoryProvenance.current, store: store)
+            }
+            let provider = ExplicitSaveProvider(script: ["No change."])
+            agent.localModelProviderForTesting = provider
+            let result = await agent.handle(item.0, source: .text)
+            check("D\(index) actual direct execution", calls == ["memory.remember"] && provider.rounds == 0)
+            // The real runner binds current request plus the retained trusted user
+            // history. A fresh conversation includes this same current user row.
+            let expectedWords = [item.0] + AgentSession.shared.recentUserTexts()
+            check("D\(index) raw current provenance", observedWords == [expectedWords]
+                && observedWords.first?.first == item.0)
+            check("D\(index) actual stored preference", store.entries.contains { $0.text == item.1 }
+                && result.reply == item.2)
+            print("MEMORY_PREFERENCE_DIRECTIVE_TRACE case=\(index) calls=\(calls.count) rounds=\(provider.rounds) stored=\(store.entries.contains { $0.text == item.1 }) raw=\(observedWords == [expectedWords]) wordRows=\(observedWords.first?.count ?? 0) currentFirst=\(observedWords.first?.first == item.0)")
+        }
+        return (checks, failures)
+    }
+
     static func run() async -> [String] {
         var failures: [String] = []
         func check(_ name: String, _ condition: Bool) {

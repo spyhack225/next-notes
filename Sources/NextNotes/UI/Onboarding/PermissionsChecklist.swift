@@ -221,10 +221,14 @@ struct PermissionsChecklist: View {
         // Probed once rather than on the poll below: every answer here is a bit the kernel
         // already knows, except this one — which is a process spawn, and spawning `gws`
         // every two seconds to redraw a checkmark is not a trade worth making.
-        .task { await agent.refreshStatus() }
+        .task {
+            guard SelfTest.requested != "--selftest-settings-sheet" else { return }
+            await agent.refreshStatus()
+        }
         // There is no notification when a grant is toggled in System Settings, so a visible
         // checklist polls. It stops the moment the view goes away.
         .task {
+            guard SelfTest.requested != "--selftest-settings-sheet" else { return }
             while !Task.isCancelled {
                 refresh()
                 try? await Task.sleep(for: .seconds(DS.Motion.permissionPoll))
@@ -270,6 +274,7 @@ struct PermissionsChecklist: View {
     }
 
     private func refresh() {
+        guard SelfTest.requested != "--selftest-settings-sheet" else { return }
         hasAccessibility = Permissions.hasAccessibility
         hasMicrophone = Permissions.hasMicrophone
         hasCalendar = Permissions.hasCalendar
@@ -293,6 +298,7 @@ struct PermissionsChecklist: View {
     /// `false` cannot put a ✓ on screen, and leaving a stale `true` after a grant is
     /// revoked would be the one way this row could lie.
     private func probeMessagesAccess() {
+        guard SelfTest.requested != "--selftest-settings-sheet" else { return }
         guard !isProbingMessagesAccess else { return }
         isProbingMessagesAccess = true
         Task { @MainActor in

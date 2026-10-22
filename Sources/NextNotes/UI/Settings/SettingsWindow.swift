@@ -39,6 +39,8 @@ struct SettingsWindow: View {
             }
         }
         .tabViewStyle(.sidebarAdaptable)
+        .tint(DS.Color.accent)
+        .font(DS.Font.body)
         // Without this, `.sidebarAdaptable` reserves a "large title" band: the window
         // title floats alone on its own row, the sidebar toggle sits below the traffic
         // lights on a second row, and only then does the sidebar/content start. Inline
@@ -125,20 +127,24 @@ enum SettingsTab: String, CaseIterable, Identifiable, Hashable {
 
     /// The question the pane answers, which is a different thing from its name. The
     /// sidebar already says "Models"; the band says what you came here to settle.
-    var heading: String {
+    var heading: String { headingSpans.lead + " " + headingSpans.accent }
+
+    /// Explicit static spans are the single producer for the existing heading text.
+    /// No word splitting, localization parsing or dynamic title styling.
+    var headingSpans: (lead: String, accent: String) {
         switch self {
-        case .general: "The keys you hold"
-        case .dictation: "Which engine hears you"
-        case .comparison: "How the engines compare on one recording"
-        case .formatting: "How the text lands in each app"
-        case .meetings: "When a meeting records itself"
-        case .calendar: "Where meetings are read from"
-        case .workspace: "What Next Notes may do in your account"
-        case .agent: "How you wake it and what it may do"
-        case .computer: "Whether the agent can act on the Mac and the browser"
-        case .integrations: "Other apps it can reach"
-        case .models: "Local and cloud models"
-        case .permissions: "What macOS has agreed to"
+        case .general: ("The keys", "you hold")
+        case .dictation: ("Which engine", "hears you")
+        case .comparison: ("How the engines compare", "on one recording")
+        case .formatting: ("How the text lands", "in each app")
+        case .meetings: ("When a meeting", "records itself")
+        case .calendar: ("Where meetings", "are read from")
+        case .workspace: ("What Next Notes may do", "in your account")
+        case .agent: ("How you wake it", "and what it may do")
+        case .computer: ("Whether the agent can act", "on the Mac and the browser")
+        case .integrations: ("Other apps", "it can reach")
+        case .models: ("Local and", "cloud models")
+        case .permissions: ("What macOS", "has agreed to")
         }
     }
 

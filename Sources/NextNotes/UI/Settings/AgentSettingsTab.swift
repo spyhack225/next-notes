@@ -161,10 +161,14 @@ struct AgentSettingsTab: View {
                     .font(DS.Font.caption)
                     .foregroundStyle(DS.Color.textSecondary)
                 Spacer()
-                Button("Manage in Models") {
+                Button {
                     NavigationState.shared.selectedSettingsTab = .models
+                } label: {
+                    Text("Manage in Models")
+                        .underline()
+                        .foregroundStyle(DS.Color.accent)
                 }
-                .buttonStyle(.link)
+                .buttonStyle(.plain)
                 .font(DS.Font.caption)
             }
         } header: {

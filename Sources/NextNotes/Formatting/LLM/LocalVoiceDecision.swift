@@ -97,16 +97,30 @@ enum LocalVoiceSplitResponse {
         !SelfTest.isRunning || !CommandLine.arguments.contains("--voice-legacy-envelope")
     }
 
-    /// This classifier selects an operation from the current request and the
-    /// authoritative active-work status. Old conversational answers are not
-    /// outputs of this classifier and must not become routing demonstrations.
-    /// The answer and tool-worker lanes retain the complete bounded dialogue
-    /// to resolve subjects and follow-ups after this operation is selected.
+    /// The previous complete exchange is bounded, labelled context inside the
+    /// current prompt, never native transcript demonstrations. The coordinator
+    /// already filters repairs and scrubs old tool claims before this boundary.
+    /// The authoritative current work package and speech remain unchanged.
     static func routePlan(messages: [LLMChatMessage]) -> LocalVoicePrompt.Plan? {
         guard let context = LocalVoicePrompt.plan(system: routeInstructions,
             messages: messages.filter { $0.role != .system }) else { return nil }
-        return LocalVoicePrompt.Plan(instructions: context.instructions, history: [],
-            latestUser: context.latestUser)
+        guard let assistantIndex = context.history.lastIndex(where: { $0.role == .assistant }),
+              let person = context.history[..<assistantIndex].last(where: { $0.role == .user }) else {
+            return LocalVoicePrompt.Plan(instructions: context.instructions, history: [], latestUser: context.latestUser)
+        }
+        func quoted(_ text: String) -> String {
+            let oneLine = text.replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            return String(oneLine.prefix(300))
+        }
+        let previousPerson = quoted(person.content)
+        let previousAssistant = quoted(context.history[assistantIndex].content)
+        guard !previousPerson.isEmpty, !previousAssistant.isEmpty else {
+            return LocalVoicePrompt.Plan(instructions: context.instructions, history: [], latestUser: context.latestUser)
+        }
+        let previous = "Previous exchange (context only; route the latest speech):\n"
+            + "Person: " + previousPerson + "\nAssistant: " + previousAssistant + "\n\n"
+        return LocalVoicePrompt.Plan(instructions: context.instructions, history: [], latestUser: previous + context.latestUser)
     }
 
     /// Assembled through `AgentPromptContext`: routing carries no persona and no memory.
@@ -181,6 +195,10 @@ enum LocalVoiceSplitResponse {
         in one short sentence. Be warm and personal, never flattering, and offer the
         useful next step when it helps. Return plain spoken prose only: no XML,
         labels, markdown, tool calls, routing discussion, or promises to perform work.
+        Open with the answer itself. Do not greet, say sure or great question, repeat the
+        question, thank them for waiting or promise updates. Do not read identifiers, paths,
+        web addresses, codes or long numbers unless they ask for the exact value. Never call
+        unfinished work finished.
         """
 
     static let routeMaximumResponseTokens = 128

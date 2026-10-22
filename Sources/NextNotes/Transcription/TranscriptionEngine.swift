@@ -22,6 +22,10 @@ struct TranscriptionChunk: Sendable {
     let text: String
     /// `true` once the engine has committed everything it will emit for this session.
     let isFinal: Bool
+    /// The prefix of `text` the engine has frozen and will never revise — Parakeet's
+    /// pause-committed segments. nil for an engine that may revise any word, which is
+    /// how a consumer tells "stable by construction" from "stable so far".
+    var committedText: String? = nil
 }
 
 /// The seam that keeps Next Notes engine-agnostic.

@@ -405,6 +405,13 @@ final class DictationController {
     /// the mic is open and the utterance is being kept, even though no partial
     /// has arrived yet.
     private(set) var isCapturingAudio = false
+    /// Which half of the tail a `.finishing` hold is in. The tail already runs these as
+    /// separate legs (`runTail`: transcribe, then clean up); this only publishes which one
+    /// it is on, so the HUD and the island can say "Writing it out…" and then "Tidying
+    /// up…" over the words already heard instead of one opaque "Finishing…". Read only
+    /// while `state == .finishing`; every entry into `.finishing` resets it.
+    enum FinishingStage: Equatable { case transcribing, tidying }
+    private(set) var finishingStage: FinishingStage = .transcribing
     /// The session whose key was released while `.starting`. The start Task feeds
     /// that session's pre-roll into the engine and runs the normal tail for it
     /// instead of failing (D-02). Reset on every new hold.
@@ -453,7 +460,7 @@ final class DictationController {
         // key-down. Resolving it here rather than at injection time is the whole point:
         // formatting a list as Slack bullets and then dropping it into Mail is worse than
         // not formatting at all.
-        let target = OutputProfileStore.shared.capturedProfile
+        let target = referenceProfile ?? OutputProfileStore.shared.capturedProfile
         // Rules first, then the engine this hold already would have built — on every
         // transcript unless the user opted into skipping it while the Mac is busy. The
         // picker, the S1-takes-no-instructions rule, "grammar on means Apple alone" and the
@@ -496,7 +503,7 @@ final class DictationController {
             fixesGrammar: settings.cleanupFixesGrammar
         )
         guard settings.cleanupEnabled, engine == .apple || engine == .miniCPM else { return nil }
-        let rules: @Sendable (String) -> String = { RuleBasedFormatter().apply($0) }
+        let rules: @Sendable (String) -> String = { RuleBasedFormatter().apply($0, isFinal: false) }
         if let cleanupPieces {
             return IncrementalCleanupSession(semantic: cleanupPieces().preclean, rules: rules)
         }
@@ -510,7 +517,7 @@ final class DictationController {
                 engine,
                 preferences: settings.cleanupPreferences,
                 fixesGrammar: settings.cleanupFixesGrammar,
-                target: OutputProfileStore.shared.capturedProfile,
+                target: referenceProfile ?? OutputProfileStore.shared.capturedProfile,
                 context: .empty
             ),
             rules: rules
@@ -547,7 +554,7 @@ final class DictationController {
     private func tagFileReferences(in text: String, screen: ScreenContext) async -> String {
         guard tagsFileReferences, !screen.isEmpty else { return text }
         let style: FileReferences.Style
-        switch OutputProfileStore.shared.capturedProfile.pathReference {
+        switch (referenceProfile ?? OutputProfileStore.shared.capturedProfile).pathReference {
         case .plain: return text
         case .atRelative: style = .atPath
         case .backtickPath: style = .backtickPath
@@ -573,7 +580,7 @@ final class DictationController {
     /// too. The test seam opts out for the same reason it does above.
     private var tagsFileReferences: Bool {
         if formatter != nil { return false }
-        return OutputProfileStore.shared.capturedProfile.resolvesPaths
+        return (referenceProfile ?? OutputProfileStore.shared.capturedProfile).resolvesPaths
     }
 
     private var formatterUsesContext: Bool {
@@ -610,7 +617,12 @@ final class DictationController {
     private func screenNames(mentionedIn raw: String) async -> ScreenContext {
         guard formatterUsesContext || tagsFileReferences else { return .empty }
 
-        let harvested = await ScreenContextStore.shared.awaitCapture(within: .seconds(1))
+        let harvested: ScreenContext
+        if let contextCapture {
+            harvested = await contextCapture()
+        } else {
+            harvested = await ScreenContextStore.shared.awaitCapture(within: .seconds(1))
+        }
         guard !harvested.isEmpty else { return harvested }
 
         // Not `Task.detached`: `withBoundedWait` runs its closure in a task started from a
@@ -634,6 +646,8 @@ final class DictationController {
     /// itself is kept on the hold's counter (D-03), not returned from here.
     private var feedTask: Task<Void, Never>?
     private var audioContinuation: AsyncStream<AudioChunk>.Continuation?
+    /// The existing hub worker's accepted packets at key-up, owned by this hold.
+    private var captureDrainTask: Task<Bool, Never>?
 
     /// Controller-owned `.realtimeASR` lane for Apple (Parakeet holds its own
     /// inside `ParakeetEngine`). Nil when idle or when Parakeet is the engine.
@@ -730,7 +744,7 @@ final class DictationController {
     /// whether the model was prewarmed and whether its pass timed out.
     private var lastHoldCleanupRecord: CleanupRecord?
     private var lastHoldCleanupTimedOut = false
-    /// First cleanup-ready publication, not a physical paint receipt.
+    /// First cleanup-ready text published to the live view, not a physical paint receipt.
     private var firstFinishingPreviewAt: Date?
 
     /// What the current recording will do after transcription. Command Mode captures the
@@ -853,7 +867,10 @@ final class DictationController {
         // with one fake. Nil in production, which builds them from `Settings` — the
         // pre-clean's Stage B in `makeIncrementalCleanup()`, the key-up pass in
         // `activeFormatter(context:trace:head:)`.
-        cleanupPieces: (@MainActor @Sendable () -> CleanupPieces)? = nil
+        cleanupPieces: (@MainActor @Sendable () -> CleanupPieces)? = nil,
+        // The final context boundary, isolated in tests instead of inspecting a real app.
+        contextCapture: (@MainActor @Sendable () async -> ScreenContext)? = nil,
+        referenceProfile: OutputProfile? = nil
     ) {
         self.formatter = formatter
         self.commandProcessor = commandProcessor
@@ -868,12 +885,85 @@ final class DictationController {
         self.requestMicrophone = requestMicrophone
         self.speechDetector = speechDetector
         self.cleanupPieces = cleanupPieces
+        self.contextCapture = contextCapture
+        self.referenceProfile = referenceProfile
     }
 
     private let captureSelection: @MainActor () -> TextInjector.Selection?
     private let requestMicrophone: @MainActor () async -> Bool
     private let speechDetector: @Sendable (AVAudioPCMBuffer) -> Int
     private let cleanupPieces: (@MainActor @Sendable () -> CleanupPieces)?
+    private let contextCapture: (@MainActor @Sendable () async -> ScreenContext)?
+    private let referenceProfile: OutputProfile?
+
+    /// Actual pre-clean producer and finishing consumer, with no model or owner history.
+    static func incrementalClosureFailures() async -> [String] {
+        guard SelfTest.isRunning, Settings.shared.usesHarnessPreferencesForTesting else {
+            return ["incremental closure fixture requires isolated preferences"]
+        }
+        struct RecordingFormatter: TextFormatter {
+            let inputs: LockedBox<[String]>
+            func format(_ raw: String) async -> String {
+                inputs.value.append(raw)
+                return raw.uppercased()
+            }
+        }
+        let settings = Settings.shared
+        let old = (settings.cleanupEnabled, settings.cleanupEngine, settings.cleanupFixesGrammar)
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent("DictationClosure-\(UUID().uuidString)")
+        defer {
+            settings.cleanupEnabled = old.0
+            settings.cleanupEngine = old.1
+            settings.cleanupFixesGrammar = old.2
+            try? FileManager.default.removeItem(at: root)
+        }
+        settings.cleanupEnabled = true
+        settings.cleanupEngine = .apple
+        settings.cleanupFixesGrammar = true
+        let inputs = LockedBox<[String]>([])
+        let semantic = RecordingFormatter(inputs: inputs)
+        let trace = CleanupTrace()
+        let usage = UsageLog(directory: root)
+        var delivered = ""
+        let controller = DictationController(
+            insert: { text, _ in delivered = text; return .superseded },
+            record: { _ in }, log: .selfTest, outcome: { _ in }, usage: usage,
+            cleanupPieces: { CleanupPieces(preclean: semantic, pass: { head in
+                CleanupRouter(semantic: semantic, engine: .apple, trace: trace,
+                              head: head, pressureSample: { .idle })
+            }) },
+            contextCapture: { .empty }
+        )
+        guard let producer = controller.makeIncrementalCleanup() else {
+            return ["actual controller did not create its pre-clean producer"]
+        }
+        var failures: [String] = []
+        let first = "The first sentence is ready."
+        let open = first + " The next sentence is still"
+        await producer.notePartial(open, committed: open)
+        let early = await producer.head()
+        for task in early.cleaned { _ = await task.value }
+        if early.rawPrefix != first {
+            failures.append("actual pre-clean manufactures a full stop and closes an unfinished sentence")
+        }
+        let final = open + " being spoken."
+        await producer.notePartial(final, committed: final)
+        let head = await producer.head()
+        for task in head.cleaned { _ = await task.value }
+        controller.incrementalCleanup = producer
+        controller.transcript = final
+        controller.holdStarted = Date().addingTimeInterval(-30)
+        controller.releasedAt = Date()
+        controller.state = .finishing
+        controller.captureDrainTask = Task { true }
+        await controller.runTail(session: controller.session, audio: nil)
+        usage.flush()
+        if inputs.value != [first, "The next sentence is still being spoken."]
+            || trace.snapshot.precleanedGroups != 2 || delivered != final.uppercased() {
+            failures.append("actual finishing consumer repeats full cleanup after an unchanged committed prefix grows")
+        }
+        return failures
+    }
 
     private func showFinishingPreview(_ text: String, session: Int) {
         guard self.session == session, state == .finishing, !text.isEmpty else { return }
@@ -956,6 +1046,199 @@ final class DictationController {
         return failures
     }
 
+    /// Real-time file audio through the real recognizer, live consumer, pre-clean producer
+    /// and complete finishing path. Only context, history and external insertion are
+    /// isolated. This measures text ready for insertion, not an Accessibility delivery.
+    static func runPolishingReplay(
+        path: String, choice: CleanupEngineChoice, warmFirst: Bool,
+        maximumWER: Double? = nil, log: @MainActor (String) -> Void
+    ) async -> Bool {
+        guard SelfTest.isRunning, Settings.shared.usesHarnessPreferencesForTesting else { return false }
+        let rate = 16_000
+        guard let samples = try? AudioConversion.monoSamples(
+            fromFileAt: URL(fileURLWithPath: (path as NSString).expandingTildeInPath),
+            sampleRate: Double(rate)), samples.count > rate else {
+            log("DICTATION_POLISH_FAILED: could not read the audio fixture")
+            return false
+        }
+        let gold = SelfTest.value(after: "--dictation-gold").flatMap {
+            try? String(contentsOfFile: ($0 as NSString).expandingTildeInPath, encoding: .utf8)
+        }
+        if maximumWER != nil, gold == nil {
+            log("DICTATION_POLISH_FAILED: could not read the required independent transcript")
+            return false
+        }
+        let settings = Settings.shared
+        let old = (settings.cleanupEnabled, settings.cleanupEngine, settings.cleanupFixesGrammar,
+                   settings.cleanupFormatsLists, settings.cleanupSkipsModelWhenBusy,
+                   settings.cleanupTone, settings.cleanupContext)
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent("DictationPolish-\(UUID().uuidString)")
+        defer {
+            settings.cleanupEnabled = old.0; settings.cleanupEngine = old.1
+            settings.cleanupFixesGrammar = old.2; settings.cleanupFormatsLists = old.3
+            settings.cleanupSkipsModelWhenBusy = old.4
+            settings.cleanupTone = old.5; settings.cleanupContext = old.6
+            try? FileManager.default.removeItem(at: root)
+        }
+        settings.cleanupEnabled = true; settings.cleanupEngine = choice
+        settings.cleanupFixesGrammar = true; settings.cleanupFormatsLists = true
+        settings.cleanupSkipsModelWhenBusy = false
+        settings.cleanupTone = .balanced; settings.cleanupContext = .general
+        if warmFirst, choice == .miniCPM {
+            let began = Date()
+            let ready = await MiniCPMModels.preload()
+            log(String(format: "DICTATION_POLISH_PREPARE: resident=%@ seconds=%.3f",
+                       String(ready), Date().timeIntervalSince(began)))
+        }
+        let profile = OutputProfile(bundleID: "fixture.dictation", displayName: "the fixture",
+                                    capabilities: [.markdown, .bullets, .numbered, .code])
+        var ok = true
+        for round in 1...2 {
+            var delivered = ""
+            var run: DictationRun?
+            var firstAt: Date?
+            var finalAt: Date?
+            var finalASR = ""
+            let usage = UsageLog(directory: root.appendingPathComponent("round-\(round)"))
+            let controller = DictationController(
+                insert: { text, _ in delivered = text; return .superseded },
+                record: { run = $0 }, log: .selfTest, outcome: { _ in }, usage: usage,
+                contextCapture: { .empty }, referenceProfile: profile
+            )
+            controller.stageCleanupSessions()
+            let engine = ParakeetEngine()
+            let stream: AsyncThrowingStream<TranscriptionChunk, Error>
+            let startupBegan = Date()
+            do { stream = try await engine.start() } catch {
+                log("DICTATION_POLISH_FAILED: recognition could not start")
+                return false
+            }
+            guard let format = await engine.preferredInputFormat() else { return false }
+            let startupMs = Date().timeIntervalSince(startupBegan) * 1000
+            controller.engine = engine
+            controller.incrementalCleanup = controller.makeIncrementalCleanup()
+            let producer = controller.incrementalCleanup
+            controller.state = .listening
+            let began = Date()
+            controller.holdStarted = began
+            controller.consumeTask = Task { @MainActor in
+                do {
+                    for try await chunk in stream {
+                        if !chunk.text.isEmpty, firstAt == nil { firstAt = Date() }
+                        if chunk.isFinal { finalAt = Date(); finalASR = chunk.text }
+                        await controller.acceptTranscriptChunk(chunk, session: controller.session)
+                    }
+                } catch { ok = false }
+            }
+            let clock = ContinuousClock()
+            let start = clock.now
+            var index = 0
+            while index < samples.count {
+                let end = min(index + rate / 10, samples.count)
+                // Real audio time, not a fast batch that hides whether work fits in speech.
+                try? await clock.sleep(until: start + .seconds(Double(end) / Double(rate)))
+                guard let buffer = AVAudioPCMBuffer(pcmFormat: format,
+                    frameCapacity: AVAudioFrameCount(end - index)),
+                    let channel = buffer.floatChannelData?.pointee else { return false }
+                buffer.frameLength = AVAudioFrameCount(end - index)
+                for offset in 0..<(end - index) { channel[offset] = samples[index + offset] }
+                await engine.feed(AudioChunk(buffer: buffer))
+                index = end
+            }
+            let released = Date()
+            let visibleWords = Self.wordCount(controller.transcript)
+            controller.releasedAt = released
+            controller.state = .finishing
+            controller.captureDrainTask = Task { true }
+            await controller.runTail(session: controller.session, audio: nil)
+            let readyMs = Date().timeIntervalSince(released) * 1000
+            let record = run?.cleanup
+            log(String(format: "DICTATION_POLISH_PREVIEW: round=%d cleanupReady=%.0fms finalReady=%.0fms publicationOnly=true",
+                round, controller.firstFinishingPreviewAt.map { $0.timeIntervalSince(released) * 1000 } ?? -1,
+                readyMs))
+            log(String(format: "DICTATION_POLISH: round=%d engine=%@ hold=%.2fs first=%.0fms visibleWords=%d ASRfinal=%.0fms ready=%.0fms finalWords=%d head=%d answeredHead=%d fallback=%@ layout=%.3fs cached=%d model=%.3fs",
+                round, choice.rawValue, released.timeIntervalSince(began),
+                firstAt.map { $0.timeIntervalSince(began) * 1000 } ?? -1, visibleWords,
+                finalAt.map { $0.timeIntervalSince(released) * 1000 } ?? -1,
+                readyMs, Self.wordCount(delivered), record?.precleanedGroups ?? 0,
+                record?.precleanAnsweredGroups ?? -1, record?.precleanFallback ?? "none", record?.structurePlanSeconds ?? 0,
+                record?.cachedTokens ?? 0, record?.modelSeconds ?? 0))
+            log(String(format: "DICTATION_POLISH_TARGET: round=%d startup=%.0fms polishedUnder2s=%@ liveAtRelease=%@ layoutOutcome=%@",
+                       round, startupMs, String(readyMs <= 2_000), String(visibleWords > 0),
+                       record?.structurePlanRejected ?? "accepted or not requested"))
+            if let gold {
+                let rawWER = DictationSegmentsSelfTest.wordErrorRate(reference: gold, hypothesis: finalASR)
+                let finalWER = DictationSegmentsSelfTest.wordErrorRate(reference: gold, hypothesis: delivered)
+                log(String(format: "DICTATION_POLISH_WER: round=%d raw=%.3f final=%.3f",
+                    round, rawWER, finalWER))
+                if let maximumWER, rawWER > maximumWER || finalWER > maximumWER {
+                    log("DICTATION_POLISH_WRONG: round=\(round) raw or final independent WER exceeds required \(maximumWER)")
+                    ok = false
+                }
+            }
+            if let output = SelfTest.value(after: "--dictation-asr-output") {
+                try? finalASR.write(toFile: output + ".\(round).txt", atomically: true, encoding: .utf8)
+            }
+            if let output = SelfTest.value(after: "--dictation-polish-output") {
+                try? delivered.write(toFile: output + ".\(round).txt", atomically: true, encoding: .utf8)
+            }
+            if delivered.isEmpty || firstAt == nil || finalAt == nil { ok = false }
+            // Join the same owned groups after measuring; no pre-clean survives the fixture.
+            if let producer {
+                let head = await producer.head()
+                for task in head.cleaned { _ = await task.value }
+            }
+            usage.flush()
+        }
+        log(ok ? "DICTATION_POLISH_OK: full finishing path reached isolated insertion twice"
+               : "DICTATION_POLISH_FAILED: incomplete live or final output")
+        return ok
+    }
+
+    /// Actual finishing path with an already recognized sentence; tests context admission,
+    /// narrowing, dictionary, tagging, history and delivery without a microphone or model.
+    static func fileTaggingLatencyFailures() async -> [String] {
+        guard SelfTest.isRunning, Settings.shared.usesHarnessPreferencesForTesting else {
+            return ["file-tag fixture requires isolated self-test preferences"]
+        }
+        let settings = Settings.shared
+        let enabled = settings.cleanupEnabled
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent("DictationTags-\(UUID().uuidString)")
+        defer {
+            settings.cleanupEnabled = enabled
+            try? FileManager.default.removeItem(at: root)
+        }
+        settings.cleanupEnabled = false
+        let profile = OutputProfile(bundleID: "com.todesktop.230313mzl4w4u92", displayName: "Cursor",
+                                    pathReference: .atRelative)
+        let context = ScreenContext(
+            bundleID: "com.todesktop.230313mzl4w4u92", appName: "Cursor",
+            candidates: [CandidateName(text: "login.ts", path: "src/login.ts", kind: .activeTab, rank: 0)],
+            projectRoot: nil, truncation: [], elapsed: .zero
+        )
+        var captures = 0
+        var recorded = ""
+        var inserted = ""
+        let usage = UsageLog(directory: root)
+        let controller = DictationController(
+            // Stops at the insertion boundary; no shared target cleanup or external effect.
+            insert: { text, _ in inserted = text; return .superseded },
+            record: { recorded = $0.text }, log: .selfTest, outcome: { _ in },
+            usage: usage,
+            contextCapture: { captures += 1; return context }, referenceProfile: profile
+        )
+        controller.transcript = "Please check login.ts."
+        controller.holdStarted = Date().addingTimeInterval(-1)
+        controller.releasedAt = Date()
+        controller.state = .finishing
+        controller.captureDrainTask = Task { true }
+        await controller.runTail(session: controller.session, audio: nil)
+        usage.flush()
+        if captures != 1 || !recorded.contains("@src/login.ts") || inserted != recorded {
+            return ["polishing off skips captured context and loses file tagging in the actual finishing path"]
+        }
+        return []
+    }
 
     /// The last hold that ended with nothing typed, with its audio (D-03).
     ///
@@ -1070,6 +1353,11 @@ final class DictationController {
     func stopButtonRecording() {
         WisprTrigger.release()
         endDictation()
+    }
+
+    /// The capture boundary used by both key-up paths; accepts an isolated hub in tests.
+    static func stopDictationCapture(on hub: AudioCaptureHub = .shared) -> Task<Bool, Never> {
+        hub.stopAndDrain(.dictation)
     }
 
     // MARK: - Command Mode
@@ -1217,6 +1505,7 @@ final class DictationController {
         dropIncrementalCleanup()
         firstPartialTrace = nil
         keyDownToCaptureTrace = nil
+        finishingStage = .transcribing
         state = .finishing
 
         Task { @MainActor in
@@ -1305,11 +1594,7 @@ final class DictationController {
                     do {
                         for try await chunk in chunkStream {
                             guard self.session == session else { return }
-                            if !chunk.text.isEmpty, let trace = self.firstPartialTrace {
-                                trace.end()
-                                self.firstPartialTrace = nil
-                            }
-                            self.transcript = chunk.text
+                            await self.acceptTranscriptChunk(chunk, session: session)
                         }
                     } catch {
                         guard self.session == session else { return }
@@ -1332,6 +1617,74 @@ final class DictationController {
         a.commonFormat == b.commonFormat
             && abs(a.sampleRate - b.sampleRate) < 0.5
             && a.channelCount == b.channelCount
+    }
+
+    private func stageCleanupSessions() {
+        // Wake the Apple cleanup model while the key is still down: a session staged here
+        // and reused by `FoundationModelFormatter.clean` measured 0.94s versus 4.69s cold
+        // (see `CleanupSessionWarmer`). Skipped for Command Mode, which never reaches this
+        // formatter at all, and for a hold whose settings would not land on Apple's model
+        // regardless — cleanup off, or S1-mini with grammar repair off. Built with `.empty`
+        // screen context because the real context is narrowed against the transcript, which
+        // does not exist yet; `CleanupSessionWarmer.take(instructions:)` simply will not
+        // hand out a session staged for the wrong prompt, so a guess that misses costs
+        // nothing beyond the wasted prewarm. Fired on its own task — never awaited here —
+        // so staging can never delay the capture this function starts below.
+        //
+        // Also staged when MiniCPM is the engine: Apple is its guard and fallback, and the
+        // fallback is exactly the call that answers when MiniCPM is not resident or the
+        // lane is busy — a cold Apple call there measured 6–9 s.
+        let stagedEngine = CleanupRouter.preferredEngine(
+            choice: Settings.shared.cleanupEngine,
+            fixesGrammar: Settings.shared.cleanupFixesGrammar
+        )
+        if Settings.shared.cleanupEnabled,
+           stagedEngine == .apple
+               || (stagedEngine == .miniCPM && FoundationModelFormatter.isAvailable) {
+            let instructions = CleanupInstructions.system(
+                for: Settings.shared.cleanupPreferences,
+                fixesGrammar: Settings.shared.cleanupFixesGrammar,
+                target: referenceProfile ?? OutputProfileStore.shared.capturedProfile
+            )
+            // The layout pass is a second call to the same model with different
+            // instructions, and it is the one that was timing out cold. Staged on the same
+            // hold, and only when formatting is actually switched on.
+            let layout = Settings.shared.cleanupPreferences.formatsLists
+                ? StructurePlanPrompt.system
+                : nil
+            Task {
+                await CleanupSessionWarmer.shared.stage(instructions: instructions)
+                if let layout { await CleanupSessionWarmer.shared.stage(instructions: layout) }
+            }
+        }
+        // MiniCPM's weights are a mapped file, so memory pressure drops them while the model
+        // still reads as loaded, and the release-time residency gate then answers with Apple.
+        // Reading them back now overlaps the 1.5 GB page-in (~1.5 s from the SSD) with the
+        // person still speaking. Off the main thread, coalesced, and refused under pressure
+        // by `pageInInBackground` itself; a file already in memory costs one 0.5 ms sample.
+        if Settings.shared.cleanupEnabled, stagedEngine == .miniCPM {
+            DispatchQueue.global(qos: .utility).async {
+                let file = MiniCPMModels.fileURL
+                if (WeightPageResidency.fraction(of: file) ?? 1) < 0.9 {
+                    WeightPageResidency.pageInInBackground(file)
+                }
+            }
+        }
+    }
+
+    /// One producer for both the live stream and the file replay acceptance fixture.
+    private func acceptTranscriptChunk(_ chunk: TranscriptionChunk, session: Int) async {
+        guard self.session == session else { return }
+        if !chunk.text.isEmpty, let trace = firstPartialTrace {
+            trace.end()
+            firstPartialTrace = nil
+        }
+        transcript = chunk.text
+        if !chunk.isFinal, let producer = incrementalCleanup {
+            await LatencyCorrelation.$current.withValue(LatencyCorrelation(workID: holdID)) {
+                await producer.notePartial(chunk.text, committed: chunk.committedText)
+            }
+        }
     }
 
     private func beginDictation(intent: RecordingIntent) {
@@ -1389,37 +1742,7 @@ final class DictationController {
             processID: contextOrigin?.app.processIdentifier,
             originBundleID: contextOrigin?.app.bundleIdentifier
         )
-        // Wake the Apple cleanup model while the key is still down: a session staged here
-        // and reused by `FoundationModelFormatter.clean` measured 0.94s versus 4.69s cold
-        // (see `CleanupSessionWarmer`). Skipped for Command Mode, which never reaches this
-        // formatter at all, and for a hold whose settings would not land on Apple's model
-        // regardless — cleanup off, or S1-mini with grammar repair off. Built with `.empty`
-        // screen context because the real context is narrowed against the transcript, which
-        // does not exist yet; `CleanupSessionWarmer.take(instructions:)` simply will not
-        // hand out a session staged for the wrong prompt, so a guess that misses costs
-        // nothing beyond the wasted prewarm. Fired on its own task — never awaited here —
-        // so staging can never delay the capture this function starts below.
-        if case .dictation = intent, Settings.shared.cleanupEnabled,
-           CleanupRouter.preferredEngine(
-               choice: Settings.shared.cleanupEngine,
-               fixesGrammar: Settings.shared.cleanupFixesGrammar
-           ) == .apple {
-            let instructions = CleanupInstructions.system(
-                for: Settings.shared.cleanupPreferences,
-                fixesGrammar: Settings.shared.cleanupFixesGrammar,
-                target: OutputProfileStore.shared.capturedProfile
-            )
-            // The layout pass is a second call to the same model with different
-            // instructions, and it is the one that was timing out cold. Staged on the same
-            // hold, and only when formatting is actually switched on.
-            let layout = Settings.shared.cleanupPreferences.formatsLists
-                ? StructurePlanPrompt.system
-                : nil
-            Task {
-                await CleanupSessionWarmer.shared.stage(instructions: instructions)
-                if let layout { await CleanupSessionWarmer.shared.stage(instructions: layout) }
-            }
-        }
+        if intent.kind == .dictation { stageCleanupSessions() }
         state = .starting
         // An embedder a search loaded is not left beside the dictation for its idle timer.
         Task { await EmbeddingRuntime.shared.stopNow() }
@@ -1437,8 +1760,8 @@ final class DictationController {
         lastHoldWords = 0
         lastHoldCleanupRecord = nil
         lastHoldCleanupTimedOut = false
-        firstFinishingPreviewAt = nil
         keyDownToCaptureSeconds = nil
+        firstFinishingPreviewAt = nil
         releasedDuringStartup = nil
         dropIncrementalCleanup()
         keyDownToCaptureTrace = LatencyTrace.start(.dictationKeyDownToCapture)
@@ -1553,7 +1876,10 @@ final class DictationController {
                             }
                         },
                         onLevel: { [weak self] level in
-                            Task { @MainActor in self?.updateLevel(level) }
+                            Task { @MainActor in
+                                guard let self, self.session == session, self.isCapturingAudio else { return }
+                                self.updateLevel(level)
+                            }
                         },
                         // Counted per hold for D-01b's `droppedHubBuffers` (P0-20c's
                         // rows landed without it); the log line the default callback
@@ -1570,6 +1896,13 @@ final class DictationController {
 
                 self.audioContinuation = audioContinuation
                 self.isCapturingAudio = true
+                if releasedDuringStartup == session {
+                    // Release can beat the microphone permission/format awaits. That
+                    // late subscription still belongs to the released hold, and must
+                    // not keep recording throughout the model's startup.
+                    self.captureDrainTask = Self.stopDictationCapture()
+                    self.isCapturingAudio = false
+                }
                 if let holdStarted {
                     self.keyDownToCaptureSeconds = Date().timeIntervalSince(holdStarted)
                 }
@@ -1659,18 +1992,7 @@ final class DictationController {
                     do {
                         for try await chunk in chunkStream {
                             guard self.session == session else { return }
-                            if !chunk.text.isEmpty, let trace = self.firstPartialTrace {
-                                trace.end()
-                                self.firstPartialTrace = nil
-                            }
-                            self.transcript = chunk.text
-                            // D-12: the final chunk is not a partial — the tail is what
-                            // reads it, and the tail is what matches the pre-cleans against
-                            // it. One hop to the session's own actor, where the rules pass
-                            // and the grouping run; nothing here waits on the model.
-                            if !chunk.isFinal, let session = self.incrementalCleanup {
-                                await session.notePartial(chunk.text)
-                            }
+                            await self.acceptTranscriptChunk(chunk, session: session)
                         }
                     } catch {
                         guard self.session == session else { return }
@@ -1722,10 +2044,9 @@ final class DictationController {
         // the normal tail as soon as the engine is up.
         if case .starting = state {
             releasedDuringStartup = session
-            AudioCaptureHub.shared.unsubscribe(.dictation)
+            captureDrainTask = Self.stopDictationCapture()
             isCapturingAudio = false
             level = 0
-            audioContinuation?.finish()
             if recordingIntent.kind == .command { showCommandMode(.rewriting) }
             let keyUp = Date()
             releasedAt = keyUp
@@ -1736,10 +2057,12 @@ final class DictationController {
             // Key-up before any partial: close the open speech→partial span rather than drop it.
             firstPartialTrace?.end(note: "key-up")
             firstPartialTrace = nil
+            finishingStage = .transcribing
             state = .finishing
             return
         }
 
+        finishingStage = .transcribing
         state = .finishing
         // The Command Mode card stops inviting an instruction the moment the key comes up;
         // everything after this point is the model working on what was already said.
@@ -1753,7 +2076,7 @@ final class DictationController {
         // `fail` and `cancelDictation` are what clear it, and each of them runs at the end
         // of a hold rather than at the start of its tail.
         let audio = audioCounter
-        AudioCaptureHub.shared.unsubscribe(.dictation)
+        captureDrainTask = Self.stopDictationCapture()
         isCapturingAudio = false
         level = 0
         let keyUp = Date()
@@ -1784,12 +2107,18 @@ final class DictationController {
     /// controller (D-03): the tail is what decides whether an empty transcript had
     /// speech in it, and a tail that outlived its hold must not ask a newer one.
     private func runTail(session: Int, audio: DictationAudioCounter?) async {
+        guard self.session == session else { return }
         // Drain every captured buffer into the engine before asking it to finalize,
         // or the tail of the utterance gets dropped.
         let audioContinuation = self.audioContinuation
         let feedTask = self.feedTask
         let engine = self.engine
         let consumeTask = self.consumeTask
+        // A very early release can precede subscribe. Stop that late subscription here
+        // too, then finish the stream only after its accepted packets have been yielded.
+        let captureDrain = captureDrainTask ?? Self.stopDictationCapture()
+        self.captureDrainTask = nil
+        isCapturingAudio = false
         // Which speech engine actually ran this hold, for the usage row. Read from the
         // engine rather than from the setting: a test injects its own, and the row should
         // name what ran rather than what the picker says today.
@@ -1803,6 +2132,16 @@ final class DictationController {
         // One id for the whole run: minted at key-down (`holdID`, D-01b) so `runs.jsonl`,
         // the P0-20c rows and the hold row share one correlation id.
         let runID = holdID
+        let captureDrained = await captureDrain.value
+        guard self.session == session else {
+            audioContinuation?.finish()
+            feedTask?.cancel()
+            Task { await engine?.finish() }
+            return
+        }
+        if !captureDrained {
+            log.speechError("dictation capture did not drain its accepted audio before the deadline")
+        }
         audioContinuation?.finish()
         _ = await withBoundedWait(limits.drain) { () -> Bool in
             await feedTask?.value
@@ -1918,10 +2257,14 @@ final class DictationController {
         // Filled in by the pass itself and filed on the run below, so the Dictation
         // history can say what happened to these words rather than only what came out.
         var cleanupRecord: CleanupRecord?
-        if Settings.shared.cleanupEnabled {
+        // Tags require the same captured names even when semantic polishing is off.
+        if Settings.shared.cleanupEnabled || tagsFileReferences {
             screen = await screenNames(mentionedIn: raw)
             narrowedAt = Date().timeIntervalSince(began)
             guard self.session == session else { return }
+        }
+        if Settings.shared.cleanupEnabled {
+            finishingStage = .tidying
             let trace = CleanupTrace()
             // D-12: what this hold tidied while the key was down. Taken here, after the
             // session guard above, so a superseded hold's work can never reach a tail that
@@ -1945,7 +2288,10 @@ final class DictationController {
                 }
             }
             let finalFormatter = formatter
-            if let formatted = await withBoundedWait(limits.cleanup, { await finalFormatter.format(raw) }) {
+            let formatted = await LatencyCorrelation.$current.withValue(LatencyCorrelation(workID: runID)) {
+                await withBoundedWait(limits.cleanup) { await finalFormatter.format(raw) }
+            }
+            if let formatted {
                 cleaned = formatted
             } else {
                 cleanupTimedOut = true
@@ -1956,6 +2302,7 @@ final class DictationController {
                 trace.noteOutput(raw, seconds: Date().timeIntervalSince(began) - narrowedAt)
                 log.speechError("cleanup did not finish within \(String(describing: self.limits.cleanup)) — using the raw transcript")
             }
+            // A queued progress callback cannot replace the completed or tagged text.
             progressActive.value = false
             showFinishingPreview(cleaned, session: session)
             cleanupRecord = trace.snapshot
@@ -2015,6 +2362,7 @@ final class DictationController {
         let heldSeconds = holdStarted.flatMap { started in
             releasedAt.map { $0.timeIntervalSince(started) }
         }
+        let keyUp = releasedAt
         recordRun(text: output, corrections: corrections, cleanup: cleanupRecord, runID: runID)
 
         let injectBegan = Date()
@@ -2046,10 +2394,10 @@ final class DictationController {
             }
         }
         LatencyTrace.record(.dictationCleanupToInjection, seconds: injectSeconds)
-        if let releasedAt {
+        if let keyUp {
             LatencyTrace.record(
                 .dictationKeyUpToInjection,
-                seconds: Date().timeIntervalSince(releasedAt)
+                seconds: Date().timeIntervalSince(keyUp)
             )
         }
 
@@ -2117,6 +2465,7 @@ final class DictationController {
     /// usage row (D-01b) first — the counter and the stashed tail numbers are read
     /// here, before anything below clears them.
     private func finishIdle(result: DictationHoldResult) {
+        captureDrainTask = nil
         reportOutcome(result)
         AudioCaptureHub.shared.unsubscribe(.dictation)
         isCapturingAudio = false
@@ -2284,6 +2633,7 @@ final class DictationController {
     /// start-up never cuts the next hold's microphone (D-02 case d). Production
     /// callers are `deactivate()` and the Command Mode cancel path below.
     func cancelDictation() {
+        captureDrainTask = nil
         // The hold's one outcome row, filed before the slots are cleared (D-01b). A
         // cancel with no hold in flight finds `outcomeReported` still true and files
         // nothing; a cancel mid-tail wins over the tail's own finish, whose report the
@@ -2457,6 +2807,7 @@ final class DictationController {
         keepsAudio: Bool = true,
         result: DictationHoldResult
     ) {
+        captureDrainTask = nil
         // Plain `message`, not an interpolated `OSLogMessage`: the seam takes a `String`,
         // and the production closure is the one that applies the redaction.
         log.appError(message)

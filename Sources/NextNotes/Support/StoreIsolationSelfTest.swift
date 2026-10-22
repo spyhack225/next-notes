@@ -41,12 +41,15 @@ enum StoreIsolationSelfTest {
 
         let before = SelfTestStoreGuard.take()
 
+        SelfTest.diagnostic("STORE_ISOLATION_STAGE: model-roles started")
         let roleFailures = await ModelRoleSelfTest.run()
         for failure in roleFailures {
             SelfTest.diagnostic("STORE_ISOLATION_FLOW model-roles: \(failure)")
         }
 
+        SelfTest.diagnostic("STORE_ISOLATION_STAGE: model-roles finished; tool-loop started")
         _ = await RealtimeAgentToolLoopSelfTest.run()
+        SelfTest.diagnostic("STORE_ISOLATION_STAGE: tool-loop finished; memory-tools started")
 
         let provenance = MemoryProvenance(
             origin: .userConversation,
@@ -76,13 +79,17 @@ enum StoreIsolationSelfTest {
         }
 
         let agent = RealtimeAgent.shared
+        let previousProvider = agent.localModelProviderForTesting
+        let previousDenial = agent.denyUnattendedApprovalsForTesting
         agent.localModelProviderForTesting = StoreIsolationTestProvider()
         agent.denyUnattendedApprovalsForTesting = true
         defer {
-            agent.localModelProviderForTesting = nil
-            agent.denyUnattendedApprovalsForTesting = false
+            agent.localModelProviderForTesting = previousProvider
+            agent.denyUnattendedApprovalsForTesting = previousDenial
         }
+        SelfTest.diagnostic("STORE_ISOLATION_STAGE: memory-tools finished; typed-turn started")
         _ = await agent.handle("hello", source: .text)
+        SelfTest.diagnostic("STORE_ISOLATION_STAGE: typed-turn finished")
 
         if let change = SelfTestStoreGuard.diff(before, SelfTestStoreGuard.take()).first {
             return "STORE_ISOLATION_FAILED: \(change)"

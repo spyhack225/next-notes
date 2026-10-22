@@ -152,7 +152,10 @@ final class KnowledgeAskSession {
             \(providerSeconds, format: .fixed(precision: 3))s
             """)
         guard !Task.isCancelled else { return }
-        let asker = KnowledgeAsker(context: context, model: ProviderKnowledgeAnswerModel(provider: provider))
+        let readerWindow = await AgentAnswerBudget.readerContextTokens(for: provider)
+        let asker = KnowledgeAsker(context: context,
+            model: ProviderKnowledgeAnswerModel(provider: provider, contextTokens: readerWindow),
+            contextTokens: readerWindow)
         do {
             // The graph answers a cloud model only with its own consent (`KnowledgeGraphScope`).
             let result = try await KnowledgeGraphScope.$reader.withValue(provider.id) {
@@ -344,7 +347,7 @@ struct AskView: View {
                 Text(session.asked)
                     .font(DS.Font.headline)
                 ForEach(Array(answer.claims.enumerated()), id: \.offset) { _, claim in
-                    ClaimRow(claim: claim, answer: answer, open: open)
+                    KnowledgeClaimRow(claim: claim, citations: answer.retrieved, open: open)
                 }
                 if answer.claims.isEmpty {
                     Text(KnowledgeAnswer.notFound)
@@ -435,9 +438,9 @@ struct AskView: View {
 }
 
 /// One sentence and its source chips.
-private struct ClaimRow: View {
+struct KnowledgeClaimRow: View {
     let claim: KnowledgeClaim
-    let answer: KnowledgeAnswer
+    let citations: [KnowledgeCitation]
     let open: (KnowledgeCitation) -> Void
 
     var body: some View {
@@ -450,7 +453,7 @@ private struct ClaimRow: View {
                         .font(DS.Font.chip)
                         .foregroundStyle(DS.Color.warning)
                 }
-                ForEach(claim.chunkIDs.compactMap(answer.citation), id: \.chunkID) { citation in
+                ForEach(claim.chunkIDs.compactMap { id in citations.first { $0.chunkID == id } }, id: \.chunkID) { citation in
                     Button { open(citation) } label: {
                         Label(citation.label, systemImage: citation.startTime == nil ? "doc.text" : "waveform")
                             .font(DS.Font.chip)

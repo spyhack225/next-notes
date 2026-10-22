@@ -1,5 +1,8 @@
 EXEC     := NextNotes
-CONFIG   := debug
+## The everyday installed app must use optimized ASR and text matching. Debug's
+## extra model-pass and name-scoring cost lands directly on the dictation tail.
+## Developers can still opt into `make app CONFIG=debug`.
+CONFIG   ?= release
 
 ## Build products live OUTSIDE this directory, for the same reason the .app does.
 ##
@@ -160,6 +163,9 @@ app: build
 	@# Notion-style avatar parts (Felix Wong / Noto, CC0). See Resources/NotionAvatar/ATTRIBUTION.md.
 	@cp -R Resources/NotionAvatar "$(CONTENTS)/Resources/"
 	@cp -R Resources/MeetingEditor "$(CONTENTS)/Resources/"
+	@# Open Peeps companion figures (Pablo Stanley, CC0). See Resources/OpenPeeps/ATTRIBUTION.md.
+	@cp -R Resources/OpenPeeps "$(CONTENTS)/Resources/"
+	@cp -R Resources/ThemeFonts "$(CONTENTS)/Resources/"
 	@# The knowledge graph's ontology. Ontology.swift carries a compiled-in copy for bare
 	@# binaries, and --selftest-extract fails if the two drift.
 	@cp Resources/knowledge-ontology.yaml "$(CONTENTS)/Resources/"
@@ -255,7 +261,7 @@ acceptance:
 
 ## Release configuration of the same bundle `make app` builds. Stamps the version from
 ## the current git tag (or 0.1.0 if there isn't one). Does not pass `-DPAID_BUILD` —
-## that flag is the paid-product boundary in the local roadmap/PAID-RELEASE.md plan, and a source-built
+## that flag is the paid-product boundary in the local roadmap/todo/PAID-RELEASE.md plan, and a source-built
 ## or GitHub-hosted DMG is still the free app.
 ##
 ## A Developer ID switches on a secure timestamp and drops `disable-library-validation`,
@@ -316,3 +322,14 @@ signing-cert:
 
 clean:
 	@rm -rf .build "$(STAGE)" "$(SCRATCH)"
+
+## Local model bake-off (PL-02): cycles every installed candidate through the existing
+## self-tests, one at a time, and writes Tests/Reports/floor/<date>-bakeoff.{md,jsonl}.
+## Guardrails are in shared/model-guardrails.json. Never changes saved model choices; it
+## needs the agent-relay gate and a machine `heavy` claim (or --allow-contended).
+##   make bench-models BENCH_ARGS='--dry-run'
+##   make bench-models BENCH_ARGS='--quick --models minicpm,qwen3,apple --roles agent,cleanup'
+BENCH_ARGS ?=
+.PHONY: bench-models
+bench-models:
+	@python3 -B Scripts/model-bench.py $(BENCH_ARGS)

@@ -360,6 +360,8 @@ enum AgentToolExecutor {
                         }
                     }
                     if SelfTest.isRunning, let fire = fireOverrideForTesting {
+                        journal?.observeToolInvocation?(prepared.id, tool.id, true)
+                        defer { journal?.observeToolInvocation?(prepared.id, tool.id, false) }
                         let result = try await fire(tool, prepared.executionPlan.arguments)
                         backingReturned = true
                         return result
@@ -378,9 +380,14 @@ enum AgentToolExecutor {
                     ToolExecutionTimer.current?.begin()
                     defer { ToolExecutionTimer.current?.end() }
                     let presentation = AgentActivityStore.shared.presentationBinding(taskID: taskID)
-                    let result = try await AgentWorkPresentationScope.$binding.withValue(presentation) {
-                        try await perform(tool, arguments: prepared.executionPlan.arguments,
-                                          preparedActionID: prepared.id, taskID: taskID, authority: actionAuthority)
+                    let result: AgentToolResult
+                    do {
+                        journal?.observeToolInvocation?(prepared.id, tool.id, true)
+                        defer { journal?.observeToolInvocation?(prepared.id, tool.id, false) }
+                        result = try await AgentWorkPresentationScope.$binding.withValue(presentation) {
+                            try await perform(tool, arguments: prepared.executionPlan.arguments,
+                                              preparedActionID: prepared.id, taskID: taskID, authority: actionAuthority)
+                        }
                     }
                     backingReturned = true
                     // P1-5: a run's artifacts — the reference and the link — ride with the
@@ -484,6 +491,8 @@ enum AgentToolExecutor {
             promptIfNeeded: false,
             permissionAlreadyGranted: approvedByUser,
             allowUnverifiedResult: workspaceTool.risk > .read,
+            // Reuse the Runtime's existing injected writer. Its SelfTest constructor
+            // and record boundary admit only safe temporary files; nil keeps normal shared ownership.
             receiptStore: receiptStore ?? .shared,
             // P1-21: this is the caller that can answer "did it go out", because it owns the
             // Workspace tools. Passing it is what turns a timed-out send into "I'm not sure"

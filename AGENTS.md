@@ -48,6 +48,16 @@ is genuinely unavoidable (a provider the person chose, a grant only they can giv
 plain action at a time, with the reason and the exact next click. `--selftest-ui-strings` and
 `PersonaCareEval` are the floor, not the goal; if a flow needs a diagram, it is not done.
 
+**Owner decision, 2026-10-04 — the four people and the reference machine.** Judge every
+user-facing change against four people who want an agent but will not set one up: the parent
+running a household, the office manager, the legal-practice operations manager (not the
+lawyer) and the filmmaker/editor sorting footage by shoot date, session and drive. Proactive
+behaviour — preparing what it notices before being asked — is a goal; one approval before an
+irreversible action is unchanged. Every latency, throughput, memory or disk claim is made on a
+16 GB / 256 GB M2–M3 MacBook Air with ASR and voice running: ≥20 tok/s decode floor, 25–30
+target. A benchmark there picks the silent local default, never the user. See
+[the positioning roadmap](roadmap/in-progress/POSITIONING-AND-LOCAL-MODEL/00-README.md).
+
 **Owner request, 2026-10-07 — shared performance evidence.** Read
 [PERFORMANCE-STANDARDS.md](PERFORMANCE-STANDARDS.md) before changing capture, models,
 meeting processing, dictation, voice, scheduling or rendering. Share meaningful findings,
@@ -89,6 +99,34 @@ context speaker projection remain open. Normal installed startup shows the owner
 history and preserves all original meeting files. Keep payloads private and consult the
 audit for exact pins, inherited gates and bounded verification.
 
+---
+
+## Reuse, integrate and clean up
+
+**Every agent owns the lifecycle of its code, worktrees and build artifacts.** Use a
+DRY approach: look for the existing implementation, shared model file, dependency,
+test fixture and build cache before creating another. Reuse the responsible seam;
+extract shared code when an actual repeated need warrants it. Do not duplicate code
+or introduce an abstraction just to avoid understanding the existing producer.
+
+- Reuse an active, suitable worktree rather than creating a checkout for each small
+  task. Record its owner and purpose; concurrent writers need disjoint ownership.
+- When owned work is complete and verified, integrate its reviewed changes into the
+  canonical branch promptly. Reconcile conflicts and run the relevant checks.
+  Confirm every unique commit and uncommitted change has been integrated or is
+  explicitly retained before removing the worktree and deleting a merged task branch.
+  Never overwrite another agent's work or merge a stale whole-file snapshot.
+- Remove obsolete application bundles, failed build products and disposable fixtures
+  after their comparison or verification is complete. Keep the current useful build
+  and any explicitly needed rollback or reproduction build. Retain compact source
+  pins, patches and test results instead of indefinitely retaining every binary.
+- Before cleanup, check active processes and agent ownership, identify the exact paths
+  and preserve needed evidence. Do not sweep unrelated caches, models, recordings,
+  user data, unresolved branches or active worktrees. Clean only confirmed obsolete
+  task artifacts; prune Git worktree metadata after removal.
+- Review disk use at task handoff and after a build comparison. Report what was
+  integrated, what was removed, reclaimed space, and anything deliberately retained.
+  Cleanup is part of finishing the task, not something to postpone until disk-full.
 
 ---
 
@@ -169,8 +207,10 @@ The macOS app is no longer only dictation, and the second half of it is younger 
 less exercised than the first. It reads the calendar (EventKit and, optionally, the Google
 Calendar API), arms and records a meeting on its own, captures the microphone and a Core
 Audio process tap as two separate tracks, transcribes both with Parakeet, tells the
-speakers on the system track apart, writes notes with a local Gemma 4 E4B (or Apple
-Foundation Models), and — when it is switched on — proposes follow-up actions in Gmail,
+speakers on the system track apart, writes notes with a local model (the built-in role runs
+the runtime's active file — Qwen3-4B, then MiniCPM5-2B on the owner's Mac per `usage.jsonl`,
+checked 2026-10-04; Gemma 4 E4B is the shipped default file), Apple Foundation Models or an
+opt-in OpenRouter model, and — when it is switched on — proposes follow-up actions in Gmail,
 Calendar, Drive and Docs through Google's `gws` CLI, which a person approves one at a time.
 Its status shows in a card at the notch. None of that exists on Windows and none of it is
 in scope there.
@@ -216,9 +256,11 @@ prints one `<NAME>_OK` / `<NAME>_FAILED` line last:
 --selftest-meeting-context                 --selftest-realtime
 --selftest-computer  --selftest-mcp        --selftest-composio
 --selftest-acp
+--selftest-acp-offered-options
 --selftest-activity  --selftest-fs         --selftest-browser
 --selftest-settings  --selftest-metrics    --selftest-cleanup-router
 --selftest-meeting-live --selftest-meeting-live-tools --selftest-meeting-quality --selftest-tts
+--selftest-meeting-agent-fit --selftest-meeting-agent-evidence
 --selftest-notes-longform --selftest-notes-truncation
 --selftest-diarize-assign --selftest-diarize-hints
 --selftest-meeting-finals [<dir>]
@@ -704,8 +746,15 @@ as do liveness/recovery/retry, IM-16 and aggregate quality gates. See the
 
 `--selftest-voice-session-reducer` verifies ten pure traces (the original nine
 plus speech-ended identity/hold guards), then actual capture, approval and streamed
-playback with scripted models and a recording backing. `VoiceSession` remains a
-shadow observer: no commands execute, no live timer or new audio owner is added.
+playback with scripted models and a recording backing. The bounded P3-09 presentation
+switch now routes current-session Island publication through `VoiceSession`; the
+remaining timer/audio/effect commands stay in shadow and add no audio owner. Actual
+staged409 RED12/32 →410 SAME32 passes in three consecutive runs, through real confined
+local, ACP, typed and scheduled publishers. Background work cannot replace the
+conversation projection; the still task indicator uses existing canonical Bridge state.
+Related functional flags pass; unchanged receipt5ms failures, explicit duplex A7,
+full CORE, physical presentation, whole-App reads and full P3-06b remain open. See the
+[exact Island evidence](Tests/Reports/agent-overhaul-closure/p3-task-bridge-production/manager-voice-worker-ownership-production/island409410-qualified-results.json).
 The installed focused flow compares floor, pending turn, effect hold and output;
 concurrent/lifecycle/duplex fixtures additionally require nonzero samples, actual
 output presence and zero divergences. Bare coordinator floor samples can be
@@ -803,6 +852,30 @@ injected nested diagnostic path does not prove normal durable nested dispatch,
 restored nested cards or public Based on rendering. Physical UI, unloaded restart,
 broader authority/effects/recovery/retry/IM16 and parent phases remain open. See the
 [mail producer proof](Tests/Reports/agent-overhaul-closure/next-implementation-review/p6-02b-verified-mail-review/native-verification/verification.md).
+
+`--selftest-task-worker-attempt` verifies bounded cached Based-on projection
+through actual Workspace reads, frozen Runner/Executor intent, Gate request and
+primary/receipt joins. Staged original127 fails28 missing-feature assertions only;
+identical staged fixed128 passes1908. Only Manager/ActivityProjector getter bodies
+differ across1050 inputs; the same194-case extension preserves permission/edit,
+held/released/denial, legacy/privacy, partial-source and exact-binding controls.
+Actual approval/result row callers use the existing parent Manager and already
+loaded saved receipts, without drawing-time file/SQL reads or singleton creation.
+The new source rows exclude raw mail IDs, body, subject and legacy transcript;
+existing authorized payload/result text is unchanged. Saved source details never
+grant permission, prove an effect or authorize retry.
+Earlier fixed126 passes33 supported focused flags, including dedicated reader40
+and owner-write isolation; a rejected root typo is retained as an invalid
+invocation. Latest quick126 remains4/10 against9 and CORE12621/22 retains
+wake17/24hits,3/32false. Those are126 results, not extra128 suite runs.
+Both127/128 explicitly report32/32 offscreen bitmaps unavailable; transparent
+PNGs are preserved and no visible native rendering is claimed. An isolated
+same-tinted-glass prototype reproduces that snapshot limitation. No tint/glass
+removal or fake paint was used. Staged128 is not installed-app verification or
+shutdown-crash repair. Unloaded restart, normal nested dispatch/restoration,
+appearance/focus/VO, complete source/effect authority, large-history latency,
+recovery/retry/IM16 and parent P6-02b/P6-02/Phase6 remain open. See the
+[bounded paired review](Tests/Reports/agent-overhaul-closure/next-implementation-review/p6-02b-based-on-ui-review/independent-review/native127-128/actual-verification-and-commit-scope.md).
 
 `--selftest-c04-result-context --c04-fixture-now <ISO8601>` verifies bounded
 P1-10a-1 through the actual typed planner/read/result/provider path. Original105
@@ -1151,21 +1224,22 @@ grep for its callers before assuming the feature ships.
 
 **There is one task ledger, one channel that starts audio, one tool manifest, and one usage log.**
 Four plans have each proposed another copy, and duplicates fail silently rather than loudly.
-As of 2026-10-01, task history belongs to `AgentTaskManager`/`AgentTaskStore`;
-Phase 6A extends that existing persistence seam. `TaskBridge` is the planned single
-ledger in `roadmap/in-progress/AGENT-OVERHAUL/04-PHASE-3-FULL-DUPLEX.md` §2.5.
-`VoiceConversationCoordinator.jobs` remains until that migration; once removed,
-it must not return. `OutputScheduler` and its `fileprivate` `OutputToken` are also
-planned contracts, not types that already enforce audio ownership. Until they land,
-use the existing speech producer; do not add an independent path that starts audio.
-The target makes "no backend independently decides to speak" a compile-time rule.
+Task history belongs to `AgentTaskManager`/`AgentTaskStore` and the same SQL authority.
+`TaskBridge` is its stateless task interface. Coordinator.jobs/Job are removed; the
+Manager's existing running map retains the same voice Task, Work and worker. Never
+reintroduce a second owner. Bounded actual canonical progress now passes46 and all29
+related flags in staged300; current status reads that admitted row without a model.
+Generic voiceACP routing, complete status/approval/legal-state/live ownership and
+recovery remain open. Existing `OutputScheduler` routes bounded canonical completion/
+question delivery through the same speech producer; its broader all-audio contract
+is still open. Do not add an independent path that starts audio.
 The per-turn tool authority is the existing `AgentCapabilityManifest`
 (`Agent/AgentCapabilityManifest.swift`). The usage log is `usage.jsonl`
 (`Support/Usage/`), with 8 MB rotation, 90-day compaction, `UsageLog.sanitise` and
 harness-temp isolation — **a job's token count is a sum over `UsageRecord`s carrying
 a task id, never a second ledger.** Durable work (`agent-tasks.sqlite`, an event
 journal, heartbeats, retry and crash recovery) extends the existing manager first
-and the same ledger through TaskBridge later; see `07-PHASE-6-DURABLE-JOBS.md`.
+and the same ledger through TaskBridge; see `07-PHASE-6-DURABLE-JOBS.md`.
 Before adding a task type, delivery path, tool registry or metrics file, grep for
 the existing producer and read the current implementation evidence.
 
@@ -1182,6 +1256,27 @@ File availability is not proof of quality for a role. Preserve stored user choic
 recommendations from workload-specific evidence. Cloud permission stays scoped to the workload
 and source: an Agent cloud choice does not authorize sending meeting transcripts or dictation.
 
+**One local brain: MiniCPM5-2B (owner decision, 2026-10-04 — supersedes the defaults above
+where they conflict).** MiniCPM5-2B (`openbmb/MiniCPM5-2B-GGUF/MiniCPM5-2B-Q4_K_M.gguf`,
+pinned by `MiniCPMModels.spec`) is the single local model for dictation cleanup, meeting
+notes, the meeting agent and local agent turns. Gemma 4 E4B, Qwen3-4B, Qwen3.5-4B and
+S1-mini stay on disk **for benchmarking only**: selectable, never a role default. Reason:
+the runtime holds one file, and on a 16 GB Mac a notes pass on another file unloaded
+MiniCPM (`model.unload … reason=switched`) so the next dictation paid a 15–49 s reload;
+one file means no swaps (memory target ~2 GB, `DICTATION-LATENCY` §5). In code:
+`ModelRoleStore.defaultChoice(for:)` resolves an **unset** Agent or Meeting-notes role to
+the installed MiniCPM row (`sharedLocalModelID`: exact file name and size, the pinned digest
+whenever the row carries a verified one, and `isAnswerable`); `ModelRole.canUse` lets
+Meeting notes use an installed file; selecting the file already loaded is a no-op, so two
+roles on it never swap. Stored choices — `builtin` included — are read back as written and
+never rewritten; without MiniCPM the floor is unchanged (`.builtIn`). Roles stay independent
+in the model and cloud consent is unchanged. "Restore default model" restores MiniCPM when
+it is the default, and onboarding treats an installed MiniCPM as set up rather than fetching
+Gemma; a fresh Mac without MiniCPM still downloads the built-in Gemma, because there is no
+in-app MiniCPM download yet (SB-05). Cleanup's own unset default (Apple) belongs to the
+cleanup executor and was not changed here. `--selftest-model-roles` case 8
+(`MODEL_ROLES_SHARED_BRAIN`) pins it.
+
 The owner chose **MiniCPM5-2B cleanup with Apple as its guard and fallback**; that
 picker implementation is recorded on 2026-09-30 (`CleanupEngineChoice.miniCPM`,
 `MiniCPMCleanupFormatter`, `Tests/Reports/MODEL-COMPARE-CLEANUP-2026-09-30.md`).
@@ -1193,9 +1288,13 @@ instead of reloading per dictation. Qwen stays on disk; switching back is the
 Models tab ("Use for agent turns", trial-gated) or
 `defaults write ai.pivotstudio.nextnotes modelLibrary.activeAgentModelID -string <id>`.
 The "must not rewrite `activeAgentModelID`" rule below binds silent cleanup reuse,
-not an explicit owner switch recorded here. Local agent turns on MiniCPM are
-unmeasured (`--selftest-toolloop-live --quick` is the gate before relying on them);
-the agent role on this Mac is cloud, so nothing local depends on that answer today.
+not an explicit owner switch recorded here. Local agent turns on MiniCPM have been
+measured and are below the bar: quick 2/10 and 3/10 (Needle first) on 2026-09-30
+(`Tests/Reports/toolloop-live/2026-09-30-p1-31/minicpm-*-quick.md`), full 17/30 on
+09-29. The agent role on this Mac is cloud (`modelRoles.agent = cloud`), but local work
+does depend on this file: `usage.jsonl` (checked 2026-10-04) shows `agent.worker` rows
+and the 10-01/10-02 `meeting.notes.single` rows on MiniCPM5-2B, because the meeting-notes
+role is `builtin`, which runs the runtime's active file.
 MiniCPM preloads at launch when routed (`LaunchWarmup.loadCleanupModel`, 5 s delayed,
 self-tests excluded) and keeps residency past the 10-minute idle timer
 (`MiniCPMModels.staysResident`); memory-pressure eviction still wins. The launch action
@@ -1646,8 +1745,11 @@ holds over 7 days, 3 qualifying occurrences each). `make gates` runs the same sc
 foreground, and `python3 Scripts/dictation-stats.py --gates` is the reader underneath. The run
 is detached, read-only on the owner's stores, and cannot fail a build: if the reader breaks it
 records `GATES_RUN_FAILED` in the history and leaves the last good report in place, so a stale
-report never looks like "no news". Today's real answer is `not enough data` for both, because
-`dictation.hold` rows begin at D-01b (2026-09-25).
+report never looks like "no news". The answer is not `not enough data` for both any more:
+checked 2026-10-04 in `gates-history.jsonl`, every successful run from 2026-10-01T02:54Z to
+2026-10-05T00:21Z reads `D-13=not enough data` (31 holds of the 100 needed; `dictation.hold`
+rows begin at D-01b, 2026-09-25) and `D-14=won't do (evidence)` (0 of 31 holds overlapped a
+meeting; one meeting had transcribe rows). Thirty earlier runs recorded `GATES_RUN_FAILED`.
 
 **`make acceptance` runs the catalogue in tiers so the signal is not buried.**
 `Scripts/acceptance.sh` drives the installed bundle through the same `run-selftest.sh`
@@ -1727,6 +1829,25 @@ iCloud-synced folder and the sync engine touches files mid-compile. **Always bui
 `make`**, which uses `--scratch-path` outside the synced tree. A bare `swift build` also
 writes a `.build/` directory into iCloud, which makes every subsequent build minutes slower.
 If you see this error, wait a few seconds and retry.
+
+**Native work must finish before AppKit quit admits process exit.** The owner's
+PID41058 quit crash showed a real Notes Metal decode overlapping global teardown.
+The bounded shutdown repair closes the existing owners and joins their same tasks;
+do not substitute player stop, caller cancellation, stream EOF or queue completion
+for the native producer's actual completion. Staged original/fixed proof now covers
+Notes7, recording24/idle15, preparation26, shared ASR24, final-pass77,
+diarization130 and other-llama49. Original149 fails22 actual S1/embedding/vocabulary/
+library assertions; unchanged fixed150 passes49 with exact owned-preferences
+negative/restoration controls and eleven related regressions. The library control
+compares its isolated persistent domain, never Metal's merged registration defaults.
+Final-pass and diarization cancellation retain their same tasks
+until return and preserve the resumable meeting. Diarization's intended healthy
+watchdog fallback remains available; explicit cancellation revokes it. Active
+diarizer preparation, playback, model-trial caller publication and physical capture remain separate
+open coverage; this is not full safe-quit
+or fast-quit acceptance. Installs remain held while those contracts are verified.
+Keep using separate staged bundles, never kill the installed app to run these cases.
+See [the quit verification report](Tests/Reports/agent-overhaul-closure/native-termination-crash-review/2026-10-02-pid41058/VERIFICATION.md).
 
 **Compare mode doesn't type anything.** By design — `Settings.compareMode` runs every engine
 on one recording and shows them side by side. If both injected, two transcripts would fight
@@ -2263,6 +2384,18 @@ accessibility settings without a line of code here knowing about them — which 
 every token resolves to a semantic system value (`.controlBackgroundColor`, `.accentColor`,
 `.body`) rather than a literal.
 
+**Owner decision, 2026-10-01 — full site theme (supersedes the native-shell direction above
+where they conflict).** The app takes the landing page's whole look: fixed light theme
+(black ink on white, app-wide, instead of following the Mac's appearance), serif display
+type for headlines, and the site's glow treatments (orb backdrops, dotted fields, beams)
+on every surface, onboarding first. Consequences the owner accepts: macOS dark mode and
+the user's accent colour no longer apply in-app; "no gradients on chrome" no longer holds
+where the theme puts glow on chrome. Everything else in this section still binds: tokens
+not literals, orb/avatar state meanings, red-means-recording, plain words, and the
+accessibility gates (contrast, VoiceOver, keyboard, Reduce Motion; Reduce Transparency
+falls back to solid surfaces). The WEBSITE-TO-MAC-EXPERIENCE roadmap is the implementation
+plan; its UX-11 owns the theme foundation and nothing paints the fixed theme before it lands.
+
 The person looking at it is **not technical**, and that is a design rule rather than an audience
 note: labels, errors and settings say what a person would say out loud, nothing in the default
 path asks for an API key, a terminal command or a file edit, and an advanced flow is opt-in and
@@ -2619,8 +2752,12 @@ lookahead, `\p{L}`, and `$1`–`$9` in replacements. Nothing else.
    users will meet SmartScreen.
 2. **An installer** for Windows, and model download from inside the app rather than by
    following `docs/PARAKEET-WINDOWS.md` by hand.
-3. **A Claude-backed cleanup or notes provider.** `TextFormatter`, `TextCommandProcessor`
-   and `LLMProvider` are all seams for one; there is no credential storage or network path.
+3. **A direct Claude (Anthropic API) cleanup or notes provider.** `TextFormatter`,
+   `TextCommandProcessor` and `LLMProvider` are all seams for one. Checked 2026-10-04:
+   there is no Anthropic-specific provider in `Sources/`, but "no credential storage or
+   network path" is no longer true — `OpenRouterLLMProvider` stores its key in the Keychain
+   and serves cloud Agent and meeting-notes passes (an OpenRouter model can be a Claude
+   model), and Claude Code is reachable as a coding harness over ACP.
 
 ## What has never run, on macOS
 
@@ -2644,11 +2781,15 @@ development machine. Treat anything here as unproven, and do not describe it as 
   been uploaded.
 - **The Portrait pass, Corners and the D4 assembler with real material.** All three are
   code-complete and pinned by `--selftest-portrait` / `--selftest-assemble`, but on this
-  machine they have only ever run against fixtures and an injected model: no real graph
-  has been mined into insight drafts, no real corpus assembled into a page, and the
-  quality of the prose is unmeasured (the local model they route to is not installed;
-  the graph here has two meetings). The first-ingestion consent gate has never met a real
-  connected account either — its honest no-consent-path refusal is what is enforced.
+  machine the self-tests have only run against fixtures and an injected model. Checked
+  2026-10-04: one real Portrait pass ran on the owner's graph (`portrait-insights.json`
+  `lastPassAt` 2026-10-01) and produced 0 drafts and 0 saved insights; no real corpus has
+  been assembled into a page (no `Assembled/` folder); prose quality is unmeasured. The
+  graph holds 59 nodes and 78 edges citing 8 meetings (`knowledge.sqlite`, read-only), and
+  installed local models now exist (MiniCPM5-2B, Qwen3-4B, Qwen3.5-4B, Gemma 4 E4B) — the
+  earlier "local model not installed; graph has two meetings" is no longer true. The
+  first-ingestion consent gate has never met a real connected account either — its honest
+  no-consent-path refusal is what is enforced (not re-verified 2026-10-04).
 - **The wake word in a real room.** The 2026-09-22 tuning pass took the measured
   trade-surface maximum on the synthetic corpus (17/24 hits @ 3/32 false at the shipped
   default, `--selftest-wake-live` still red at its 0.8 bar); the missing clips are
@@ -2657,27 +2798,51 @@ development machine. Treat anything here as unproven, and do not describe it as 
   produces them, and it has never been run with a live microphone either.
 - **The podcast routine with real voices.** `LongFormRenderer`'s production synthesis
   (`LongFormSynthesisFactory.live()`, Pocket/Kokoro frame paths) has never rendered a real
-  file — neither voice model is downloaded here — and no scheduled run has produced a
-  Library audio item. The scripted self-test runs entirely through an injected fake.
-- **The system-audio tap with its TCC grant.** Every call succeeds without it and every
-  sample is zero, so no meeting has yet contained an "Others" track.
-- **Gemma 4 E4B.** Never downloaded (~9 GB of free disk is needed: 4.98 GB plus the
-  downloader's 4 GB reserve), so `NotesModels.spec.expectedSHA256` is still `nil` — the
-  downloader logs the computed digest and the next agent to get it pins it. An earlier
+  file and no scheduled run has produced a Library audio item; the scripted self-test runs
+  entirely through an injected fake. The voices themselves ARE on the owner's Mac (checked
+  2026-10-04): Pocket TTS and Kokoro under `~/.cache/fluidaudio/Models/`, Kokoro ONNX and
+  Piper under `~/Library/Caches/NextNotesTTS/`. So a real render is testable here; check the
+  disk before writing "not downloaded".
+- **The system-audio tap with its TCC grant — no longer unproven.** Every call succeeds
+  without the grant and every sample is zero, so the grant itself is still unreadable (the
+  user TCC.db is not readable from an agent shell, checked 2026-10-04). But the tap has
+  delivered real audio here: 8 of the 10 meetings under `Meetings/` have transcribed
+  `system`-track segments (2026-09-10 through 10-01), three have `speakers.json`, and
+  `usage.jsonl` has `meeting.diarize` rows on 09-29, 10-01 and 10-02 (counted 2026-10-04,
+  no content read). Whether the grant still holds for the current signature is not
+  re-verified.
+- **Gemma 4 E4B.** Now downloaded (on disk since 2026-09-28,
+  `Models/gemma-4-E4B-it-Q4_K_M.gguf`, 4.98 GB) and its SHA-256 is pinned in
+  `NotesModels.swift`; every quick tool-loop run since 10-01 actually measured it (see
+  `roadmap/in-progress/POSITIONING-AND-LOCAL-MODEL/research/GATES-ANALYSIS-2026-10-04.md`).
+  Which model meeting notes actually use is answered at the end of this entry. An earlier
   version of this entry said every notes and agent run had gone through Apple Foundation
   Models; `metrics.jsonl` shows that was false for the agent side — installed GGUFs loaded
   for agent turns on 09-22 and 09-23 (MiniCPM5-2B, the active model until P0-01 replaced it
-  with Qwen3-4B-Instruct-2507). Meeting notes still fall back to Apple's model while the
-  built-in Gemma is absent.
-- **Both real calendars.** EventKit reports `.notDetermined` here; Google has never had an
-  account connected, and needs the user's own Desktop-type OAuth client (id *and* secret —
-  Google's installed-app client type requires the secret at the token endpoint even with
-  PKCE).
-- **Every Workspace write.** `gws` is signed in on this Mac — a refresh token and 21 scopes
-  including Gmail, Calendar, Drive and Docs — so the agent's own reads reach the account. No
-  write proposal has ever been approved, so `WorkspaceToolRunner` has never performed a
-  write; each tool's flags were checked against `gws <service> <helper> --help`, not against
-  a live call.
+  with Qwen3-4B-Instruct-2507). Checked 2026-10-04 in `usage.jsonl`: meeting notes do
+  **not** fall back to Apple's model and do not run on Gemma either — the three
+  `meeting.notes.single` rows ran on llama with Qwen3-4B-Instruct-2507 (09-29) and
+  MiniCPM5-2B (10-01, 10-02), because `modelRoles.meetingNotes = builtin` resolves to the
+  runtime's active file (`modelLibrary.activeAgentModelID`, MiniCPM5-2B since 09-30). Gemma
+  is on disk (as the built-in file it is synthesized, not listed in `library.json`) but is
+  not the active file, and since 2026-10-04 it is a benchmark file only (see "One local
+  brain" under the model-roles decision).
+- **Both real calendars.** EventKit was reported `.notDetermined` here; not re-verified
+  2026-10-04 (TCC.db is unreadable from an agent shell, and no meeting carries an
+  `eventKit` provider). **Google Calendar is connected** — the old "never had an account
+  connected" is false. Checked 2026-10-04: a Keychain item for
+  `ai.pivotstudio.nextnotes.google` exists (created 2026-09-10; attributes only, secret not
+  read), the stored settings hold a client ID/secret and one selected calendar, and two
+  meetings (09-29, 10-01) carry `providerID: google`. Setup still needs the user's own
+  Desktop-type OAuth client (id *and* secret — Google's installed-app client type requires
+  the secret at the token endpoint even with PKCE).
+- **Every Workspace write.** `gws` is signed in on this Mac — `gws auth status` on
+  2026-10-04: refresh token present, 21 scopes, `token_valid: true` — so the agent's own
+  reads reach the account. No Workspace write has ever **completed**. `action-receipts.json`
+  (checked 2026-10-04) holds exactly one approved Workspace write: an `append_doc` on
+  2026-09-20 that went judged → approved → fired → failed, with no saved result, so the old
+  "no write proposal has ever been approved" is not literally true. Each tool's flags were
+  checked against `gws <service> <helper> --help`, not against a successful live call.
 - **The screen-name harvest, beyond one Cursor window.** `Sources/NextNotes/Context/` reads the
   file, folder and tab names out of Cursor, Windsurf or VS Code at key-down so a spoken "the
   login handler file" resolves to the real name. **It has now run against a real Cursor window
@@ -2697,8 +2862,25 @@ development machine. Treat anything here as unproven, and do not describe it as 
   harvest (`AppleSpeechEngine.context()`), so in Cursor the harvested bias slice never arrives
   and the engine is biased by the dictionary alone. The cleanup pass still gets every name.
 - **The redesigned UI, by eye.** Screenshots need Screen Recording and driving the UI needs
-  Accessibility; neither can be granted non-interactively. Nobody has seen the sidebar, the
-  onboarding sheet, or the island expand out of the notch.
+  Accessibility; neither can be granted non-interactively. No agent has visually verified
+  the sidebar, the onboarding sheet, or the island expanding out of the notch. ("Nobody has
+  seen" was too strong: the owner uses the app daily — `usage.jsonl` has owner rows through
+  2026-10-02 — and live meeting-console screenshots were reviewed on 2026-09-29; checked
+  2026-10-04.)
+
+`--selftest-acp-offered-options` verifies bounded P6-06q through the actual Session,
+owned peer and real Gate/Broker: staged153 RED40/151 →154 PASS151 unchanged cases.
+Only Session differs across1060 compiler inputs;10 actual strict-launch refusals and
+19 related flags pass, including worker1908 and isolation21files32defaults. Broader
+native-tools FAILED1 is reproduced on original153 with the same300s budget; full
+CORE/model/phase gates remain open. CORE selected only this flag passes1/1. The exact
+standalone entry uses isolated meeting history before normal startup and AppIdentity
+migration. Existing owner-byte guard hashing/default snapshots are owner reads;
+ordinary diagnostics retain their distinct read limits. Direct invocations need
+`--selftest-out "$TMPDIR/NextNotesACPOptionsTest-<fresh UUID>/selftest.log"` with an
+absent or empty parent and absent log; acceptance allocates it. No additional await,
+store, retry, install or remote-host authority is added. See the
+[actual proof](Tests/Reports/agent-overhaul-closure/stale-observation-frontier/acp-offered-option-review/verification.md).
 
 ## What no amount of CI can verify
 
@@ -2717,7 +2899,15 @@ short dictation into Notepad.**
 **Voice work and output have separate lifetimes.** Provisional novel microphone recognition pauses the current reply reversibly;
 only a committed user turn calls `userSpeechStarted`, which stops output while retaining
 the work objective and completed results. Explicit cancellation invalidates work. Do not turn every acknowledgment into a
-cancellation. Model/read budgets exclude waiting for the user's floor or an approval.
+cancellation. Typed turns now follow the same rule through the existing Manager,
+TaskBridge and retained Task: correction/status/new requests stop reply output,
+not unrelated work; only the exact explicit cancellation signatures cancel that
+operation. After permission enrichment awaits, the original worker/revision must
+still match before capturing or admitting a card. Actual376/377 typed checks and
+strict382/383 race40 pass, with29/30 related flags green; unchanged receipt5ms,
+installed/displayed/native/account/model and full phase gates remain open. The
+symbolic CancelReason API is still a parent-ledger contract, not an existing type.
+Model/read budgets exclude waiting for the user's floor or an approval.
 `VoicePlaybackDelivery` records output acknowledgements separately from generated results;
 a completed clause is not proof of physical audibility. The on-device model's single native
 context must be reserved before acquiring its compute scheduler ticket, or actor reentry can corrupt
@@ -2789,6 +2979,48 @@ or the memory file. The existing live provenance and authority gates still decid
 writes; stored lineage never grants permission. Version 3 preserves legacy memory
 content with unknown lineage rather than inventing its source. This P4-07a foundation
 does not implement P4-07/P4-11 or memory lifecycle consolidation.
+
+P4-07's actual committed typed/voice hooks are verified in staged155/156: original
+13/70 feature failures → fixed70 PASS, six related flags pass including isolation
+21files32defaults. They call the existing guarded memory writer after the exact
+current user row and attach optional rememberedFacts only after durable read-back.
+Disabled choices do not initialize shared memory through that hook. No new model
+pass/await/store/history save; Remember directives keep their existing producer.
+Caption persistence uses the next existing conversation append and may lag a saved
+memory across a crash. Current quick156 fails3/10 against9/10. Native caption,
+full/CORE/live statement/latency and P4-11 background review remain open. See the
+[functional proof](Tests/Reports/agent-overhaul-closure/explicit-memory-production/verification.md).
+
+P4-08's typed library route has qualified staged161 RED18/59 →162 PASS59 with the
+same real-consumer receipt fixture and two producer files across1062 compiler
+inputs. Same provider/graph scope feeds actual partial/saved citation consumers;
+file/action/source/permission negatives and12,000-character caps stay enforced.
+Seven related flags pass, including duplex/isolation21files32defaults. Intermediate
+markup failures were retained and fixed at parser/scrub ordering, not by bypassing
+canonical equality. Native source-chip interaction, reader budgets/Assembler/loaded
+capacity and aggregate gates remain open. No install occurred. See the
+[typed proof](Tests/Reports/agent-overhaul-closure/typed-knowledge-production/verification.md).
+
+P4-08 reader cache/prompt and Assembler budgets have staged163 RED17/51 →164
+PASS51 proof (eight producer files/1062 inputs). Actual saved pages receive
+4096→1024 and32768→1500 output tokens; nil/small-reader/zero floors and1400 voice
+history stay unchanged. Nine latest related checks pass; initial production-loop
+three-read timing failure is retained despite unchanged original/recheck passing,
+and timing attribution stays open. Scheduled forwarding and actual provider-owned
+loaded-window fitting need separate proof; quick162 times out before scoring and
+latest scored156 remains3/10. No full parent/latency/model/install promotion. See
+[reader proof](Tests/Reports/agent-overhaul-closure/reader-budget-production/verification.md).
+
+
+2026-10-03 bounded P4-11 decisions/totals: original169 RED28/63→fixed170 PASS63, same actual reviewer/guarded writer/state-reader inputs. Prior reader71 and explicit70 remain green; memory/portability/UI strings/isolation21files32defaults also pass. Narrow environment/request skips retain durable wording; only the exact untargeted-update refusal permits one existing guarded remember write. Lifetime counts survive the recent200-row trim in the same state file, seeding retained legacy rows once. Existing MemoriesEditor receives canonical status text; native appearance remains unverified. Both COMMON compile corrections are retained and precede the pair. Settings crash, actual loaded capacity/real-model quality/fullCORE/owner/latency and parent completion remain open. [Proof](Tests/Reports/agent-overhaul-closure/memory-review-production/remaining/verification.md).
+
+
+2026-10-03 bounded provider capacity: actual171 RED4→172 ASK PASS31 and actual173 RED7/28→174 memory-review PASS28. The answering wrapper/fitter and memory reviewer use the same captured provider-window scalar as system assembly; exact cold Llama runtime binding replaces global generic-ID lookup. Prior typed59 and memory63/71/70 remain green. Genuinely loaded factory/residency/native interaction and quality/full/CORE/owner/latency gates remain open. [Reader evidence](Tests/Reports/agent-overhaul-closure/provider-reader-capacity-production/verification.md), [memory evidence](Tests/Reports/agent-overhaul-closure/memory-provider-capacity-production/verification.md).
+
+
+`--jobs-report [--jobs-days N] [--jobs-task <id>]` projects the existing marked task SQLite ledger and saved journal without constructing the Manager or creating/migrating a store. Its early @main route avoids eager app owners. Missing history is EMPTY; rejected history is retained. Actual isolated Activity fixture23 passes in staged178 after API-scaffold177 fails6. Health/effects stay unknown; no retry/recovery or whole P6-08 authority is supplied. Ordinary owner-positive invocation and Activity UI remain open. [Evidence](Tests/Reports/agent-overhaul-closure/jobs-report-production/verification.md).
+
+Bounded P6-07 read-only reporting has actual182 RED5/20→183 PASS20 proof: the early standalone `--selftest-usage-report-reader` accepts that flag alone and exercises actual report/output consumers on a disposable corpus. Report reading reuses existing decoders without starting UsageLog writer retention. Related usage/Activity/worker1908/isolation pass; this does not grant owner-report, full historical attribution or live task UI acceptance. [Proof](Tests/Reports/agent-overhaul-closure/p6-07-usage-readonly-report/verification.md).
 
 **Meeting native loop, 2026-10-07 — preserve failed quality evidence.** The first optimized
 bundle passed source-evidence23, extractive-contract18, health90, integrity67 and agent
@@ -2932,3 +3164,5 @@ Source7 current acceptance, 2026-10-08: the minimal four-file live-ingest produc
 Resumed meeting acceptance, 2026-10-08: initial headroom checks refuse before launch; owned cleanup retires456,404,992 allocated bytes, with425,250,816-byte immediate root available-space gain. After the owner closes Chrome windows, native7 starts at62%/swap4.180GiB and proves single main compiler thread, but cleanly joins at3GB guard (peak3,165,213,472B). Independently reviewed compiler-only native8 raises charge cap to5GB with stronger start60/ongoing45/maxswap6/disk8 bounds; it also joins at the cap (peak5,011,527,872B). Both preserve owner8/source1176/protected cache; neither produces a candidate/native verdict/install. No further cap increase follows. Existing installeded67302f reopens asPID29701 after graceful idle UI quit; physical UI readback fails with a capture error. Repaired rollback and useful fifth/sixth comparisons, source/failure evidence, owner data/models remain. Read [the resumed check](Tests/Reports/meeting-reliability/2026-10-07-quality-loop/source7/RESUMED-CHECK-20261008.md); retain exact refused and unrun scopes and share via agent-relay.
 
 Attributed meeting context, 2026-10-08: text-only duplicate detection erases matching words from another stored speaker/source. Exact actual Extractor apply/merge50 checks fail27 before and0 after; retained actual ContextStore/parser/apply/atomic save/fresh-reader15fixtures185checks pass with declared scripted boundaries. Root applies the three-file producer/same fixture/existingTopicMergehook, current1177pins. Duplicate attribution now requires text/source/storedspeaker; actual inferred-model-summary echoes and40-row bound remain. No new store/queue/pass/action authority or automatic person identity. Native current App/bus/complete factual notes/speed proof and installation remain pending; installeded67302f unchanged. Read [attribution evidence](Tests/Reports/meeting-reliability/2026-10-07-quality-loop/attributed-context-dedup/README.md); keep private payloads out of reports/relay and retain actual original/fixed scopes.
+
+Meeting batch-build outcome, 2026-10-08: Native9 explicit optimized/noWMO/batch32/singlejob diagnostic proves actual32-primary main compile and last-j1/noWMO driver. It joins135.246s at reported-free48<50 guard, sampled summed ownedpeak726,141,856B; swap samples4.126→3.930GiB. Lower sampled compiler charge is not a completed paired benchmark, allocation cause or runtime parity. Source1177/owner8/protectedcache unchanged, all CLI descendants joined; no candidate/native functional verdict/install. Installeded67302f remains singlePID29701, owner files retained. Source attribution commitc6d850c retains actual50/185 bounded proof; semantic omissions/quiet native words/naming/ASR+voice soak remain open. Owner restart requested; no cap increase/automaticretry, heavy/source claims released and useful shared partial cache retained. Read [actual batch outcome](Tests/Reports/meeting-reliability/2026-10-07-quality-loop/source7/native9-outcome.json) and [resumed evidence](Tests/Reports/meeting-reliability/2026-10-07-quality-loop/source7/RESUMED-CHECK-20261008.md).

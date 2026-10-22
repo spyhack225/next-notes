@@ -78,7 +78,8 @@ final class SystemAudioCapture: @unchecked Sendable {
     /// self-test can drive a `MeetingSession` with a capture that throws and then
     /// yields audio without a microphone or a real tap. Like the two seams above it
     /// is set by a test and cleared after; production reads nil and takes the
-    /// Core Audio path.
+    /// Core Audio path. Callbacks escape just as they do in the real start contract:
+    /// injected capture can deliver subsequent buffers after start returns.
     nonisolated(unsafe) static var startCallOverrideForTesting:
         (@Sendable (AVAudioFormat, @escaping @Sendable (AudioChunk) -> Void,
                     @escaping @Sendable (Float) -> Void) async throws -> Void)?

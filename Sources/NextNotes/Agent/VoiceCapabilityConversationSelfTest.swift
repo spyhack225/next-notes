@@ -737,6 +737,7 @@ enum VoiceCapabilityConversationSelfTest {
         let harnessFailureBefore = SelfTest.failed
         var failures: [String] = []
         var outputs: [(String, String)] = []
+        failures += VoiceRoutePreviousExchangeSelfTest.failures()
         let controlSchemas = await FrontendControlSchemaSelfTest.run()
         failures += controlSchemas.failures
         print("FRONTEND_SCHEMA_CHECKS count=\(controlSchemas.checks) problems=\(controlSchemas.failures.count)")
@@ -746,6 +747,9 @@ enum VoiceCapabilityConversationSelfTest {
         let revisionContract = await FrontendRevisionSelfTest.run()
         failures += revisionContract.failures
         print("FRONTEND_REVISION_CHECKS count=\(revisionContract.checks) problems=\(revisionContract.failures.count)")
+        let sideTalkContract = await NotAddressedProductionSelfTest.run()
+        failures += sideTalkContract.failures
+        print("NOT_ADDRESSED_PRODUCTION_CHECKS count=\(sideTalkContract.checks) problems=\(sideTalkContract.failures.count)")
         let coordinator = VoiceConversationCoordinator.shared
         var precedingTaskIDs = Set(coordinator.taskBridge.cachedTasks.map(\.id))
         func scopedVoiceRows() -> [AgentTask] {

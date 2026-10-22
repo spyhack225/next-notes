@@ -410,9 +410,10 @@ struct Meeting: Codable, Sendable, Identifiable, Equatable {
     var captureSummary: String? {
         guard hasPartialCapture else { return nil }
         if captureIntegrity?.interruptedAt != nil {
-            return status == .done
-                ? "Recording interrupted — saved portion recovered"
-                : "Recording interrupted"
+            guard status == .done else { return "Recording interrupted" }
+            return notesModel != nil
+                ? "Recording interrupted — partial notes recovered"
+                : "Recording interrupted — saved portion recovered"
         }
         return "Some audio was missed — this meeting is incomplete"
     }

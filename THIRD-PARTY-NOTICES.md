@@ -57,7 +57,10 @@ network request while a meeting is open.
 React, React DOM, Framer Motion, Tailwind CSS (v4, via `@tailwindcss/vite`), Vite and
 TypeScript are MIT; `lucide-react` is ISC; Oxlint and `@shadcn/lint` (the site's lint
 gate) are MIT; the Fontsource packages redistribute Inter and
-Instrument Serif under the SIL Open Font License 1.1. The fonts keep their OFL terms when
+Instrument Serif under the SIL Open Font License 1.1. `border-beam` and `voice-glow`
+(the hero card's border beam and the demo composer's voice glow, same author as the
+thinking-orbs library the app's orb geometry is ported from) are MIT with zero runtime
+dependencies. The fonts keep their OFL terms when
 the site is copied; the OFL's only real constraint — do not sell the fonts on their own and
 do not rename them — is untouched by the AGPL.
 
@@ -86,3 +89,8 @@ Check a model's own terms before redistributing weights.
 
 OpenRouter, Google Workspace (`gws`), Composio and any MCP server the user configures are
 optional, opt-in, and reached over the network. They are services, not code in this work.
+
+## Mac app headline fonts
+
+Inter and Instrument Serif (Fontsource packages 5.3.0) are included in the Mac app.
+Local WOFF TrueType outlines were unwrapped into TTF containers without changing glyphs, character maps or PostScript names. The original copyright and SIL Open Font License 1.1 texts are bundled in `Resources/ThemeFonts/`. The provenance manifest records the source and output hashes. These are Latin subsets; the operating system supplies other glyphs. No font is installed into the user’s Fonts directory.

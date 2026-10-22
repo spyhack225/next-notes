@@ -16,6 +16,9 @@ struct ToolReviewCard: View {
     let review: ToolCallReview
     /// Compact is the conversation's inline card; the expanded form is a sheet or a pane.
     var isCompact = false
+    /// The existing live request supplies metadata without duplicating it in review storage.
+    var request: PermissionRequest? = nil
+    var expectedTaskID: String? = nil
     let approve: () -> Void
     let dismiss: () -> Void
     /// Nil hides the "always allow" affordance, which most surfaces want hidden.
@@ -34,9 +37,18 @@ struct ToolReviewCard: View {
     /// Read back off the store every time: the answer to "Tell me instead" writes there.
     private var live: ToolCallReview { store.review(id: review.id) ?? review }
 
+    /// SAME request/review join used by the actual approval layout and the isolated conductor.
+    static func basedOnRows(request: PermissionRequest?, review: ToolCallReview,
+                            taskID: String? = nil) -> [AgentBasedOnRow] {
+        guard let request, request.id == review.id, request.toolID == review.toolID,
+              taskID == nil || request.taskID == taskID else { return [] }
+        return AgentActivityProjector.basedOnRows(request.evidence)
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: DS.Space.m) {
             header
+            AgentBasedOnSection(rows: Self.basedOnRows(request: request, review: live, taskID: expectedTaskID))
             if let asking, let field = live.field(asking) {
                 question(for: field)
             }
@@ -335,5 +347,29 @@ struct ToolReviewSummary: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+/// Shared card layout only; no source actions, grants, stores, focus or clocks.
+struct AgentBasedOnSection: View {
+    let rows: [AgentBasedOnRow]
+    var retained = false
+    var retentionNote: String? { retained && !rows.isEmpty ? "Saved source details" : nil }
+    var body: some View {
+        if !rows.isEmpty {
+            VStack(alignment: .leading, spacing: DS.Space.xxs) {
+                Text("Based on").font(DS.Font.sectionLabel)
+                if let retentionNote {
+                    Text(retentionNote).font(DS.Font.caption).foregroundStyle(DS.Color.textSecondary)
+                }
+                ForEach(rows) { row in
+                    Text(row.label)
+                        .font(DS.Font.caption)
+                        .foregroundStyle(DS.Color.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .accessibilityElement(children: .combine)
+        }
     }
 }

@@ -116,10 +116,21 @@ enum RunLog {
     @TaskLocal static var directoryOverride: URL?
 
     static var directory: URL {
-        directoryOverride ?? AppIdentity.applicationSupportDirectory
+        if SelfTest.requested == "--selftest-settings-sheet" {
+            // SwiftUI callbacks need not inherit the render task's TaskLocal.
+            // Resolve at the actual reader/writer so every real RunStore reload
+            // stays in the existing process-local fixture directory.
+            return SelfTest.checkedSettingsFixturePath(FileManager.default.temporaryDirectory
+                .appendingPathComponent("NextNotesSelfTest-\(ProcessInfo.processInfo.processIdentifier)", isDirectory: true))
+        }
+        return directoryOverride ?? AppIdentity.applicationSupportDirectory
     }
 
-    private static var runsURL: URL { directory.appendingPathComponent("runs.jsonl") }
+    private static var runsURL: URL {
+        let url = directory.appendingPathComponent("runs.jsonl")
+        return SelfTest.requested == "--selftest-settings-sheet"
+            ? SelfTest.checkedSettingsFixturePath(url) : url
+    }
 
     /// A recorded hold, in the list and on disk.
     ///

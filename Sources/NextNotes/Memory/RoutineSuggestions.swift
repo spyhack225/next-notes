@@ -151,6 +151,42 @@ enum RoutineSuggestionDetector {
     ]
 }
 
+/// Counts retained independently of the bounded recent list, with no proposed fact text.
+struct MemoryReviewTotals: Codable, Equatable, Sendable {
+    var runs = 0
+    var proposed = 0
+    var saved = 0
+    var skipped: [String: Int] = [:]
+    var refused: [String: Int] = [:]
+    var since: Date
+
+    mutating func add(_ run: MemoryReviewRun) {
+        runs += 1
+        proposed += run.proposed
+        saved += run.saved.count
+        since = min(since, run.at)
+        for decision in run.skipped { skipped[Self.reasonKey(decision.reason), default: 0] += decision.count }
+        for decision in run.refused { refused[Self.reasonKey(decision.reason), default: 0] += decision.count }
+    }
+
+    /// Existing writer errors can include retained facts. New aggregates retain only
+    /// bounded categories; historical run rows and their counts remain unchanged.
+    private static func reasonKey(_ reason: String) -> String {
+        switch reason {
+        case "already remembered", "a one-off request",
+             "an environment failure, not a fact about the user",
+             "not something the user said about themselves",
+             "the review may only use memory tools", "more than 5 calls": reason
+        case MemoryGuard.untargetedUpdate: "target not named"
+        default: "did not pass the checks"
+        }
+    }
+
+    var line: String {
+        "Since \(since.formatted(date: .abbreviated, time: .omitted)): looked \(runs) times, saved \(saved)."
+    }
+}
+
 /// `agent-memory-review.json`: the review's watermark, the request log routine suggestions
 /// are found in, and the suggestions themselves. Written atomically; a failed write keeps
 /// the previous file whole.
@@ -178,6 +214,7 @@ final class MemoryReviewStateStore {
     /// What every pass of the review decided, newest last. The Memories sheet reads the last
     /// row, so an empty list is never again indistinguishable from a review that never ran.
     private(set) var runs: [MemoryReviewRun] = []
+    private(set) var lifetime: MemoryReviewTotals?
     /// `sourceKey` values the review has already read — `dictation:<uuid>`, `meeting:<uuid>`.
     /// This is what makes the backfill resumable and idempotent.
     private(set) var harvested: Set<String> = []
@@ -241,6 +278,10 @@ final class MemoryReviewStateStore {
 
     /// Records what one pass decided, and ticks off the source it read.
     func record(run: MemoryReviewRun, sourceKey: String?) {
+        var totals = lifetime ?? MemoryReviewTotals(since: runs.map(\.at).min() ?? run.at)
+        if lifetime == nil { for retained in runs { totals.add(retained) } }
+        totals.add(run)
+        lifetime = totals
         runs.append(run)
         if runs.count > Self.runLimit { runs.removeFirst(runs.count - Self.runLimit) }
         // A conversation is re-read as it grows, so only the other channels are ticked off.
@@ -249,6 +290,8 @@ final class MemoryReviewStateStore {
     }
 
     var lastRun: MemoryReviewRun? { runs.last }
+
+    var lifetimeLine: String? { lifetime?.line }
 
     /// "Last looked: today 17:40 — saved 2.", or the sentence for a review that never ran.
     func lastLookedLine(now: Date = Date()) -> String {
@@ -316,6 +359,7 @@ final class MemoryReviewStateStore {
         var suggestions: [RoutineSuggestion]
         /// Optional for the same reason: a file from before the ledger existed still reads.
         var runs: [MemoryReviewRun]?
+        var lifetime: MemoryReviewTotals?
         var harvested: [String]?
         var backfill: MemoryBackfillState?
     }
@@ -333,6 +377,13 @@ final class MemoryReviewStateStore {
         requests = stored.requests
         suggestions = stored.suggestions
         runs = stored.runs ?? []
+        lifetime = stored.lifetime
+        let seedsLifetime = lifetime == nil && !runs.isEmpty
+        if seedsLifetime {
+            var totals = MemoryReviewTotals(since: runs.map(\.at).min()!)
+            for run in runs { totals.add(run) }
+            lifetime = totals
+        }
         harvested = Set(stored.harvested ?? [])
         backfill = stored.backfill ?? MemoryBackfillState()
         // P1-30, targets 4 and 5. Both are "the file is smaller than it was", so both are
@@ -343,7 +394,7 @@ final class MemoryReviewStateStore {
         // every request row and on every refused/skipped decision; the lenient decoders have
         // already dropped those values in memory, so the single write below is what takes them
         // off the disk. `version` is then 2 and this does not run again.
-        var changed = false
+        var changed = seedsLifetime
         if (stored.version ?? 1) < Self.currentVersion {
             changed = true
         }
@@ -400,7 +451,7 @@ final class MemoryReviewStateStore {
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         do {
             let data = try encoder.encode(Stored(version: Self.currentVersion, reviewedThrough: reviewedThrough, memoryOff: memoryOff,
-                                                 requests: requests, suggestions: suggestions, runs: runs,
+                                                 requests: requests, suggestions: suggestions, runs: runs, lifetime: lifetime,
                                                  harvested: harvested.sorted(), backfill: backfill))
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
             try data.write(to: fileURL, options: .atomic)

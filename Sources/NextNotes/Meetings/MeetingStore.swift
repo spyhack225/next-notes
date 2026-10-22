@@ -27,6 +27,11 @@ import Observation
 @Observable
 final class MeetingStore {
     static let shared: MeetingStore = {
+        // COMMON exact diagnostic: real Gate/Island/context defaults share empty
+        // confined history, before any owner-backed MeetingStore constructor.
+        if SelfTest.requested == "--selftest-acp-offered-options" {
+            return ACPOfferedOptionStandaloneFixture.isolatedMeetingStore()
+        }
         // COMMON exact recording-quit diagnostic: the real pipeline compares against
         // this same singleton; route it before owner-backed constructor/load occurs.
         if SelfTest.requested == "--selftest-native-termination",
@@ -122,7 +127,12 @@ final class MeetingStore {
               root.lastPathComponent.hasPrefix(prefix),
               UUID(uuidString: String(root.lastPathComponent.dropFirst(prefix.count))) != nil
         else { throw CocoaError(.fileWriteNoPermission) }
-        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: false)
+        var isDirectory: ObjCBool = false
+        if FileManager.default.fileExists(atPath: root.path, isDirectory: &isDirectory) {
+            guard isDirectory.boolValue else { throw CocoaError(.fileReadCorruptFile) }
+        } else {
+            try FileManager.default.createDirectory(at: root, withIntermediateDirectories: false)
+        }
         return MeetingStore(root: root)
     }
 
@@ -133,7 +143,8 @@ final class MeetingStore {
     }
 
     private init(root: URL = MeetingStore.root) {
-        self.root = root
+        self.root = SelfTest.requested == "--selftest-settings-sheet"
+            ? SelfTest.checkedSettingsFixturePath(root) : root
         reload()
     }
 
@@ -145,6 +156,11 @@ final class MeetingStore {
             includingPropertiesForKeys: nil
         )) ?? []
 
+        if SelfTest.requested == "--selftest-settings-sheet", !contents.isEmpty {
+            // This diagnostic has no meeting corpus. Refuse before any child read.
+            SelfTest.diagnostic("SETTINGS_SHEET_FIXTURE_FAILED: unexpected temporary meeting input")
+            exit(1)
+        }
         meetings = contents
             .compactMap { Self.loadMeeting(in: $0) }
             .sorted { $0.start > $1.start }

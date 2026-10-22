@@ -47,13 +47,20 @@ struct AgentPaneScroll<Content: View>: View {
 struct AgentPaneHeader<Accessory: View>: View {
     let title: String
     var subtitle: String?
+    /// Static caller-supplied phrase only; never split a model, task or meeting title.
+    var accent: String? = nil
     @ViewBuilder var accessory: () -> Accessory
 
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: DS.Space.l) {
             VStack(alignment: .leading, spacing: DS.Space.xs) {
-                Text(title)
-                    .font(DS.Font.title2)
+                if let accent {
+                    ThemeHeadline(lead: title, accent: accent, level: .pane)
+                        .fixedSize(horizontal: false, vertical: true)
+                } else {
+                    Text(title)
+                        .font(DS.Font.title2)
+                }
                 if let subtitle {
                     Text(subtitle)
                         .font(DS.Font.callout)
@@ -70,8 +77,8 @@ struct AgentPaneHeader<Accessory: View>: View {
 }
 
 extension AgentPaneHeader where Accessory == EmptyView {
-    init(title: String, subtitle: String? = nil) {
-        self.init(title: title, subtitle: subtitle, accessory: { EmptyView() })
+    init(title: String, subtitle: String? = nil, accent: String? = nil) {
+        self.init(title: title, subtitle: subtitle, accent: accent, accessory: { EmptyView() })
     }
 }
 

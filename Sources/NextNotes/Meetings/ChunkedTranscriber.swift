@@ -225,6 +225,16 @@ actor ChunkedTranscriber {
         }
     }
 
+    /// Diagnostic-only atomic append observation. Queue end offsets are read before the
+    /// drain Task can merge windows; fresh fixtures stay below the existing backlog bound.
+    /// No observation state or production callback is retained.
+    func appendAndObserveCutsForTesting(_ chunks: [[Float]]) -> [Int]? {
+        guard SelfTest.isRunning, SelfTest.requested == "--selftest-meeting-quiet-input",
+              CommandLine.arguments.contains("--meeting-quiet-pause-boundaries") else { return nil }
+        for chunk in chunks { append(chunk) }
+        return queue.map { $0.startSample + $0.samples.count }
+    }
+
     /// M-09: moves `bufferOrigin` forward **without** transcribing, so a track whose
     /// tap joined late stamps its first windows with true meeting times rather than
     /// times counted from the join. Only valid before the track's first buffer — once
@@ -299,9 +309,13 @@ actor ChunkedTranscriber {
 
     /// - Returns: how many samples to cut from the front of `buffer`, or `nil` to wait.
     private func nextCut() -> Int? {
-        while scanned + Self.frameSamples <= buffer.count {
+        // The experiment refuses to scan a later pause past this window's hard max.
+        // Production retains the inherited path until native quality/workload acceptance.
+        let scanLimit = Self.usesDigitalZeroPauseExperiment
+            ? min(buffer.count, config.maxWindowSamples) : buffer.count
+        while scanned + Self.frameSamples <= scanLimit {
             let frame = buffer[scanned..<(scanned + Self.frameSamples)]
-            if Self.frameIsSilent(frame) {
+            if Self.windowFrameEndsPause(frame) {
                 silenceRun += Self.frameSamples
             } else {
                 silenceRun = 0
@@ -315,6 +329,18 @@ actor ChunkedTranscriber {
             }
         }
         return buffer.count >= config.maxWindowSamples ? config.maxWindowSamples : nil
+    }
+
+    /// Experimental meeting window policy, not a voice/noise classifier. Every nonzero
+    /// frame is unknown, so analog noisy pauses may wait for the existing hard maximum.
+    /// Keep the shared RMS predicate below unchanged for dictation and other callers.
+    private static let usesDigitalZeroPauseExperiment = SelfTest.isRunning
+        && SelfTest.requested == "--selftest-meeting-quiet-input"
+        && CommandLine.arguments.contains("--meeting-quiet-pause-experiment")
+
+    private static func windowFrameEndsPause(_ frame: ArraySlice<Float>) -> Bool {
+        if usesDigitalZeroPauseExperiment { return frame.allSatisfy { $0 == 0 } }
+        return frameIsSilent(frame)
     }
 
     /// Whether one 20 ms frame counts as silence. Shared by the streaming `nextCut`
@@ -335,7 +361,7 @@ actor ChunkedTranscriber {
     ///
     /// - Returns: cumulative sample offsets, the last always `samples.count` (empty
     ///   when `samples` is empty).
-    static func cutPoints(in samples: [Float], config: WindowConfig) -> [Int] {
+    static func cutPoints(in samples: [Float], config: WindowConfig, includeTail: Bool = true) -> [Int] {
         var cuts: [Int] = []
         var scanned = 0
         var silenceRun = 0
@@ -343,7 +369,7 @@ actor ChunkedTranscriber {
         let minSamples = Int(config.minWindowSeconds * sampleRate)
         let maxSamples = Int(config.maxWindowSeconds * sampleRate)
         while scanned + frameSamples <= samples.count {
-            if frameIsSilent(samples[scanned..<(scanned + frameSamples)]) {
+            if windowFrameEndsPause(samples[scanned..<(scanned + frameSamples)]) {
                 silenceRun += frameSamples
             } else {
                 silenceRun = 0
@@ -359,10 +385,15 @@ actor ChunkedTranscriber {
                 silenceRun = 0
             }
         }
-        if windowStart < samples.count {
+        if includeTail, windowStart < samples.count {
             cuts.append(samples.count)
         }
         return cuts
+    }
+
+    /// Whole-track cuts occur on the shared 20 ms grid, including a rounded hard cap.
+    static func maximumCutSamples(config: WindowConfig) -> Int {
+        ((config.maxWindowSamples + frameSamples - 1) / frameSamples) * frameSamples
     }
 
     /// Appends one cut window to the backlog (M-07).

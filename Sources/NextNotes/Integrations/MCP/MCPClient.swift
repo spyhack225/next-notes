@@ -85,8 +85,13 @@ final class MCPClientStore {
     private(set) var lastDidInitialize = false
     private(set) var lastAnnotations: [String: [String: String]] = [:]
 
-    private static var fileURL: URL {
-        AppIdentity.applicationSupportDirectory.appendingPathComponent("mcp-servers.json")
+    static var fileURL: URL {
+        if SelfTest.requested == "--selftest-settings-sheet" {
+            let root = SelfTest.checkedSettingsFixturePath(FileManager.default.temporaryDirectory
+                .appendingPathComponent("NextNotesSelfTest-\(ProcessInfo.processInfo.processIdentifier)", isDirectory: true))
+            return SelfTest.checkedSettingsFixturePath(root.appendingPathComponent("mcp-servers.json"))
+        }
+        return AppIdentity.applicationSupportDirectory.appendingPathComponent("mcp-servers.json")
     }
 
     private init() {

@@ -247,6 +247,7 @@ final class AgentService {
                     segments: self.store.transcript(for: id),
                     notes: self.store.notes(for: id),
                     brief: known.promptBlock.isEmpty ? nil : known.promptBlock,
+                    context: self.context(for: id),
                     provider: provider,
                     policy: AgentPolicy.fromSettings(),
                     usage: usage

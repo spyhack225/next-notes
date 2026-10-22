@@ -26,6 +26,8 @@ enum ComposioProvider {
 
     @MainActor
     static var consumerKey: String {
+        // Account-status rendering must not migrate a credential in the fixture process.
+        guard SelfTest.requested != "--selftest-settings-sheet" else { return "" }
         migrateLegacyKeyIfNeeded()
         if let stored = ComposioCredentialStore.apiKey { return stored }
         return Settings.shared.composioAPIKey.trimmingCharacters(in: .whitespacesAndNewlines)

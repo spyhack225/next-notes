@@ -256,6 +256,7 @@ final class MeetingSession {
                 // reports once through the callback below; the meeting keeps going on
                 // the transcript alone.
                 let writeError: @Sendable (String) -> Void = { [weak self] _ in
+                    let observedAt = Date()
                     Task { @MainActor in
                         guard let self else { return }
                         self.captureDrops.setLiveTranscriptionDeferred(false)
@@ -264,7 +265,7 @@ final class MeetingSession {
                         integrity.markAudioWriteFailure()
                         self.meeting.captureIntegrity = integrity
                         self.persistMeeting()
-                        self.reportHealthIssue(.audioWriteFailure)
+                        self.reportHealthIssue(.audioWriteFailure, observedAt: observedAt)
                     }
                 }
                 let audioWriter = try writerFactory?(url, writeError)
@@ -513,8 +514,21 @@ final class MeetingSession {
         micDrain?.cancel()
         systemDrain?.cancel()
 
+        // External producers publish these facts before their MainActor warning
+        // callbacks. Quit must persist what is already known without waiting for
+        // that callback or the next health poll.
+        let saved = writer?.resourceSnapshot()
+        if let saved {
+            recordSavedAudioCoverage(saved)
+            if saved.writeFailed { reportHealthIssue(.audioWriteFailure) }
+        }
+        if captureDrops.hasLoss { reportCaptureGap() }
         meeting.end = Date()
         var integrity = meeting.captureIntegrity ?? .init()
+        if let saved, saved.writtenFrames > 0 {
+            integrity.recordCaptured(until: startedAt.addingTimeInterval(
+                Double(saved.writtenFrames) / ChunkedTranscriber.sampleRate))
+        }
         integrity.markInterrupted(at: meeting.end!, lastCapturedAt: integrity.lastCapturedAt)
         meeting.captureIntegrity = integrity
         switch MeetingStore.resumeAction(
@@ -788,7 +802,7 @@ final class MeetingSession {
         integrity.missingCaptureFrames = max(integrity.missingCaptureFrames, captureDrops.snapshot.streamFrames)
         meeting.captureIntegrity = integrity
         persistMeeting()
-        reportHealthIssue(.captureGap)
+        reportHealthIssue(.captureGap, observedAt: captureDrops.snapshot.firstLossAt)
     }
 
     private func scheduleResourceHealthCheck(now: Date) {
@@ -896,7 +910,7 @@ final class MeetingSession {
         reportHealthIssue(.savedAudioGap)
     }
 
-    private func reportHealthIssue(_ issue: MeetingHealthIssue) {
+    private func reportHealthIssue(_ issue: MeetingHealthIssue, observedAt: Date? = nil) {
         if issue == .audioWriteFailure {
             var integrity = meeting.captureIntegrity ?? .init()
             integrity.markAudioWriteFailure()
@@ -915,7 +929,9 @@ final class MeetingSession {
             audioProblem = issue.message
         }
         Notifications.shared.postMeetingProblem(meeting: meeting, issue: issue)
-        LatencyTrace.record(.meetingHealthWarning, seconds: 0, note: "kind=\(issue.rawValue)")
+        LatencyTrace.record(.meetingHealthWarning,
+            seconds: observedAt.map { max(0, Date().timeIntervalSince($0)) } ?? 0,
+            note: "kind=\(issue.rawValue) delayMeasured=\(observedAt == nil ? 0 : 1)")
     }
 
     /// Provisional window text for the live UI / `TranscriptBus`. Cleared when a final
@@ -1099,6 +1115,7 @@ private struct MeetingAudioPacket: Sendable {
 private final class MeetingCaptureDrops: @unchecked Sendable {
     private let lock = NSLock()
     private var streamFrames = 0
+    private var firstLossAt: Date?
     private var hubBuffers = 0
     private var lastMicAt: Date?
     private var lastSystemAt: Date?
@@ -1107,6 +1124,7 @@ private final class MeetingCaptureDrops: @unchecked Sendable {
 
     struct Snapshot: Sendable {
         var streamFrames: Int64
+        var firstLossAt: Date?
         var hubBuffers: Int
         var lastMicAt: Date?
         var lastSystemAt: Date?
@@ -1116,7 +1134,7 @@ private final class MeetingCaptureDrops: @unchecked Sendable {
     var snapshot: Snapshot {
         lock.lock()
         defer { lock.unlock() }
-        return Snapshot(streamFrames: Int64(streamFrames), hubBuffers: hubBuffers,
+        return Snapshot(streamFrames: Int64(streamFrames), firstLossAt: firstLossAt, hubBuffers: hubBuffers,
                         lastMicAt: lastMicAt, lastSystemAt: lastSystemAt, capturedUntil: capturedUntil)
     }
 
@@ -1144,17 +1162,25 @@ private final class MeetingCaptureDrops: @unchecked Sendable {
     func addStreamFrames(_ frames: Int) -> Bool {
         lock.lock()
         let wasClear = streamFrames == 0 && hubBuffers == 0
-        streamFrames += frames
+        if frames > 0 {
+            if firstLossAt == nil { firstLossAt = Date() }
+            let sum = streamFrames.addingReportingOverflow(frames)
+            streamFrames = sum.overflow ? .max : sum.partialValue
+        }
         lock.unlock()
-        return wasClear
+        return wasClear && frames > 0
     }
 
     func addHubBuffers(_ count: Int) -> Bool {
         lock.lock()
         let wasClear = streamFrames == 0 && hubBuffers == 0
-        hubBuffers += count
+        if count > 0 {
+            if firstLossAt == nil { firstLossAt = Date() }
+            let sum = hubBuffers.addingReportingOverflow(count)
+            hubBuffers = sum.overflow ? .max : sum.partialValue
+        }
         lock.unlock()
-        return wasClear
+        return wasClear && count > 0
     }
 
     var hasLoss: Bool {

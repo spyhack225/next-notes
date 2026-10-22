@@ -99,6 +99,41 @@ enum PersonaSelfTest {
             }
         }
 
+        // P4-08: floors plus the real frozen-cache -> assembled prompt consumer.
+        for path in AgentPromptPath.allCases {
+            for window in [nil, 4_096, 8_192] as [Int?] {
+                check("P4-08 unchanged floor \(path.rawValue) \(window ?? 0)",
+                      path.memoryLimit(contextTokens: window) == path.budget.memoryLimit)
+            }
+            let expected = path.budget.memoryLimit == 0 ? 0 : 6_553
+            check("P4-08 reader scales \(path.rawValue)", path.memoryLimit(contextTokens: 32_768) == expected)
+            let large = path.budget.memoryLimit == 0 ? 0 : 52_428
+            check("P4-08 large reader \(path.rawValue)", path.memoryLimit(contextTokens: 262_144) == large)
+        }
+        let wide = AgentPromptContext.assemble(.meetingAssistant, rules: "R", memory: oversizedMemory,
+                                              contextTokens: 32_768, personaStore: store)
+        check("P4-08 explicit meeting memory reaches 5000", wide.memoryCharacters == 5_000)
+        let cache = MemorySnapshotCache(isEnabled: { true })
+        cache.freeze(profile: (1...8).map { "Profile \($0) " + String(repeating: "p", count: 240) },
+                     notes: (1...14).map { "Note \($0) " + String(repeating: "n", count: 240) })
+        let cached = AgentPromptContext.assemble(.toolLoop, rules: "R", contextTokens: 32_768,
+                                                personaStore: store, memorySnapshot: cache)
+        check("P4-08 actual frozen cache no longer clips before wider assembly", cached.memoryCharacters >= 5_000
+            && cached.memoryCharacters <= 6_553 && cached.memory.contains("Note 14"))
+        let floorCached = AgentPromptContext.assemble(.toolLoop, rules: "R", contextTokens: 8_192,
+                                                     personaStore: store, memorySnapshot: cache)
+        check("P4-08 frozen cache floor unchanged", floorCached.memoryCharacters <= 3_400
+            && floorCached.memoryCharacters == cache.text(for: .toolLoop).count)
+        let profile = AgentPromptContext.assemble(.meetingAssistant, rules: "R", contextTokens: 32_768,
+                                                  personaStore: store, memorySnapshot: cache)
+        check("P4-08 larger profile consumer still excludes notes", profile.memoryCharacters > 600
+            && profile.memory.contains("Profile 8") && !profile.memory.contains("Note"))
+        let offCache = MemorySnapshotCache(isEnabled: { false })
+        offCache.freeze(profile: ["Disabled owned fact"], notes: [])
+        check("P4-08 disabled cache stays empty at large windows",
+              AgentPromptContext.assemble(.toolLoop, rules: "R", contextTokens: 262_144,
+                  personaStore: store, memorySnapshot: offCache).memoryCharacters == 0)
+
         // MARK: Every production path, through its real accessor.
         //
         // The edit goes through the shared store only when that store is the per-process
@@ -121,6 +156,7 @@ enum PersonaSelfTest {
         let tools = RealtimeAgent.plannableTools()
         let productionPaths: [(name: String, path: AgentPromptPath, system: String)] = [
             ("voice answer (Apple)", .voiceAnswer, LocalVoiceSplitResponse.answerInstructions),
+            ("voice delivery (Apple)", .voiceAnswer, AgentDeliveryPrompts.resultInstructions(carriedOver: false)),
             ("voice route (Apple)", .voiceRoute, LocalVoiceSplitResponse.routeInstructions),
             ("voice turn instructions (coordinator)", .voiceAnswer, VoiceConversationCoordinator.systemPrompt),
             ("tool loop first pass, voice", .toolLoop, RealtimeAgent.voiceRoutingSystem(voice: true)),

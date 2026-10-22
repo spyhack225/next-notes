@@ -78,6 +78,10 @@ struct AgentWorkingCard: View {
         return gate.pendingReview ?? reviewStore.review(for: pending)
     }
 
+    static func basedOnResultRows(taskID: String, manager: AgentTaskManager) -> [AgentBasedOnRow] {
+        AgentActivityProjector.basedOnRows(manager.basedOnReferences(taskID: taskID))
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: DS.Space.s) {
             pill
@@ -88,6 +92,8 @@ struct AgentWorkingCard: View {
                     ToolReviewCard(
                         review: inlineReview,
                         isCompact: true,
+                        request: gate.pending?.taskID == task.id ? gate.pending : nil,
+                        expectedTaskID: task.id,
                         approve: {
                             gate.respond(
                                 id: inlineReview.id,
@@ -115,6 +121,13 @@ struct AgentWorkingCard: View {
         .padding(DS.Space.cardTight)
         .frame(maxWidth: .infinity, alignment: .leading)
         .glassSurface(cornerRadius: DS.Radius.card)
+        .overlay {
+            // Only actual execution earns a work rim. Park the treatment: the existing
+            // avatar remains this card's live mark, with no off-screen beam clock.
+            if task.status == .running, currentPreview?.isYielded != true, inlineReview == nil {
+                ThemeBorderBeam(cornerRadius: DS.Radius.card, isAnimated: false)
+            }
+        }
     }
 
     // MARK: - Status pill
@@ -301,6 +314,9 @@ struct AgentWorkingCard: View {
                     }
                     .padding(.top, DS.Space.xxs)
                 }
+            }
+            if let taskManager {
+                AgentBasedOnSection(rows: Self.basedOnResultRows(taskID: task.id, manager: taskManager), retained: true)
             }
             if !task.artifactRecords.isEmpty {
                 VStack(alignment: .leading, spacing: DS.Space.xxs) {

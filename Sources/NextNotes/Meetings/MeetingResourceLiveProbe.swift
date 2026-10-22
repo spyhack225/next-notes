@@ -8,6 +8,10 @@ import FluidAudio
 @MainActor
 enum MeetingResourceLiveProbe {
     static func run(log: (String) -> Void) async -> Bool {
+        guard SelfTest.isRunning && SelfTest.requested == "--selftest-meeting-resources-live" else {
+            log("MEETING_RESOURCES_LIVE_FAILED: isolated diagnostic required")
+            return false
+        }
         // An isolated cached-model diagnostic must not purge or re-download a
         // model when native loading fails. Normal app loading is unchanged.
         let previousOffline = ModelHub.offlineMode
@@ -32,6 +36,12 @@ enum MeetingResourceLiveProbe {
                 return false
             }
         }
+        if let arm = SelfTest.value(after: "--meeting-resource-normal") {
+            return await MeetingResourceNormalComparison.run(arm: arm, log: log)
+        }
+        // The normal app startup installs this observer; harness startup skips
+        // that work. Observe real pressure before any multi-second native load.
+        ModelResidencyPolicy.installPressureObserver()
         let fm = FileManager.default
         let root = fm.temporaryDirectory
         // Deliberately an optional result: unknown capacity must not authorize loads.
@@ -45,6 +55,9 @@ enum MeetingResourceLiveProbe {
             return false
         }
         let spec = await NotesModelRuntime.shared.activeSpec()
+        let formerPrewarmEligible = Settings.shared.notesAutoGenerate
+            && ModelRoleStore.shared.resolution(for: .meetingNotes).effective == .builtIn
+            && InstalledModelLibrary.shared.hasUsableModel
         guard fm.fileExists(atPath: spec.fileURL.path) else {
             log("MEETING_RESOURCES_LIVE_ABSENT: selected local notes model unavailable; no download performed")
             return false
@@ -58,7 +71,7 @@ enum MeetingResourceLiveProbe {
         do {
             try fm.createDirectory(at: dir, withIntermediateDirectories: true)
             defer { try? fm.removeItem(at: dir) }
-            log("MEETING_RESOURCES_LIVE_CONFIG physical_memory_bytes=\(ProcessInfo.processInfo.physicalMemory) available_bytes=\(capacity) notes_file_bytes=\(modelBytes.map(String.init) ?? "unknown") native_device_allocations=unavailable synthetic_audio=true")
+            log("MEETING_RESOURCES_LIVE_CONFIG physical_memory_bytes=\(ProcessInfo.processInfo.physicalMemory) available_bytes=\(capacity) notes_file_bytes=\(modelBytes.map(String.init) ?? "unknown") former_prewarm_eligible_in_harness=\(formerPrewarmEligible) native_device_allocations=unavailable synthetic_audio=true")
 
             // Same twenty seconds/two tracks for each writer stage. No fake native
             // model is used in the ASR stages; transcript content is never printed.
@@ -77,6 +90,8 @@ enum MeetingResourceLiveProbe {
             guard baseline == 320_000 else { throw ProbeError.coverage }
 
             _ = try await measure("asr_cold_load", log: log) {
+                guard ModelResidencyPolicy.pressureSnapshot.allowsOptionalWork,
+                      await !ParakeetModels.shared.isLoaded else { throw ProbeError.noAnswer }
                 try await TranscriptionQueue.shared.warmUp()
                 guard await ParakeetModels.shared.isLoaded else { throw ProbeError.noAnswer }
                 return 1
@@ -89,13 +104,13 @@ enum MeetingResourceLiveProbe {
                     let systemCalls = NativeCallCounter()
                     let mic = ChunkedTranscriber(source: .mic, transcribe: { samples in
                         await micCalls.enter()
-                        let result = try await TranscriptionQueue.shared.transcribeWithLaneWait(samples, lane: .realtimeASR)
+                        let result = try await TranscriptionQueue.shared.transcribeWithLaneWait(samples)
                         await micCalls.complete()
                         return result
                     }, onSegment: { _ in })
                     let system = ChunkedTranscriber(source: .system, transcribe: { samples in
                         await systemCalls.enter()
-                        let result = try await TranscriptionQueue.shared.transcribeWithLaneWait(samples, lane: .realtimeASR)
+                        let result = try await TranscriptionQueue.shared.transcribeWithLaneWait(samples)
                         await systemCalls.complete()
                         return result
                     }, onSegment: { _ in })
@@ -124,6 +139,8 @@ enum MeetingResourceLiveProbe {
             // process load delta to be measured without starting a real meeting.
             // It does not claim the total app footprint was caused by these weights.
             _ = try await measure("optional_notes_load_baseline", log: log) {
+                guard ModelResidencyPolicy.pressureSnapshot.allowsOptionalWork,
+                      await !NotesModelRuntime.shared.isLoaded else { throw ProbeError.noAnswer }
                 try await NotesModelRuntime.shared.prepare()
                 guard await NotesModelRuntime.shared.isLoaded else { throw ProbeError.noAnswer }
                 return 1
@@ -135,11 +152,36 @@ enum MeetingResourceLiveProbe {
                 guard !result.text.isEmpty else { throw ProbeError.noAnswer }
                 return result.text.count
             }
-            _ = try await measure("notes_release", log: log) {
-                guard await NotesModelRuntime.shared.shutdown() else { throw ProbeError.noAnswer }
-                guard await !NotesModelRuntime.shared.isLoaded else { throw ProbeError.noAnswer }
-                return 1
+            let releaseMilliseconds = try await measure("notes_pressure_release", log: log) {
+                guard ModelResidencyPolicy.pressureSnapshot.allowsOptionalWork,
+                      await NotesModelRuntime.shared.isLoaded else { throw ProbeError.noAnswer }
+                let began = ContinuousClock.now
+                // Inject the event into the real producer in this isolated process.
+                // No OS pressure is created and no owner app state is touched.
+                ModelResidencyGuardian.shared.receive(.warning)
+                do {
+                    let deadline = began.advanced(by: .seconds(5))
+                    while await NotesModelRuntime.shared.isLoaded, ContinuousClock.now < deadline {
+                        try await Task.sleep(for: .milliseconds(10))
+                    }
+                    guard await !NotesModelRuntime.shared.isLoaded,
+                          !ModelResidencyPolicy.pressureSnapshot.allowsOptionalWork,
+                          await ParakeetModels.shared.isLoaded else { throw ProbeError.noAnswer }
+                    let admitted = await NotesModelRuntime.shared.prepareForOptionalUse()
+                    guard !admitted, await !NotesModelRuntime.shared.isLoaded else { throw ProbeError.noAnswer }
+                    // isLoaded observes the actual native owner after synchronous
+                    // pointer teardown, not just a requested release or registry row.
+                    ModelResidencyGuardian.shared.receive(.normal)
+                    return Int(ChunkedTranscriber.seconds(began.duration(to: .now)) * 1_000)
+                } catch {
+                    _ = await NotesModelRuntime.shared.shutdown()
+                    if await !NotesModelRuntime.shared.isLoaded {
+                        ModelResidencyGuardian.shared.receive(.normal)
+                    }
+                    throw error
+                }
             }
+            log("MEETING_RESOURCES_LIVE_PRESSURE action_ms=\(releaseMilliseconds) injected_warning=true optional_reload_denied=true speech_model_retained=true")
             log("MEETING_RESOURCES_LIVE_OK: synthetic native measurement; physical capture and long-duration model overlap remain separate acceptance")
             return true
         } catch {
@@ -149,7 +191,7 @@ enum MeetingResourceLiveProbe {
         }
     }
 
-    private static func measure<T: Sendable>(
+    static func measure<T: Sendable>(
         _ stage: String,
         log: (String) -> Void,
         operation: @escaping @Sendable () async throws -> T
@@ -175,7 +217,13 @@ enum MeetingResourceLiveProbe {
             .map { "\($0.model.rawValue):\($0.state.rawValue)" }.joined(separator: ",")
         let cpu = (after.userCPUSeconds ?? 0) + (after.systemCPUSeconds ?? 0)
             - (before.userCPUSeconds ?? 0) - (before.systemCPUSeconds ?? 0)
-        log("MEETING_RESOURCES_LIVE_STAGE stage=\(stage) wall_seconds=\(String(format: "%.3f", ChunkedTranscriber.seconds(began.duration(to: .now)))) cpu_seconds=\(String(format: "%.3f", cpu)) footprint_before=\(before.physicalFootprintBytes.map(String.init) ?? "unknown") footprint_after=\(after.physicalFootprintBytes.map(String.init) ?? "unknown") sampled_peak_footprint=\(peak.map(String.init) ?? "unknown") rss_after=\(after.residentMemoryBytes.map(String.init) ?? "unknown") runtime_registry=\(states)")
+        func delta(_ before: UInt64?, _ after: UInt64?) -> String {
+            guard let before, let after else { return "unknown" }
+            return String(Int64(clamping: after) - Int64(clamping: before))
+        }
+        let asrLoaded = await ParakeetModels.shared.isLoaded
+        let notesLoaded = await NotesModelRuntime.shared.isLoaded
+        log("MEETING_RESOURCES_LIVE_STAGE stage=\(stage) wall_seconds=\(String(format: "%.3f", ChunkedTranscriber.seconds(began.duration(to: .now)))) cpu_seconds=\(String(format: "%.3f", cpu)) footprint_before=\(before.physicalFootprintBytes.map(String.init) ?? "unknown") footprint_after=\(after.physicalFootprintBytes.map(String.init) ?? "unknown") footprint_delta=\(delta(before.physicalFootprintBytes, after.physicalFootprintBytes)) sampled_peak_footprint=\(peak.map(String.init) ?? "unknown") rss_after=\(after.residentMemoryBytes.map(String.init) ?? "unknown") interrupt_wakeups_delta=\(delta(before.interruptWakeups, after.interruptWakeups)) platform_idle_wakeups_delta=\(delta(before.platformIdleWakeups, after.platformIdleWakeups)) native_asr_loaded=\(asrLoaded) native_notes_loaded=\(notesLoaded) runtime_registry=\(states)")
         return value
     }
 

@@ -458,8 +458,25 @@ struct MeetingDetailView: View {
                     message: transcriptPlaceholder
                 )
             } else {
-                TranscriptView(segments: segments, speakerNames: meeting.speakerNames, focus: transcriptFocus,
-                               onFocusHandled: { navigation.transcriptFocus = nil })
+                VStack(spacing: 0) {
+                    // The finals verification in the final pass's own words. `transcriptPass`
+                    // is what `FinalTranscriptService` recorded after Stop: whether the
+                    // transcript was checked again against the recording, or the live tier
+                    // was kept and why. Nil (older meetings) is unknown, so the slot stays
+                    // empty rather than claiming either.
+                    if let verification = transcriptVerification {
+                        Text(verification)
+                            .font(DS.Font.caption)
+                            .foregroundStyle(DS.Color.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, DS.Space.l)
+                            .padding(.vertical, DS.Space.s)
+                        Divider()
+                    }
+                    TranscriptView(segments: segments, speakerNames: meeting.speakerNames, focus: transcriptFocus,
+                                   onFocusHandled: { navigation.transcriptFocus = nil })
+                }
             }
         case .actions:
             MeetingActionsView(meeting: meeting)
@@ -632,6 +649,31 @@ struct MeetingDetailView: View {
         case .diarizing: "Telling the speakers apart…"
         case .failed(let reason): reason
         default: "Nothing was recognised in this recording."
+        }
+    }
+
+    /// Whether the finished transcript was checked again after the meeting, in plain
+    /// words. Read off the store rather than the captured copy — the final pass saves
+    /// while this pane may be open — and nil whenever the pass has not reported, so an
+    /// in-flight or pre-pass meeting shows no claim at all. The `live-only:` values are
+    /// the pass's own documented reasons; "audio-incomplete" already has its header
+    /// warning and is not repeated here.
+    private var transcriptVerification: String? {
+        let pass = store.meeting(id: meeting.id)?.transcriptPass ?? meeting.transcriptPass
+        switch pass {
+        case "long-window":
+            return "Checked again against the recording after the meeting."
+        case "live-only:rejected":
+            return "Checked again after the meeting, but the live transcript was kept."
+        case "live-only:failed":
+            return "The re-check could not finish, so the live transcript was kept."
+        case "live-only:no-audio":
+            return "No recording was kept to check against — this is the live transcript."
+        default:
+            if let pass, pass.hasPrefix("live-only:") {
+                return "This is the live transcript; it was not checked again."
+            }
+            return nil
         }
     }
 

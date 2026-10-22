@@ -12,10 +12,17 @@ import SwiftUI
 /// only surface in the app that can answer that in words.
 struct HUDView: View {
     @Bindable var controller: DictationController
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var isRecording: Bool { controller.state == .listening || controller.isCapturingAudio }
 
     var body: some View {
+        capsule.tint(DS.Color.accent)
+            .font(DS.Font.body)
+    }
+
+    @ViewBuilder
+    private var capsule: some View {
         // Both conditions, not just the status: a Command Mode message outlives its hold on
         // purpose, and while it lingers an ordinary dictation started underneath it must
         // still get the dictation capsule. `commandModeOwnsHUD` is where that is decided.
@@ -70,20 +77,27 @@ struct HUDView: View {
                     .frame(width: DS.Size.hudBarWidth)
             }
 
+            // The stage, then the words so far: two lines, newest kept, their height
+            // reserved from the start so the first partial does not shove the label up.
+            // After key-up the words stay as heard while the label says what is left.
             VStack(alignment: .leading, spacing: DS.Space.xxs) {
                 Text(status)
                     .font(DS.Font.callout)
                     .foregroundStyle(DS.Color.text)
                     .lineLimit(1)
-                if !controller.transcript.isEmpty {
-                    Text(controller.transcript)
-                        .font(DS.Font.caption)
-                        .foregroundStyle(DS.Color.textSecondary)
-                        .lineLimit(1)
-                        .truncationMode(.head)
-                }
+                Text(LiveDictationText.tail(controller.transcript, limit: DS.LiveText.hudTailCharacters))
+                    .font(DS.Font.caption)
+                    .foregroundStyle(DS.Color.textSecondary)
+                    .lineLimit(DS.LiveText.lines, reservesSpace: true)
+                    .truncationMode(.head)
+                    .animation(reduceMotion ? nil : DS.Motion.liveText, value: controller.transcript)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
+            // Named once, never announced per word: VoiceOver reads it when visited.
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(status)
+            .accessibilityValue(LiveDictationText.hasWords(controller.transcript)
+                ? controller.transcript : "")
         }
         .padding(.horizontal, DS.Space.l)
         .padding(.vertical, DS.Space.m)
@@ -96,20 +110,20 @@ struct HUDView: View {
     /// real work (finalize + cleanup) and says so with `working`. A hold still `.starting`
     /// with the pre-roll running is capturing too (D-02).
     private var orb: OrbGeometry.State {
-        controller.state == .listening || controller.isCapturingAudio ? .listening : .working
+        stage?.orb ?? .working
     }
 
-    private var status: String {
-        switch controller.state {
-        // "Getting ready…" only while the pre-roll has not opened the mic yet. Once it
-        // runs (D-02) the hold is capturing, so it reads as listening instead of setup.
-        case .starting: controller.isCapturingAudio ? "Listening…" : "Getting ready…"
-        case .listening: "Listening…"
-        // The controller's `.finishing` includes transcription, cleanup and insertion.
-        // A narrower label would claim a substage that the HUD cannot observe.
-        case .finishing: "Finishing…"
-        case .error: ""
-        case .idle: ""
-        }
+    /// One mapping shared with the island. "Getting ready…" only while the pre-roll has not
+    /// opened the mic yet (D-02); after key-up the controller now says which half of its
+    /// tail it is in, so the wait reads "Writing it out…" and then "Tidying up…" rather
+    /// than one "Finishing…" over words that were already heard.
+    private var stage: LiveDictationStage? {
+        LiveDictationStage.of(
+            controller.state,
+            isCapturing: controller.isCapturingAudio,
+            finishing: controller.finishingStage
+        )
     }
+
+    private var status: String { stage?.label ?? "" }
 }

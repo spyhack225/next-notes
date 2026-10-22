@@ -42,6 +42,9 @@ enum AgentPresentationSelfTest {
               "the committed answer lost or reordered chunks")
         check(stored?.id == partial?.id && stored?.at == partial?.at,
               "commit replaced the visible row identity or position")
+        if stored?.id != partial?.id || stored?.at != partial?.at {
+            SelfTest.diagnostic("AGENT_PRESENTATION_SEEN: last role=\(stored?.role ?? "nil") context=\(stored?.contextKind ?? "nil") text=\(stored?.text.prefix(80) ?? "nil")")
+        }
         check(agent.respondingMessage == nil, "the finished answer left a live draft")
         let finalRows = AgentView.presentedMessages(AgentSession.shared.messages, responding: partial)
         check(finalRows.filter { $0.id == partial?.id }.count == 1,

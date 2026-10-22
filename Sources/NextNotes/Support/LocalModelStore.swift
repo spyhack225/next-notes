@@ -34,6 +34,23 @@ final class LocalModelStore {
     @ObservationIgnored private var embeddingGeneration = 0
 
     private init() {
+        if NativeDiarizationQuitSelfTest.isRequested {
+            parakeetState = .notDownloaded; s1MiniState = .notDownloaded
+            notesModelState = .notDownloaded; diarizerState = .notDownloaded
+            wakeWordState = .notDownloaded; embeddingModelChoice = .none
+            embeddingModelState = .notDownloaded
+            return
+        }
+        if SelfTest.requested == "--selftest-settings-sheet" {
+            parakeetState = .notDownloaded
+            s1MiniState = .notDownloaded
+            notesModelState = .notDownloaded
+            diarizerState = .notDownloaded
+            wakeWordState = .notDownloaded
+            embeddingModelChoice = KnowledgeIndexSettings.fromDefaults(SelfTestHarnessDefaults.suite).embedder
+            embeddingModelState = .notDownloaded
+            return
+        }
         parakeetState = ParakeetModels.isDownloaded ? .ready : .notDownloaded
         s1MiniState = S1MiniModels.isDownloaded ? .ready : .notDownloaded
         notesModelState = NotesModels.isDownloaded ? .ready : .notDownloaded
@@ -42,6 +59,15 @@ final class LocalModelStore {
         let choice = KnowledgeIndexSettings.fromDefaults.embedder
         embeddingModelChoice = choice
         embeddingModelState = EmbeddingModels.isDownloaded(choice) ? .ready : .notDownloaded
+    }
+
+    func settingsSheetIsolationFailures() -> [String] {
+        guard SelfTest.requested == "--selftest-settings-sheet" else { return ["Wrong local model fixture scope"] }
+        let states = [parakeetState, s1MiniState, notesModelState, diarizerState, wakeWordState, embeddingModelState]
+        guard states.allSatisfy({ $0 == .notDownloaded }), embeddingModelChoice == .none, embeddingTask == nil else {
+            return ["Local model fixture read a selection or started preparation"]
+        }
+        return []
     }
 
     func prepareParakeet() {
@@ -278,6 +304,7 @@ final class LocalModelStore {
     }
 
     func refresh() {
+        guard SelfTest.requested != "--selftest-settings-sheet" else { return }
         if !parakeetState.isBusy {
             parakeetState = ParakeetModels.isDownloaded ? .ready : .notDownloaded
         }

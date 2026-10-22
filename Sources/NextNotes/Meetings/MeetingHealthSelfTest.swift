@@ -1,6 +1,7 @@
 import AVFoundation
 import FluidAudio
 import Foundation
+import Synchronization
 
 /// Actual isolated session start/capture/writer/error/warning producers. Only
 /// external capture, permission, inference and notification delivery are injected.
@@ -174,6 +175,11 @@ enum MeetingHealthSelfTest {
             check("writer failure did not persist through fresh reader", store.freshReaderForTesting().meeting(id: meeting.id)?.captureIntegrity?.audioWriteFailed == true)
             let refused = await writer.resourceSnapshot()
             check("session's failed writer retained abandoned capacity", refused.queueCapacityBytes == 0)
+            if let directory = SelfTest.value(after: "--meeting-reliability-sheet") {
+                check("actual file-rejection view did not render", MeetingConsolePreview.writeReliabilitySheet(
+                    MeetingLiveView(session: session), named: "live-audio-failure", to: directory,
+                    size: CGSize(width: 720, height: 720)))
+            }
             Notifications.shared.meetingProblemPostForTesting = nil
             session.endAbruptly()
             let fresh = store.freshReaderForTesting().meeting(id: meeting.id)
@@ -286,7 +292,19 @@ enum MeetingHealthSelfTest {
             if held {
                 let burstPackets = 1_500
                 let packetFrames = 32
-                try await tap.emit(packets: burstPackets, frames: packetFrames)
+                MetricsStore.shared.flushForTesting()
+                let earlierWarnings = Set(MetricsStore.shared.spans(named: .meetingHealthWarning).map(\.id))
+                let emission = Task.detached(priority: .userInitiated) {
+                    try await tap.emit(packets: burstPackets, frames: packetFrames)
+                }
+                // Controlled scheduling load in this fixture only. The captured
+                // producer timestamp, rather than this loop's start, owns delay.
+                let loadBeganAt = Date()
+                let loadDeadline = ContinuousClock.now.advanced(by: .milliseconds(100))
+                var loadTicks = 0
+                while ContinuousClock.now < loadDeadline { loadTicks &+= 1 }
+                let loadEndedAt = Date()
+                try await emission.value
                 // The first warning can run before the burst ends. Sample the
                 // producer's final cumulative count through the real health tick.
                 await session.checkResourceHealth(capacityForTesting: safe, criticalForTesting: false)
@@ -299,6 +317,22 @@ enum MeetingHealthSelfTest {
                 check("actual yield rejection lost or invented dropped-frame counts", dropped == expected)
                 check("actual capture overflow lost its visible warning", session.healthWarnings.contains(.captureGap))
                 check("actual capture overflow spammed or misrouted notifications", gapPosts == 1 && !gapBodyWasWrong)
+                MetricsStore.shared.flushForTesting()
+                let measuredWarnings = MetricsStore.shared.spans(named: .meetingHealthWarning).filter {
+                    !earlierWarnings.contains($0.id)
+                        && $0.note?.contains("kind=captureGap delayMeasured=1") == true
+                }
+                check("actual capture warning produced no scheduling measurement", measuredWarnings.count == 1)
+                if let warning = measuredWarnings.first {
+                    let overlapped = warning.startedAt >= loadBeganAt && warning.startedAt <= loadEndedAt
+                    check("controlled MainActor load did not overlap actual capture rejection", overlapped)
+                    log("MEETING_HEALTH_WARNING_DELAY seconds=\(String(format: "%.6f", warning.durationSeconds)) controlled_load_overlap=\(overlapped ? 1 : 0) load_ticks=\(loadTicks) physical_visibility=unverified")
+                }
+                if let directory = SelfTest.value(after: "--meeting-reliability-sheet") {
+                    check("actual capture-loss view did not render", MeetingConsolePreview.writeReliabilitySheet(
+                        MeetingLiveView(session: session), named: "live-capture-gap", to: directory,
+                        size: CGSize(width: 720, height: 720)))
+                }
                 gate.release()
                 await session.stop()
                 let fresh = store.freshReaderForTesting().meeting(id: meeting.id)
@@ -374,6 +408,7 @@ enum MeetingHealthSelfTest {
         // The writer can replace a late track's position with silence before its
         // original samples arrive. That actual source omission must reach the
         // session warning and durable record, independently of stream overflow.
+        for quitBeforePoll in [false, true] {
         do {
             let store = MeetingStore.isolated()
             let hub = AudioCaptureHub(probe: true)
@@ -414,6 +449,19 @@ enum MeetingHealthSelfTest {
             })
             let producer = writer.resourceSnapshot()
             check("late system source omission falsely changed mic count", producer.missingSavedMicFrames == 0)
+            if quitBeforePoll {
+                check("Quit fixture already received a health poll", store.freshReaderForTesting()
+                    .meeting(id: meeting.id)?.captureIntegrity?.missingSavedSystemFrames ?? 0 == 0)
+                session.endAbruptly()
+                let survivor = store.freshReaderForTesting().meeting(id: meeting.id)
+                check("Quit before health poll lost actual saved system originals", survivor?
+                    .captureIntegrity?.missingSavedSystemFrames == 16_000)
+                check("Quit before health poll misattributed mic loss", survivor?
+                    .captureIntegrity?.missingSavedMicFrames == 0)
+                check("Quit did not leave a recoverable interrupted row", survivor?.status == .transcribing
+                    && survivor?.captureIntegrity?.interruptedAt != nil)
+                continue
+            }
             await session.checkResourceHealth(capacityForTesting: safe, criticalForTesting: false)
             let saved = store.freshReaderForTesting().meeting(id: meeting.id)
             check("session health did not persist actual system source omission", saved?.captureIntegrity?.missingSavedSystemFrames == 16_000)
@@ -430,6 +478,64 @@ enum MeetingHealthSelfTest {
             session.endAbruptly()
             check("shutdown erased saved-source omission", store.freshReaderForTesting().meeting(id: meeting.id)?.captureIntegrity?.missingSavedSystemFrames == 16_000)
         } catch { failures.append("actual saved source coverage session: \(error.localizedDescription)") }
+        }
+
+        // Quit may run before a queued warning callback. Hold MainActor only in
+        // this fixture while the actual external producer publishes its fact.
+        for diskFailure in [false, true] {
+            do {
+                let store = MeetingStore.isolated()
+                let gate = WriteGate()
+                let tap = OverflowTap()
+                let hub = AudioCaptureHub(probe: true)
+                SystemAudioCapture.startCallOverrideForTesting = { format, onBuffer, onLevel in
+                    try await tap.start(format: format, onBuffer: onBuffer, onLevel: onLevel)
+                }
+                var actualWriter: MeetingAudioWriter?
+                let session = MeetingSession(meeting: Meeting(title: "Quit before warning fixture", status: .scheduled),
+                    store: store, captureHub: hub, writerFactory: { url, error in
+                        let writer = try MeetingAudioWriter(url: url, onWriteError: error, write: { file, buffer in
+                            gate.holdFirstWrite()
+                            if diskFailure { throw POSIXError(.ENOSPC) }
+                            try file.write(from: buffer)
+                        })
+                        actualWriter = writer
+                        return writer
+                    }, diskCapacityForTesting: safe)
+                defer { gate.release(); session.endAbruptly() }
+                try await session.start()
+                check("pending warning fixture never held its writer", await waitUntil { gate.entered })
+                let emitted = Mutex(false)
+                let emission: Task<Void, Error>?
+                if diskFailure {
+                    emission = nil
+                    gate.release()
+                } else {
+                    emission = Task.detached(priority: .userInitiated) {
+                        defer { emitted.withLock { $0 = true } }
+                        try await tap.emit(packets: 1_500, frames: 32)
+                    }
+                }
+                let deadline = ContinuousClock.now.advanced(by: .seconds(3))
+                while ContinuousClock.now < deadline {
+                    if diskFailure ? actualWriter?.resourceSnapshot().writeFailed == true : emitted.withLock({ $0 }) { break }
+                }
+                let issue: MeetingHealthIssue = diskFailure ? .audioWriteFailure : .captureGap
+                check("pending warning already ran before Quit", !session.healthWarnings.contains(issue))
+                let produced = diskFailure ? actualWriter?.resourceSnapshot().writeFailed == true : emitted.withLock({ $0 })
+                check("pending warning producer never completed", produced)
+                session.endAbruptly()
+                let survivor = store.freshReaderForTesting().meeting(id: session.meeting.id)
+                if diskFailure {
+                    check("Quit before writer callback erased actual failure", survivor?.captureIntegrity?.audioWriteFailed == true)
+                } else {
+                    check("Quit before capture callback erased actual lost frames", survivor?.captureIntegrity?.missingCaptureFrames == 15_232)
+                }
+                check("Quit before warning did not preserve interruption", survivor?.captureIntegrity?.interruptedAt != nil)
+                gate.release()
+                try await emission?.value
+            } catch { failures.append("actual Quit before warning fixture: \(error.localizedDescription)") }
+        }
 
         for failure in failures { log("MEETING_HEALTH_WRONG: \(failure)") }
         log(failures.isEmpty ? "MEETING_HEALTH_OK: \(checks) checks; actual capture, writer, durable warning and notification producers"

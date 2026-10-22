@@ -1,5 +1,6 @@
 import AVFoundation
 import AppKit
+import CoreText
 import Darwin
 import FluidAudio
 import IOKit.ps
@@ -11,13 +12,29 @@ import SwiftUI
 @MainActor
 enum NextNotesEntryPoint {
     static func main() {
+        if CommandLine.arguments.dropFirst().contains(UsageReportReaderSelfTest.flag) {
+            exit(UsageReportReaderSelfTest.runStandalone(arguments: Array(CommandLine.arguments.dropFirst())))
+        }
         if CommandLine.arguments.dropFirst().contains(UsageReport.flag) {
             exit(UsageReport.runStandalone(arguments: Array(CommandLine.arguments.dropFirst())))
+        }
+        // Explicit owner-ledger diagnostic: no SwiftUI scene, delegate, migration or
+        // eagerly constructed meeting/dictation/usage owner before the read-only report.
+        if CommandLine.arguments.dropFirst().contains("--jobs-report") {
+            exit(JobReport.runStandalone(arguments: Array(CommandLine.arguments.dropFirst())))
         }
         // The original reader regression must run before any owner-backed UI is built.
         // Every other launch retains SwiftUI App's existing entry and scene lifecycle.
         if CommandLine.arguments.dropFirst().contains("--selftest-task-harness-read") {
             exit(TaskHarnessReadIsolationSelfTest.runStandalone())
+        }
+        if CommandLine.arguments.dropFirst().contains("--selftest-acp-offered-options") {
+            ACPOfferedOptionStandaloneFixture.runStandalone()
+            return
+        }
+        if CommandLine.arguments.dropFirst().contains("--selftest-native-termination") {
+            NativeTerminationSelfTest.runStandalone()
+            return
         }
         NextNotesApp.main()
     }
@@ -110,6 +127,27 @@ enum SelfTest {
     /// test it had been asked to run was "--selftest-timeout".
     static let requested: String? = {
         let arguments = Array(CommandLine.arguments.dropFirst())
+        let named = arguments.filter { $0.hasPrefix("--selftest") && !harnessFlags.contains($0) }
+        if arguments.contains("--selftest-acp-offered-options") {
+            let allowed: Set<String> = ["--selftest-acp-offered-options", outputFlag, timeoutFlag]
+            let extraFlags = arguments.filter { $0.hasPrefix("-") && !allowed.contains($0) }
+            guard named == ["--selftest-acp-offered-options"], extraFlags.isEmpty else {
+                print("ACP_OFFERED_OPTIONS_INVALID: conflicting diagnostic or live modifier")
+                exit(1)
+            }
+        }
+        if arguments.contains("--selftest-settings-sheet") {
+            let allowed: Set<String> = [
+                "--selftest-settings-sheet", outputFlag, timeoutFlag,
+                "--settings-pane", "--settings-all-panes", "--width", "--via-open"
+            ]
+            let extraFlags = arguments.filter { $0.hasPrefix("-") && !allowed.contains($0) }
+            guard named == ["--selftest-settings-sheet"], extraFlags.isEmpty else {
+                // No supplied values, addresses, paths or credential fields are printed.
+                print("SETTINGS_SHEET_FIXTURE_FAILED: conflicting live modifier or extra test flag")
+                exit(1)
+            }
+        }
         if arguments.contains("--selftest-meeting-participant-observation") {
             let flag = "--selftest-meeting-participant-observation"
             let allowed: Set<String> = [flag, "--selftest-out", "--selftest-timeout"]
@@ -125,9 +163,31 @@ enum SelfTest {
                 exit(1)
             }
         }
-        return arguments.first {
-            $0.hasPrefix("--selftest") && !harnessFlags.contains($0)
+        if arguments.contains("--selftest-native-termination") {
+            let allowed: Set<String> = ["--selftest-native-termination", "--native-termination-model",
+                                        "--native-startup-case", "--native-startup-assets",
+                                        "--native-termination-recording-mode",
+                                        "--native-llama-owner-case", "--native-llama-owner-model",
+                                        outputFlag, timeoutFlag]
+            let extraFlags = arguments.filter { $0.hasPrefix("-") && !allowed.contains($0) }
+            let hasStartupCase = arguments.contains("--native-startup-case")
+            let hasStartupAssets = arguments.contains("--native-startup-assets")
+            let mixedStartup = hasStartupCase
+                && (arguments.contains("--native-termination-recording-mode")
+                    || arguments.contains("--native-termination-model"))
+            let hasOtherCase = arguments.contains("--native-llama-owner-case")
+            let hasOtherModel = arguments.contains("--native-llama-owner-model")
+            let mixedOther = hasOtherCase && (hasStartupCase || hasStartupAssets
+                || arguments.contains("--native-termination-recording-mode")
+                || arguments.contains("--native-termination-model"))
+            guard named == ["--selftest-native-termination"], extraFlags.isEmpty,
+                  hasStartupCase == hasStartupAssets, !mixedStartup,
+                  hasOtherCase == hasOtherModel, !mixedOther else {
+                print("NATIVE_TERMINATION_FAILED: conflicting diagnostic or live modifier")
+                exit(1)
+            }
         }
+        return named.first
     }()
 
     static var isRunning: Bool { requested != nil }
@@ -424,7 +484,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // UX-11: fixed light site theme — set by the app before any window appears,
+        // never inherited from the Mac.
+        ThemeFixed.apply()
         Self.current = self
+        if SelfTest.requested == "--selftest-native-termination" {
+            // Standalone AppKit fixture owns only a concrete isolated delegate:
+            // no SwiftUI scene tree or normal-launch owner initialization.
+            _ = runRequestedSelfTest()
+            return
+        }
         // Before the self-test check: a notification the user actioned while Next Notes was
         // closed is delivered the instant the app launches, and a delegate installed after
         // that never sees it.
@@ -661,13 +730,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if warmup.contains(.loadS1Mini) {
             LocalModelStore.shared.prepareS1Mini()
         }
-        if warmup.contains(.loadCleanupModel), !SelfTest.isRunning {
-            // Behind the Apple warm-up and at `.utility`: 1.5 GB of disk reads
-            // must not race the first hold, and a self-test process must neither
-            // pay for the load nor lose its cold measurement to it.
+        let cleanupSteps = LlamaLaunchWarmup.steps(
+            plan: warmup,
+            parakeetPlanned: willUseParakeet && ParakeetModels.isDownloaded,
+            selfTestRunning: SelfTest.isRunning
+        )
+        if !cleanupSteps.isEmpty {
+            // Promptly, but after Parakeet: a dictation needs its recognizer before its
+            // cleanup model, and the two loads together are the disk and memory spike the
+            // first hold would feel. Wait for Parakeet's Neural Engine load first, so the
+            // shader compile below never competes with its ANE compile.
+            // Then the llama backend on its own (ggml-metal's shader compile, timed apart
+            // from the weights), then the preload. Off the main actor; the load itself runs
+            // on the background lane and parks for any hold that starts meanwhile, and a
+            // dictation that arrives first is answered by Apple, never made to wait.
             Task(priority: .utility) {
-                try? await Task.sleep(for: .seconds(5))
-                await MiniCPMModels.preload()
+                for step in cleanupSteps {
+                    switch step {
+                    case .awaitParakeetSettled: _ = try? await ParakeetModels.shared.manager()
+                    case .initializeBackend: await LlamaBackend.shared.initialize(origin: .launchWarmup)
+                    case .preloadCleanupModel: await MiniCPMModels.preload()
+                    }
+                }
             }
         }
         if warmup.contains(.warmApple) {
@@ -851,6 +935,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             return true
         }
+        if arguments.contains("--selftest-meeting-agent-evidence") {
+            Task { @MainActor in
+                let problems = await MeetingEvidenceSelfTest.failures()
+                for problem in problems { print("MEETING_EVIDENCE_WRONG: " + problem) }
+                SelfTest.failed = !problems.isEmpty
+                let result = problems.isEmpty ? "MEETING_EVIDENCE_OK: 89 checks" : "MEETING_EVIDENCE_FAILED: \(problems.count)"
+                writeSelfTest(result)
+                SelfTest.requestTermination()
+            }
+            return true
+        }
+        if arguments.contains("--selftest-meeting-agent-fit") {
+            Task { @MainActor in
+                let failures = await MeetingReviewFitSelfTest.failures()
+                for failure in failures { print("MEETING_REVIEW_FIT_WRONG: " + failure) }
+                let marker = failures.isEmpty ? "MEETING_REVIEW_FIT_OK" : "MEETING_REVIEW_FIT_FAILED: \(failures.count)"
+                print(marker)
+                writeSelfTest(marker)
+                SelfTest.failed = !failures.isEmpty
+                SelfTest.requestTermination()
+            }
+            return true
+        }
         if arguments.contains("--selftest-model-roles") {
             Task { @MainActor in
                 let failures = await ModelRoleSelfTest.run()
@@ -882,6 +989,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if arguments.contains("--selftest-llm-prefix-cache") {
             Task { @MainActor in
                 SelfTest.failed = !(await PrefixCacheSelfTest.runSelfTest())
+                SelfTest.requestTermination()
+            }
+            return true
+        }
+        if arguments.contains("--selftest-llama-backend-warmup") {
+            Task { @MainActor in
+                SelfTest.failed = !(await LlamaBackendWarmupSelfTest.runSelfTest())
                 SelfTest.requestTermination()
             }
             return true
@@ -1286,8 +1400,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         if arguments.contains("--selftest-onboarding") {
             Task { @MainActor in
-                SelfTest.failed = !OnboardingSelfTest.run()
-                NSApp.terminate(nil)
+                let fontFailures = bundledThemeFontFailures()
+                if !fontFailures.isEmpty {
+                    SelfTest.failed = true
+                    for failure in fontFailures { writeSelfTest("ONBOARDING_WRONG: \(failure)") }
+                    writeSelfTest("ONBOARDING_FAILED: packaged fonts unavailable or mismatched")
+                } else {
+                    SelfTest.failed = SelfTest.failed || !OnboardingSelfTest.run()
+                }
+                SelfTest.requestTermination()
             }
             return true
         }
@@ -1335,8 +1456,30 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         if arguments.contains("--selftest-task-recovery") {
             Task { @MainActor in
-                writeSelfTest(await TaskRecoverySelfTest.runIncludingDelegation())
-                NSApp.terminate(nil)
+                if arguments.contains("--repeated-recovered-read-child") {
+                    guard let root = SelfTest.value(after: "--repeated-recovered-read-child") else {
+                        writeSelfTest("TASK_REPEATED_READ_FAILED: INPUT_INVALID child root")
+                        SelfTest.requestTermination()
+                        return
+                    }
+                    await TaskRepeatedRecoveredReadSelfTest.runSecondChild(root: URL(fileURLWithPath: root, isDirectory: true),
+                        empty: arguments.contains("--repeated-read-empty-attempt"))
+                } else if arguments.contains("--repeated-recovered-read-explicit") {
+                    writeSelfTest(await TaskRepeatedRecoveredReadSelfTest.run(empty: arguments.contains("--repeated-read-empty-attempt"),
+                        sourceChanged: arguments.contains("--repeated-read-source-changed")))
+                } else if arguments.contains("--recovered-read-child") {
+                    guard let root = SelfTest.value(after: "--recovered-read-child") else {
+                        writeSelfTest("TASK_RECOVERED_READ_FAILED: INPUT_INVALID child root")
+                        SelfTest.requestTermination()
+                        return
+                    }
+                    await TaskRecoveredReadSelfTest.runChild(root: URL(fileURLWithPath: root, isDirectory: true))
+                } else if arguments.contains("--recovered-read-explicit") {
+                    writeSelfTest(await TaskRecoveredReadSelfTest.run())
+                } else {
+                    writeSelfTest(await TaskRecoverySelfTest.runIncludingDelegation())
+                }
+                SelfTest.requestTermination()
             }
             return true
         }
@@ -1382,7 +1525,91 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if arguments.contains("--selftest-agent-presentation") {
             Task { @MainActor in
                 SelfTest.failed = !(await AgentPresentationSelfTest.run())
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
+            }
+            return true
+        }
+        if arguments.contains("--selftest-settings-sheet") {
+            Task { @MainActor in
+                guard SelfTest.requested == "--selftest-settings-sheet",
+                      let directory = SelfTest.value(after: "--selftest-settings-sheet") else {
+                    SelfTest.failed = true
+                    writeSelfTest("SETTINGS_SHEET_FIXTURE_FAILED: isolated flag and output folder required")
+                    SelfTest.requestTermination()
+                    return
+                }
+                let fonts = bundledThemeFontFailures()
+                guard fonts.isEmpty else {
+                    SelfTest.failed = true
+                    writeSelfTest("SETTINGS_SHEET_FIXTURE_FAILED: packaged font gate has \(fonts.count) failure(s)")
+                    SelfTest.requestTermination()
+                    return
+                }
+                var tabs = SettingsSheet.fixtureTabs
+                var widths = SettingsSheet.fixtureWidths
+                if arguments.contains("--settings-all-panes") {
+                    tabs = SettingsTab.allCases
+                    widths = SettingsSheet.widths
+                }
+                if arguments.contains("--settings-pane") {
+                    guard let raw = SelfTest.value(after: "--settings-pane") else {
+                        SelfTest.failed = true
+                        writeSelfTest("SETTINGS_SHEET_FIXTURE_FAILED: pane value required")
+                        SelfTest.requestTermination()
+                        return
+                    }
+                    guard let tab = SettingsTab(rawValue: raw), !arguments.contains("--settings-all-panes") else {
+                        SelfTest.failed = true
+                        writeSelfTest("SETTINGS_SHEET_FIXTURE_FAILED: choose one known pane or the full matrix")
+                        SelfTest.requestTermination()
+                        return
+                    }
+                    tabs = [tab]
+                }
+                if arguments.contains("--width") {
+                    guard let raw = SelfTest.value(after: "--width") else {
+                        SelfTest.failed = true
+                        writeSelfTest("SETTINGS_SHEET_FIXTURE_FAILED: width value required")
+                        SelfTest.requestTermination()
+                        return
+                    }
+                    guard let maximumWidth = SettingsSheet.widths.max(),
+                          let width = Double(raw), width.isFinite,
+                          width >= Double(DS.Size.settingsPaneMinWidth), width <= Double(maximumWidth) else {
+                        SelfTest.failed = true
+                        writeSelfTest("SETTINGS_SHEET_FIXTURE_FAILED: width must stay within the existing diagnostic range")
+                        SelfTest.requestTermination()
+                        return
+                    }
+                    widths = [CGFloat(width)]
+                }
+                let ok = await SettingsSheet.writeFixture(to: directory, controller: controller, widths: widths, tabs: tabs)
+                SelfTest.failed = SelfTest.failed || !ok
+                SelfTest.requestTermination()
+            }
+            return true
+        }
+
+        if arguments.contains("--selftest-onboarding-sheet") {
+            Task { @MainActor in
+                guard let directory = SelfTest.value(after: "--selftest-onboarding-sheet"),
+                      !directory.hasPrefix("--") else {
+                    SelfTest.failed = true
+                    writeSelfTest("ONBOARDING_SHEET_FAILED: an output folder is required")
+                    SelfTest.requestTermination()
+                    return
+                }
+                let fontFailures = bundledThemeFontFailures()
+                guard fontFailures.isEmpty else {
+                    SelfTest.failed = true
+                    for failure in fontFailures { writeSelfTest("ONBOARDING_SHEET_WRONG: \(failure)") }
+                    writeSelfTest("ONBOARDING_SHEET_FAILED: packaged fonts unavailable or mismatched")
+                    SelfTest.requestTermination()
+                    return
+                }
+                let ok = OnboardingSheet.write(to: directory, controller: controller)
+                SelfTest.failed = SelfTest.failed || !ok
+                SelfTest.requestTermination()
             }
             return true
         }
@@ -1394,7 +1621,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     return
                 }
                 SelfTest.failed = !ExperienceSheet.write(to: directory)
-                NSApp.terminate(nil)
+                if !SelfTest.failed, arguments.contains("--experience-preview") {
+                    SelfTest.failed = !ExperiencePreview.show()
+                    if !SelfTest.failed { return }
+                }
+                SelfTest.requestTermination()
             }
             return true
         }
@@ -1953,8 +2184,20 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
             }
             return true
         }
+        if arguments.contains("--selftest-meeting-bounded-audio") {
+            Task { @MainActor in
+                SelfTest.failed = !(await MeetingBoundedAudioSelfTest.run(write: writePrivateSelfTest))
+                SelfTest.requestTermination()
+            }
+            return true
+        }
         if arguments.contains("--selftest-meeting-quiet-input") {
             Task { @MainActor in
+                if arguments.contains("--meeting-quiet-pause-boundaries") {
+                    SelfTest.failed = !(await MeetingPauseBoundarySelfTest.run(write: writePrivateSelfTest))
+                    SelfTest.requestTermination()
+                    return
+                }
                 let corpus = SelfTest.value(after: "--meeting-quiet-corpus")
                     .map { URL(fileURLWithPath: $0, isDirectory: true) }
                 SelfTest.failed = !(await MeetingQuietInputSelfTest.run(
@@ -2022,6 +2265,13 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
         }
         if arguments.contains("--selftest-audio-retention") {
             runAudioRetentionSelfTest()
+            return true
+        }
+        if arguments.contains("--selftest-meeting-retention-choices") {
+            Task { @MainActor in
+                SelfTest.failed = !(await MeetingRetentionChoiceSelfTest.run { writeSelfTest($0) })
+                SelfTest.requestTermination()
+            }
             return true
         }
         if arguments.contains("--selftest-meeting-scratchpad") {
@@ -2640,13 +2890,30 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
             return true
         }
         if arguments.contains("--selftest-meeting-reconcile-llm") {
-            SelfTest.failed = !MeetingContextReconciler.runSelfTest()
-            NSApp.terminate(nil)
+            Task { @MainActor in
+                let existing = MeetingContextReconciler.runSelfTest(reportVerdict: false)
+                let admission = await MeetingContextReconciler.runResourceAdmissionSelfTest(log: writeSelfTest)
+                SelfTest.failed = !(existing && admission)
+                writeSelfTest(SelfTest.failed ? "MEETING_RECONCILE_LLM_FAILED" : "MEETING_RECONCILE_LLM_OK: existing grounding and optional pressure admission")
+                SelfTest.requestTermination()
+            }
             return true
         }
         if arguments.contains("--selftest-stream") {
             SelfTest.failed = !StreamingASR.runSelfTest()
-            NSApp.terminate(nil)
+            SelfTest.requestTermination()
+            return true
+        }
+        if arguments.contains("--selftest-dictation-segments") {
+            // The pure segment / key-up / pre-clean rules need no model; a WAV argument adds
+            // a real-time replay through the production ParakeetEngine.
+            Task { @MainActor in
+                SelfTest.failed = !(await DictationSegmentsSelfTest.run(
+                    wavPath: SelfTest.value(after: "--selftest-dictation-segments"),
+                    log: writeSelfTest
+                ))
+                SelfTest.requestTermination()
+            }
             return true
         }
         if arguments.contains("--selftest-model-fit") {
@@ -3424,6 +3691,11 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                             preferences: preferences, fixesGrammar: true
                         )
                     } else {
+                        // The formatter only answers on resident weights (a dictation
+                        // never waits for a load), so the leg loads them first — or every
+                        // case would measure Apple and call it MiniCPM.
+                        let loaded = await MiniCPMModels.preload()
+                        writeSelfTest("  MiniCPM5-2B resident before the leg: \(loaded)")
                         formatter = MiniCPMCleanupFormatter(
                             preferences: preferences, fixesGrammar: true
                         )
@@ -3765,7 +4037,13 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
         let library = InstalledModelLibrary.shared.models
         var resolved: [(candidate: ModelCompareCandidate, model: InstalledLocalModel)] = []
         var skipped: [String] = []
-        for candidate in Self.modelCompareCandidates {
+        // `--compare-only <display name,…>`: Scripts/model-bench.sh runs one candidate per
+        // process so a sampled peak memory belongs to one model. Absent → every candidate.
+        let only = SelfTest.value(after: "--compare-only").map {
+            Set($0.lowercased().split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) })
+        }
+        for candidate in Self.modelCompareCandidates
+        where only?.contains(candidate.displayName.lowercased()) ?? true {
             guard let url = url(for: candidate) else {
                 writeSelfTest("MODEL_COMPARE \(candidate.displayName): absent (no file)")
                 skipped.append("\(candidate.displayName) (absent)")
@@ -4588,13 +4866,29 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                 // `Settings.notesProvider` tested a path nothing takes, so a machine whose
                 // notes run on an installed model reported a different one here.
                 let resolution = ModelRoleStore.shared.resolution(for: .meetingNotes)
-                guard let provider = await ModelRoleStore.shared.provider(for: .meetingNotes) else {
+                // `--notes-model <library id|apple>`: a per-process benchmark override
+                // (Scripts/model-bench.sh). It moves the runtime with the same awaited
+                // `select` the tool-loop eval uses and never writes a role or the library.
+                let override = SelfTest.value(after: "--notes-model")
+                let chosen: (any LLMProvider)?
+                if let override {
+                    chosen = await Self.benchmarkProvider(override)
+                    guard chosen != nil else {
+                        writeSelfTest("NOTES_ABSENT: --notes-model \(override) is not a usable model here")
+                        SelfTest.requestTermination()
+                        return
+                    }
+                } else {
+                    chosen = await ModelRoleStore.shared.provider(for: .meetingNotes)
+                }
+                guard let provider = chosen else {
                     let reasons = await Self.providerReasons()
                     writeSelfTest("NOTES_FAILED: no provider available — \(reasons)")
                     SelfTest.requestTermination()
                     return
                 }
-                if resolution.effective != resolution.requested, let note = resolution.note {
+                if override == nil, resolution.effective != resolution.requested,
+                   let note = resolution.note {
                     writeSelfTest("  note: \(note)")
                 }
 
@@ -5169,6 +5463,30 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
     /// test a fake. The engine, the formatter and the text injector are not: a self-test
     /// that used the real injector would type its fixtures into the terminal that started
     /// it, and one that used the real engine would be testing Parakeet.
+    private func bundledThemeFontFailures() -> [String] {
+        let names = DS.Theme.Typography.FontResources.bundledPostScriptNames
+        let status = ThemeFixed.fontStatus()
+        var failures = status.failures
+        if status.registered != names.sorted() {
+            failures.append("the packaged setup fonts did not all register")
+        }
+        for name in names {
+            if Bundle.main.url(forResource: name, withExtension: "ttf",
+                               subdirectory: "ThemeFonts") == nil {
+                failures.append("a packaged font is missing: \(name)")
+            }
+            let actual = CTFontCopyPostScriptName(CTFontCreateWithName(name as CFString, 14, nil)) as String
+            if actual != name { failures.append("packaged font identity changed: \(name)") }
+        }
+        for license in ["inter-OFL", "instrument-serif-OFL"] {
+            if Bundle.main.url(forResource: license, withExtension: "txt",
+                               subdirectory: "ThemeFonts") == nil {
+                failures.append("a packaged font license is missing")
+            }
+        }
+        return failures
+    }
+
     private func runDictationSelfTest() {
         Task { @MainActor in
             var failures: [String] = []
@@ -5252,6 +5570,8 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
             //    unaffected.
             let plain = SelfTestInbox()
             let caseABefore = sink.count
+            MetricsStore.shared.flushForTesting()
+            let insertionTimingsBefore = MetricsStore.shared.spans(named: .dictationKeyUpToInjection).count
             let controllerA = makeController(.prompt(delay: .zero), inbox: plain)
             let heldState = await hold(controllerA, held: .seconds(4), settle: 6)
             if heldState == nil {
@@ -5264,6 +5584,10 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
             // out, so the text that lands is not the text the engine produced.
             if plain.contents().count != 1 || plain.contents().first?.contains("transcript") != true {
                 failures.append("an ordinary hold injected \(plain.contents()) rather than the transcript")
+            }
+            MetricsStore.shared.flushForTesting()
+            if MetricsStore.shared.spans(named: .dictationKeyUpToInjection).count != insertionTimingsBefore + 1 {
+                failures.append("the actual inserted hold lost its release-to-insertion timing after history recording")
             }
 
             // D-01b a. Exactly one `dictation.hold` outcome for the ordinary hold:
@@ -6018,6 +6342,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
             // the new hold's microphone or return its state to idle.
             let delayedInsert = DelayedSelfTestInsert()
             let delayedInbox = SelfTestInbox()
+            let delayedOutcomeStart = sink.count
             let delayed = DictationController(
                 formatter: RuleBasedFormatter(),
                 makeEngine: { SelfTestEngine(shape: .prompt(delay: .zero)) },
@@ -6045,7 +6370,13 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
             if !delayedInsert.firstIsWaiting {
                 failures.append("the delayed-insert hold never reached injection")
             } else {
+                if delayed.latestDelivery != nil {
+                    failures.append("pending insertion prematurely published a delivery")
+                }
                 delayed.cancelDictation()
+                if delayed.latestDelivery != nil {
+                    failures.append("canceled insertion retained a delivery")
+                }
                 delayed.startButtonRecording()
                 holdsStarted += 1
                 let secondListeningBy = Date().addingTimeInterval(4)
@@ -6057,6 +6388,9 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                 }
                 delayedInsert.releaseFirst()
                 try? await Task.sleep(for: .milliseconds(100))
+                if delayed.latestDelivery != nil {
+                    failures.append("late canceled insertion published a delivery for the next hold")
+                }
                 if delayed.state != .listening {
                     failures.append("the canceled hold's late injection ended the new recording")
                 }
@@ -6064,6 +6398,11 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                 let secondIdleBy = Date().addingTimeInterval(4)
                 while Date() < secondIdleBy, delayed.state != .idle {
                     try? await Task.sleep(for: .milliseconds(25))
+                }
+                let successor = sink.outcomes(from: delayedOutcomeStart).last
+                if delayed.latestDelivery?.id != successor?.holdID
+                    || delayed.latestDelivery?.text != delayedInbox.contents().last {
+                    failures.append("successor delivery did not match its actual hold and inserted words")
                 }
                 if delayed.state != .idle || delayedInbox.contents().count != 1 {
                     failures.append("the hold after a delayed insertion did not finish normally")
@@ -6076,6 +6415,87 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
             if TextInjector.origin(for: NSRunningApplication.current)?.app.processIdentifier
                 != NSRunningApplication.current.processIdentifier {
                 failures.append("Next Notes was omitted from dictation origin capture")
+            }
+
+            // UX08: actual delivery identity and practice consumer.
+            for result in [
+                TextInjector.Outcome.inserted,
+                .copiedByChoice(appName: "Practice example"),
+                .couldNotReturn(appName: "Practice example"),
+            ] {
+                var heldID: UUID?
+                var recordedID: UUID?
+                var actualOutput = ""
+                var fieldText = ""
+                var practice = OnboardingPracticeReceipt()
+                practice.beginObserving(latestDeliveryID: nil)
+                let owner = UUID()
+                let before = sink.count
+                let controller = DictationController(
+                    formatter: RuleBasedFormatter(),
+                    makeEngine: { SelfTestEngine(shape: .prompt(delay: .zero)) },
+                    limits: limits,
+                    insert: { text, _ in
+                        actualOutput = text
+                        if result == .inserted { fieldText = text }
+                        return result
+                    },
+                    // Memory-only identity witness, never RunLog.record.
+                    record: { recordedID = $0.id },
+                    log: .selfTest,
+                    outcome: { sink.append($0) }
+                )
+                controller.observeHoldBeginnings(owner: owner) { id in
+                    heldID = id
+                    practice.beganHold(id: id, inPracticeField: true, fieldText: fieldText)
+                }
+                if await hold(controller, held: .seconds(2), settle: 8) == nil {
+                    failures.append("delivery receipt hold did not settle through the actual controller")
+                }
+                let outcomes = sink.outcomes(from: before)
+                if outcomes.count != 1 || heldID == nil || recordedID != heldID
+                    || outcomes.first?.holdID != heldID || actualOutput.isEmpty {
+                    failures.append("delivery receipt hold identity/output did not match actual run and outcome")
+                }
+                let receipt = controller.latestDelivery
+                switch result {
+                case .inserted, .copiedByChoice:
+                    let expectedKind: DictationController.Delivery.Kind =
+                        result == .inserted ? .inserted : .copied
+                    if receipt?.id != heldID || receipt?.text != actualOutput
+                        || receipt?.kind != expectedKind {
+                        failures.append("actual injector outcome did not publish the exact delivery receipt")
+                    }
+                    if let receipt {
+                        practice.received(id: receipt.id, text: receipt.text,
+                                          inserted: receipt.kind == .inserted, fieldText: fieldText)
+                    }
+                    if practice.hasDeliveredWords != (result == .inserted) {
+                        failures.append("actual delivery incorrectly certified practice success")
+                    }
+                case .couldNotReturn:
+                    if receipt != nil || practice.hasDeliveredWords
+                        || outcomes.first?.result != .failed(.couldNotReturn) {
+                        failures.append("clipboard recovery was promoted to an insertion success")
+                    }
+                case .superseded:
+                    // The canceled delayed-insertion production case below owns this contract.
+                    failures.append("unexpected superseded result in delivery fixture")
+                }
+
+                // Clearing is synchronous at accepted key-down, before mic/model awaits.
+                // No additional capture wait is introduced by the presentation observer.
+                let previousID = heldID
+                controller.startButtonRecording()
+                if controller.state.isActive { holdsStarted += 1 }
+                if controller.latestDelivery != nil || heldID == previousID {
+                    failures.append("next accepted hold retained its predecessor's delivery")
+                }
+                controller.cancelDictation()
+                if controller.latestDelivery != nil {
+                    failures.append("canceled next hold resurrected a delivery receipt")
+                }
+                controller.stopObservingHoldBeginnings(owner: owner)
             }
 
             // UX-08: cancel and successor capture across the existing metric actor hop.
@@ -7080,6 +7500,10 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
             failures.append(contentsOf: await Self.islandStateFailures())
             failures.append(contentsOf: Self.islandViewFailures())
             failures.append(contentsOf: AgentWorkingCard.scriptedFourStepFailures())
+            // The live dictation card: words open it, key-up keeps them under a stage label,
+            // insertion closes it, and an open live card never takes a click.
+            failures.append(contentsOf: await IslandLiveTextSelfTest.failures())
+
             // The one property this panel must never lose. A key island would take focus
             // away from the text field `TextInjector` is about to type into.
             let state = IslandState()
@@ -7469,6 +7893,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
             .hidden,
             .dictating(transcript: "hello", level: 0.4, isCapturing: true),
             .dictating(transcript: "", level: 0, isCapturing: false),
+            .dictating(transcript: "hello", level: 0, isCapturing: false, isTidying: true),
             .meetingArmed(armed),
             .meetingRecording(elapsed: 12, micLevel: 0.2, systemLevel: 0),
             .transcribing,
@@ -7914,6 +8339,9 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
 
     /// Enough tokens to prove the GPU path decodes, few enough to finish in seconds.
     private static let metalProbeTokens = 32
+    /// How much of the probe's answer is echoed, so a garbled GPU decode is visible.
+    private static let metalProbeEcho = 80
+
     /// A benchmark-only provider for one named model, for one process (Scripts/model-bench.sh).
     /// `apple`, or a usable library id moved into the shared runtime with the same awaited
     /// `select` the tool-loop eval uses. Writes no role, no library selection, no file.
@@ -7929,9 +8357,6 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
         let provider = LlamaLLMProvider(modelName: model.displayName)
         return await provider.unavailableReason == nil ? provider : nil
     }
-
-    /// How much of the probe's answer is echoed, so a garbled GPU decode is visible.
-    private static let metalProbeEcho = 80
 
     /// PL-01 diagnostic modifiers on the existing Metal flag. Uses one private runtime,
     /// the production usage recorder and (C1) the existing paced meeting file feeder.
@@ -9526,6 +9951,12 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                     check(name, condition)
                 }
                 SelfTest.diagnostic("ACP_PERMISSION_RESULT_CHECKS: \(permissionResultChecks)")
+                var currentClientChecks = 0
+                try await ACPSessionCurrentClientSelfTest.originalCases(root: terminalRoot) { condition, name in
+                    currentClientChecks += 1
+                    check(name, condition)
+                }
+                SelfTest.diagnostic("ACP_CURRENT_CLIENT_CHECKS: \(currentClientChecks)")
                 let script = try AgentStdioFixtures.writeACP()
                 let session = ACPSession()
                 let flags = ACPSelfTestFlags()
@@ -9815,6 +10246,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                 failures.append("p1-29: \(error.localizedDescription)")
             }
 
+            failures += await JobReportSelfTest.problems()
             for failure in failures { writeSelfTest("  ACTIVITY_WRONG: \(failure)") }
             writeSelfTest(failures.isEmpty
                           ? "ACTIVITY_OK: tool runs project public titles"

@@ -116,6 +116,12 @@ final class CleanupTrace: @unchecked Sendable {
         mutate { $0.precleanedGroups = count }
     }
 
+    /// Nonempty formatter answers available when the head is selected. This may
+    /// include a formatter's own fallback; it is not a model-quality verdict.
+    func notePrecleanAnsweredGroups(_ count: Int) {
+        mutate { $0.precleanAnsweredGroups = count }
+    }
+
     func notePrecleanFallback(_ reason: String) {
         mutate { $0.precleanFallback = $0.precleanFallback ?? reason }
     }
@@ -237,6 +243,41 @@ final class CleanupTrace: @unchecked Sendable {
         }
     }
 
+    /// Which engine actually produced (or was handed) this pass's text — `miniCPM`,
+    /// `apple` — accumulated in first-use order across chunks. The settings' `engine`
+    /// says what was *chosen*; this says what *ran*, which is what the usage row files.
+    func noteEngineUsed(_ engine: String) {
+        mutate {
+            var used = $0.enginesUsed ?? []
+            if !used.contains(engine) { used.append(engine) }
+            $0.enginesUsed = used
+        }
+    }
+
+    /// Whether the cleanup model's weights were already resident when the pass asked.
+    /// False on any chunk wins: one cold group is a cold run.
+    func noteCleanupModelResident(_ resident: Bool) {
+        mutate { $0.cleanupModelResident = ($0.cleanupModelResident ?? true) && resident }
+    }
+
+    /// Exact counts from the in-process tokenizer for a local cleanup pass, summed across
+    /// chunks.
+    func noteTokens(prompt: Int, cached: Int, completion: Int) {
+        mutate {
+            $0.promptTokens = ($0.promptTokens ?? 0) + prompt
+            $0.cachedTokens = ($0.cachedTokens ?? 0) + cached
+            $0.completionTokens = ($0.completionTokens ?? 0) + completion
+        }
+    }
+
+    /// One local-model attempt, whatever became of it — including the attempts that never
+    /// produced a token. A timed-out pass used to leave only "ran out of time" behind, which
+    /// could not say whether it waited on a parked lane, re-read a 1,300-token prompt or
+    /// paged 1.5 GB of weights back in. Appended in call order; a chunked run has several.
+    func noteLocalAttempt(_ attempt: CleanupLocalAttempt) {
+        mutate { $0.localAttempts = ($0.localAttempts ?? []) + [attempt] }
+    }
+
     // MARK: - One row per sentence group (D-08)
 
     /// Whether *this* group ran on a session staged for it. Filed before the call, like the
@@ -339,6 +380,10 @@ struct CleanupRecord: Codable, Sendable, Hashable {
     /// `precleanFallback` when it did and the rules were enough on their own. Old rows
     /// decode as nil.
     var precleanedGroups: Int?
+    /// Selected head groups whose formatter returned a nonempty answer before final
+    /// selection. Includes formatter fallbacks, never proves accepted semantic repair.
+    /// Nil in old records and for legacy heads without completion boxes.
+    var precleanAnsweredGroups: Int?
     /// Why a hold's pre-cleaned groups could not be used: a sentence one of them was built
     /// from was revised by the speech model before the key came up. The whole dictation is
     /// then cleaned in one pass, as it always was. Nil on a run that never had a group to
@@ -374,6 +419,17 @@ struct CleanupRecord: Codable, Sendable, Hashable {
 
     var seconds: Double?
     var modelSeconds: Double?
+    /// What actually ran (see `noteEngineUsed`). Nil on rows written before it existed.
+    var enginesUsed: [String]?
+    /// Whether the local cleanup model was resident when asked. Nil when it was never asked.
+    var cleanupModelResident: Bool?
+    /// Local cleanup token counts. Nil when no local model generated.
+    var promptTokens: Int?
+    var cachedTokens: Int?
+    var completionTokens: Int?
+    /// Every local-model attempt with its phase timing (see `CleanupLocalAttempt`). Nil
+    /// when no local model was asked, and on rows written before it existed.
+    var localAttempts: [CleanupLocalAttempt]?
 
     init() {}
 
@@ -427,5 +483,161 @@ struct CleanupRecord: Codable, Sendable, Hashable {
         default:
             return items.dropLast().joined(separator: ", ") + " and " + (items.last ?? "")
         }
+    }
+}
+
+/// One local cleanup attempt, phase by phase, filed in `CleanupRecord.localAttempts`.
+///
+/// Numbers and fixed words only: no prompt, no transcript, no target. Milliseconds are
+/// rounded integers so a `runs.jsonl` row stays short. Every timing field is nil when the
+/// attempt never reached that phase, which is the point — a timed-out pass that stopped
+/// in prefill and one that stopped in decode used to read alike.
+struct CleanupLocalAttempt: Codable, Sendable, Hashable {
+    /// `accepted`, `rejected`, `timedOut`, `failed`, `refused`, `pagedOut`, `notLoaded`.
+    var outcome: String
+    /// Why admission was refused, from `CleanupAdmissionRefused`'s fixed sentences.
+    var refusal: String?
+    /// How much of the weight file was in memory when the attempt asked, sampled with
+    /// `mincore` (`WeightPageResidency`), in thousandths. `resident=true` used to mean only
+    /// that the runtime held a pointer to mapped weights the kernel may already have evicted.
+    var weightsResidentPermille: Int?
+    /// Ask → lane granted.
+    var admissionMs: Int?
+    /// The furthest phase reached: `admitted`, `context`, `prefill`, `decode`, `done`.
+    var phase: String?
+    /// The context was created or grown for this pass, discarding every cached entry.
+    var contextRebuilt: Bool?
+    var promptTokens: Int?
+    /// Prompt tokens the KV cache already held (prefix reuse).
+    var reusedTokens: Int?
+    /// Prompt tokens actually decoded by the time the attempt ended.
+    var prefilledTokens: Int?
+    var prefillMs: Int?
+    /// Time parked at scheduler checkpoints behind more urgent work, after admission.
+    var parkedMs: Int?
+    /// Admission → first sampled token.
+    var firstTokenMs: Int?
+    var generatedTokens: Int?
+    /// First token → last token.
+    var decodeMs: Int?
+    /// Ask → outcome, as the dictation saw it.
+    var totalMs: Int
+
+    init(outcome: String, totalSeconds: Double, refusal: String? = nil,
+         weightsResidentPermille: Int? = nil) {
+        self.outcome = outcome
+        self.totalMs = Self.ms(totalSeconds)
+        self.refusal = refusal
+        self.weightsResidentPermille = weightsResidentPermille
+    }
+
+    /// Copies the live probe's counters in, as they stood when the attempt ended.
+    mutating func apply(_ phases: CleanupPassProbe.Snapshot, admissionSeconds: Double?) {
+        admissionMs = admissionSeconds.map(Self.ms)
+        phase = phases.phase
+        contextRebuilt = phases.contextRebuilt
+        promptTokens = phases.promptTokens
+        reusedTokens = phases.reusedTokens
+        prefilledTokens = phases.prefilledTokens
+        prefillMs = phases.prefillSeconds.map(Self.ms)
+        parkedMs = Self.ms(phases.parkedSeconds)
+        firstTokenMs = phases.firstTokenSeconds.map(Self.ms)
+        generatedTokens = phases.generatedTokens
+        decodeMs = phases.decodeSeconds.map(Self.ms)
+    }
+
+    static func ms(_ seconds: Double) -> Int { max(0, Int((seconds * 1_000).rounded())) }
+}
+
+/// Live phase counters for one local cleanup pass, written by `NotesModelRuntime` while it
+/// runs and read by `MiniCPMCleanupFormatter` whenever the pass ends — including at its
+/// timeout, while the native job is still finishing its current chunk. Lock-protected so the
+/// runtime's actor and the formatter's task never need to meet to share it.
+final class CleanupPassProbe: @unchecked Sendable {
+    struct Snapshot: Sendable, Equatable {
+        var phase: String?
+        var contextRebuilt: Bool?
+        var promptTokens: Int?
+        var reusedTokens: Int?
+        var prefilledTokens: Int?
+        var prefillSeconds: Double?
+        var parkedSeconds: Double = 0
+        var firstTokenSeconds: Double?
+        var generatedTokens: Int?
+        var decodeSeconds: Double?
+    }
+
+    private let lock = NSLock()
+    private var state = Snapshot()
+    private var admittedAt: ContinuousClock.Instant?
+    private var firstTokenAt: ContinuousClock.Instant?
+
+    init() {}
+
+    var snapshot: Snapshot { lock.withLock { state } }
+
+    /// When the lane was granted, or nil when it never was.
+    var admittedInstant: ContinuousClock.Instant? { lock.withLock { admittedAt } }
+
+    func admitted() {
+        lock.withLock {
+            if admittedAt == nil { admittedAt = .now }
+            state.phase = "admitted"
+        }
+    }
+
+    func noteContext(rebuilt: Bool) {
+        lock.withLock {
+            state.contextRebuilt = rebuilt
+            state.phase = "context"
+        }
+    }
+
+    func notePrefillStarted(promptTokens: Int, reused: Int) {
+        lock.withLock {
+            state.promptTokens = promptTokens
+            state.reusedTokens = reused
+            state.prefilledTokens = 0
+            state.phase = "prefill"
+        }
+    }
+
+    /// Cumulative prompt tokens decoded in this pass so far.
+    func notePrefilled(_ decoded: Int) {
+        lock.withLock { state.prefilledTokens = decoded }
+    }
+
+    func notePrefillFinished(seconds: Double) {
+        lock.withLock { state.prefillSeconds = seconds }
+    }
+
+    func noteParked(seconds: Double) {
+        lock.withLock { state.parkedSeconds += seconds }
+    }
+
+    func noteToken() {
+        lock.withLock {
+            let now = ContinuousClock.now
+            if firstTokenAt == nil {
+                firstTokenAt = now
+                if let admittedAt {
+                    state.firstTokenSeconds = Self.seconds(admittedAt.duration(to: now))
+                }
+                state.phase = "decode"
+            }
+            state.generatedTokens = (state.generatedTokens ?? 0) + 1
+            if let firstTokenAt {
+                state.decodeSeconds = Self.seconds(firstTokenAt.duration(to: now))
+            }
+        }
+    }
+
+    func noteDone() {
+        lock.withLock { state.phase = "done" }
+    }
+
+    private static func seconds(_ duration: Duration) -> Double {
+        let parts = duration.components
+        return Double(parts.seconds) + Double(parts.attoseconds) / 1e18
     }
 }

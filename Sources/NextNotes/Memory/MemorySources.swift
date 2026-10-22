@@ -26,8 +26,14 @@ import Foundation
 enum MemoryHarvest {
     /// The speaker label the diarizer gives the person holding the Mac.
     static let userSpeaker = "You"
-    /// Sentences shorter than this are filler ("okay", "yeah, sure") and carry no fact.
-    static let minimumSentence = 24
+    /// Short facts are useful; acknowledgments and filler are not.
+    static let filler: Set<String> = [
+        "yeah", "yes", "yep", "okay", "sure", "right", "alright", "cool", "great",
+        "thanks", "thank", "hmm", "uhm", "well", "sorry", "please", "just", "really", "actually",
+    ]
+    static func isWorthReading(_ text: String) -> Bool {
+        MemoryGuard.contentTokens(text).filter { !filler.contains($0) }.count >= 2
+    }
     /// At most this much of one source reaches the model, newest-first within the source.
     static let charactersPerJob = 6_000
 
@@ -211,7 +217,7 @@ enum MemoryHarvest {
         var result: [String] = []
         for row in rows {
             let text = NextMemory.collapsedWhitespace(row)
-            guard text.count >= minimumSentence else { continue }
+            guard isWorthReading(text) else { continue }
             let key = NextMemory.normalize(text)
             guard seen.insert(key).inserted else { continue }
             result.append(text)

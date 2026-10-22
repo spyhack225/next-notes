@@ -10,6 +10,7 @@ import SwiftUI
 struct OnboardingScreen<Content: View>: View {
     let symbol: String
     let headline: String
+    var headlineAccent: String = ""
     let subhead: String
     /// The primary button's words. Named for what happens, not for the mechanism —
     /// "Continue", "Done", never "Next step 3 of 7".
@@ -22,33 +23,43 @@ struct OnboardingScreen<Content: View>: View {
 
     var body: some View {
         VStack(spacing: DS.Onboarding.blockSpacing) {
-            VStack(spacing: DS.Onboarding.headerSpacing) {
-                Image(systemName: symbol)
-                    .font(.system(size: DS.Onboarding.icon, weight: .regular))
-                    .foregroundStyle(DS.Color.accent)
-                    .accessibilityHidden(true)
+            // Only the explanation and card scroll. Continue/Skip remain in one place
+            // while a permission answer or a longer hint changes the content above.
+            ScrollView {
+                VStack(spacing: DS.Onboarding.blockSpacing) {
+                    VStack(spacing: DS.Onboarding.headerSpacing) {
+                        Image(systemName: symbol)
+                            .font(DS.Theme.Typography.sans(DS.Onboarding.icon))
+                            .foregroundStyle(DS.Theme.Palette.foreground)
+                            .accessibilityHidden(true)
 
-                Text(headline)
-                    .font(DS.Font.title2.weight(.semibold))
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
+                        ThemeHeadline(lead: headline, accent: headlineAccent, level: .onboarding)
+                            .multilineTextAlignment(.center)
+                            .fixedSize(horizontal: false, vertical: true)
 
-                Text(subhead)
-                    .font(DS.Font.callout)
-                    .foregroundStyle(DS.Color.textSecondary)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
+                        Text(subhead)
+                            .font(DS.Theme.Typography.sans(DS.Theme.Typography.bodySize))
+                            .foregroundStyle(DS.Theme.Palette.heroSubtitle)
+                            .multilineTextAlignment(.center)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .accessibilityElement(children: .combine)
+
+                    content()
+                }
+                .padding(.vertical, DS.Space.s)
             }
-            .accessibilityElement(children: .combine)
-
-            content()
+            .scrollBounceBehavior(.basedOnSize)
 
             VStack(spacing: DS.Space.m) {
                 Button(action: primary) {
                     Text(primaryTitle)
+                        .font(DS.Theme.Typography.sans(DS.Theme.Typography.buttonSize, weight: .medium))
                         .frame(width: DS.Onboarding.pillWidth, height: DS.Onboarding.pillHeight)
                 }
                 .buttonStyle(.borderedProminent)
+                .buttonBorderShape(.capsule)
+                .tint(DS.Theme.Palette.primary)
                 .controlSize(.large)
                 .disabled(!isPrimaryEnabled)
                 .keyboardShortcut(.defaultAction)
@@ -57,19 +68,22 @@ struct OnboardingScreen<Content: View>: View {
                     Button("Skip", action: skip)
                         .buttonStyle(.plain)
                         .font(DS.Font.callout)
-                        .foregroundStyle(DS.Color.textSecondary)
+                        .foregroundStyle(DS.Theme.Palette.mutedForeground)
                         .accessibilityHint("Passes over this step. You can set it up later in Settings.")
                 }
             }
         }
+        .foregroundStyle(DS.Theme.Palette.foreground)
+        .tint(DS.Theme.Palette.primary)
         .frame(width: DS.Onboarding.contentWidth)
+        .frame(maxHeight: .infinity)
     }
 }
 
 /// The rounded card a screen's rows live in.
 ///
-/// Material rather than glass: this window has no wallpaper behind it to refract, and a
-/// glass pane over a flat window background reads as a smudge.
+/// The site glass treatment gives grants and choices one shared boundary. Its
+/// Reduce Transparency branch is a solid theme card, so readability does not depend on blur.
 struct OnboardingCard<Content: View>: View {
     @ViewBuilder var content: () -> Content
 
@@ -78,7 +92,7 @@ struct OnboardingCard<Content: View>: View {
             content()
         }
         .padding(.vertical, DS.Space.xs)
-        .background(DS.Color.groupedFill, in: .rect(cornerRadius: DS.Radius.glass))
+        .themeGlass(cornerRadius: DS.Theme.Layout.radiusInnerCard)
     }
 }
 
@@ -110,11 +124,13 @@ struct OnboardingGrantRow: View {
     var actionTitle: String = "Allow"
     let action: () -> Void
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     var body: some View {
         HStack(alignment: .center, spacing: DS.Space.m) {
             Image(systemName: symbol)
                 .font(DS.Font.body)
-                .foregroundStyle(DS.Color.textSecondary)
+                .foregroundStyle(DS.Theme.Palette.mutedForeground)
                 .frame(width: DS.Size.iconLarge)
                 .accessibilityHidden(true)
 
@@ -123,7 +139,7 @@ struct OnboardingGrantRow: View {
                     .font(DS.Font.subheadline.weight(.semibold))
                 Text(detail)
                     .font(DS.Font.caption)
-                    .foregroundStyle(DS.Color.textSecondary)
+                    .foregroundStyle(DS.Theme.Palette.mutedForeground)
                     .fixedSize(horizontal: false, vertical: true)
             }
 
@@ -140,7 +156,7 @@ struct OnboardingGrantRow: View {
         .accessibilityValue(accessibilityValue)
         .accessibilityAddTraits(state == .done ? [] : .isButton)
         .accessibilityAction { if state != .done { action() } }
-        .animation(DS.Motion.standard, value: state)
+        .animation(reduceMotion ? nil : DS.Motion.standard, value: state)
     }
 
     @ViewBuilder
@@ -169,6 +185,8 @@ struct OnboardingGrantRow: View {
                 .frame(minWidth: DS.Onboarding.allowPillWidth, minHeight: DS.Onboarding.allowPillHeight)
         }
         .buttonStyle(.borderedProminent)
+        .buttonBorderShape(.capsule)
+        .tint(DS.Theme.Palette.primary)
         .controlSize(.small)
         .accessibilityHidden(true)
     }
@@ -197,7 +215,7 @@ struct OnboardingChoiceRow<Menu: View>: View {
                     .font(DS.Font.subheadline.weight(.semibold))
                 Text(detail)
                     .font(DS.Font.caption)
-                    .foregroundStyle(DS.Color.textSecondary)
+                    .foregroundStyle(DS.Theme.Palette.mutedForeground)
                     .fixedSize(horizontal: false, vertical: true)
             }
             Spacer(minLength: DS.Space.s)
@@ -222,7 +240,7 @@ struct OnboardingToggleRow: View {
         HStack(alignment: .center, spacing: DS.Space.m) {
             Image(systemName: symbol)
                 .font(DS.Font.body)
-                .foregroundStyle(DS.Color.textSecondary)
+                .foregroundStyle(DS.Theme.Palette.mutedForeground)
                 .frame(width: DS.Size.iconLarge)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: DS.Space.xxs) {
@@ -231,7 +249,7 @@ struct OnboardingToggleRow: View {
                 if !detail.isEmpty {
                     Text(detail)
                         .font(DS.Font.caption)
-                        .foregroundStyle(DS.Color.textSecondary)
+                        .foregroundStyle(DS.Theme.Palette.mutedForeground)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
@@ -267,11 +285,11 @@ struct OnboardingHint: View {
         HStack(alignment: .firstTextBaseline, spacing: DS.Space.s) {
             Image(systemName: symbol)
                 .font(DS.Font.caption)
-                .foregroundStyle(DS.Color.textSecondary)
+                .foregroundStyle(DS.Theme.Palette.mutedForeground)
                 .accessibilityHidden(true)
             Text(text)
                 .font(DS.Font.caption)
-                .foregroundStyle(DS.Color.textSecondary)
+                .foregroundStyle(DS.Theme.Palette.mutedForeground)
                 .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -287,18 +305,30 @@ struct OnboardingHint: View {
 struct OnboardingDots: View {
     let index: Int
     let total: Int
+    /// Journey caption naming the current phase ("Permissions", "Your key", …).
+    /// Display only — position and remainder stay with the dots themselves.
+    var caption: String? = nil
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        HStack(spacing: DS.Onboarding.dotSpacing) {
-            ForEach(0..<total, id: \.self) { position in
-                Circle()
-                    .fill(position == index ? DS.Color.text : DS.Color.textTertiary)
-                    .frame(width: DS.Onboarding.dot, height: DS.Onboarding.dot)
+        VStack(spacing: DS.Space.xxs) {
+            HStack(spacing: DS.Onboarding.dotSpacing) {
+                ForEach(0..<total, id: \.self) { position in
+                    Circle()
+                        .fill(position == index ? DS.Theme.Palette.foreground : DS.Theme.Palette.border)
+                        .frame(width: DS.Onboarding.dot, height: DS.Onboarding.dot)
+                }
+            }
+            if let caption {
+                Text(caption)
+                    .font(DS.Font.caption)
+                    .foregroundStyle(DS.Theme.Palette.mutedForeground)
             }
         }
-        .animation(DS.Motion.standard, value: index)
+        .animation(reduceMotion ? nil : DS.Motion.standard, value: index)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Step \(index + 1) of \(total)")
+        .accessibilityLabel(caption.map { "Step \(index + 1) of \(total) — \($0)" } ?? "Step \(index + 1) of \(total)")
     }
 }
 
@@ -328,8 +358,8 @@ struct OnboardingChevrons: View {
                 .frame(width: DS.Onboarding.chevron, height: DS.Onboarding.chevron)
         }
         .buttonStyle(.plain)
-        .foregroundStyle(enabled ? DS.Color.textSecondary : DS.Color.textTertiary)
-        .background(DS.Color.groupedFill, in: .circle)
+        .foregroundStyle(enabled ? DS.Theme.Palette.mutedForeground : DS.Theme.Palette.border)
+        .background(DS.Theme.Palette.card, in: .circle)
         .disabled(!enabled)
         .accessibilityLabel(label)
     }

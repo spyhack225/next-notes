@@ -107,10 +107,17 @@ enum ModelDownloader {
         let handle = try FileHandle(forReadingFrom: url)
         defer { try? handle.close() }
         var hash = SHA256()
-        while let data = try handle.read(upToCount: 4 * 1_024 * 1_024), !data.isEmpty {
+        // FileHandle's Foundation read may autorelease its backing NSData. Drain
+        // each chunk here so verification retains a chunk, not the whole model,
+        // even when the caller's autorelease pool spans the complete hash pass.
+        while try autoreleasepool(invoking: {
+            guard let data = try handle.read(upToCount: 4 * 1_024 * 1_024), !data.isEmpty else {
+                return false
+            }
             try Task.checkCancellation()
             hash.update(data: data)
-        }
+            return true
+        }) {}
         try Task.checkCancellation()
         return hash.finalize().map { String(format: "%02x", $0) }.joined()
     }

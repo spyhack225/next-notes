@@ -207,6 +207,9 @@ enum TaskRecoverySelfTest {
     /// Real explicit text route exercises the injected manager's rejection, not the
     /// uninjected harness simulation. Root registers and runs this app-only boundary.
     static func runIncludingDelegation() async -> String {
+        await TaskRecoveredRevisionSelfTest.run { await runLegacyIncludingDelegation() }
+    }
+    private static func runLegacyIncludingDelegation() async -> String {
         let marker = run()
         guard marker.hasPrefix("TASK_RECOVERY_OK:") else { return marker }
         let before = SelfTestStoreGuard.take()

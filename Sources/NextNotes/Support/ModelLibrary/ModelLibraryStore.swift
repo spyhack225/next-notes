@@ -153,8 +153,8 @@ final class ModelLibraryStore {
     var postDownloadPolicy: PostDownloadPolicy {
         didSet {
             guard oldValue != postDownloadPolicy else { return }
-            let defaults = NativeOtherLlamaQuitSelfTest.isRequested
-                ? SelfTestHarnessDefaults.shared : UserDefaults.standard
+            let defaults = (SelfTest.requested == "--selftest-settings-sheet" || NativeOtherLlamaQuitSelfTest.isRequested)
+                ? SelfTestHarnessDefaults.suite : UserDefaults.standard
             defaults.set(postDownloadPolicy.rawValue, forKey: Self.policyDefaultsKey)
         }
     }
@@ -250,8 +250,8 @@ final class ModelLibraryStore {
         }
         self.library = library
         hardware = hardwareForTesting ?? HardwareProfile.current()
-        let defaults = NativeOtherLlamaQuitSelfTest.isRequested
-            ? SelfTestHarnessDefaults.shared : UserDefaults.standard
+        let defaults = (SelfTest.requested == "--selftest-settings-sheet" || NativeOtherLlamaQuitSelfTest.isRequested)
+            ? SelfTestHarnessDefaults.suite : UserDefaults.standard
         postDownloadPolicy = defaults.string(forKey: Self.policyDefaultsKey)
             .flatMap(PostDownloadPolicy.init(rawValue:)) ?? .switchKeepOld
     }
@@ -323,6 +323,8 @@ final class ModelLibraryStore {
     /// into the app, then filtered down to the ones that actually run well here. A hard-coded
     /// shelf goes stale the week after a release and cannot know what machine it is on.
     func loadRecommended(force: Bool = false) async {
+        // The visual fixture uses the empty catalogue; no anonymous network query.
+        guard SelfTest.requested != "--selftest-settings-sheet" else { return }
         guard force || (recommended.isEmpty && !isLoadingRecommended) else { return }
         isLoadingRecommended = true
         defer { isLoadingRecommended = false }

@@ -727,6 +727,12 @@ final class AgentTaskManager {
         guard persist(events: creationEvents(row)).primaryCommitted else {
             tasks.removeAll { $0.id == row.id }; return nil
         }
+        return installTypedObjective(row: row, work: work, worker: worker, bridge: bridge,
+            sessionID: sessionID, durability: durability)
+    }
+    private func installTypedObjective(row: AgentTask, work: VoiceConversationWork, worker: RealtimeAgent,
+        bridge: TaskBridge, sessionID: UUID, durability: TaskDurability,
+        completedReads: [ActionReceipt]? = nil) -> Task<AgentTurn, Never> {
         let captured = row
         worker.typedTaskBridge = bridge
         let operation = Task { @MainActor [weak self] in
@@ -741,6 +747,9 @@ final class AgentTaskManager {
                 usageIDs.taskID = UsageLog.sanitiseTaskID(captured.id)
                 let turn = await ModelPassRecorder.$correlation.withValue(usageIDs) {
                     await TaskEventJournal.$current.withValue(self.journalContext(taskID: captured.id)) {
+                        if let completedReads {
+                            return await worker.runRecoveredTypedReadTurn(work, recordInput: recordInput, completedReads: completedReads)
+                        }
                         return await worker.runTypedWorkerTurn(work, recordInput: recordInput)
                     }
                 }
@@ -774,14 +783,71 @@ final class AgentTaskManager {
             }
             // Release only after this SAME operation returned, including its held
             // question/model children. Saved cancellation alone is not cessation.
-            self.running[captured.id] = RunningWorker(handle: .returnedTyped(sessionID))
+            if let current = self.typedWorkerSnapshot(id: work.id), current.work === work,
+               current.worker === worker, current.task == live.task {
+                self.running[captured.id] = RunningWorker(handle: .returnedTyped(sessionID))
+            }
             return finalTurn
         }
         running[row.id] = RunningWorker(handle: .typed(TypedWorkerSnapshot(id: work.id,
             sessionID: sessionID, work: work, worker: worker, task: operation, bridge: bridge)),
-            binding: TaskWorkerBinding(taskID: row.id, attempt: 1,
-                leaseOwner: durability.leaseOwner!, startedAt: began))
+            binding: TaskWorkerBinding(taskID: row.id, attempt: durability.attempt,
+                leaseOwner: durability.leaseOwner!, startedAt: durability.attemptStartedAt!))
         return operation
+    }
+    /// Cached candidate display only. The explicit action revalidates every authority.
+    func canRequestRecoveredRead(_ row: AgentTask) -> Bool {
+        row.status == .recovering && row.source == "text" && row.origin == .typed
+            && row.backend == "local" && row.scheduleID == nil && row.pendingInteraction == nil
+            && (row.durability?.attempt ?? 0) > 0 && !(row.durability?.receiptIDs.isEmpty ?? true)
+    }
+    func continueRecoveredRead(id: UUID, displayedRevision: Int, agent: RealtimeAgent,
+                               bridge: TaskBridge, sessionID: UUID) -> Task<AgentTurn, Never>? {
+        guard historyReadFailure == nil, !SelfTest.isRunning || bridge.permitsHarness,
+              running[id.uuidString] == nil, let shown = task(id: id.uuidString),
+              canRequestRecoveredRead(shown), shown.revision == displayedRevision,
+              let history = try? store.recoveredReadHistory(),
+              let row = history.tasks.first(where: { $0.id == id.uuidString }),
+              row.revision == displayedRevision, row.status == .recovering,
+              let d = row.durability, let owner = d.leaseOwner,
+              let pid = Int32(owner), pid > 1, String(pid) == owner,
+              pid != ProcessInfo.processInfo.processIdentifier else { return nil }
+        // ESRCH is process absence only. Alive, PID reuse and EPERM all stay held.
+        guard Darwin.kill(pid, 0) == -1, errno == ESRCH else { return nil }
+        let receiptOwner: ActionReceiptStore
+        if let receiptStore { receiptOwner = receiptStore }
+        else { guard !SelfTest.isRunning else { return nil }; receiptOwner = .shared }
+        // This SAME file fingerprint covers retained receipts from every read attempt.
+        // Its bound observation still names only the latest attempt, including an empty group.
+        let latestIDs = d.receiptIDs.filter { value in
+            guard let id = UUID(uuidString: value), let saved = receiptOwner.receipt(for: id) else { return false }
+            return saved.taskID == row.id && saved.taskAttempt == d.attempt
+        }
+        guard let observation = receiptOwner.currentSourceObservation(taskID: row.id, attempt: d.attempt,
+                leaseOwner: owner, receiptIDs: latestIDs), observation.state == .matchingSource,
+              observation.sourceObservation?.loadQuality == .readable,
+              observation.receipts.count == latestIDs.count,
+              let instructions = TaskRecoveryPlanner.explicitReadInstructions(task: row,
+                journal: history.events[row.id] ?? [], receipts: receiptOwner.receipts) else { return nil }
+        let work = VoiceConversationWork(row.objective, id: id)
+        for words in instructions { work.append(words) }
+        guard work.revision == row.revision else { return nil }
+        let completed = d.receiptIDs.compactMap { UUID(uuidString: $0).flatMap(receiptOwner.receipt(for:)) }
+        let worker = agent.makeTypedWorker(work)
+        let began = progressDate()
+        let expected = TaskWorkerWriteCondition(taskID: row.id, attempt: d.attempt, leaseOwner: owner,
+            status: .recovering, typedRevision: displayedRevision)
+        let saved = update(row.id, kinds: [.workerRecovered], worker: expected) { next in
+            next = row; next.status = .running; next.progress = "Reading"; next.failure = nil
+            next.durability?.attempt = d.attempt + 1
+            next.durability?.leaseOwner = String(ProcessInfo.processInfo.processIdentifier)
+            next.durability?.attemptStartedAt = began
+            next.durability?.heartbeatAt = began; next.durability?.lastProgressAt = began
+            next.durability?.runtimeClass = .cloudModel
+        }
+        guard saved.primaryCommitted, let admitted = task(id: row.id), let durability = admitted.durability else { return nil }
+        return installTypedObjective(row: admitted, work: work, worker: worker, bridge: bridge,
+            sessionID: sessionID, durability: durability, completedReads: completed)
     }
     func stopTypedReplyOutput(sessionID: UUID) {
         for row in tasks {
@@ -1980,7 +2046,15 @@ final class AgentTaskManager {
                                    kinds: [TaskEventKind], through: TaskState?) -> Bool {
         if before.status == next.status { return true }
         if before.status == .recovering {
-            // Launch-only held ownership stays unknown; an explicit stop may end it.
+            if next.status == .running, kinds == [.workerRecovered],
+               before.source == "text", before.origin == .typed, before.backend == "local",
+               next.source == before.source, next.origin == before.origin, next.backend == before.backend,
+               before.pendingInteraction == nil, next.pendingInteraction == nil,
+               before.revision == next.revision, let d = before.durability,
+               d.attempt > 0, d.attempt < Int.max, next.durability?.attempt == d.attempt + 1,
+               next.durability?.leaseOwner == String(ProcessInfo.processInfo.processIdentifier),
+               next.durability?.attemptStartedAt != d.attemptStartedAt { return true }
+            // Every other launch-held transition retains its prior contract.
             return through == .cancelling && next.status == .cancelled
         }
         guard let old = before.status.contractState, let new = next.status.contractState else { return false }

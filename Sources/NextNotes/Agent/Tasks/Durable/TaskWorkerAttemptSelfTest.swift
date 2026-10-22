@@ -119,6 +119,7 @@ enum TaskWorkerAttemptSelfTest {
             try await ownerRecognitionCases(root: root, input: input, text: text, check: check)
             try await heartbeatCases(root: root, input: input, text: text, check: check)
             try await TaskReceiptJoinSelfTest.originalCases(root: root, input: input, text: text, check: check)
+            try await TaskScopedMutationReceiptSelfTest.originalCases(root: root, check: check)
             try await TaskCalendarDuplicateReceiptSelfTest.originalCases(root: root, check: check)
             try await TaskCalendarUnknownOutcomeSelfTest.originalCases(root: root, check: check)
             try await TaskCalendarUnknownOutcomeSelfTest.postReadOwnerCases(root: root, check: check)
@@ -142,10 +143,21 @@ enum TaskWorkerAttemptSelfTest {
             try await ACPSessionReviewMetadataSelfTest.originalCases(root: root, check: check)
             try await TaskACPRuntimeObservationSelfTest.originalCases(root: root, check: check)
             try await TaskACPPermissionWaitSelfTest.originalCases(root: root, check: check)
+            try await TaskACPPostBrokerPrimarySelfTest.originalCases(root: root, check: check)
             TaskHeartbeatSelfTest.cases(check: check)
             try await TaskReceiptObservationSelfTest.originalCases(root: root, input: input, text: text, check: check)
             try await TaskArtifactMetadataSelfTest.originalCases(root: root, input: input, text: text, check: check)
             try await VerifiedMailEvidenceSelfTest.originalCases(root: root, input: input, text: text, check: check)
+            try await BasedOnEvidenceSelfTest.originalCases(root: root, input: input, text: text, check: check)
+            try await TaskACPActivityHeartbeatSelfTest.originalCases(root: root, check: check)
+            try await TaskACPActivityStorageSelfTest.originalCases(root: root, check: check)
+            try TaskEventCompactionParitySelfTest.originalCases(root: root, check: check)
+            try await TaskScheduledPrimaryAdmissionSelfTest.originalCases(root: root, input: input, text: text, check: check)
+            try await TaskScheduledRunOwnerSelfTest.originalCases(root: root, input: input, text: text, check: check)
+            try await TaskACPStaleMonitorSelfTest.originalCases(root: root, check: check)
+            try await TaskACPPeriodicHeartbeatSelfTest.originalCases(root: root, check: check)
+            try await TaskACPSchedulerCadenceSelfTest.originalCases(root: root, check: check)
+            try await TaskLocalInvocationMonitorSelfTest.originalCases(root: root, input: input, text: text, check: check)
         } catch { failures.append("actual worker fixture: \(error)") }
         let after = SelfTestStoreGuard.take()
         SelfTest.diagnostic(SelfTestStoreGuard.cachedMetricsChangeDiagnostic(
@@ -325,6 +337,7 @@ extension TaskWorkerAttemptSelfTest {
                 && announcements.isEmpty,
                 "late backing/error/context replaced committed cancellation or announced stale work (generic=\(genericError))")
         }
+        try await unboundLateReturnCases(root: root, input: input, check: check)
     }
 }
 
@@ -647,4 +660,121 @@ extension TaskWorkerAttemptSelfTest {
                 "unbound/manual metadata produced a worker heartbeat or dispatch")
         }
     }
+}
+
+// Same held final-callback seam as cancel-agent-error/cancel-generic above, with
+// a genuinely unbound meeting-source local worker and retained actual Task.
+extension TaskWorkerAttemptSelfTest {
+    @MainActor
+    private static func unboundLateReturnCases(root: URL, input: URL,
+                                               check: (Bool, String) -> Void) async throws {
+        struct BoundaryError: Error {}
+        func reached(_ predicate: () -> Bool) async -> Bool {
+            let deadline = ContinuousClock.now.advanced(by: .seconds(5))
+            while ContinuousClock.now < deadline {
+                if predicate() { return true }
+                await Task.yield()
+            }
+            return predicate()
+        }
+        let oldFire = AgentToolExecutor.fireOverrideForTesting
+        defer { AgentToolExecutor.fireOverrideForTesting = oldFire }
+        for genericError in [false, true] {
+            let mode = genericError ? "unbound-cancel-generic" : "unbound-cancel-agent-error"
+            let directory = root.appendingPathComponent(mode, isDirectory: true)
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: false)
+            let sql = TaskStore(root: directory); defer { sql.close() }
+            let export = directory.appendingPathComponent("agent-tasks.json")
+            let store = AgentTaskStore(fileURL: export, mirror: sql)
+            guard store.allowsHarnessPersistence, store.save([]).primaryCommitted else { throw BoundaryError() }
+            let receipts = ActionReceiptStore(fileURL: directory.appendingPathComponent("action-receipts.json"))
+            let manager = AgentTaskManager(store: store, receiptStore: receipts)
+            let state = LateUnboundWorkerProbe()
+            let id = UUID().uuidString
+            var operation: Task<Void, Never>?
+            let authored = try Data(contentsOf: input)
+            manager.backendExitForTesting = { state.backendReturns += 1 }
+            AgentToolExecutor.fireOverrideForTesting = { tool, arguments in
+                guard tool.id == "filesystem.read", arguments == ["path": input.path],
+                      let context = TaskEventJournal.current, context.taskID == id,
+                      context.attempt == 0, context.isStillValid == nil,
+                      context.receiptStore === receipts else { throw BoundaryError() }
+                state.contextMatched = true
+                // This SAME entered final callback deliberately ignores cancellation.
+                await state.park()
+                _ = try FilesystemExecutor.run(tool, arguments: arguments)
+                state.reads += 1
+                if genericError { throw BoundaryError() }
+                throw AgentError.backendUnavailable("Late cancellation-ignoring unbound backing")
+            }
+            do {
+                let admitted = manager.submit(objective: "Keep a committed stop when the unbound backing throws late",
+                    id: id, tool: "filesystem.read", arguments: ["path": input.path], source: "meeting")
+                // Capture immediately before any await/qualification can throw.
+                operation = manager.capturedUnboundWorkerForTesting(id: id)
+                guard let operation else { throw BoundaryError() }
+                guard await reached({ state.parked }) else { throw BoundaryError() }
+                let entered = try sql.load().first { $0.id == id }
+                check(admitted.status == .queued && entered?.status == .running
+                    && entered?.source == "meeting" && entered?.durability == nil
+                    && manager.backendStartsForTesting == 1 && state.contextMatched
+                    && receipts.receipts.count == 1 && receipts.receipts.first?.status == .fired,
+                    "late unbound C01 actual worker/backing/receipt did not qualify (\(mode))")
+                manager.cancel(id)
+                let stoppedRows = try sql.load(); let stoppedCache = manager.tasks
+                let stoppedJournal = try sql.journal(taskID: id)
+                guard let stoppedAuthority = try sql.probeAuthority(includeTasks: false)?.authority else { throw BoundaryError() }
+                check(stoppedRows.count == 1 && stoppedRows[0].status == .cancelled
+                    && stoppedCache.first?.status == .cancelled && operation.isCancelled
+                    && state.parked && state.reads == 0 && state.backendReturns == 0,
+                    "late unbound C02 stop did not precede SAME backing return (\(mode))")
+                state.release()
+                await operation.value
+                let finalRows = try sql.load(); let finalJournal = try sql.journal(taskID: id)
+                let finalAuthority = try sql.probeAuthority(includeTasks: false)?.authority
+                let receipt = receipts.receipts.first
+                check(state.reads == 1 && state.backendReturns == 1 && !state.parked
+                    && manager.capturedUnboundWorkerForTesting(id: id) == nil
+                    && receipt?.taskID == id && receipt?.taskAttempt == nil
+                    && receipt?.status == .failed && receipt?.events.contains { $0.stage == .fired } == true,
+                    "late unbound C03 actual read/error/return/receipt did not qualify (\(mode))")
+                check(finalRows == stoppedRows && manager.tasks == stoppedCache,
+                    "late unbound F01 returned error replaced committed ended task (\(mode))")
+                let appended = Array(finalJournal.dropFirst(stoppedJournal.count))
+                check(Array(finalJournal.prefix(stoppedJournal.count)) == stoppedJournal
+                    && appended.count == 1 && appended.first?.draft.kind == .toolCompleted
+                    && appended.first?.draft.taskID == id && appended.first?.draft.attempt == 0
+                    && appended.first?.draft.receiptID == nil
+                    && finalAuthority?.databaseID == stoppedAuthority.databaseID
+                    && finalAuthority?.generation == stoppedAuthority.generation + 1,
+                    "late unbound F02 callback added terminal rewrite beyond genuine tool completion (\(mode))")
+                let fresh = AgentTaskStore(fileURL: export, mirror: sql)
+                let exported = try fresh.load()
+                check(exported == stoppedRows && manager.lastPersistenceResult?.diagnostic
+                    == "This task has already ended. Its saved result was kept.",
+                    "late unbound F03 ended-task refusal/export lost actual stopped row (\(mode))")
+                check(try Data(contentsOf: input) == authored && PermissionGate.shared.pending == nil,
+                    "late unbound C04 safe entered read changed bytes/acquired approval (\(mode))")
+                print("LATE_UNBOUND_WORKER mode=\(mode) entered=\(state.contextMatched) reads=\(state.reads) returned=\(state.backendReturns) cancelled=\(finalRows.first?.status == .cancelled) appended=\(appended.count) generationDelta=\((finalAuthority?.generation ?? stoppedAuthority.generation) - stoppedAuthority.generation)")
+            } catch {
+                // Capture before cancellation removes the unbound existing slot.
+                if operation == nil { operation = manager.capturedUnboundWorkerForTesting(id: id) }
+                manager.cancel(id)
+                state.release()
+                if let operation { await operation.value }
+                throw error
+            }
+        }
+    }
+}
+
+@MainActor
+private final class LateUnboundWorkerProbe {
+    var contextMatched = false
+    var reads = 0
+    var backendReturns = 0
+    private var continuation: CheckedContinuation<Void, Never>?
+    var parked: Bool { continuation != nil }
+    func park() async { await withCheckedContinuation { continuation = $0 } }
+    func release() { let held = continuation; continuation = nil; held?.resume() }
 }

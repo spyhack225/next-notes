@@ -1347,9 +1347,9 @@ final class MemorySnapshotCache: @unchecked Sendable {
     }
 
     /// The memory section value for a path, within its budget, or empty.
-    func text(for path: AgentPromptPath) -> String {
+    func text(for path: AgentPromptPath, contextTokens: Int? = nil) -> String {
         guard isEnabled else { return "" }
-        let limit = path.budget.memoryLimit
+        let limit = path.memoryLimit(contextTokens: contextTokens)
         guard limit > 0 else { return "" }
         lock.lock()
         let profile = self.profile

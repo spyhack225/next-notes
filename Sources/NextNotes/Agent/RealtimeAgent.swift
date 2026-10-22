@@ -261,6 +261,20 @@ final class RealtimeAgent {
         typedReplySuppressed = false
         return await handle(work.userWords ?? work.original, source: .text)
     }
+    func runRecoveredTypedReadTurn(_ work: VoiceConversationWork, recordInput: Bool,
+                                   completedReads: [ActionReceipt]) async -> AgentTurn {
+        voiceWork = work; typedTaskOutcome = nil; typedInputAlreadyRecorded = !recordInput
+        typedReplySuppressed = false; currentTurnID = UUID(); currentTurnSource = .text
+        generation += 1
+        let mine = generation
+        if recordInput { AgentSession.shared.recordUser("Continue reading: " + work.original, source: .text) }
+        beginWork(title: "Reading")
+        let planned = await runPlannedTurn(work.prompt, voice: false, allowFallback: false,
+            maxRisk: .read, completedReadReceipts: completedReads)
+        typedTaskOutcome = planned.taskOutcome
+        guard isCurrent(mine) else { return AgentTurn(reply: lastReply, delegated: false) }
+        return conclude(mine, planned.reply, route: "recovered-read", contextKind: planned.usedTools ? "tools" : nil, speak: false)
+    }
     func publishTypedResult(primaryCommitted: Bool, diagnostic: String?) {
         let show = typedPresentation; typedPresentation = nil
         if primaryCommitted { show?() }
@@ -356,7 +370,8 @@ final class RealtimeAgent {
         let owner = currentGeneration
         let readerWindow = await AgentAnswerBudget.readerContextTokens(for: provider)
         let asker = KnowledgeAsker(context: context,
-            model: ProviderKnowledgeAnswerModel(provider: provider, contextTokens: readerWindow))
+            model: ProviderKnowledgeAnswerModel(provider: provider, contextTokens: readerWindow),
+            contextTokens: readerWindow)
         do {
             let answer = try await KnowledgeGraphScope.$reader.withValue(provider.id) {
                 try await ModelPassRecorder.$correlation.withValue(

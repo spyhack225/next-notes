@@ -22,6 +22,7 @@ struct ModelsSettingsTab: View {
     @State private var functionCalls = FunctionCallStore.shared
     @State private var isPreviewing = false
     @State private var previewTask: Task<Void, Never>?
+    @State private var previewOutput: OutputHandle?
     @State private var catalog = OpenRouterCatalog.shared
     @State private var openRouterKeyInput = ""
     @State private var openRouterKeyStatus: String?
@@ -121,6 +122,8 @@ struct ModelsSettingsTab: View {
             }
         }
         .onAppear {
+            // A Settings capture does not prepare a voice engine or fetch a catalogue.
+            guard SelfTest.requested != "--selftest-settings-sheet" else { return }
             models.refresh()
             installed.refresh()
             library.refreshHardware()
@@ -255,7 +258,9 @@ struct ModelsSettingsTab: View {
 
     private var installedModels: some View {
         Section {
-            if !NotesModels.isDownloaded {
+            // Owner decision 2026-10-04: with MiniCPM installed it is the brain every role
+            // defaults to, so the other built-in file is not offered as the next download.
+            if !NotesModels.isDownloaded, roles.sharedLocalModelID == nil {
                 ModelStatusRow(
                     title: "Built-in brain",
                     detail: "\(NotesModels.spec.displayName) · \(NotesModels.spec.displaySize)",
@@ -962,7 +967,7 @@ struct ModelsSettingsTab: View {
     private func startPreview() {
         guard canPreviewVoice else { return }
         let synthesizer = AgentSpeechSynthesizer.shared
-        synthesizer.speak("Hi, I'm Next. I can check your calendar and help with your notes.")
+        previewOutput = OutputScheduler.shared.speakSessionless("Hi, I'm Next. I can check your calendar and help with your notes.")
         isPreviewing = true
         previewTask?.cancel()
         previewTask = Task { @MainActor in
@@ -984,7 +989,8 @@ struct ModelsSettingsTab: View {
     private func stopPreview() {
         previewTask?.cancel()
         previewTask = nil
-        if isPreviewing { AgentSpeechSynthesizer.shared.stop() }
+        if isPreviewing { previewOutput?.cancel() }
+        previewOutput = nil
         isPreviewing = false
     }
 

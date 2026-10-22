@@ -174,15 +174,24 @@ final class FinalTranscriptService {
                    live.contains(where: { $0.source == source }) {
                     continue
                 }
-                let samples = try AudioConversion.samples(
-                    fromFileAt: audio,
-                    sampleRate: ChunkedTranscriber.sampleRate,
-                    channel: channel
-                )
-                trackSeconds = Double(samples.count) / ChunkedTranscriber.sampleRate
-                let track = try await MeetingFinalPass.transcribeTrack(
-                    samples, source: source, transcribe: transcribe
-                )
+                let track: (segments: [TranscriptSegment], windows: [ClosedRange<TimeInterval>])
+                if AudioConversion.usesBoundedMeetingAudioExperiment {
+                    let samples = try AudioConversion.meetingSampleSource(fromFileAt: audio, channel: channel)
+                    trackSeconds = Double(samples.sampleCount) / ChunkedTranscriber.sampleRate
+                    track = try await MeetingFinalPass.transcribeTrack(
+                        audioSource: samples, source: source, transcribe: transcribe
+                    )
+                } else {
+                    let samples = try AudioConversion.samples(
+                        fromFileAt: audio,
+                        sampleRate: ChunkedTranscriber.sampleRate,
+                        channel: channel
+                    )
+                    trackSeconds = Double(samples.count) / ChunkedTranscriber.sampleRate
+                    track = try await MeetingFinalPass.transcribeTrack(
+                        samples, source: source, transcribe: transcribe
+                    )
+                }
                 try Task.checkCancellation()
                 guard !terminationRequested else { return }
                 windows += track.windows.count

@@ -19,6 +19,9 @@ struct ActivityView: View {
     @State private var agent = RealtimeAgent.shared
     @State private var grants = PermissionGrantStore.shared
 
+    @State private var savedJobs: TaskStoreAuthorityProbe?
+    @State private var savedJobsUnavailable = false
+    @State private var savedJobsLoading = true
     @State private var persisted: [DayGroup] = []
     @State private var filter: KindFilter = .everything
     @State private var showsLedger = true
@@ -49,13 +52,23 @@ struct ActivityView: View {
     var body: some View {
         AgentPaneScroll {
             AgentPaneHeader(
-                title: "Activity",
+                title: "Your companion’s",
                 subtitle: "Everything your assistant has done, day by day — and everything you "
-                    + "have allowed it to do again."
+                    + "have allowed it to do again.",
+                accent: "activity"
             )
-            AgentSplit(list: { dayGroups }, rail: { rail })
+            AgentSplit(list: {
+                VStack(alignment: .leading, spacing: DS.Space.xl) {
+                    if filter == .everything || filter == .work {
+                        SavedJobs(snapshot: savedJobs, isLoading: savedJobsLoading,
+                            isUnavailable: savedJobsUnavailable)
+                    }
+                    dayGroups
+                }
+            }, rail: { rail })
         }
         .onAppear { reload() }
+        .task { await reloadSavedJobs() }
     }
 
     /// The rail beside the history: what is running now, and what the person has allowed.
@@ -208,9 +221,10 @@ struct ActivityView: View {
             if filteredDays.isEmpty {
                 OrbUnavailableView(
                     .breathing,
-                    title: "Nothing here yet",
-                    message: "What your assistant does — searches, approvals, wake words — "
-                        + "shows up here, day by day."
+                    title: filter == .everything || filter == .work ? "No activity entries" : "Nothing here yet",
+                    message: filter == .everything || filter == .work
+                        ? "Searches, approvals and conversations appear in this history."
+                        : "What your assistant does — searches, approvals, wake words — shows up here, day by day."
                 )
             }
             ForEach(filteredDays) { group in
@@ -254,6 +268,93 @@ struct ActivityView: View {
         }
     }
 
+    /// SQL is read only at appearance/reload, on the existing report utility lane.
+    /// Body and row drawing never query files, receipts or shared owners.
+    private func reloadSavedJobs() async {
+        savedJobsLoading = true
+        do {
+            let snapshot = try await JobReport.snapshot()
+            guard !Task.isCancelled else { return }
+            savedJobs = snapshot
+            savedJobsUnavailable = false
+            savedJobsLoading = false
+        } catch {
+            guard !Task.isCancelled else { return }
+            savedJobs = nil
+            savedJobsUnavailable = true
+            savedJobsLoading = false
+        }
+    }
+
+    /// SAME immutable saved rows used by Activity. The scoped observer is value-only,
+    /// nil normally, and enabled only for the existing isolated Activity self-test.
+    struct SavedJobs: View {
+        let snapshot: TaskStoreAuthorityProbe?
+        var isLoading = false
+        var isUnavailable = false
+        var observedCopyForTesting: (([String]) -> Void)? = nil
+        var observedRowsForTesting: (([AgentSavedJobRow]) -> Void)? = nil
+
+        var body: some View {
+            let rows = isLoading || isUnavailable ? [] : AgentActivityProjector.jobTimelineRows(snapshot)
+            let message = isLoading ? "Loading saved tasks…" : isUnavailable
+                ? "Saved task history is unavailable." : snapshot?.tasks.isEmpty != false ? "No saved tasks." : ""
+            let _ = observe(rows, copy: [message] + rows.map { "Last saved: " + $0.state })
+            VStack(alignment: .leading, spacing: DS.Space.s) {
+                Text("Saved tasks").font(DS.Font.sectionLabel)
+                if !message.isEmpty {
+                    Text(message).font(DS.Font.caption).foregroundStyle(DS.Color.textSecondary)
+                }
+                if !rows.isEmpty {
+                    ForEach(rows) { row in
+                        VStack(alignment: .leading, spacing: DS.Space.s) {
+                            Text(row.title).font(DS.Font.callout).textSelection(.enabled)
+                            Text("Last saved: " + row.state).font(DS.Font.caption).foregroundStyle(DS.Color.textSecondary)
+                            Text(([row.result] + row.integrations).joined(separator: " · "))
+                                .font(DS.Font.caption).foregroundStyle(DS.Color.textSecondary)
+                            DisclosureGroup("Saved steps") {
+                                if row.timeline.isEmpty {
+                                    Text("No saved steps").font(DS.Font.caption)
+                                }
+                                ForEach(row.timeline) { entry in SavedStep(entry: entry) }
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .agentCardSurface()
+                    }
+                }
+            }
+        }
+
+        private func observe(_ rows: [AgentSavedJobRow], copy: [String]) {
+            guard SelfTest.isRunning, SelfTest.requested == "--selftest-activity" else { return }
+            observedRowsForTesting?(rows)
+            observedCopyForTesting?(copy)
+        }
+    }
+
+    /// Only saved steps carry an absolute date; ordinary audit rows stay unchanged.
+    struct SavedStep: View {
+        let entry: AgentAuditEntry
+        var observedEntryForTesting: ((AgentAuditEntry) -> Void)? = nil
+        var observedDateForTesting: ((String) -> Void)? = nil
+        static func dateLabel(_ date: Date) -> String {
+            date.formatted(.dateTime.year().month(.abbreviated).day())
+        }
+        var body: some View {
+            let date = Self.dateLabel(entry.at)
+            let _ = observe(date)
+            VStack(alignment: .leading, spacing: DS.Space.xxs) {
+                Text(date).font(DS.Font.timestamp).foregroundStyle(DS.Color.textSecondary)
+                HistoryRow(entry: entry, observedEntryForTesting: observedEntryForTesting)
+            }
+        }
+        private func observe(_ date: String) {
+            guard SelfTest.isRunning, SelfTest.requested == "--selftest-activity" else { return }
+            observedDateForTesting?(date)
+        }
+    }
+
     private func dayTitle(_ day: Date) -> String {
         let calendar = Calendar.current
         if calendar.isDateInToday(day) { return "Today" }
@@ -261,48 +362,60 @@ struct ActivityView: View {
         return day.formatted(.dateTime.weekday(.wide).month(.abbreviated).day())
     }
 
-    private func historyRow(_ entry: AgentAuditEntry) -> some View {
-        HStack(alignment: .top, spacing: DS.Space.s) {
-            Image(systemName: icon(for: entry.kind))
-                .foregroundStyle(DS.Color.textSecondary)
-                .frame(width: DS.Size.orbBadge * 0.4)
-            VStack(alignment: .leading, spacing: DS.Space.xxs) {
-                HStack(alignment: .firstTextBaseline) {
-                    // The consumer line first, always. Nothing here is a tool id or a
-                    // status enum; those live one disclosure down.
-                    Text(entry.title)
-                        .font(DS.Font.callout)
-                        .lineLimit(3)
-                    Spacer(minLength: DS.Space.s)
-                    Text(entry.at, format: .dateTime.hour().minute())
-                        .font(DS.Font.timestamp)
-                        .foregroundStyle(DS.Color.textSecondary)
-                }
-                if !entry.detail.isEmpty, entry.detail != entry.title {
-                    DisclosureGroup("Details") {
-                        Text(entry.detail)
-                            .font(DS.Font.caption)
-                            .foregroundStyle(DS.Color.textSecondary)
-                            .textSelection(.enabled)
-                    }
-                    .font(DS.Font.chip)
+    private func historyRow(_ entry: AgentAuditEntry) -> some View { HistoryRow(entry: entry) }
+
+    struct HistoryRow: View {
+        let entry: AgentAuditEntry
+        var observedEntryForTesting: ((AgentAuditEntry) -> Void)? = nil
+        var body: some View {
+            let _ = observe()
+            HStack(alignment: .top, spacing: DS.Space.s) {
+                Image(systemName: Self.icon(for: entry.kind))
                     .foregroundStyle(DS.Color.textSecondary)
+                    .frame(width: DS.Size.orbBadge * 0.4)
+                VStack(alignment: .leading, spacing: DS.Space.xxs) {
+                    HStack(alignment: .firstTextBaseline) {
+                        // The consumer line first, always. Nothing here is a tool id or a
+                        // status enum; those live one disclosure down.
+                        Text(entry.title)
+                            .font(DS.Font.callout)
+                            .lineLimit(3)
+                        Spacer(minLength: DS.Space.s)
+                        Text(entry.at, format: .dateTime.hour().minute())
+                            .font(DS.Font.timestamp)
+                            .foregroundStyle(DS.Color.textSecondary)
+                    }
+                    if !entry.detail.isEmpty, entry.detail != entry.title {
+                        DisclosureGroup("Details") {
+                            Text(entry.detail)
+                                .font(DS.Font.caption)
+                                .foregroundStyle(DS.Color.textSecondary)
+                                .textSelection(.enabled)
+                        }
+                        .font(DS.Font.chip)
+                        .foregroundStyle(DS.Color.textSecondary)
+                    }
                 }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .agentCardSurface()
+            .accessibilityElement(children: .combine)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .agentCardSurface()
-        .accessibilityElement(children: .combine)
-    }
 
-    private func icon(for kind: AgentAuditEntry.Kind) -> String {
-        switch kind {
-        case .tool: "wrench.and.screwdriver"
-        case .permission: "hand.raised"
-        case .task: "checklist"
-        case .wake, .wakeMiss, .wakeFalse: "waveform"
-        case .request: "bubble.left"
-        case .reply: "bubble.right"
+        private func observe() {
+            guard SelfTest.isRunning, SelfTest.requested == "--selftest-activity" else { return }
+            observedEntryForTesting?(entry)
+        }
+
+        private static func icon(for kind: AgentAuditEntry.Kind) -> String {
+            switch kind {
+            case .tool: "wrench.and.screwdriver"
+            case .permission: "hand.raised"
+            case .task: "checklist"
+            case .wake, .wakeMiss, .wakeFalse: "waveform"
+            case .request: "bubble.left"
+            case .reply: "bubble.right"
+            }
         }
     }
 }

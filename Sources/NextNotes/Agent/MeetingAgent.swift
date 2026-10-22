@@ -76,6 +76,15 @@ final class MeetingUsageLedger: @unchecked Sendable {
 /// and it is confined to tools that cannot change anything.
 actor MeetingAgent {
     static let shared = MeetingAgent()
+    private let accountTagForTesting: (@Sendable () async -> String?)?
+    init(accountTagForTesting: (@Sendable () async -> String?)? = nil) {
+        self.accountTagForTesting = accountTagForTesting
+    }
+    private func currentAccountTag() async -> String? {
+        if SelfTest.isRunning, SelfTest.requested == "--selftest-meeting-agent-evidence",
+           let accountTagForTesting { return await accountTagForTesting() }
+        return await GoogleSource.accountTag()
+    }
 
     /// Room for three tool calls with a body in one of them.
     private static let maxOutputTokens = 900
@@ -90,7 +99,7 @@ actor MeetingAgent {
     private static let lookupTokens = 512
     /// Below this there is no meeting left to read, only its last few sentences, and a
     /// proposal made from that is a guess. Better to say the window is too small.
-    private static let minimumTranscriptTokens = 500
+    static let minimumTranscriptTokens = 500
     /// The share of what is left that the notes may take. The transcript is where a
     /// follow-up is actually asked for; the notes are a summary of it, and on Apple's 4K
     /// window the two cannot both have everything.
@@ -102,6 +111,33 @@ actor MeetingAgent {
     /// Notes are six short sections; anything past this is a transcript with headings on
     /// it, and tokenizing it in full to then throw most of it away costs seconds.
     private static let maxNotesCharacters = 8_000
+
+    /// Measured fixed cost for this exact reader and immutable system prompt.
+    /// This is fitting metadata, never model health or authority to run an action.
+    struct FitReport: Sendable, Equatable {
+        let window: Int
+        let systemTokens: Int
+        let outputTokens: Int
+        let headroom: Int
+        let lookups: Int
+        let reserved: Int
+        let budget: Int
+        let toolCount: Int
+        var fits: Bool { budget >= MeetingAgent.minimumTranscriptTokens }
+    }
+
+    /// The existing system-count operation, exposed for the diagnostic fit probe.
+    func fitReport(
+        tools: [AgentTool], system: String, window: Int, policy: AgentPolicy, provider: any LLMProvider
+    ) async throws -> FitReport {
+        let rendered = tools.isEmpty ? system : system + "\n\n" + AgentPrompts.toolBlock(tools: tools)
+        let systemTokens = try await provider.countTokens(rendered)
+        let lookups = policy.autoRunReadTools && policy.maxRounds > 1 ? Self.lookupTokens : 0
+        let reserved = systemTokens + Self.maxOutputTokens + Self.headroomTokens + lookups
+        return FitReport(window: window, systemTokens: systemTokens, outputTokens: Self.maxOutputTokens,
+                         headroom: Self.headroomTokens, lookups: lookups, reserved: reserved,
+                         budget: window - reserved, toolCount: tools.count)
+    }
 
     /// Plans the follow-ups for a meeting that has finished.
     ///
@@ -123,10 +159,12 @@ actor MeetingAgent {
         segments: [TranscriptSegment],
         notes: String?,
         brief: String? = nil,
+        context: MeetingContext? = nil,
         provider: any LLMProvider,
         policy: AgentPolicy,
         toolsOverride: [AgentTool]? = nil,
-        usage: MeetingUsageLedger? = nil
+        usage: MeetingUsageLedger? = nil,
+        report: (@Sendable (FitReport) -> Void)? = nil
     ) async throws -> [AgentProposal] {
         let transcript = segments.plainText(speakerNames: meeting.speakerNames)
         guard !transcript.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
@@ -138,6 +176,9 @@ actor MeetingAgent {
         } else {
             tools = await advertisedTools(policy: policy, provider: provider, includeKnowledge: true)
         }
+        let window = await AgentAnswerBudget.readerContextTokens(for: provider)
+        let system = AgentPrompts.system(contextTokens: window)
+        let anchors = MeetingTranscriptWindows.anchors(in: segments, context: context, meetingID: meeting.id)
         let ledger = usage ?? MeetingUsageLedger()
         // A failed fit writes its own row before throwing; `MeetingAgent` owns that row
         // because reserved and budget are only knowable inside the fitting.
@@ -145,18 +186,22 @@ actor MeetingAgent {
             brief: brief,
             notes: notes.map { String($0.prefix(Self.maxNotesCharacters)) },
             transcript: transcript,
+            segments: segments, anchors: anchors, speakerNames: meeting.speakerNames,
+            system: system, window: window,
             provider: provider,
             tools: tools,
             policy: policy,
             feature: .meetingProposals,
             pass: "round",
-            meetingID: meeting.id
+            meetingID: meeting.id,
+            report: report
         )
         let planned = try await plan(
             meeting: meeting,
             provider: provider,
             policy: policy,
             tools: tools,
+            system: system,
             source: .review,
             transcript: fitted.transcript,
             reserved: fitted.reserved,
@@ -197,11 +242,14 @@ actor MeetingAgent {
         // No knowledge tools here: this pass never looks anything up (one round), and a read
         // proposed on its last round would be a card about the library, not about the call.
         let tools = await advertisedTools(policy: policy, provider: provider, includeKnowledge: false)
+        let window = await AgentAnswerBudget.readerContextTokens(for: provider)
+        let system = AgentPrompts.system(contextTokens: window)
         let ledger = usage ?? MeetingUsageLedger()
         let fitted = try await fit(
             brief: nil,
             notes: nil,
             transcript: excerpt,
+            system: system, window: window,
             provider: provider,
             tools: tools,
             policy: policy,
@@ -214,6 +262,7 @@ actor MeetingAgent {
             provider: provider,
             policy: policy,
             tools: tools,
+            system: system,
             source: .live,
             transcript: fitted.transcript,
             reserved: fitted.reserved,
@@ -266,6 +315,7 @@ actor MeetingAgent {
         provider: any LLMProvider,
         policy: AgentPolicy,
         tools: [AgentTool],
+        system: String,
         source: AgentProposalSource,
         transcript: String,
         reserved: Int,
@@ -273,7 +323,6 @@ actor MeetingAgent {
         ledger: MeetingUsageLedger,
         user: @Sendable ([String]) -> String
     ) async throws -> [AgentProposal] {
-        let system = AgentPrompts.system
         // One lookup table, from the list the model was shown: a tool it was never advertised
         // is not a lookup, whatever its name claims.
         let catalogue = Dictionary(tools.map { ($0.name, $0) }, uniquingKeysWith: { first, _ in first })
@@ -365,7 +414,7 @@ actor MeetingAgent {
                 source: source, transcript: transcript,
                 // P1-19: read once per pass, not once per proposal. The CLI caches it anyway,
                 // and a nil here is the honest answer when the profile read could not be made.
-                accountTag: await GoogleSource.accountTag()
+                accountTag: await currentAccountTag()
             )
             recorder.noteCounts(["proposed": calls.count, "accepted": planned.count])
             ledger.adopt(recorder)
@@ -463,12 +512,14 @@ actor MeetingAgent {
                     """)
                 continue
             }
+            var evidence = call.evidence
             if tool.risk > .read {
                 guard let quote = call.evidence,
-                      Self.isTranscriptEvidence(quote, in: transcript) else {
+                      let matched = MeetingEvidenceMatcher.match(quote: quote, in: transcript) else {
                     Log.agent.info("Rejected ungrounded meeting proposal: \(call.name, privacy: .public)")
                     continue
                 }
+                evidence = matched
             }
             // The quote says the meeting asked for the action; this says the values in the
             // call came from the meeting too. The brief is in the prompt so the model can
@@ -487,7 +538,7 @@ actor MeetingAgent {
                 arguments: arguments,
                 rationale: call.rationale.isEmpty ? tool.description : call.rationale,
                 source: source,
-                evidence: call.evidence,
+                evidence: evidence,
                 // P1-19: the world this card was prepared against. The account tag is nil when
                 // the profile read could not be made, and the card then skips the account check
                 // rather than guessing — an invented tag would refuse every approval on a
@@ -504,11 +555,7 @@ actor MeetingAgent {
     /// Normalizing whitespace and case accommodates ASR line wrapping while still
     /// requiring the model to point to words that actually appeared in the transcript.
     static func isTranscriptEvidence(_ quote: String, in transcript: String) -> Bool {
-        let cleaned = quote.split(whereSeparator: { $0.isWhitespace })
-            .joined(separator: " ").lowercased()
-        let body = transcript.split(whereSeparator: { $0.isWhitespace })
-            .joined(separator: " ").lowercased()
-        return cleaned.count >= 12 && body.contains(cleaned)
+        MeetingEvidenceMatcher.match(quote: quote, in: transcript) != nil
     }
 
     /// The argument half of the transcript rule.
@@ -550,27 +597,28 @@ actor MeetingAgent {
     /// background for resolving a name, and a pass that has to choose between it and the
     /// words that asked for the follow-up keeps the words.
     ///
-    /// No map-reduce here, unlike the notes: a follow-up is asked for in one sentence, and
-    /// the sentences that matter are the ones near the end. Reading the whole meeting in
-    /// pieces to find them would cost minutes for a pass whose usual answer is "nothing".
+    /// No extra model pass: transcript-only windows preserve already-located asks before
+    /// spending the remaining room on the tail. Without anchors the existing tail cut stays.
     private func fit(
         brief: String?,
         notes: String?,
         transcript: String,
+        segments: [TranscriptSegment] = [], anchors: [TimeInterval] = [],
+        speakerNames: [String: String] = [:],
+        system: String, window: Int,
         provider: any LLMProvider,
         tools: [AgentTool],
         policy: AgentPolicy,
         feature: UsageFeature,
         pass: String,
-        meetingID: UUID
+        meetingID: UUID,
+        report: (@Sendable (FitReport) -> Void)? = nil
     ) async throws -> (brief: String?, notes: String?, transcript: String, reserved: Int, budget: Int) {
-        let system = AgentPrompts.system + "\n\n" + AgentPrompts.toolBlock(tools: tools)
-        let lookups = policy.autoRunReadTools && policy.maxRounds > 1 ? Self.lookupTokens : 0
-        let reserved = try await provider.countTokens(system)
-            + Self.maxOutputTokens
-            + Self.headroomTokens
-            + lookups
-        var budget = provider.contextTokens - reserved
+        let measured = try await fitReport(tools: tools, system: system, window: window,
+                                          policy: policy, provider: provider)
+        report?(measured)
+        let reserved = measured.reserved
+        var budget = measured.budget
         guard budget >= Self.minimumTranscriptTokens else {
             // The pass never reached a model, and that still needs a row: this is the
             // failure that used to be visible only as an in-memory `problems[id]` (P0-20b).
@@ -607,8 +655,19 @@ actor MeetingAgent {
             fittedNotes = cut.text
             budget -= cut.tokens
         }
-        let cut = try await cut(transcript, to: budget, provider: provider, keepingTail: true)
-        return (fittedBrief, fittedNotes, cut.text, reserved, budget)
+        let transcriptTokens = try await provider.countTokens(transcript)
+        let fittedTranscript: String
+        if transcriptTokens <= budget {
+            fittedTranscript = transcript
+        } else {
+            let charactersPerToken = Double(transcript.count) / Double(max(transcriptTokens, 1))
+            let characters = max(0, Int(Double(max(budget, 0)) * charactersPerToken))
+            fittedTranscript = anchors.isEmpty
+                ? String(transcript.suffix(characters))
+                : MeetingTranscriptWindows.build(segments: segments, anchors: anchors,
+                    speakerNames: speakerNames, budgetCharacters: characters)
+        }
+        return (fittedBrief, fittedNotes, fittedTranscript, reserved, budget)
     }
 
     /// One `meeting.proposals` / `meeting.live` row for a pass whose window could not hold

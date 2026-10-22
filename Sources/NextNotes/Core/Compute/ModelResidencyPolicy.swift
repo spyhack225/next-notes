@@ -186,7 +186,15 @@ final class ModelResidencyGuardian: @unchecked Sendable {
     /// The source and isolated fixtures use the same transition/admission producer.
     /// Update synchronously before the unload task gets a chance to suspend.
     func receive(_ level: ModelResidencyPolicy.PressureLevel) {
+        let wasElevated = snapshot.level != .normal
         let shouldRelease = updatePressure(level)
+        // Pressure released the dictation cleanup model first (notes owner); bring it
+        // back once the kernel says memory is fine, in the background. Nothing else
+        // reloads it, so without this the next dictations land on Apple until a relaunch.
+        // Live guardian only — an isolated fixture's normal event must not load a model.
+        if wasElevated, level == .normal, releaseForTesting == nil, self === Self.shared {
+            MiniCPMModels.warmInBackground(reason: "memory pressure cleared", afterPressure: true)
+        }
         guard shouldRelease else { return }
         Task {
             if let releaseForTesting { await releaseForTesting() }

@@ -211,6 +211,49 @@ enum ComputerYieldSelfTest {
         }
         check("the DOM selector is a selector and not a guess",
               SecureFieldRule.domSelector.contains("password"))
+
+        // CDP acknowledgement without a second delivery (UX-06): `verifiesClick`
+        // is the pure gate the live click path reads after its one delivered
+        // effect. No stated postcondition is never a verified effect, however
+        // much the page changed; only a changed page carrying the stated text or
+        // URL verifies. The live reordered/replacement/yield halves stay in
+        // `BrowserActionValiditySelfTest` behind `--selftest-cdp`.
+        check("a click with no stated postcondition verified itself",
+              BrowserCDPClient.verifiesClick(
+                beforeDOM: "a", afterDOM: "b", beforeURL: "https://x.test/",
+                afterURL: "https://x.test/other", expectedText: nil, expectedURL: nil) == false)
+        check("an unchanged page verified a stated postcondition",
+              BrowserCDPClient.verifiesClick(
+                beforeDOM: "same", afterDOM: "same", beforeURL: "https://x.test/",
+                afterURL: "https://x.test/", expectedText: "Completed", expectedURL: nil) == false)
+        check("a wrong postcondition verified itself",
+              BrowserCDPClient.verifiesClick(
+                beforeDOM: "a", afterDOM: "b", beforeURL: "https://x.test/",
+                afterURL: "https://x.test/", expectedText: "Never appears", expectedURL: nil) == false)
+        check("a changed page carrying its stated text did not verify",
+              BrowserCDPClient.verifiesClick(
+                beforeDOM: "a", afterDOM: "a Completed", beforeURL: "https://x.test/",
+                afterURL: "https://x.test/", expectedText: "completed", expectedURL: nil))
+        check("a navigation to the expected URL did not verify",
+              BrowserCDPClient.verifiesClick(
+                beforeDOM: "a", afterDOM: "a", beforeURL: "https://x.test/",
+                afterURL: "https://x.test/other", expectedText: nil, expectedURL: "https://x.test/other"))
+        check("a trailing-slash URL mismatch failed verification",
+              BrowserCDPClient.verifiesClick(
+                beforeDOM: "a", afterDOM: "b", beforeURL: "https://x.test/",
+                afterURL: "https://x.test/other/", expectedText: nil, expectedURL: "https://x.test/other"))
+
+        // The browser hand, by short tool name: tab-changing writes arm the watch
+        // and page reads never take the pointer. `read_page`/`wait`/`cdp_status`
+        // stay unpinned here on purpose: their current default-arm is disputed,
+        // and a grant-free table must not bake in a classification under review.
+        for write in ["click", "fill", "select", "navigate", "download"] {
+            check("a browser write does not take the hand: \(write)",
+                  HumanInputWatch.touchesTheMac(write))
+        }
+        for read in ["snapshot", "screenshot"] {
+            check("a browser read takes the hand: \(read)", HumanInputWatch.touchesTheMac(read) == false)
+        }
         return failures
     }
 

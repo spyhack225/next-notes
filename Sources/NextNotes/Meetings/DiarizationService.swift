@@ -1,3 +1,4 @@
+import FluidAudio
 import Foundation
 import Observation
 
@@ -275,12 +276,23 @@ final class DiarizationService {
             // The system channel alone. Mixing the microphone back in would hand the
             // clusterer the user's own voice as a speaker in a track whose entire purpose is
             // to contain everyone else.
-            let samples = try AudioConversion.samples(
-                fromFileAt: audio,
-                sampleRate: ChunkedTranscriber.sampleRate,
-                channel: MeetingAudioWriter.systemChannel
-            )
-            audioSeconds = Double(samples.count) / ChunkedTranscriber.sampleRate
+            let samples: [Float]
+            let boundedSamples: (any AudioSampleSource)?
+            if AudioConversion.usesBoundedMeetingAudioExperiment {
+                let range = try AudioConversion.meetingSampleSource(
+                    fromFileAt: audio, channel: MeetingAudioWriter.systemChannel)
+                boundedSamples = range
+                samples = []
+                audioSeconds = Double(range.sampleCount) / ChunkedTranscriber.sampleRate
+            } else {
+                boundedSamples = nil
+                samples = try AudioConversion.samples(
+                    fromFileAt: audio,
+                    sampleRate: ChunkedTranscriber.sampleRate,
+                    channel: MeetingAudioWriter.systemChannel
+                )
+                audioSeconds = Double(samples.count) / ChunkedTranscriber.sampleRate
+            }
 
             // P0-20b: awaiting the load here is what makes `warm`/`loadMs` measurable; for a
             // track `speakerRuns` will cluster, that call does exactly this load anyway.
@@ -303,7 +315,7 @@ final class DiarizationService {
             hint = forcedSpeakers.map { SpeakerCountHint(numSpeakers: $0) }
                 ?? SpeakerCountHint.for(meeting)
             guard acceptsOwner(id, binding) else { throw CancellationError() }
-            let runs = try await MeetingDiarizer.shared.speakerRuns(in: samples, hint: hint) { fraction in
+            let reportProgress: @Sendable (Double) -> Void = { fraction in
                 Task { @MainActor [weak self] in
                     guard let self else { return }
                     let operation: @MainActor () -> Void = { [weak self] in
@@ -313,6 +325,12 @@ final class DiarizationService {
                        self.terminationFixtureTrace?.holdFirstProgress(operation) == true { return }
                     operation()
                 }
+            }
+            let runs: [MeetingDiarizer.SpeakerRun]
+            if let boundedSamples {
+                runs = try await MeetingDiarizer.shared.speakerRuns(in: boundedSamples, hint: hint, progress: reportProgress)
+            } else {
+                runs = try await MeetingDiarizer.shared.speakerRuns(in: samples, hint: hint, progress: reportProgress)
             }
             runsCount = runs.count
             guard acceptsOwner(id, binding) else { throw CancellationError() }

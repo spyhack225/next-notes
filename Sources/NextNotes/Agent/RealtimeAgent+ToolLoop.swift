@@ -622,7 +622,7 @@ extension RealtimeAgent {
         // it measures, because a revision rebuilds the messages. `window` moved above the
         // history line, which now needs it.
         let depth = answerDepthForTesting ?? Settings.shared.agentResponsiveness
-        let system = Self.voiceRoutingSystem(voice: voice)
+        let system = Self.voiceRoutingSystem(voice: voice, contextTokens: window)
 
         while isCurrent(owner) {
             if !isVoiceWorker { await waitForVoiceInput() }
@@ -911,8 +911,8 @@ extension RealtimeAgent {
 
     /// The on-device/OpenRouter first pass. Persona, then these rules, via `AgentPromptContext`;
     /// identical across the turns of a session so the llama.cpp prefix cache holds.
-    nonisolated static func voiceRoutingSystem(voice: Bool) -> String {
-        AgentPromptContext.assemble(.toolLoop, rules: voiceRoutingRules(voice: voice)).system
+    nonisolated static func voiceRoutingSystem(voice: Bool, contextTokens: Int? = nil) -> String {
+        AgentPromptContext.assemble(.toolLoop, rules: voiceRoutingRules(voice: voice), contextTokens: contextTokens).system
     }
 
     nonisolated static func voiceRoutingRules(voice: Bool) -> String {
@@ -1060,7 +1060,7 @@ extension RealtimeAgent {
     /// and has nothing it is allowed to run.
     static func plannerSystem(
         manifest: AgentCapabilityManifest, voice: Bool, request: String = "",
-        catalogue: Bool = true
+        catalogue: Bool = true, contextTokens: Int? = nil
     ) -> String {
         let skills = catalogue && manifest.selectedIntents.contains(.skills)
             ? SkillPromptSection.current(for: request) : ""
@@ -1097,7 +1097,7 @@ extension RealtimeAgent {
             : ""
         let context = AgentPromptContext.assemble(
             .toolLoop, rules: plannerRules(manifest: manifest, voice: voice, catalogue: catalogue),
-            capabilities: capabilities, volatileTail: earned, skills: skills)
+            contextTokens: contextTokens, capabilities: capabilities, volatileTail: earned, skills: skills)
         if SelfTest.requested == "--selftest-toolloop-live" {
             SelfTest.diagnostic("TOOLLOOP_LIVE_CONTEXT_CHARS "
                 + "persona=\(context.persona.count) grounding=\(context.grounding.count) "
@@ -1289,7 +1289,8 @@ extension RealtimeAgent {
         voice: Bool = false,
         provider: (any LLMProvider)? = nil,
         allowFallback: Bool = true,
-        maxRisk: AgentRisk = .send
+        maxRisk: AgentRisk = .send,
+        completedReadReceipts: [ActionReceipt] = []
     ) async -> PlannedTurnResult {
         let owner = currentGeneration
         let background = isVoiceWorker
@@ -1318,7 +1319,7 @@ extension RealtimeAgent {
         }
         if !voice, !background {
             publishAnsweringModel(chosen)
-            if let answer = await typedKnowledgeAnswer(prompt, provider: chosen) {
+            if completedReadReceipts.isEmpty, let answer = await typedKnowledgeAnswer(prompt, provider: chosen) {
                 guard isCurrent(owner) else {
                     return PlannedTurnResult(reply: "I stopped looking.", usedTools: false, calledToolIDs: [])
                 }
@@ -1359,10 +1360,15 @@ extension RealtimeAgent {
         // conversation. A confirmed "yes" always goes to the planner: its prompt is the
         // earlier request plus the answer, and the shortcut must not re-derive the action
         // from it (P1-02).
-        var completedDirectSteps: [CompletedDirectStep] = []
+        var completedDirectSteps: [CompletedDirectStep] = completedReadReceipts.compactMap { receipt in
+            guard maxRisk == .read, receipt.status == .completed, receipt.toolID == "filesystem.read",
+                  let prepared = receipt.preparedAction, prepared.risk == .read else { return nil }
+            return CompletedDirectStep(tool: receipt.toolID, arguments: prepared.executionPlan.arguments,
+                output: receipt.result)
+        }
         var directOutcome: AgentTaskOutcome?
         let directRevision = work?.revision ?? 0
-        if !prompt.hasPrefix(PendingAction.confirmedPrefix),
+        if completedReadReceipts.isEmpty, !prompt.hasPrefix(PendingAction.confirmedPrefix),
            work?.followUps.isEmpty ?? true,
            let direct = AgentDirectIntent.parse(requestForRanking) {
             let reply = await runDirectIntent(direct, manifest: manifest, speech: speech, onStopped: { directOutcome = .failed($0) }) { tool, arguments, output in
@@ -1393,7 +1399,8 @@ extension RealtimeAgent {
             await runPlannedToolLoop(prompt, speech: speech, voice: voice, owner: owner,
                                      background: background, work: work, manifest: manifest,
                                      provider: chosen, allowFallback: allowFallback,
-                                     completedDirectSteps: completedDirectSteps)
+                                     completedDirectSteps: completedDirectSteps,
+                                     hasRecoveredReadSeed: !completedReadReceipts.isEmpty)
         }
         if let notice, !notice.isEmpty {
             return PlannedTurnResult(
@@ -1417,7 +1424,7 @@ extension RealtimeAgent {
         _ prompt: String, speech: AgentToolSpeechTracker?, voice: Bool, owner: Int, background: Bool,
         work: VoiceConversationWork?, manifest initialManifest: AgentCapabilityManifest,
         provider chosenProvider: any LLMProvider, allowFallback: Bool = true,
-        completedDirectSteps: [CompletedDirectStep] = []
+        completedDirectSteps: [CompletedDirectStep] = [], hasRecoveredReadSeed: Bool = false
     ) async -> PlannedTurnResult {
         // The turn's provider, mutable for the single in-turn fallback: a file that fails a
         // real load here re-resolves once to something that can run, and never reports the
@@ -1520,7 +1527,7 @@ extension RealtimeAgent {
         // Produce it before asking a model to plan; the normal runner/card remains
         // the approval boundary. The existing runner still binds provenance, checks
         // effect validity, executes the guards and records only successful completions.
-        if !prompt.hasPrefix(PendingAction.confirmedPrefix),
+        if !hasRecoveredReadSeed, !prompt.hasPrefix(PendingAction.confirmedPrefix),
            work?.followUps.isEmpty ?? true,
            let call = AgentDirectIntent.memorySaveCall(prompt) ?? CatchUpTemplate.setupCall(prompt) {
             let failureReply = call.name == "schedule.create" ? "I couldn’t set up that catch-up." : "I couldn't save that memory."
@@ -1602,7 +1609,8 @@ extension RealtimeAgent {
                     output, readerContextTokens: window, toolID: toolID))
         }
         for step in completedDirectSteps {
-            runner.seedCompletedDirectCall(step.tool, arguments: step.arguments, output: step.output)
+            runner.seedCompletedDirectCall(step.tool, arguments: step.arguments, output: step.output,
+                                           recoveredRead: hasRecoveredReadSeed && step.tool == "filesystem.read")
             results.append(carried(step.tool, step.output))
             AgentSession.shared.noteToolOutput(step.output)
         }
@@ -1705,7 +1713,7 @@ extension RealtimeAgent {
         // ceiling, because a plan that spent its whole allowance still owes the person a reply.
         func finalAnswerRound(reason: FinalRoundReason) async -> PlannedTurnResult {
             let finalSystem = Self.plannerSystem(
-                manifest: runner.manifest, voice: voice, request: prompt, catalogue: false)
+                manifest: runner.manifest, voice: voice, request: prompt, catalogue: false, contextTokens: window)
             let (finalUser, promptTokens) = await fitPrompt(
                 original: lastGroundedPrompt,
                 earlierConversation: contextSections.first { $0.hasPrefix(Self.conversationSectionLabel) },
@@ -1839,7 +1847,7 @@ extension RealtimeAgent {
             contextSections[contextSections.count - 1] = "Current user request:\n" + currentRequest
             lastGroundedPrompt = contextSections.joined(separator: "\n\n")
             let wholeSystem = Self.plannerSystem(
-                manifest: runner.manifest, voice: voice, request: currentRequest)
+                manifest: runner.manifest, voice: voice, request: currentRequest, contextTokens: window)
             runner.verifiedResultObserver = { [self] toolID, output in
                 guard isCurrent(owner) else { return }
                 results.append(carried(toolID, output))
@@ -1971,7 +1979,7 @@ extension RealtimeAgent {
                 guard let work else { return true }
                 return work.revision == revision
             }
-            let system = Self.plannerSystem(manifest: manifest, voice: voice, request: prompt)
+            let system = Self.plannerSystem(manifest: manifest, voice: voice, request: prompt, contextTokens: window)
             speech?.beginResponse()
             guard isCurrent(owner) else {
                 plannerTraceForTesting?(.stopped(reason: "cancelled"))

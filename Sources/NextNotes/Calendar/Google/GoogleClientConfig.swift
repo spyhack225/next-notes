@@ -46,6 +46,8 @@ struct GoogleClientConfig: Sendable, Equatable {
 
     /// The client already on this machine, if the Workspace CLI has one.
     static var installed: GoogleClientConfig? {
+        // Refuse before resolving or reading the owner’s installed client file.
+        guard SelfTest.requested != "--selftest-settings-sheet" else { return nil }
         guard let data = try? Data(contentsOf: GoogleWorkspaceCLI.clientConfigURL) else { return nil }
         return GoogleClientConfig(data: data)
     }

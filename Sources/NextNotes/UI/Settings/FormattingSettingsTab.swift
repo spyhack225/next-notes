@@ -14,31 +14,13 @@ import SwiftUI
 /// different axis, so it is a menu. It shares the capability columns' width because a symbol
 /// fits there and the words fit inside the menu it opens; see `PathReferenceStyle.systemImage`.
 ///
-/// The output-profile table, as a grouped `Form` like every other pane.
-///
-/// The app list used to be a `List` of fixed height inside the section —
-/// `DS.Size.formatListHeight` — clipped to that frame so it would scroll inside it rather
-/// than growing the window. That List and the pane's own `Form` (itself a scrolling
-/// container on macOS) were two independent scroll surfaces stacked on top of each other,
-/// and the trackpad/wheel routing between them never worked: the box showed roughly five
-/// rows and neither the box nor the pane would scroll to reveal the rest. Nesting a
-/// scrollable `List` inside a scrollable `Form` is exactly the combination the platform
-/// does not handle reliably — a `Form` is the flat list of rows a Settings pane is built
-/// from, not a place to park a second, competing scroll view.
-///
-/// The fix is to stop giving the app list a scroll surface of its own. `profileList` below
-/// disables the `List`'s own scrolling and drops its fixed height, so it lays out at its
-/// full content height — every row present at once — and the pane's `Form` becomes the one
-/// and only scrolling surface, exactly like the pane's other sections. Selecting a row (by
-/// click, arrow key or Page Down) still works, because that is `List`'s row-selection
-/// machinery, not its scrolling; a `ScrollViewReader` around the `Form` brings a newly
-/// selected row into view when it lands outside the current scroll position, so keyboard
-/// navigation still reaches a row currently off-screen. The one thing this trades away is a
-/// header pinned to the top of a small box while only its rows scroll — `Form` sections do
-/// not support that, and reintroducing it would mean giving the list back its own scroll
-/// view, which is the bug. Do not give this list a fixed frame height again; it is what
-/// broke scrolling.
+/// The formatting pane has one native selectable List for every section. Profile
+/// rows are direct list rows so the list owns their viewport and selection. A disabled
+/// inner List cannot be assumed to hug its content inside the responsive Form's
+/// spanning VStack: the actual native table held the rows but received a zero viewport.
+/// The pane's existing header remains outside this one scrolling surface.
 struct FormattingSettingsTab: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var store = OutputProfileStore.shared
     @State private var screenContext = ScreenContextStore.shared
     /// Bound directly, like every other settings tab. `screenContext.isEnabled` reads through to
@@ -50,19 +32,22 @@ struct FormattingSettingsTab: View {
 
     var body: some View {
         ScrollViewReader { proxy in
-            Form {
+            List(selection: $selection) {
                 apps
-                screenNames
-                file
+                screenNames.selectionDisabled(true)
+                file.selectionDisabled(true)
             }
-            // The pane now has one scroll surface — the responsive form's — see
-            // `SettingsFormStyle`; a selection made by arrow key or Page Down still has
-            // to ask it to scroll explicitly, because `List` no longer has a scroll view
-            // of its own to do that automatically. Only fires for a single fresh
-            // selection: a shift/cmd range extension has no one row to centre on.
+            .listStyle(.inset)
+            .alternatingRowBackgrounds()
+            .scrollContentBackground(.hidden)
+            .background(DS.Color.window)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            // Keep single-row selection visible; a shift/cmd range extension has
+            // no one row to centre on. This targets the same native List that
+            // owns the profile rows, not an outer competing scroll surface.
             .onChange(of: selection) { _, newValue in
                 guard newValue.count == 1, let id = newValue.first else { return }
-                withAnimation {
+                withAnimation(reduceMotion ? nil : DS.Motion.standard) {
                     proxy.scrollTo(id, anchor: .center)
                 }
             }
@@ -87,45 +72,78 @@ struct FormattingSettingsTab: View {
     private var apps: some View {
         Section {
             columnHeader
-            profileList
+                .selectionDisabled(true)
+                .listRowBackground(DS.Color.groupedFill)
+            profileRows
             controls
+                .selectionDisabled(true)
+                .listRowBackground(DS.Color.groupedFill)
+            appsNote
+                .selectionDisabled(true)
+                .listRowBackground(DS.Color.window)
         } header: {
             Text("Apps")
-        } footer: {
-            SettingsNote(
-                text: "Dictated text is written to suit the app it is about to land in — a "
-                    + "spoken list becomes bullets in Slack and numbered lines in Mail. "
-                    + "These switches choose the marks an app is allowed, not whether you "
-                    + "get structure: a list you actually spoke out loud stays a list "
-                    + "everywhere, written as plain \u{201C}1.\u{201D} lines in an app that "
-                    + "shows marks instead of drawing them. An app that isn't listed is "
-                    + "given no marks at all, because a mark an app doesn't render is worse "
-                    + "than none."
-            )
         }
-        // The one table in Settings. It is rows of checkboxes, not labelled controls, and
-        // it is the content a wide window exists for — so it takes the whole pane instead
-        // of one card's column, and its `List` stretches with it.
-        .settingsSectionSpans()
+    }
+
+    private var appsNote: some View {
+        SettingsNote(
+            text: "Dictated text is written to suit the app it is about to land in — a "
+                + "spoken list becomes bullets in Slack and numbered lines in Mail. "
+                + "These switches choose the marks an app is allowed, not whether you "
+                + "get structure: a list you actually spoke out loud stays a list "
+                + "everywhere, written as plain \u{201C}1.\u{201D} lines in an app that "
+                + "shows marks instead of drawing them. An app that isn't listed is "
+                + "given no marks at all, because a mark an app doesn't render is worse "
+                + "than none."
+        )
+        .lineLimit(nil)
+        .fixedSize(horizontal: false, vertical: true)
     }
 
     private var file: some View {
         Section {
-            HStack {
-                Button("Add apps Next Notes knows about") { store.addMissingDefaults() }
-                    .help("Puts back any built-in app you have removed. Your own rows and "
-                          + "your edits are left alone.")
-                Spacer()
-                Button("Reveal formatting.txt") {
-                    NSWorkspace.shared.activateFileViewerSelecting([OutputProfileStore.fileURL])
+            ViewThatFits(in: .horizontal) {
+                HStack {
+                    addDefaultsButton.fixedSize(horizontal: true, vertical: true)
+                    Spacer(minLength: DS.Space.s)
+                    revealFileButton.fixedSize(horizontal: true, vertical: true)
                 }
-                .buttonStyle(.link)
-                .help(OutputProfileStore.fileURL.path)
+                VStack(alignment: .leading, spacing: DS.Space.s) {
+                    addDefaultsButton.fixedSize(horizontal: false, vertical: true)
+                    revealFileButton.fixedSize(horizontal: false, vertical: true)
+                }
             }
-        } footer: {
-            SettingsNote(text: "The table is a plain text file. Edit it in any editor and "
-                         + "the app picks up the change immediately.")
+            .listRowBackground(DS.Color.groupedFill)
+            fileNote
+                .selectionDisabled(true)
+                .listRowBackground(DS.Color.window)
         }
+    }
+
+    private var fileNote: some View {
+        SettingsNote(text: "The table is a plain text file. Edit it in any editor and "
+                     + "the app picks up the change immediately.")
+        .lineLimit(nil)
+        .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private var addDefaultsButton: some View {
+        Button("Add apps Next Notes knows about") { store.addMissingDefaults() }
+            .help("Puts back any built-in app you have removed. Your own rows and "
+                  + "your edits are left alone.")
+    }
+
+    private var revealFileButton: some View {
+        Button {
+            NSWorkspace.shared.activateFileViewerSelecting([OutputProfileStore.fileURL])
+        } label: {
+            Text("Reveal formatting.txt")
+                .underline()
+                .foregroundStyle(DS.Color.accent)
+        }
+        .buttonStyle(.plain)
+        .help(OutputProfileStore.fileURL.path)
     }
 
     // MARK: - Screen names
@@ -147,6 +165,7 @@ struct FormattingSettingsTab: View {
                 isOn: $settings.screenContextEnabled
             )
             .help("Lets \"the login handler file\" come out as the real file name")
+            .listRowBackground(DS.Color.groupedFill)
 
             // The one harvest failure the user can fix, and the only reason `AXHarvester` goes to
             // the trouble of telling a stub tree apart from an empty project. Bound to the
@@ -158,36 +177,58 @@ struct FormattingSettingsTab: View {
                 ProblemBanner(message: remediation) {
                     screenContext.dismissStubRemediation()
                 }
+                .listRowBackground(DS.Color.groupedFill)
             }
+            screenNamesNotes
+                .selectionDisabled(true)
+                .listRowBackground(DS.Color.window)
         } header: {
             Text("Screen names")
-        } footer: {
-            VStack(alignment: .leading, spacing: DS.Space.s) {
-                SettingsNote(
-                    text: "While you hold the dictation key, Next Notes reads the names of open "
-                        + "tabs, files and folders in the app you are dictating into, and uses "
-                        + "them to recognise a file you say out loud. Nothing is stored, nothing "
-                        + "leaves your Mac, and no page or document text is read — only names. "
-                        + "Password fields, number-only fields and browser address bars are "
-                        + "skipped, and banking and finance apps are never read at all."
-                )
-                SettingsNote(
-                    text: "Needs cleanup set to fix grammar as well as punctuation: the "
-                        + "punctuation-only model takes no instructions, so it has nowhere to be "
-                        + "told which names are on screen."
-                )
-            }
         }
+    }
+
+    private var screenNamesNotes: some View {
+        VStack(alignment: .leading, spacing: DS.Space.s) {
+            SettingsNote(
+                text: "While you hold the dictation key, Next Notes reads the names of open "
+                    + "tabs, files and folders in the app you are dictating into, and uses "
+                    + "them to recognise a file you say out loud. Nothing is stored, nothing "
+                    + "leaves your Mac, and no page or document text is read — only names. "
+                    + "Password fields, number-only fields and browser address bars are "
+                    + "skipped, and banking and finance apps are never read at all."
+            )
+            SettingsNote(
+                text: "Needs cleanup set to fix grammar as well as punctuation: the "
+                    + "punctuation-only model takes no instructions, so it has nowhere to be "
+                    + "told which names are on screen."
+            )
+        }
+        .lineLimit(nil)
+        .fixedSize(horizontal: false, vertical: true)
     }
 
     // MARK: - The table
 
     private var columnHeader: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: DS.Space.xs) {
+                appHeader.fixedSize(horizontal: true, vertical: true)
+                    .frame(minWidth: DS.Size.formatAppLabelMinimum, alignment: .leading)
+                Spacer(minLength: DS.Space.xs)
+                capabilityHeader.fixedSize(horizontal: true, vertical: true)
+            }
+            appHeader.fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private var appHeader: some View {
+        Text("App and formatting")
+            .font(DS.Font.caption)
+            .foregroundStyle(DS.Color.textSecondary)
+    }
+
+    private var capabilityHeader: some View {
         HStack(spacing: DS.Space.xs) {
-            Text("App")
-                .font(DS.Font.caption)
-                .foregroundStyle(DS.Color.textSecondary)
-            Spacer()
             ForEach(OutputCapability.allCases, id: \.self) { capability in
                 Image(systemName: capability.systemImage)
                     .font(DS.Font.caption)
@@ -208,43 +249,49 @@ struct FormattingSettingsTab: View {
     }
 
     @ViewBuilder
-    private var profileList: some View {
+    private var profileRows: some View {
         if store.profiles.isEmpty {
-            // A stage, not a fault: an empty table is what a fresh install looks like, and
-            // every app still gets plain prose meanwhile. `breathing` is the orb for
-            // nothing-here-yet — a grey symbol would say the screen was broken.
             OrbUnavailableView(
                 .breathing,
                 title: "No apps listed",
                 message: "Every app gets plain prose until you add one."
             )
-            .frame(height: DS.Size.formatListHeight)
+            .selectionDisabled(true)
+            .listRowBackground(DS.Color.groupedFill)
         } else {
-            // No `.frame(height:)` and no scrolling of its own — see the type comment on
-            // `FormattingSettingsTab` for why. The `List` lays out every row at once and
-            // leaves scrolling to the enclosing `Form`.
-            List(selection: $selection) {
-                ForEach(store.profiles) { profile in
-                    OutputProfileRow(
-                        profile: profile,
-                        onToggle: { capability, isOn in
-                            store.setCapability(capability, on: isOn, for: profile.bundleID)
-                        },
-                        onPathReference: { style in
-                            store.setPathReference(style, for: profile.bundleID)
-                        }
-                    )
-                    .tag(profile.bundleID)
-                    .id(profile.bundleID)
-                }
+            ForEach(store.profiles) { profile in
+                OutputProfileRow(
+                    profile: profile,
+                    onToggle: { capability, isOn in
+                        store.setCapability(capability, on: isOn, for: profile.bundleID)
+                    },
+                    onPathReference: { style in
+                        store.setPathReference(style, for: profile.bundleID)
+                    }
+                )
+                .tag(profile.bundleID)
+                .id(profile.bundleID)
+                .listRowBackground(DS.Color.groupedFill)
             }
-            .listStyle(.inset)
-            .alternatingRowBackgrounds()
-            .scrollDisabled(true)
         }
     }
 
     private var controls: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: DS.Space.s) {
+                addRemoveControls.fixedSize(horizontal: true, vertical: true)
+                Spacer(minLength: DS.Space.s)
+                addFrontmostButton.fixedSize(horizontal: true, vertical: true)
+            }
+            VStack(alignment: .leading, spacing: DS.Space.s) {
+                addRemoveControls
+                addFrontmostButton.fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .labelStyle(.iconOnly)
+    }
+
+    private var addRemoveControls: some View {
         HStack(spacing: DS.Space.s) {
             Menu {
                 Button("Choose from Installed Apps…") { isPicking = true }
@@ -265,11 +312,7 @@ struct FormattingSettingsTab: View {
             .disabled(selection.isEmpty)
             .help("Remove the selected apps. They fall back to plain prose.")
 
-            Spacer()
-
-            addFrontmostButton
         }
-        .labelStyle(.iconOnly)
     }
 
     /// One click for the app the user was in a moment ago.
@@ -305,38 +348,74 @@ private struct OutputProfileRow: View {
     let onPathReference: (PathReferenceStyle) -> Void
 
     var body: some View {
-        HStack(spacing: DS.Space.xs) {
-            VStack(alignment: .leading, spacing: 0) {
-                Text(profile.displayName)
-                    .font(DS.Font.body)
-                Text(profile.isPlain && !profile.resolvesPaths ? "Plain prose" : profile.bundleID)
-                    .font(DS.Font.caption2)
-                    .foregroundStyle(DS.Color.textTertiary)
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: DS.Space.xs) {
+                appLabel.fixedSize(horizontal: true, vertical: true)
+                    .frame(minWidth: DS.Size.formatAppLabelMinimum, alignment: .leading)
+                Spacer()
+                HStack(spacing: DS.Space.xs) {
+                    ForEach(OutputCapability.allCases, id: \.self) { capability in
+                        capabilityToggle(capability)
+                            .labelsHidden()
+                            .frame(width: DS.Size.formatCapabilityColumn)
+                    }
+                    pathReferenceMenu(compact: false)
+                        .frame(width: DS.Size.formatCapabilityColumn)
+                }
+                .fixedSize(horizontal: true, vertical: true)
             }
-            Spacer()
-            ForEach(OutputCapability.allCases, id: \.self) { capability in
-                Toggle(
-                    capability.displayName,
-                    isOn: Binding(
-                        get: { profile.capabilities.contains(capability) },
-                        set: { onToggle(capability, $0) }
-                    )
-                )
-                .labelsHidden()
-                .toggleStyle(.checkbox)
-                .frame(width: DS.Size.formatCapabilityColumn)
-                .help("\(profile.displayName): \(capability.help)")
+            VStack(alignment: .leading, spacing: DS.Space.s) {
+                appLabel.fixedSize(horizontal: false, vertical: true)
+                LazyVGrid(
+                    columns: [GridItem(.flexible()), GridItem(.flexible())],
+                    alignment: .leading,
+                    spacing: DS.Space.s
+                ) {
+                    ForEach(OutputCapability.allCases, id: \.self) { capability in
+                        capabilityToggle(capability)
+                            .font(DS.Font.caption)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    VStack(alignment: .leading, spacing: DS.Space.xxs) {
+                        Text("File references")
+                            .font(DS.Font.caption)
+                            .foregroundStyle(DS.Color.textSecondary)
+                        pathReferenceMenu(compact: true)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
             }
-            pathReferenceMenu
         }
         .padding(.vertical, DS.Space.xxs)
     }
 
-    /// A `Picker` nested inside a `Menu` rather than a `Picker` on its own, so the trigger can
-    /// be the current style's symbol while the options keep their words and their checkmark.
-    /// A bare menu-style `Picker` shows its selected title, and "Backticked paths" is wider
-    /// than the app-name column beside it.
-    private var pathReferenceMenu: some View {
+    private var appLabel: some View {
+        VStack(alignment: .leading, spacing: DS.Space.xxs) {
+            Text(profile.displayName)
+                .font(DS.Font.body)
+            Text(profile.isPlain && !profile.resolvesPaths ? "Plain prose" : profile.bundleID)
+                .font(DS.Font.caption2)
+                .foregroundStyle(DS.Color.textTertiary)
+        }
+        .lineLimit(nil)
+    }
+
+    private func capabilityToggle(_ capability: OutputCapability) -> some View {
+        Toggle(
+            capability.displayName,
+            isOn: Binding(
+                get: { profile.capabilities.contains(capability) },
+                set: { onToggle(capability, $0) }
+            )
+        )
+        .toggleStyle(.checkbox)
+        .help("\(profile.displayName): \(capability.help)")
+    }
+
+    /// Same native menu and picker choices in both layouts. Compact rows label the
+    /// choice explicitly; wide rows keep the established column symbol.
+    private func pathReferenceMenu(compact: Bool) -> some View {
         Menu {
             Picker(
                 "Path references",
@@ -352,11 +431,17 @@ private struct OutputProfileRow: View {
             .pickerStyle(.inline)
             .labelsHidden()
         } label: {
-            Image(systemName: profile.pathReference.systemImage)
+            if compact {
+                Text(profile.pathReference.displayName)
+                    .font(DS.Font.caption)
+                    .lineLimit(nil)
+                    .fixedSize(horizontal: false, vertical: true)
+            } else {
+                Image(systemName: profile.pathReference.systemImage)
+            }
         }
         .menuStyle(.borderlessButton)
-        .menuIndicator(.hidden)
-        .frame(width: DS.Size.formatCapabilityColumn)
+        .menuIndicator(compact ? .visible : .hidden)
         .help("\(profile.displayName): \(profile.pathReference.help)")
     }
 }

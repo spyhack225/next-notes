@@ -283,21 +283,26 @@ enum MeetingContextReconciler {
     /// The selected Agent model extracts action meaning from the actual speech. It only
     /// writes grounded candidate cards; tool execution remains in AgentService.
     struct ModelCompleter: MeetingContextCompleter {
-        /// Isolated diagnostics reuse the actual producer; normal defaults preserve
-        /// the existing selected-role admission and provider resolution.
+        private let optionalAdmission: @Sendable () -> Bool
         private let enabled: @Sendable () async -> Bool
         private let resolveProvider: @Sendable () async -> (any LLMProvider)?
 
         init(
+            optionalAdmission: @escaping @Sendable () -> Bool = {
+                ModelResidencyPolicy.pressureSnapshot.allowsOptionalWork
+            },
             enabled: @escaping @Sendable () async -> Bool = {
-                let stored = await MainActor.run { Settings.shared.meetingLiveUnderstanding }
-                let choice = await ModelRoleStore.shared.resolution(for: .agent).effective
-                return MeetingContextReconciler.isEnabled(stored: stored, choice: choice)
+                await MainActor.run {
+                    MeetingContextReconciler.isEnabled(
+                        stored: Settings.shared.meetingLiveUnderstanding,
+                        choice: ModelRoleStore.shared.resolution(for: .agent).effective)
+                }
             },
             resolveProvider: @escaping @Sendable () async -> (any LLMProvider)? = {
                 await ModelRoleStore.shared.provider(for: .agent)
             }
         ) {
+            self.optionalAdmission = optionalAdmission
             self.enabled = enabled
             self.resolveProvider = resolveProvider
         }
@@ -386,13 +391,14 @@ enum MeetingContextReconciler {
 
         func refine(_ snapshot: Snapshot) async -> Suggestion {
             let context = snapshot.context
-            guard !snapshot.recentSegments.isEmpty else { return .empty }
+            guard !snapshot.recentSegments.isEmpty,
+                  optionalAdmission(), !Task.isCancelled else { return .empty }
 
             // The switch first, before a provider is resolved: a pass is the only thing here
             // that costs model time and can put meeting text on a network. The store asks the
             // same question before it arms anything, so this is the second of two places one
             // answer is checked rather than a second answer.
-            guard await enabled() else {
+            guard await enabled(), optionalAdmission(), !Task.isCancelled else {
                 return .empty
             }
 
@@ -408,7 +414,8 @@ enum MeetingContextReconciler {
                 // P0-14: the role store owns which model answers, and it is read-only — the
                 // reconcile no longer resolves a provider of its own from the Settings mirror,
                 // which is how live meeting text once followed a stale choice.
-                guard let provider = await resolveProvider() else {
+                guard let provider = await resolveProvider(),
+                      optionalAdmission(), !Task.isCancelled else {
                     return .empty
                 }
                 // M-16b: the reconcile's model pass writes its row like every other
@@ -421,8 +428,10 @@ enum MeetingContextReconciler {
                     provider: provider,
                     meetingID: context.meetingID,
                     maxTokens: 400,
-                    grammar: Self.outputGrammar
+                    grammar: Self.outputGrammar,
+                    optionalAdmission: optionalAdmission
                 )
+                guard optionalAdmission(), !Task.isCancelled else { return .empty }
                 return Self.parse(
                     completion.text, existing: context,
                     segments: recent
@@ -447,8 +456,12 @@ enum MeetingContextReconciler {
             provider: any LLMProvider,
             meetingID: UUID,
             maxTokens: Int,
-            grammar: GBNFGrammar? = nil
+            grammar: GBNFGrammar? = nil,
+            optionalAdmission: @escaping @Sendable () -> Bool = {
+                ModelResidencyPolicy.pressureSnapshot.allowsOptionalWork
+            }
         ) async throws -> LLMCompletion {
+            guard optionalAdmission(), !Task.isCancelled else { throw CancellationError() }
             let recorder = ModelPassRecorder(
                 feature: .meetingReconcile,
                 pass: "reconcile",
@@ -457,10 +470,17 @@ enum MeetingContextReconciler {
             )
             do {
                 let completion = try await ModelPassRecorder.$current.withValue(recorder) {
-                    if let grammar {
-                        return try await provider.complete(system: system, user: user, maxTokens: maxTokens, grammar: grammar)
+                    let completion: LLMCompletion
+                    if let local = provider as? LlamaLLMProvider {
+                        completion = try await local.completeForOptionalUse(
+                            system: system, user: user, maxTokens: maxTokens, grammar: grammar)
+                    } else if let grammar {
+                        completion = try await provider.complete(system: system, user: user, maxTokens: maxTokens, grammar: grammar)
+                    } else {
+                        completion = try await provider.complete(system: system, user: user, maxTokens: maxTokens)
                     }
-                    return try await provider.complete(system: system, user: user, maxTokens: maxTokens)
+                    guard optionalAdmission(), !Task.isCancelled else { throw CancellationError() }
+                    return completion
                 }
                 recorder.report(
                     promptTokens: nil,
@@ -610,7 +630,7 @@ enum MeetingContextReconciler {
     /// Prints `MEETING_RECONCILE_LLM_OK` / `FAILED` — distinct from
     /// `MeetingActionReconciler`'s `MEETING_RECONCILE_OK`. Not wired to `NextNotesApp`.
     @discardableResult
-    static func runSelfTest() -> Bool {
+    static func runSelfTest(reportVerdict: Bool = true) -> Bool {
         var failures: [String] = []
         func check(_ name: String, _ condition: Bool) {
             if !condition { failures.append(name) }
@@ -876,7 +896,114 @@ enum MeetingContextReconciler {
         check("fake completer hung", waited == .success)
         check("fake completer did not merge topics", box.value)
 
-        writeLine(failures)
+        writeLine(failures, reportVerdict: reportVerdict)
+        return failures.isEmpty
+    }
+
+    /// Actual optional producer paths with private pressure state and scripted inference.
+    @MainActor
+    static func runResourceAdmissionSelfTest(log: (String) -> Void) async -> Bool {
+        guard SelfTest.isRunning, Settings.shared.usesHarnessPreferencesForTesting else {
+            log("MEETING_RECONCILE_RESOURCE_WRONG: isolated preferences required")
+            return false
+        }
+        var failures: [String] = []
+        var checks = 0
+        func check(_ label: String, _ value: Bool) {
+            checks += 1
+            if !value { failures.append(label) }
+        }
+        for stage in ["already-warning", "enabled-await", "provider-await", "completion-await", "normal", "setting-off"] {
+            let guardian = ModelResidencyGuardian(releaseForTesting: {})
+            let calls = ReconcileAdmissionCounter()
+            let id = UUID()
+            let snapshot = Snapshot(context: .empty(meetingID: id, title: "Fixture", participants: []),
+                recentTranscript: "fixture", recentSegments: [
+                    TranscriptSegment(start: 0, end: 60, text: "Discuss the launch timeline", source: .mic)
+                ], now: 60)
+            if stage == "already-warning" { guardian.receive(.warning) }
+            let provider = ReconcileAdmissionProvider(calls: calls, after: {
+                if stage == "completion-await" { guardian.receive(.critical) }
+            })
+            let completer = ModelCompleter(optionalAdmission: { guardian.snapshot.allowsOptionalWork },
+                enabled: {
+                    if stage == "enabled-await" { guardian.receive(.warning) }
+                    return stage != "setting-off"
+                }, resolveProvider: {
+                    await calls.record("resolve")
+                    if stage == "provider-await" { guardian.receive(.warning) }
+                    return provider
+                })
+            let result = await completer.refine(snapshot)
+            let events = await calls.events
+            let rows = UsageLog.shared.load().filter { $0.meetingID == id }
+            check("\(stage) completion/result admission",
+                  result.hasRefinements == (stage == "normal"))
+            let expectedResolve = ["provider-await", "completion-await", "normal"].contains(stage)
+            let expectedComplete = ["completion-await", "normal"].contains(stage)
+            check("\(stage) provider resolution admission", events.contains("resolve") == expectedResolve)
+            check("\(stage) model completion admission", events.contains("complete") == expectedComplete)
+            if stage == "normal" {
+                check("normal actual refine retains model-only source and inferred confidence",
+                      result.topics.first?.source == .system
+                        && result.topics.first?.confidence == inferredConfidence)
+                check("normal reconcile failed to record actual completion",
+                      rows.count == 1 && rows.first?.finishReason == "stop")
+            } else {
+                check("\(stage) denied reconcile wrote success usage", !rows.contains { $0.finishReason == "stop" })
+            }
+        }
+
+        // Exercise the real arm/run branches, not a duplicate cadence decision.
+        let guardian = ModelResidencyGuardian(releaseForTesting: {})
+        let calls = ReconcileAdmissionCounter()
+        let completer = ModelCompleter(optionalAdmission: { guardian.snapshot.allowsOptionalWork },
+            enabled: { true }, resolveProvider: { ReconcileAdmissionProvider(calls: calls) })
+        let meeting = Meeting(title: "Store admission fixture", start: Date(), status: .recording)
+        let meetingStore = MeetingStore.isolated()
+        defer { try? FileManager.default.removeItem(at: meetingStore.directory(for: meeting.id).deletingLastPathComponent()) }
+        check("store fixture did not persist its meeting before context ingestion", meetingStore.save(meeting))
+        let contextStore = MeetingContextStore.isolatedForTesting(store: meetingStore, completer: completer,
+            optionalAdmission: { guardian.snapshot.allowsOptionalWork })
+        let first = TranscriptSegment(start: 0, end: 60, text: "Discuss the launch timeline", source: .mic)
+        guardian.receive(.warning)
+        contextStore.ingest([first], meeting: meeting)
+        check("store armed optional reconcile under pressure", !contextStore.reconcileScheduledForTesting)
+        await contextStore.runReconcileForTesting()
+        check("store ran optional reconcile under pressure", await calls.events.isEmpty)
+        guardian.receive(.normal)
+        contextStore.ingest([first, TranscriptSegment(start: 60, end: 120,
+            text: "Review next steps for launch", source: .mic)], meeting: meeting)
+        check("normal pressure did not rearm actual store", contextStore.reconcileScheduledForTesting)
+        await contextStore.runReconcileForTesting()
+        check("normal store did not reach actual completer", await calls.events.contains("complete"))
+        check("normal store did not persist refinement", contextStore.load(meetingID: meeting.id)?.topics.contains {
+            $0.text == "Fixture launch refinement"
+        } == true)
+        contextStore.reset()
+
+        guardian.receive(.normal)
+        let lateMeeting = Meeting(title: "Late store admission fixture", start: Date(), status: .recording)
+        let lateMeetingStore = MeetingStore.isolated()
+        defer { try? FileManager.default.removeItem(at: lateMeetingStore.directory(for: lateMeeting.id).deletingLastPathComponent()) }
+        check("late store fixture did not persist its meeting before context ingestion", lateMeetingStore.save(lateMeeting))
+        let lateStore = MeetingContextStore.isolatedForTesting(
+            store: lateMeetingStore,
+            completer: ReconcilePressureCompleter(after: { guardian.receive(.warning) }),
+            optionalAdmission: { guardian.snapshot.allowsOptionalWork })
+        lateStore.ingest([first], meeting: lateMeeting)
+        await lateStore.runReconcileForTesting()
+        check("store applied refinement after pressure during completer await",
+              lateStore.load(meetingID: lateMeeting.id)?.topics.contains {
+                  $0.text == "Fixture denied refinement"
+              } == false)
+        lateStore.reset()
+
+        for (label, value) in await NotesModelRuntime.optionalCompletionAdmissionChecksForTesting() {
+            check(label, value)
+        }
+        for failure in failures { log("MEETING_RECONCILE_RESOURCE_WRONG: \(failure)") }
+        log("MEETING_RECONCILE_RESOURCE_CHECKS: \(checks) checks; \(failures.count) wrong")
         return failures.isEmpty
     }
 
@@ -902,10 +1029,11 @@ enum MeetingContextReconciler {
         let gate = DispatchSemaphore(value: 0)
     }
 
-    private static func writeLine(_ failures: [String]) {
+    private static func writeLine(_ failures: [String], reportVerdict: Bool = true) {
         for failure in failures {
             emit("  MEETING_RECONCILE_LLM_WRONG: \(failure)")
         }
+        guard reportVerdict else { return }
         emit(failures.isEmpty
              ? "MEETING_RECONCILE_LLM_OK: cadence, merge and the authority split hold"
              : "MEETING_RECONCILE_LLM_FAILED: \(failures.count) rule(s) wrong")
@@ -923,5 +1051,38 @@ enum MeetingContextReconciler {
         } else {
             try? text.write(toFile: path, atomically: true, encoding: .utf8)
         }
+    }
+}
+
+
+private actor ReconcileAdmissionCounter {
+    private(set) var events: [String] = []
+    func record(_ event: String) { events.append(event) }
+}
+
+private struct ReconcileAdmissionProvider: LLMProvider {
+    let id = LLMProviderID.appleFoundation
+    let contextTokens = 4_096
+    let calls: ReconcileAdmissionCounter
+    let after: @Sendable () -> Void
+    init(calls: ReconcileAdmissionCounter, after: @escaping @Sendable () -> Void = {}) {
+        self.calls = calls
+        self.after = after
+    }
+    var unavailableReason: String? { get async { nil } }
+    func countTokens(_ text: String) async throws -> Int { text.count / 4 }
+    func complete(system: String, user: String, maxTokens: Int) async throws -> LLMCompletion {
+        await calls.record("complete")
+        after()
+        return LLMCompletion(text: "{\"topics\":[\"Fixture launch refinement\"],\"unresolved\":[],\"actions\":[]}",
+            generatedTokens: 8, duration: 0)
+    }
+}
+
+private struct ReconcilePressureCompleter: MeetingContextCompleter {
+    let after: @Sendable () -> Void
+    func refine(_ snapshot: MeetingContextReconciler.Snapshot) async -> MeetingContextReconciler.Suggestion {
+        after()
+        return .init(topics: [.init(text: "Fixture denied refinement", source: .mic, confidence: "inferred")])
     }
 }

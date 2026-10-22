@@ -37,6 +37,7 @@ struct AppleMemoryReviewCall {
 /// `MemoryReviewModel` over Foundation Models' guided generation.
 struct AppleMemoryReviewModel: MemoryReviewModel {
     let label = "Apple Intelligence"
+    @MainActor var contextTokens: Int { LLMProviders.make(.appleFoundation).contextTokens }
 
     func complete(system: String, user: String) async throws -> String {
         guard FoundationModelFormatter.unavailableReason == nil else {

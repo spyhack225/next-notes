@@ -1,4 +1,6 @@
 import AppKit
+import CryptoKit
+import Darwin
 import SwiftUI
 
 /// `--settings-sheet [dir] [--width <pt>]` — every Settings pane rendered offscreen at the
@@ -58,6 +60,8 @@ enum SettingsSheet {
                 // The band is transparent over the window, and an offscreen panel's own
                 // background is not the window's — the surface has to be stated.
                 .background(DS.Color.window)
+                .tint(DS.Color.accent)
+                .font(DS.Font.body)
                 guard let png = render(content, width: width) else {
                     print("SETTINGS_SHEET_FAILED: \(tab.rawValue) at \(Int(width))pt did not render")
                     return false
@@ -104,5 +108,538 @@ enum SettingsSheet {
         else { return nil }
         hosting.cacheDisplay(in: hosting.bounds, to: representation)
         return representation.representation(using: .png, properties: [:])
+    }
+}
+
+// Fixture-only companion to the intentionally private, live --settings-sheet diagnostic.
+// Production pane types and callbacks stay in use; their existing producers select the
+// exact --selftest-settings-sheet scope before any shared store can read an owner input.
+@MainActor
+extension SettingsSheet {
+    static let fixtureWidths: [CGFloat] = [DS.Size.settingsPaneMinWidth, DS.Size.settingsWidth]
+    static let fixtureTabs: [SettingsTab] = [.computer, .formatting, .agent]
+
+    static func writeFixture(
+        to directory: String,
+        controller: DictationController,
+        widths: [CGFloat] = fixtureWidths,
+        tabs: [SettingsTab] = fixtureTabs
+    ) async -> Bool {
+        guard SelfTest.requested == "--selftest-settings-sheet" else {
+            SelfTest.diagnostic("SETTINGS_SHEET_FIXTURE_FAILED: exact isolated diagnostic required")
+            return false
+        }
+        guard !controller.state.isActive, !controller.isCapturingAudio else {
+            SelfTest.diagnostic("SETTINGS_SHEET_FIXTURE_FAILED: idle isolated controller required")
+            return false
+        }
+        guard let maximumWidth = SettingsSheet.widths.max(), !widths.isEmpty, !tabs.isEmpty,
+              widths.allSatisfy({ $0.isFinite && $0 >= DS.Size.settingsPaneMinWidth && $0 <= maximumWidth }) else {
+            SelfTest.diagnostic("SETTINGS_SHEET_FIXTURE_FAILED: supported pane widths required")
+            return false
+        }
+        let root = URL(fileURLWithPath: directory, isDirectory: true)
+            .standardizedFileURL.resolvingSymlinksInPath()
+        let temporaryRoots = [FileManager.default.temporaryDirectory, URL(fileURLWithPath: "/tmp", isDirectory: true)]
+            .map { $0.standardizedFileURL.resolvingSymlinksInPath() }
+        guard temporaryRoots.contains(where: { root.path.hasPrefix($0.path + "/") }) else {
+            SelfTest.diagnostic("SETTINGS_SHEET_FIXTURE_FAILED: output must be a temporary subfolder")
+            return false
+        }
+        if (try? FileManager.default.attributesOfItem(atPath: directory)[.type]) as? FileAttributeType == .typeSymbolicLink {
+            SelfTest.diagnostic("SETTINGS_SHEET_FIXTURE_FAILED: output folder is a symlink entry")
+            return false
+        }
+        let fixtureRoot = SelfTest.checkedSettingsFixturePath(FileManager.default.temporaryDirectory
+            .appendingPathComponent("NextNotesSelfTest-\(ProcessInfo.processInfo.processIdentifier)", isDirectory: true))
+        guard verifyFixtureDurablePreferenceGuard() else {
+            SelfTest.diagnostic("SETTINGS_SHEET_FIXTURE_FAILED: durable preference guard regression")
+            return false
+        }
+
+        // Take the original baseline before preparing inputs, changing appearance or
+        // constructing a view. Never warm registration preferences to move this bar.
+        let storesBefore = SelfTestStoreGuard.take()
+        let mergedBefore = UserDefaults.standard.dictionaryRepresentation()
+        let domainsBefore = fixturePreferenceDomains()
+        let filesBefore = fixtureExtraOwnerFiles()
+        var reportedMergedChange = false
+        var reportedDomainChange = false
+        let originalAppearance = NSApp.appearance
+        let previousConfigDirectory = ProcessInfo.processInfo.environment["GOOGLE_WORKSPACE_CLI_CONFIG_DIR"]
+        defer {
+            NSApp.appearance = originalAppearance
+            if let previousConfigDirectory {
+                setenv("GOOGLE_WORKSPACE_CLI_CONFIG_DIR", previousConfigDirectory, 1)
+            } else {
+                unsetenv("GOOGLE_WORKSPACE_CLI_CONFIG_DIR")
+            }
+        }
+
+        // Keep the original full merged/volatile baseline visible, independently of
+        // durable owner preference acceptance. No key allowlist or native warmup.
+        func tracePreferenceCheckpoint(_ stage: String) {
+            let mergedAfter = UserDefaults.standard.dictionaryRepresentation()
+            let domainsAfter = fixturePreferenceDomains()
+            let mergedChanges = fixtureChangedKeys(mergedBefore, mergedAfter)
+            let changedDomains = Set(domainsBefore.keys).union(domainsAfter.keys).sorted().filter {
+                !NSDictionary(dictionary: domainsBefore[$0] ?? [:]).isEqual(to: domainsAfter[$0] ?? [:])
+            }
+            let firstMergedChange = !mergedChanges.isEmpty && !reportedMergedChange
+            let firstDomainChange = !changedDomains.isEmpty && !reportedDomainChange
+            guard firstMergedChange || firstDomainChange else { return }
+            if firstMergedChange { reportedMergedChange = true }
+            if firstDomainChange { reportedDomainChange = true }
+            SelfTest.diagnostic("SETTINGS_SHEET_FIXTURE_ORIGINAL_TRACE: stage=\(stage) mergedChanges=\(mergedChanges.count) durablePreferencesChanged=\(!fixtureDurablePreferencesEqual(domainsBefore, domainsAfter))")
+            for key in mergedChanges {
+                SelfTest.diagnostic("SETTINGS_SHEET_FIXTURE_ORIGINAL_DIFF: domain=merged key=\(key) changed")
+            }
+            for domain in changedDomains {
+                for key in fixtureChangedKeys(domainsBefore[domain] ?? [:], domainsAfter[domain] ?? [:]) {
+                    SelfTest.diagnostic("SETTINGS_SHEET_FIXTURE_ORIGINAL_DIFF: domain=\(domain) key=\(key) changed")
+                }
+            }
+        }
+
+        func ownerInputsUnchanged() -> Bool {
+            let storesAfter = SelfTestStoreGuard.take()
+            let mergedAfter = UserDefaults.standard.dictionaryRepresentation()
+            let domainsAfter = fixturePreferenceDomains()
+            let filesAfter = fixtureExtraOwnerFiles()
+            var changed = false
+            for name in Set(storesBefore.files.keys).union(storesAfter.files.keys).sorted()
+                where storesBefore.files[name] != storesAfter.files[name] {
+                SelfTest.diagnostic("SETTINGS_SHEET_FIXTURE_DIFF: ownerFile=\(name) changed")
+                changed = true
+            }
+            for name in Set(storesBefore.defaults.keys).union(storesAfter.defaults.keys).sorted()
+                where storesBefore.defaults[name] != storesAfter.defaults[name] {
+                SelfTest.diagnostic("SETTINGS_SHEET_FIXTURE_DIFF: ownerDefaultKey=\(name) changed")
+                changed = true
+            }
+            for name in Set(filesBefore.keys).union(filesAfter.keys).sorted()
+                where filesBefore[name] != filesAfter[name] {
+                SelfTest.diagnostic("SETTINGS_SHEET_FIXTURE_DIFF: ownerFile=\(name) changed")
+                changed = true
+            }
+            for name in fixtureChangedKeys(mergedBefore, mergedAfter) {
+                SelfTest.diagnostic("SETTINGS_SHEET_FIXTURE_ORIGINAL_DIFF: domain=merged key=\(name) changed")
+            }
+            for domain in Set(domainsBefore.keys).union(domainsAfter.keys).sorted() {
+                for name in fixtureChangedKeys(domainsBefore[domain] ?? [:], domainsAfter[domain] ?? [:]) {
+                    if domain.hasPrefix("persistent:") {
+                        SelfTest.diagnostic("SETTINGS_SHEET_FIXTURE_DIFF: domain=\(domain) key=\(name) changed")
+                        changed = true
+                    } else {
+                        SelfTest.diagnostic("SETTINGS_SHEET_FIXTURE_PROCESS_DIFF: domain=\(domain) key=\(name) changed")
+                    }
+                }
+            }
+            return !changed && storesBefore == storesAfter && filesBefore == filesAfter
+                && fixtureDurablePreferencesEqual(domainsBefore, domainsAfter)
+        }
+
+        do {
+            tracePreferenceCheckpoint("before-output-directory")
+            try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+            try FileManager.default.createDirectory(at: fixtureRoot, withIntermediateDirectories: true)
+            let gws = SelfTest.checkedSettingsFixturePath(fixtureRoot.appendingPathComponent("gws", isDirectory: true))
+            try FileManager.default.createDirectory(at: gws, withIntermediateDirectories: true)
+            setenv("GOOGLE_WORKSPACE_CLI_CONFIG_DIR", gws.path, 1)
+            func same(_ left: URL, _ right: URL) -> Bool {
+                left.standardizedFileURL.resolvingSymlinksInPath()
+                    == right.standardizedFileURL.resolvingSymlinksInPath()
+            }
+            // Check actual producer inputs before constructing any pane/store. These
+            // properties come from the coordinated diagnostic-scoped producer patch.
+            guard same(OutputProfileStore.fileURL, fixtureRoot.appendingPathComponent("formatting.txt")),
+                  same(RunLog.directory, fixtureRoot),
+                  same(MCPClientStore.fileURL, fixtureRoot.appendingPathComponent("mcp-servers.json")),
+                  same(AgentHarnessRouter.fileURL, fixtureRoot.appendingPathComponent("agent-harness-history.json")),
+                  same(IMessageSettingsSection.identityDirectory, fixtureRoot) else {
+                SelfTest.diagnostic("SETTINGS_SHEET_FIXTURE_FAILED: actual input producer escaped temporary root")
+                return false
+            }
+            guard Settings.shared.usesHarnessPreferencesForTesting else {
+                SelfTest.diagnostic("SETTINGS_SHEET_FIXTURE_FAILED: preferences are not isolated")
+                return false
+            }
+            SelfTestHarnessDefaults.suite.set(false, forKey: IndexedFoldersStore.enabledKey)
+            SelfTestHarnessDefaults.suite.set(false, forKey: IndexedFoldersStore.cloudConsentKey)
+            // Actual file producers consume these harmless inputs. Never reset an owner
+            // singleton or seed an owner task/history store to make a screenshot.
+            // Match the real producer's absent-file seed as well: a SwiftUI scene may
+            // initialize the shared store before the registry's capture task starts.
+            let profiles = OutputProfileDefaults.all
+            try writeFixtureData(Data(OutputProfileStore.serialize(profiles).utf8),
+                                 to: SelfTest.checkedSettingsFixturePath(fixtureRoot.appendingPathComponent("formatting.txt")))
+            try writeFixtureData(Data("[]\n".utf8), to: SelfTest.checkedSettingsFixturePath(fixtureRoot.appendingPathComponent("mcp-servers.json")))
+            let runs = [
+                DictationRun(date: Date(timeIntervalSince1970: 0), engine: "apple", audioSeconds: 3,
+                             processSeconds: 0.2, text: "Please share the meeting notes tomorrow.", group: "settings-example"),
+                DictationRun(date: Date(timeIntervalSince1970: 0), engine: "parakeet", audioSeconds: 3,
+                             processSeconds: 0.2, text: "Please share the meeting notes tomorrow.", group: "settings-example"),
+                DictationRun(date: Date(timeIntervalSince1970: 1), engine: "parakeet", audioSeconds: 2,
+                             processSeconds: 0.2, text: "Remember the milk on the way home.")
+            ]
+            let encoder = JSONEncoder()
+            encoder.dateEncodingStrategy = .iso8601
+            var data = Data()
+            for run in runs { data.append(try encoder.encode(run)); data.append(0x0A) }
+            try writeFixtureData(data, to: SelfTest.checkedSettingsFixturePath(fixtureRoot.appendingPathComponent("runs.jsonl")))
+            guard checkInjectedModelLibraryFixtureConstructor(fixtureRoot) else { return false }
+            return await RunLog.$directoryOverride.withValue(fixtureRoot) {
+                RunStore.shared.reload()
+                @MainActor
+                func actualFixtureInputsMatch() -> Bool {
+                    let profilesStore = OutputProfileStore.shared
+                    let effects = profilesStore.settingsSheetIsolationFailures()
+                    let folderEffects = IndexedFoldersStore.shared.settingsSheetIsolationFailures()
+                    let constructorEffects = AgentHarnessRouter.shared.settingsSheetIsolationFailures()
+                        + LocalRuntimeCatalog.shared.settingsSheetIsolationFailures()
+                        + ModelRoleStore.shared.settingsSheetIsolationFailures()
+                        + InstalledModelLibrary.shared.settingsSheetIsolationFailures()
+                        + LocalModelStore.shared.settingsSheetIsolationFailures()
+                    // The producer sorts loaded files; an early absent-file seed can
+                    // retain default order. Compare the exact content canonically.
+                    let expectedProfiles = OutputProfileStore.parse(OutputProfileStore.serialize(profiles))
+                        .sorted { $0.displayName.localizedStandardCompare($1.displayName) == .orderedAscending }
+                    let actualProfiles = profilesStore.profiles
+                        .sorted { $0.displayName.localizedStandardCompare($1.displayName) == .orderedAscending }
+                    guard effects.isEmpty,
+                          folderEffects.isEmpty,
+                          constructorEffects.isEmpty,
+                          actualProfiles == expectedProfiles,
+                          MCPClientStore.shared.servers.isEmpty,
+                          IndexedFoldersStore.shared.folders.isEmpty,
+                          !IndexedFoldersStore.shared.isEnabled,
+                          !IndexedFoldersStore.shared.cloudConsent,
+                          RunStore.shared.runs.map(\.id) == runs.map(\.id),
+                          RunStore.shared.runs.map(\.text) == runs.map(\.text) else {
+                        // Static names only; never print a loaded row or a credential.
+                        SelfTest.diagnostic("SETTINGS_SHEET_FIXTURE_FAILED: actual input consumer or formatting effects differ from fixture")
+                        return false
+                    }
+                    let pairing = RemoteIdentityStore(directory: IMessageSettingsSection.identityDirectory).configuration
+                    guard !pairing.isPaired, pairing.canaryUnreadable == 0 else {
+                        SelfTest.diagnostic("SETTINGS_SHEET_FIXTURE_FAILED: pairing consumer differs from empty fixture")
+                        return false
+                    }
+                    return RunLog.$directoryOverride.withValue(fixtureRoot.appendingPathComponent("ignored-override")) {
+                        guard same(RunLog.directory, fixtureRoot) else { return false }
+                        RunStore.shared.reload()
+                        return RunStore.shared.runs.map(\.id) == runs.map(\.id)
+                            && RunStore.shared.runs.map(\.text) == runs.map(\.text)
+                    }
+                }
+                guard actualFixtureInputsMatch() else { return false }
+                NSApp.appearance = NSAppearance(named: .aqua)
+                ThemeFixed.apply()
+                guard NSApp.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .aqua else {
+                    SelfTest.diagnostic("SETTINGS_SHEET_FIXTURE_FAILED: fixed light appearance unavailable")
+                    return false
+                }
+                let variants: [(name: String, motion: Bool, transparency: Bool)] = [
+                    ("standard", false, false), ("reduce-motion", true, false),
+                    ("reduce-transparency", false, true), ("reduced", true, true)
+                ]
+                var count = 0
+                for tab in tabs {
+                    guard await exerciseFixtureConsumers(for: tab) else { return false }
+                    for width in widths {
+                        for variant in variants {
+                            let started = ProcessInfo.processInfo.systemUptime
+                            let capture = "\(tab.rawValue)-\(Int(width))-\(variant.name)"
+                            tracePreferenceCheckpoint("\(capture)/before-view")
+                            let content = SettingsPane(tab: tab) {
+                                SettingsWindow.pane(for: tab, controller: controller)
+                            }
+                            .background(DS.Color.window)
+                            .tint(DS.Color.accent)
+                            .font(DS.Font.body)
+                            .environment(\.colorScheme, .light)
+                            .environment(\._accessibilityReduceMotion, variant.motion)
+                            .environment(\._accessibilityReduceTransparency, variant.transparency)
+                            .allowsHitTesting(false)
+                            guard let image = renderFixture(content, width: width, observeProfileLayout: tab == .formatting, trace: {
+                                tracePreferenceCheckpoint("\(capture)/\($0)")
+                            }) else {
+                                SelfTest.diagnostic("SETTINGS_SHEET_FIXTURE_FAILED: pane=\(tab.rawValue) native render unavailable")
+                                return false
+                            }
+                            let name = "settings-\(tab.rawValue)-\(Int(width))-\(variant.name).png"
+                            do { try writeFixtureData(image, to: root.appendingPathComponent(name)) }
+                            catch {
+                                SelfTest.diagnostic("SETTINGS_SHEET_FIXTURE_FAILED: pane=\(tab.rawValue) output write failed")
+                                return false
+                            }
+                            SelfTest.diagnostic("SETTINGS_SHEET_FIXTURE_IMAGE: \(name) reduceMotion=\(variant.motion) reduceTransparency=\(variant.transparency) elapsed=\(String(format: "%.3f", ProcessInfo.processInfo.systemUptime - started))s")
+                            count += 1
+                        }
+                    }
+                    guard await exerciseFixtureConsumers(for: tab) else { return false }
+                }
+                NSApp.appearance = originalAppearance
+                tracePreferenceCheckpoint("final-store-check")
+                guard actualFixtureInputsMatch() else { return false }
+                guard ownerInputsUnchanged() else {
+                    SelfTest.diagnostic("SETTINGS_SHEET_FIXTURE_FAILED: owner inputs changed")
+                    return false
+                }
+                SelfTest.diagnostic("SETTINGS_SHEET_FIXTURE_OK: \(count) fixed-light images; panes=\(tabs.map(\.rawValue).joined(separator: ",")); direct production consumers awaited; native callback delivery, visual and live acceptance unverified")
+                return true
+            }
+        } catch {
+            tracePreferenceCheckpoint("failed-render-store-check")
+            _ = ownerInputsUnchanged()
+            SelfTest.diagnostic("SETTINGS_SHEET_FIXTURE_FAILED: temporary fixture preparation failed")
+            return false
+        }
+    }
+
+    private static func checkInjectedModelLibraryFixtureConstructor(_ root: URL) -> Bool {
+        guard SelfTest.requested == "--selftest-settings-sheet" else { return false }
+        let domain = "NextNotesSettingsConstructorProbe-" + UUID().uuidString
+        guard let alternate = UserDefaults(suiteName: domain) else { return false }
+        let original = alternate.persistentDomain(forName: domain)
+        defer {
+            if let original { alternate.setPersistentDomain(original, forName: domain) }
+            else { alternate.removePersistentDomain(forName: domain) }
+        }
+        let sentinel = "fixture-only-supplied-selection"
+        alternate.set(sentinel, forKey: "modelLibrary.activeAgentModelID")
+        let models = SelfTest.checkedSettingsFixturePath(root.appendingPathComponent("Models", isDirectory: true))
+        let manifest = SelfTest.checkedSettingsFixturePath(models.appendingPathComponent("library.json"))
+        let adopterRecord = SelfTest.checkedSettingsFixturePath(root.appendingPathComponent("constructor-adopter-probe.txt"))
+        guard !FileManager.default.fileExists(atPath: adopterRecord.path) else { return false }
+        do {
+            try FileManager.default.createDirectory(at: models, withIntermediateDirectories: true)
+            // Caller has checked symlinks; atomic replacement cannot follow the entry.
+            try Data("[]\n".utf8).write(to: manifest, options: .atomic)
+        } catch { return false }
+        let actual = InstalledModelLibrary(manifestURL: manifest, defaults: alternate, runtimeAdopter: { _ in
+            try? Data("fixture-adopter-called\n".utf8).write(to: adopterRecord, options: .atomic)
+        })
+        guard alternate.string(forKey: "modelLibrary.activeAgentModelID") == sentinel,
+              actual.activeAgentModelID == InstalledModelLibrary.builtInID,
+              actual.settingsSheetIsolationFailures().isEmpty,
+              !FileManager.default.fileExists(atPath: adopterRecord.path) else {
+            SelfTest.diagnostic("SETTINGS_SHEET_FIXTURE_FAILED: injected model constructor retained caller settings/runtime")
+            return false
+        }
+        SelfTest.diagnostic("SETTINGS_SHEET_FIXTURE_CONSTRUCTOR_OK: actual injected defaults/adopter overridden before choice read")
+        return true
+    }
+
+    // No native callback-drain claim: awaiting these actual consumers exercises their
+    // diagnostic refusal/input paths; offscreen .task/onAppear delivery stays unverified.
+    private static func exerciseFixtureConsumers(for tab: SettingsTab) async -> Bool {
+        guard SelfTest.requested == "--selftest-settings-sheet" else { return false }
+        switch tab {
+        case .agent, .meetings:
+            await ModelRoleStore.shared.refreshAvailability()
+            await LocalRuntimeCatalog.shared.refresh()
+            guard ModelRoleStore.shared.settingsSheetIsolationFailures().isEmpty,
+                  LocalRuntimeCatalog.shared.settingsSheetIsolationFailures().isEmpty else { return false }
+        case .calendar:
+            await CalendarService.shared.refreshGoogleCalendars()
+            guard CalendarService.shared.googleCalendars.isEmpty else { return false }
+        case .workspace:
+            await AgentService.shared.refreshStatus()
+            guard !AgentService.shared.isProbing else { return false }
+        case .models:
+            await ModelLibraryStore.shared.refreshAccessKey()
+            await ModelLibraryStore.shared.loadRecommended()
+            guard !ModelLibraryStore.shared.hasAccessKey, ModelLibraryStore.shared.recommended.isEmpty,
+                  !ModelLibraryStore.shared.isLoadingRecommended else { return false }
+        case .dictation, .comparison:
+            RunStore.shared.reload()
+        case .general, .formatting, .computer, .integrations, .permissions:
+            break
+        }
+        if tab == .agent || tab == .permissions {
+            // Required dependency: 07-Permissions.patch. Never invoke this consumer
+            // without the scoped wrapper refusal integrated before owner chat.db.
+            let state = await Permissions.messagesAccessState()
+            guard state == .unreadable(reason: "Messages access is not checked in this visual fixture.") else {
+                SelfTest.diagnostic("SETTINGS_SHEET_FIXTURE_FAILED: Messages wrapper did not return the visual fixture")
+                return false
+            }
+        }
+        SelfTest.diagnostic("SETTINGS_SHEET_FIXTURE_CONSUMER: pane=\(tab.rawValue) awaited=true nativeCallbackDelivery=unverified")
+        return true
+    }
+
+    private enum FixtureWriteError: Error { case symlinkEntry }
+
+    private static func writeFixtureData(_ data: Data, to path: URL) throws {
+        let attributes = try? FileManager.default.attributesOfItem(atPath: path.path)
+        guard attributes?[.type] as? FileAttributeType != .typeSymbolicLink else { throw FixtureWriteError.symlinkEntry }
+        try data.write(to: path, options: .atomic)
+    }
+
+    private static func fixtureDurablePreferencesEqual(
+        _ before: [String: [String: Any]], _ after: [String: [String: Any]]
+    ) -> Bool {
+        let names = Set(before.keys).union(after.keys).filter { $0.hasPrefix("persistent:") }
+        return names.allSatisfy { name in
+            guard let left = before[name], let right = after[name] else { return false }
+            return NSDictionary(dictionary: left).isEqual(to: right)
+        }
+    }
+
+    // Prove the actual comparator rejects a newly persisted UUID key, using only the
+    // existing harness suite, and restore its exact original persistent domain.
+    private static func verifyFixtureDurablePreferenceGuard() -> Bool {
+        let defaults = SelfTestHarnessDefaults.suite
+        let name = SelfTestHarnessDefaults.suiteName
+        guard name != AppIdentity.bundleIdentifier,
+              name != Bundle.main.bundleIdentifier,
+              name != UserDefaults.globalDomain else { return false }
+        let original = defaults.persistentDomain(forName: name)
+        defer {
+            if let original { defaults.setPersistentDomain(original, forName: name) }
+            else { defaults.removePersistentDomain(forName: name) }
+        }
+        let snapshotKey = "persistent:" + name
+        let key = "settingsSheetGuardProbe." + UUID().uuidString
+        let before = [snapshotKey: defaults.persistentDomain(forName: name) ?? [:]]
+        defaults.set(true, forKey: key)
+        let after = [snapshotKey: defaults.persistentDomain(forName: name) ?? [:]]
+        guard after[snapshotKey]?[key] as? Bool == true,
+              !fixtureDurablePreferencesEqual(before, after),
+              fixtureDurablePreferencesEqual(before, before) else { return false }
+        var registrationOnly = before
+        registrationOnly["registration"] = ["fixtureProcessDefault": true]
+        guard fixtureDurablePreferencesEqual(before, registrationOnly) else { return false }
+        SelfTest.diagnostic("SETTINGS_SHEET_FIXTURE_GUARD_OK: new isolated persistent key rejected; volatile registration distinguished")
+        return true
+    }
+
+    private static func fixturePreferenceDomains() -> [String: [String: Any]] {
+        let defaults = UserDefaults.standard
+        var names = Set([UserDefaults.globalDomain, AppIdentity.bundleIdentifier])
+        if let name = Bundle.main.bundleIdentifier { names.insert(name) }
+        var result: [String: [String: Any]] = [:]
+        for name in names.sorted() { result["persistent:" + name] = defaults.persistentDomain(forName: name) ?? [:] }
+        result["registration"] = defaults.volatileDomain(forName: UserDefaults.registrationDomain)
+        result["argument"] = defaults.volatileDomain(forName: UserDefaults.argumentDomain)
+        return result
+    }
+
+    private static func fixtureChangedKeys(_ before: [String: Any], _ after: [String: Any]) -> [String] {
+        Set(before.keys).union(after.keys).sorted().filter { key in
+            !NSDictionary(dictionary: before[key].map { [key: $0] } ?? [:])
+                .isEqual(to: after[key].map { [key: $0] } ?? [:])
+        }
+    }
+
+    private static func fixtureExtraOwnerFiles() -> [String: String] {
+        let support = AppIdentity.applicationSupportDirectory
+        let names = Set(["formatting.txt", "mcp-servers.json", RemoteIdentityStore.fileName, IndexedFoldersStore.fileName])
+        var result: [String: String] = [:]
+        for name in names {
+            let path = support.appendingPathComponent(name)
+            let attributes = try? FileManager.default.attributesOfItem(atPath: path.path)
+            let size = (attributes?[.size] as? NSNumber)?.stringValue ?? "unknown"
+            let modified = (attributes?[.modificationDate] as? Date)?.timeIntervalSince1970.description ?? "unknown"
+            if let data = try? Data(contentsOf: path) {
+                result[name] = "\(size)|\(modified)|" + SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
+            } else {
+                result[name] = FileManager.default.fileExists(atPath: path.path)
+                    ? "present-unreadable|\(size)|\(modified)" : "absent"
+            }
+        }
+        return result
+    }
+
+    private static func renderFixture(_ view: some View, width: CGFloat, observeProfileLayout: Bool = false, trace: (String) -> Void) -> Data? {
+        let height = DS.Size.settingsWindowMinHeight * 2
+        let panel = NSPanel(contentRect: NSRect(x: 0, y: 0, width: width, height: height),
+                            styleMask: [.titled], backing: .buffered, defer: false)
+        defer { panel.close(); trace("after-native-close") }
+        panel.appearance = NSAppearance(named: .aqua)
+        panel.isOpaque = true
+        panel.backgroundColor = NSColor(DS.Color.window)
+        trace("after-native-window")
+        let hosting = NSHostingView(rootView: view)
+        trace("after-host-construction")
+        hosting.frame = NSRect(x: 0, y: 0, width: width, height: height)
+        panel.contentView = hosting
+        trace("after-content-install")
+        panel.layoutIfNeeded()
+        hosting.layoutSubtreeIfNeeded()
+        trace("after-host-layout")
+        if observeProfileLayout { observeFixtureProfileLayout(hosting, stage: 2) }
+        guard let representation = hosting.bitmapImageRepForCachingDisplay(in: hosting.bounds) else { return nil }
+        hosting.cacheDisplay(in: hosting.bounds, to: representation)
+        trace("after-host-cache-display")
+        if observeProfileLayout { observeFixtureProfileLayout(hosting, stage: 3) }
+        return representation.representation(using: .png, properties: [:])
+    }
+
+    // Temporary diagnostic observation only. No strings, AX contents, class names,
+    // fitting-size queries, native reload, extra layout/draw, scrolling or activation.
+    private static func observeFixtureProfileLayout(_ root: NSView, stage: Int) {
+        guard SelfTest.requested == "--selftest-settings-sheet" else { return }
+        func scalar(_ value: CGFloat) -> String {
+            value.isFinite ? String(format: "%.3f", Double(value)) : "null"
+        }
+        func rect(_ value: NSRect) -> String {
+            "\(scalar(value.origin.x)),\(scalar(value.origin.y)),\(scalar(value.width)),\(scalar(value.height))"
+        }
+        func bit(_ value: Bool) -> Int { value ? 1 : 0 }
+        var nextIndex = 0
+        var familyCounts = [Int](repeating: 0, count: 8)
+        @MainActor func visit(_ view: NSView, parent: Int, depth: Int) {
+            let index = nextIndex
+            nextIndex += 1
+            let family: Int
+            if view is NSOutlineView { family = 3 }
+            else if view is NSTableView { family = 4 }
+            else if view is NSCollectionView { family = 5 }
+            else if view is NSScrollView { family = 1 }
+            else if view is NSClipView { family = 2 }
+            else if view is NSTableRowView { family = 6 }
+            else if view is NSControl { family = 7 }
+            else { family = 0 }
+            familyCounts[family] += 1
+            let hostBounds = view.convert(view.bounds, to: root)
+            let hostVisible = view.convert(view.visibleRect, to: root)
+            let captureIntersection = hostVisible.intersection(root.bounds)
+            // All record values after the fixed tag/field labels are numeric or null.
+            SelfTest.diagnostic("SETTINGS_PROFILE_NODE: stage=\(stage) index=\(index) parent=\(parent) depth=\(depth) family=\(family) children=\(view.subviews.count) frame=\(rect(view.frame)) bounds=\(rect(view.bounds)) hostBounds=\(rect(hostBounds)) hostVisible=\(rect(hostVisible)) captureIntersection=\(rect(captureIntersection)) hidden=\(bit(view.isHidden)) hiddenAncestor=\(bit(view.isHiddenOrHasHiddenAncestor)) alpha=\(scalar(CGFloat(view.alphaValue))) attached=\(bit(view.window != nil)) needsLayout=\(bit(view.needsLayout)) needsDisplay=\(bit(view.needsDisplay))")
+            if let table = view as? NSTableView {
+                let rows = table.numberOfRows
+                var existingRows = 0
+                for row in 0..<rows {
+                    // false avoids constructing row views just to observe them.
+                    if table.rowView(atRow: row, makeIfNecessary: false) != nil { existingRows += 1 }
+                }
+                let visibleRows = table.rows(in: table.visibleRect).length
+                let first = rows > 0 ? table.rect(ofRow: 0) : .zero
+                let last = rows > 0 ? table.rect(ofRow: rows - 1) : .zero
+                SelfTest.diagnostic("SETTINGS_PROFILE_TABLE: stage=\(stage) index=\(index) rows=\(rows) columns=\(table.numberOfColumns) existingRows=\(existingRows) visibleRows=\(visibleRows) selectedRows=\(table.selectedRowIndexes.count) firstRect=\(rect(first)) lastRect=\(rect(last))")
+            }
+            if let collection = view as? NSCollectionView {
+                let sections = collection.numberOfSections
+                var items = 0
+                for section in 0..<sections { items += collection.numberOfItems(inSection: section) }
+                let activeItems = collection.visibleItems()
+                let loadedItems = activeItems.filter { $0.isViewLoaded }
+                let intersectingItems = loadedItems.filter {
+                    let loadedView = $0.view // isViewLoaded was required above.
+                    let itemBounds = loadedView.convert(loadedView.bounds, to: collection)
+                    return !itemBounds.intersection(collection.visibleRect).isEmpty
+                }.count
+                SelfTest.diagnostic("SETTINGS_PROFILE_COLLECTION: stage=\(stage) index=\(index) sections=\(sections) items=\(items) activeItems=\(activeItems.count) loadedItems=\(loadedItems.count) unloadedItems=\(activeItems.count - loadedItems.count) intersectingItems=\(intersectingItems)")
+            }
+            if let scroll = view as? NSScrollView {
+                SelfTest.diagnostic("SETTINGS_PROFILE_SCROLL: stage=\(stage) index=\(index) document=\(bit(scroll.documentView != nil)) documentFrame=\(rect(scroll.documentView?.frame ?? .zero)) documentVisible=\(rect(scroll.documentVisibleRect)) clipBounds=\(rect(scroll.contentView.bounds)) verticalScroller=\(bit(scroll.hasVerticalScroller)) horizontalScroller=\(bit(scroll.hasHorizontalScroller))")
+            }
+            for child in view.subviews { visit(child, parent: index, depth: depth + 1) }
+        }
+        visit(root, parent: -1, depth: 0)
+        SelfTest.diagnostic("SETTINGS_PROFILE_SUMMARY: stage=\(stage) storeCount=\(OutputProfileStore.shared.profiles.count) defaultCount=\(OutputProfileDefaults.all.count) nodes=\(nextIndex) families=\(familyCounts.map(String.init).joined(separator: ",")) window=\(bit(root.window != nil)) windowVisible=\(bit(root.window?.isVisible ?? false)) windowKey=\(bit(root.window?.isKeyWindow ?? false))")
     }
 }

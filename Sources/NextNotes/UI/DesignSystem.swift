@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 /// The design system for Next Notes.
@@ -20,49 +21,60 @@ enum DS {
     // MARK: - Color
 
     enum Color {
-        // Text
-        static let text = SwiftUI.Color.primary
-        static let textSecondary = SwiftUI.Color.secondary
-        static let textTertiary = SwiftUI.Color(nsColor: .tertiaryLabelColor)
-        static let placeholder = SwiftUI.Color(nsColor: .placeholderTextColor)
+        // Text — fixed light ink. Every name below resolves into `Theme.Palette`;
+        // nothing here reads the Mac's appearance any more (owner decision 2026-10-01).
+        static let text = Theme.Palette.foreground
+        static let textSecondary = Theme.Palette.mutedForeground
+        /// Tertiary system text would be unreadably faint on the fixed light
+        /// substrate, so it resolves to the same readable muted ink as secondary.
+        /// `graphTopic` follows it there; that is a reviewed consequence, not an accident.
+        static let textTertiary = Theme.Palette.mutedForeground
+        static let placeholder = Theme.Palette.mutedForeground
 
         // Surfaces
-        static let window = SwiftUI.Color(nsColor: .windowBackgroundColor)
-        static let content = SwiftUI.Color(nsColor: .controlBackgroundColor)
-        static let groupedFill = SwiftUI.Color(nsColor: .quaternarySystemFill)
-        static let separator = SwiftUI.Color(nsColor: .separatorColor)
-        static let selection = SwiftUI.Color(nsColor: .selectedContentBackgroundColor)
+        static let window = Theme.Palette.background
+        static let content = Theme.Palette.card
+        static let groupedFill = Theme.Palette.muted
+        static let separator = Theme.Palette.border
+        /// Active selection. Dark ink; the system draws alternate selected text over
+        /// it, so selected rows stay readable without a blue accent anywhere.
+        static let selection = Theme.Palette.foreground
 
-        // Accent
-        static let accent = SwiftUI.Color.accentColor
+        // Accent — the fixed control colour (ink), not the Mac's accent. The site's
+        // teal survives only as `Theme.Palette.accent` for explicitly sparing use.
+        static let accent = Theme.Palette.primary
         /// The only red in the app.
         static let record = SwiftUI.Color(nsColor: .systemRed)
 
-        /// The notch island's own substrate.
-        ///
-        /// The one colour in the app that is a literal rather than a semantic value, and it
-        /// is a literal on purpose: while the island hugs the notch it is continuous with
-        /// the machine's black bezel, which is the same black in every appearance and every
-        /// accent. `islandInk` is what sits on it, for the same reason.
-        static let island = SwiftUI.Color.black
-        static let islandInk = SwiftUI.Color.white
+        /// The notch island's own substrate. Fixed light per the owner every-surface
+        /// decision: the bezel-continuity exception is retired, so the island wears
+        /// the shared background with shared ink like every other surface. Notched-Mac
+        /// live review of the result remains open (geometry/camera gap untouched).
+        static let island = Theme.Palette.background
+        static let islandInk = Theme.Palette.foreground
 
         // Instrumentation only. Never use these for UI chrome.
         static let meterNominal = SwiftUI.Color(nsColor: .systemGreen)
         static let meterHot = SwiftUI.Color(nsColor: .systemYellow)
         static let meterPeak = SwiftUI.Color(nsColor: .systemRed)
         static let meterTrack = SwiftUI.Color(nsColor: .quaternaryLabelColor)
-        static let meterNeedle = SwiftUI.Color.primary
+        static let meterNeedle = Theme.Palette.foreground
 
-        // Status text and badges
-        static let success = SwiftUI.Color(nsColor: .systemGreen)
-        static let warning = SwiftUI.Color(nsColor: .systemOrange)
-        static let info = SwiftUI.Color.secondary
+        // Status text and badges. Words and icons carry the meaning; on the fixed
+        // light substrate the ink is dark rather than orange-on-white.
+        static let success = Theme.Palette.foreground
+        static let warning = Theme.Palette.foreground
+        static let info = Theme.Palette.foreground
 
         // Knowledge graph node inks (Search → Graph). Not chrome — canvas dots only.
-        static let graphPerson = accent
+        /// Person identity keeps the site teal explicitly: `accent` above is now the
+        /// fixed control ink, and folding a person node into it would erase the one
+        /// data encoding this colour carries.
+        static let graphPerson = Theme.Palette.accent
         static let graphMeeting = text
-        static let graphDecision = success
+        /// Decision identity keeps its green explicitly for the same reason: status
+        /// *text* moved to dark ink, but a decision dot is data, not a status word.
+        static let graphDecision = SwiftUI.Color(nsColor: .systemGreen)
         static let graphWork = SwiftUI.Color(nsColor: .systemBlue)       // Project, Organization, Goal
         static let graphLife = SwiftUI.Color(nsColor: .systemTeal)       // Activity, Place, Event
         static let graphPreference = SwiftUI.Color(nsColor: .systemPurple)
@@ -118,45 +130,48 @@ enum DS {
 
     // MARK: - Type
 
-    /// System text styles only, so Dynamic Type and the user's font settings apply.
+    /// The site’s Inter family at existing native text-style sizes. Relative text
+    /// styles preserve semantic scaling; numeric counters/timestamps retain their
+    /// existing rounded/monospaced metrics. Computed aliases do not permanently
+    /// latch system fallback if evaluated before launch registers bundled fonts.
     enum Font {
-        static let largeTitle = SwiftUI.Font.largeTitle
-        static let title = SwiftUI.Font.title
-        static let title2 = SwiftUI.Font.title2
-        static let title3 = SwiftUI.Font.title3
-        static let headline = SwiftUI.Font.headline
-        static let body = SwiftUI.Font.body
-        static let callout = SwiftUI.Font.callout
-        static let subheadline = SwiftUI.Font.subheadline
-        static let footnote = SwiftUI.Font.footnote
-        static let caption = SwiftUI.Font.caption
-        static let caption2 = SwiftUI.Font.caption2
+        static var largeTitle: SwiftUI.Font { Theme.Typography.sans(.largeTitle) }
+        static var title: SwiftUI.Font { Theme.Typography.sans(.title) }
+        static var title2: SwiftUI.Font { Theme.Typography.sans(.title2) }
+        static var title3: SwiftUI.Font { Theme.Typography.sans(.title3) }
+        static var headline: SwiftUI.Font { Theme.Typography.sans(.headline, weight: .semibold) }
+        static var body: SwiftUI.Font { Theme.Typography.sans(.body) }
+        static var callout: SwiftUI.Font { Theme.Typography.sans(.callout) }
+        static var subheadline: SwiftUI.Font { Theme.Typography.sans(.subheadline) }
+        static var footnote: SwiftUI.Font { Theme.Typography.sans(.footnote) }
+        static var caption: SwiftUI.Font { Theme.Typography.sans(.caption) }
+        static var caption2: SwiftUI.Font { Theme.Typography.sans(.caption2) }
 
         /// Transcript text, in lists and the live view.
-        static let transcript = SwiftUI.Font.body
+        static var transcript: SwiftUI.Font { Theme.Typography.sans(.body) }
         /// Elapsed-time counters. Rounded so it reads as a display, monospaced digits so
         /// it doesn't jitter as it ticks.
         static let counter = SwiftUI.Font.system(.title2, design: .rounded).monospacedDigit()
         static let counterSmall = SwiftUI.Font.system(.body, design: .rounded).monospacedDigit()
         /// Timestamps beside transcript segments.
         static let timestamp = SwiftUI.Font.system(.caption, design: .monospaced)
-        static let notesHeading = SwiftUI.Font.title3.weight(.semibold)
-        static let notesSubheading = SwiftUI.Font.headline
-        static let chip = SwiftUI.Font.caption.weight(.medium)
-        static let sectionLabel = SwiftUI.Font.subheadline.weight(.semibold)
+        static var notesHeading: SwiftUI.Font { Theme.Typography.sans(.title3, weight: .semibold) }
+        static var notesSubheading: SwiftUI.Font { Theme.Typography.sans(.headline, weight: .semibold) }
+        static var chip: SwiftUI.Font { Theme.Typography.sans(.caption, weight: .medium) }
+        static var sectionLabel: SwiftUI.Font { Theme.Typography.sans(.subheadline, weight: .semibold) }
         /// A small capitalised label above or beside a thing, rather than a heading for it —
         /// the landing page's card labels. Letterspaced, because capitals set at caption
         /// size and default tracking read as one long word. Must stay non-negative: a
         /// negative figure is what collapses “Talk to your computer” into one glyph-run.
-        static let eyebrow = SwiftUI.Font.caption2.weight(.medium)
+        static var eyebrow: SwiftUI.Font { Theme.Typography.sans(.caption2, weight: .medium) }
         static let eyebrowTracking: CGFloat = 1.4
         /// Headings and sentences. Zero is the system default; it is a token so a title
         /// cannot inherit eyebrow letterspacing and lose its word spaces.
         static let wordTracking: CGFloat = 0
         /// An empty state's heading. Matches `ContentUnavailableView`'s own, so the two
         /// vocabularies can sit on the same screen without arguing.
-        static let emptyStateTitle = SwiftUI.Font.title3.weight(.semibold)
-        static let emptyStateMessage = SwiftUI.Font.callout
+        static var emptyStateTitle: SwiftUI.Font { Theme.Typography.sans(.title3, weight: .semibold) }
+        static var emptyStateMessage: SwiftUI.Font { Theme.Typography.sans(.callout) }
     }
 
     // MARK: - Spacing
@@ -401,6 +416,9 @@ enum DS {
         /// One capability checkbox column in the output-formatting table. Wide enough for a
         /// checkbox and the gap that keeps five of them from reading as one control.
         static let formatCapabilityColumn: CGFloat = 34
+        /// Readable leading label floor for both the formatting table header and app rows.
+        /// Compact controls take over when the visible label and six columns do not fit.
+        static let formatAppLabelMinimum: CGFloat = 140
         /// The output-formatting app list scrolls inside this height rather than growing
         /// the pane.
         static let formatListHeight: CGFloat = 240
@@ -653,12 +671,14 @@ enum DS {
         static let hud = SwiftUI.Material.ultraThin
         static let card = SwiftUI.Material.regular
         static let thin = SwiftUI.Material.thin
-        static let hudGlass: Glass = .regular
+        static let hudGlass: Glass = Theme.Glass.tinted
         /// A glass pane inside a window — the app's equivalent of the landing page's
         /// `.liquid-glass`. The rim light that CSS draws by hand is not ported: the system
-        /// glass draws its own specular edge, and it draws it correctly in both
-        /// appearances, where a hard-coded white lip would only ever be right in one.
-        static let surfaceGlass: Glass = .regular
+        /// glass draws its own specular edge, and it draws it against whatever is
+        /// actually behind the pane. Consumes the theme tuning (owner decision
+        /// 2026-10-01); the fixed light substrate is what the specular edge draws
+        /// against now.
+        static let surfaceGlass: Glass = Theme.Glass.tinted
     }
 
     // MARK: - Opacity
@@ -872,6 +892,10 @@ enum DS {
         /// Content arriving over a backdrop. Slower than `standard` and without a spring:
         /// something appearing in front of a slowly moving field should not also bounce.
         static let reveal = Animation.smooth(duration: 0.35)
+        /// Live dictation text changing under the reader: new words arriving about once a
+        /// second, or the label moving from "Writing it out…" to "Tidying up…". Short and
+        /// without a spring, so the text settles rather than bounces while it is being read.
+        static let liveText = Animation.easeOut(duration: 0.18)
         /// The meeting panel changing what it is about. One curve, quick, and its own
         /// value: the rail's selection moves and the content crossfades, and if those two
         /// ran on different curves they would arrive at the same time as two animations
@@ -887,6 +911,26 @@ enum DS {
         /// A dot growing, an edge lighting up, a label arriving. Short: this runs on every
         /// node the pointer crosses.
         static let graphHover = Animation.easeOut(duration: 0.14)
+    }
+
+    // MARK: - Live dictation text
+
+    /// The words a hold has produced so far, as the HUD and the island show them while the
+    /// key is down and while the tail finishes. Two lines and the newest words: the point is
+    /// "it heard me", and the start of a long sentence is the part the person already knows.
+    enum LiveText {
+        /// Lines of live text, on both surfaces. Reserved even when one line is enough, so
+        /// the second line arriving does not move anything.
+        static let lines = 2
+        /// How many characters of the newest words the island keeps before it shortens
+        /// from the front. About two lines of callout in the expanded card; the view still
+        /// truncates from the head if a run of wide glyphs needs it.
+        static let islandTailCharacters = 140
+        /// The same budget for the bottom capsule's narrower caption column.
+        static let hudTailCharacters = 96
+        /// How far back from the cut the tail looks for a word boundary, so it opens on a
+        /// whole word rather than half of one.
+        static let wordBoundarySlack = 18
     }
 
     // MARK: - Meter geometry
@@ -944,5 +988,350 @@ enum DS {
         static let staleGrantHint: TimeInterval = 14
         /// How often the screens re-read a grant while nothing has told them to.
         static let poll: TimeInterval = 1.5
+    }
+
+    // MARK: - Fixed site theme (UX-11)
+
+    /// The site's fixed light theme as tokens. Normative spec: `site/DESIGN-SYSTEM.md`
+    /// §§1-4,7 (verified against `site/src/index.css` `:root.light`, tracking/leading
+    /// scale, `.liquid-glass`, and `site/src/lib/motion.ts` during UX-11).
+    ///
+    /// Tokens only: adding these changes no rendered surface by itself. Later slices
+    /// consume them; no view reads them yet. Existing semantic tokens above (`Color`,
+    /// `Font`, `Space`, `Radius`, `Material`, `Motion`) are untouched, so nothing that
+    /// renders today moves. Reconciliation of old-vs-new values (e.g. `Font.eyebrowTracking`)
+    /// belongs to the slice that paints, not to this foundation.
+    ///
+    /// Two rules from the spec that bind every consumer:
+    /// - Fixed light, set by the app rather than inherited (see `ThemeFixed.apply()`).
+    ///   Dark mode and the user's accent colour do not apply in-app.
+    /// - Status colour does not exist on the site: red still means recording and meters
+    ///   stay instrumentation (`Color.record`, `meterNominal/Hot/Peak`), unchanged.
+    enum Theme {
+
+        // MARK: Palette (§1 — `:root.light` HSL triplets, rendered here as sRGB)
+
+        enum Palette {
+            /// `0 0% 100%` — page substrate.
+            static let background = SwiftUI.Color(red: 1, green: 1, blue: 1)
+            /// `0 0% 4%` — ink.
+            static let foreground = SwiftUI.Color(red: 10.0 / 255.0, green: 10.0 / 255.0, blue: 10.0 / 255.0)
+            /// `0 0% 97%` — card fill.
+            static let card = SwiftUI.Color(red: 247.0 / 255.0, green: 247.0 / 255.0, blue: 247.0 / 255.0)
+            /// `0 0% 4%` — ink on cards.
+            static let cardForeground = foreground
+            /// `0 0% 4%` — filled buttons, active pills.
+            static let primary = foreground
+            /// `0 0% 100%` — ink on filled elements.
+            static let primaryForeground = background
+            /// `0 0% 92%` — user message bubbles, muted fills.
+            static let secondary = SwiftUI.Color(red: 235.0 / 255.0, green: 235.0 / 255.0, blue: 235.0 / 255.0)
+            /// `0 0% 25%` — ink on secondary.
+            static let secondaryForeground = SwiftUI.Color(red: 64.0 / 255.0, green: 64.0 / 255.0, blue: 64.0 / 255.0)
+            /// `0 0% 94%` — quiet fills.
+            static let muted = SwiftUI.Color(red: 240.0 / 255.0, green: 240.0 / 255.0, blue: 240.0 / 255.0)
+            /// `0 0% 40%` — secondary text, captions.
+            static let mutedForeground = SwiftUI.Color(red: 102.0 / 255.0, green: 102.0 / 255.0, blue: 102.0 / 255.0)
+            /// `170 20% 32%` — sparing highlights. The only chromatic token.
+            static let accent = SwiftUI.Color(red: 65.0 / 255.0, green: 98.0 / 255.0, blue: 92.0 / 255.0)
+            /// `0 0% 100%` — ink on accent. In the spec's table by omission; present in
+            /// `:root.light` as `--accent-foreground`, same value as `primaryForeground`.
+            static let accentForeground = background
+            /// `0 0% 86%` — hairlines, used at 40–60% opacity (see `Layout`).
+            static let border = SwiftUI.Color(red: 219.0 / 255.0, green: 219.0 / 255.0, blue: 219.0 / 255.0)
+            /// `0 0% 84%` — field edges. In `:root.light` as `--input`; not in the
+            /// spec's table, carried because a text field needs an edge distinct from `border`.
+            static let input = SwiftUI.Color(red: 214.0 / 255.0, green: 214.0 / 255.0, blue: 214.0 / 255.0)
+            /// `0 0% 60%` — focus rings.
+            static let ring = SwiftUI.Color(red: 153.0 / 255.0, green: 153.0 / 255.0, blue: 153.0 / 255.0)
+            /// `210 10% 20%` — hero sub-copy.
+            static let heroSubtitle = SwiftUI.Color(red: 46.0 / 255.0, green: 51.0 / 255.0, blue: 56.0 / 255.0)
+            /// `0 0% 4%` — the ONE orb ink. Depth comes from radius + opacity, never hue.
+            static let orbInk = foreground
+        }
+
+        // MARK: Type (§2)
+
+        enum Typography {
+            /// Bundled theme fonts, registered at launch by `ThemeFixed` (see
+            /// `FontResources`). Each helper below uses the real face when its
+            /// PostScript name is in `ThemeFixed.registeredPostScriptNames` and
+            /// falls back to the system face otherwise — so a missing bundle,
+            /// a bare self-test binary, or a failed registration degrades to
+            /// legible system type instead of a missing-font pass.
+            static func sans(_ size: CGFloat, weight: SwiftUI.Font.Weight = .regular) -> SwiftUI.Font {
+                if let name = FontResources.interName(for: weight),
+                   ThemeFixed.registeredPostScriptNames.contains(name) {
+                    return SwiftUI.Font.custom(name, size: size)
+                }
+                return SwiftUI.Font.system(size: size, weight: weight)
+            }
+
+            /// Inter at a semantic native text style, preserving the existing size
+            /// and relative scaling instead of imposing the site's 18pt prose size on
+            /// compact controls. Uses the same registered faces as the display helper.
+            /// No file read or registration happens here; launch owns both.
+            static func sans(
+                _ style: SwiftUI.Font.TextStyle,
+                weight: SwiftUI.Font.Weight = .regular
+            ) -> SwiftUI.Font {
+                let nativeStyle: NSFont.TextStyle
+                switch style {
+                case .largeTitle: nativeStyle = .largeTitle
+                case .title: nativeStyle = .title1
+                case .title2: nativeStyle = .title2
+                case .title3: nativeStyle = .title3
+                case .headline: nativeStyle = .headline
+                case .subheadline: nativeStyle = .subheadline
+                case .body: nativeStyle = .body
+                case .callout: nativeStyle = .callout
+                case .footnote: nativeStyle = .footnote
+                case .caption: nativeStyle = .caption1
+                case .caption2: nativeStyle = .caption2
+                default:
+                    // Unmapped styles retain their native metrics, never a guessed size.
+                    return SwiftUI.Font.system(style, weight: weight)
+                }
+                guard let name = FontResources.interName(for: weight),
+                      ThemeFixed.registeredPostScriptNames.contains(name) else {
+                    return SwiftUI.Font.system(style, weight: weight)
+                }
+                let nativeSize = NSFont.preferredFont(forTextStyle: nativeStyle, options: [:]).pointSize
+                return SwiftUI.Font.custom(name, size: nativeSize, relativeTo: style)
+            }
+
+            /// Instrument Serif 400. Real face when registered, else system serif.
+            /// Always an italic span inside an otherwise-sans headline — use
+            /// `serifItalic(_:)` for the accent span rather than synthesizing slant.
+            static func serif(_ size: CGFloat, weight: SwiftUI.Font.Weight = .regular) -> SwiftUI.Font {
+                if ThemeFixed.registeredPostScriptNames.contains(FontResources.instrumentSerifRegular),
+                   weight == .regular {
+                    return SwiftUI.Font.custom(FontResources.instrumentSerifRegular, size: size)
+                }
+                return SwiftUI.Font.system(size: size, weight: weight, design: .serif)
+            }
+
+            /// The headline accent span: the real InstrumentSerif-Italic face when
+            /// registered, else system serif with true italic styling (never a
+            /// faux-slanted regular).
+            static func serifItalic(_ size: CGFloat) -> SwiftUI.Font {
+                if ThemeFixed.registeredPostScriptNames.contains(FontResources.instrumentSerifItalic) {
+                    return SwiftUI.Font.custom(FontResources.instrumentSerifItalic, size: size)
+                }
+                return SwiftUI.Font.system(size: size, design: .serif).italic()
+            }
+
+            /// Tracking scale, in points (CSS px == pt on macOS). `caption` is relative:
+            /// use `captionTracking(for:)` with the point size.
+            static let trackingDisplay: CGFloat = -2
+            static let trackingSection: CGFloat = -1.5
+            static let trackingHeadline: CGFloat = -1
+            static let trackingEyebrow: CGFloat = 3
+            static let trackingCaptionFactor: CGFloat = 0.14
+
+            static func captionTracking(for pointSize: CGFloat) -> CGFloat {
+                pointSize * trackingCaptionFactor
+            }
+
+            /// Leading scale, as multipliers.
+            static let leadingDisplay: CGFloat = 1.02
+            static let leadingSection: CGFloat = 1.05
+
+            /// Usage-pattern sizes. H1/H2 are ranges (48→96, 36→72) across breakpoints;
+            /// a slice picks the size for its surface, never a value outside the range.
+            /// Body leading ("relaxed") has no numeric value in the spec — a slice must
+            /// not invent one here; the number, when chosen, lands in this enum with its
+            /// evidence cited.
+            static let eyebrowSize: CGFloat = 12
+            static let microSize: CGFloat = 11
+            static let buttonSize: CGFloat = 14
+            static let bodySize: CGFloat = 18
+            static let h1Min: CGFloat = 48
+            static let h1Max: CGFloat = 96
+            static let h2Min: CGFloat = 36
+            static let h2Max: CGFloat = 72
+
+            // MARK: Bundled font resources (UX-11 font plan)
+
+            enum FontResources {
+                /// Resource subdirectory inside the app bundle, populated by the
+                /// Makefile resource-copy stanza. Absent in bare self-test binaries —
+                /// registration then reports every file missing and type stays system.
+                static let subdirectory = "ThemeFonts"
+                static let interRegular = "Inter-Regular"
+                static let interMedium = "Inter-Medium"
+                static let interSemiBold = "Inter-SemiBold"
+                static let interBold = "Inter-Bold"
+                static let instrumentSerifRegular = "InstrumentSerif-Regular"
+                static let instrumentSerifItalic = "InstrumentSerif-Italic"
+
+                /// The six bundled files, in PostScript-name form. The UI root owns
+                /// the copy; these names must match `Resources/ThemeFonts/*.ttf`
+                /// exactly or registration reports them missing (honestly, not silently).
+                static let bundledPostScriptNames = [
+                    interRegular, interMedium, interSemiBold, interBold,
+                    instrumentSerifRegular, instrumentSerifItalic,
+                ]
+
+                /// Inter file for a UI weight. Weights outside the four bundled
+                /// files (light, black, …) deliberately return nil so callers fall
+                /// back to system rather than approximating with a wrong cut.
+                static func interName(for weight: SwiftUI.Font.Weight) -> String? {
+                    switch weight {
+                    case .regular: interRegular
+                    case .medium: interMedium
+                    case .semibold: interSemiBold
+                    case .bold: interBold
+                    default: nil
+                    }
+                }
+            }
+        }
+
+        // MARK: Layout (§3)
+
+        enum Layout {
+            /// Page gutters across breakpoints: 24 → 32 → 64 → 112.
+            static let gutterCompact: CGFloat = 24
+            static let gutterMedium: CGFloat = 32
+            static let gutterLarge: CGFloat = 64
+            static let gutterFull: CGFloat = 112
+            /// Section rhythm, vertical: 112 → 160.
+            static let sectionRhythmMin: CGFloat = 112
+            static let sectionRhythmMax: CGFloat = 160
+            /// Content width cap; prose caps for wide / mid / narrow measures.
+            static let contentMaxWidth: CGFloat = 1280
+            static let proseWide: CGFloat = 672
+            static let proseMid: CGFloat = 576
+            static let proseNarrow: CGFloat = 512
+            /// Radii: inner cards 16; panels and hero card 24. Pills and buttons are
+            /// fully round — a `Capsule` at the use site, not a number, so there is no
+            /// pill-radius token to drift.
+            static let radiusInnerCard: CGFloat = 16
+            static let radiusPanel: CGFloat = 24
+            static let radiusHeroCard: CGFloat = 24
+            /// Borders: 1px theme border at 40–60% opacity between regions. Cards carry
+            /// their edge via the glass rim (`Glass`), not via border strokes.
+            static let borderWidth: CGFloat = 1
+            static let borderOpacityLow: Double = 0.4
+            static let borderOpacityHigh: Double = 0.6
+            /// Primary button: filled ink pill, 28 horizontal × 16 vertical padding,
+            /// lifts 3 on hover.
+            static let primaryButtonPadH: CGFloat = 28
+            static let primaryButtonPadV: CGFloat = 16
+            static let primaryButtonHoverLift: CGFloat = 3
+        }
+
+        // MARK: Glass (§4 — `liquid-glass`, the one surface treatment)
+
+        enum Glass {
+            /// Fill: black at 2% opacity. Backdrop blur 4.
+            static let fill = SwiftUI.Color.black.opacity(0.02)
+            static let blurRadius: CGFloat = 4
+            /// Top/bottom inner highlight at 8%.
+            static let highlightOpacity: Double = 0.08
+            /// Rim light, not a stroke: 1.4 masked edge, full strength at the top/bottom
+            /// lips fading to transparent at 40–60% height, 20% strength with an 8% echo.
+            static let rimWidth: CGFloat = 1.4
+            static let rimOpacity: Double = 0.2
+            static let rimSoftOpacity: Double = 0.08
+            static let rimFadeStart: Double = 0.4
+            static let rimFadeEnd: Double = 0.6
+
+            /// Swift mapping, per the spec: reproduce with the system glass material
+            /// tuned to these values, never a CSS-style gradient stroke. Under Reduce
+            /// Transparency: solid theme surfaces (`Palette.card` / `Palette.background`),
+            /// never the system material that would break the fixed look.
+            /// Closest expressible tuning of the spec's 2% fill + 4px blur: regular
+            /// glass with a whisper of ink tint. The `Glass` API exposes no blur or
+            /// fill numbers, so this is the approximation, stated as one.
+            static let tinted = SwiftUI.Glass.regular.tint(
+                Palette.foreground.opacity(0.05))
+            /// Solid theme surface under Reduce Transparency (spec rule). Never a
+            /// system material here — that would break the fixed look.
+            static let solidFallback = Palette.card
+        }
+
+        // MARK: Motion (§7)
+
+        enum Motion {
+            /// Entrances: fade + 20 rise, 0.6 ease-out, staggered ~0.1 down the page.
+            /// Never animate text layout; never move an action button under the pointer;
+            /// entrance reveals fire once. Under Reduce Motion: opacity only.
+            static let entranceDuration: TimeInterval = 0.6
+            static let entranceRise: CGFloat = 20
+            static let entranceStagger: TimeInterval = 0.1
+            static let entrance = Animation.easeOut(duration: 0.6)
+
+            /// The hero demo's 16s appear → hold → leave loop and its ~46ms/char typing
+            /// are storytelling devices, deliberately NOT tokens: production answer text
+            /// streams in real chunks, and completed text is never replayed per-character.
+        }
+
+        // MARK: Headline sizes (§2 usage patterns)
+
+        enum Headline {
+            /// Range midpoints of the spec's H1 48→96 and H2 36→72. A slice picks the
+            /// size for its surface from the spec range; these defaults are the middle
+            /// of each range, not tuned values. Onboarding H2 uses `sectionSize`.
+            static let displaySize: CGFloat = 72
+            static let sectionSize: CGFloat = 54
+        }
+
+        /// Ambient backdrop from site spec §5; inline marks retain their existing sizes.
+        enum Orb {
+            static let backdropSize: CGFloat = 560
+            static let backdropOpacity: Double = 0.2
+        }
+
+        // MARK: Border beam (§6, library defaults where the site is silent)
+
+        enum Beam {
+            /// Hairline edge opacity: spec §3 border range midpoint.
+            static let edgeOpacity: Double = 0.5
+            /// Beam stroke width: site `size "md"`.
+            static let lineWidth: CGFloat = 2
+            /// Layer opacity class: site `strength 0.7`.
+            static let strength: Double = 0.7
+            /// Full travel loop: the `border-beam` package default for borders.
+            static let period: TimeInterval = 1.96
+            /// Comet span: one quarter turn.
+            static let arcFraction: Double = 0.25
+            /// Glow spread of the blurred copy.
+            static let glowRadius: CGFloat = 12
+            /// Redraw cadence (ambient class, not display rate).
+            static let frameInterval: TimeInterval = 1.0 / 30.0
+            /// Parked head under Reduce Motion / paused: top of the card.
+            static let stillPhase: Double = -0.25
+            /// Colorful-family anchors, tail → head. Preset values (the package's
+            /// exact stops are unpublished): blue → violet → pink. No anchor
+            /// sustains record red, so a travelling glow can never read as status.
+            static let inkA = SwiftUI.Color(red: 59.0 / 255.0, green: 130.0 / 255.0, blue: 246.0 / 255.0)
+            static let inkB = SwiftUI.Color(red: 168.0 / 255.0, green: 85.0 / 255.0, blue: 247.0 / 255.0)
+            static let inkC = SwiftUI.Color(red: 236.0 / 255.0, green: 72.0 / 255.0, blue: 153.0 / 255.0)
+        }
+
+        // MARK: Voice glow (§6, preset defaults)
+
+        enum Voice {
+            /// Single theme ink, shared with the beam family (one definition).
+            static let ink = Beam.inkB
+            /// Master opacity class: site `strength 0.7`.
+            static let strength: Double = 0.7
+            /// Band thickness on the composer's bottom lip.
+            static let edgeHeight: CGFloat = 3
+            /// Gathered-beam sweep: the beam line default.
+            static let workPeriod: TimeInterval = 2.4
+            /// Level-to-shimmer gain: full voice reaches full band.
+            static let shimmerGain: Double = 0.75
+            /// Quiet edge presence at rest.
+            static let idleOpacity: Double = 0.25
+            /// Redraw cadence (ambient class, not display rate).
+            static let frameInterval: TimeInterval = 1.0 / 30.0
+            /// Parked sweep under Reduce Motion / paused.
+            static let stillPhase: Double = 0.0
+            /// Gathered beam width as a fraction of the edge.
+            static let beamFraction: Double = 0.5
+        }
     }
 }

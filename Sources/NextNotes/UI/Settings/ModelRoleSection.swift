@@ -61,19 +61,27 @@ struct ModelRoleSection: View {
     @ViewBuilder
     private var resetButton: some View {
         let activeModelID = library.activeAgentModelID
-        let isUsingNonDefaultModel = activeModelID != InstalledModelLibrary.builtInID
+        // Owner decision 2026-10-04: with the shared MiniCPM file installed, that file is
+        // the default, so "restore" means it — never a 5 GB download of another model.
+        let defaultChoice = roles.defaultChoice(for: .agent)
+        let defaultModelID: String = if case .installedModel(let id) = defaultChoice {
+            id
+        } else {
+            InstalledModelLibrary.builtInID
+        }
+        let isUsingNonDefaultModel = activeModelID != defaultModelID
 
         if isUsingNonDefaultModel {
             Button {
                 Task {
-                    // Download the built-in model if not already downloaded
-                    if !NotesModels.isDownloaded {
+                    // Download the built-in model only when it is the default.
+                    if case .builtIn = defaultChoice, !NotesModels.isDownloaded {
                         models.prepareNotesModel()
                     }
                     // Route through the role store, not straight at the file: the next
                     // agent turn re-asserts the agent role's choice over the file, so a
                     // direct file switch with the choice still on MiniCPM would flip back.
-                    roles.setChoice(.builtIn, for: .agent)
+                    roles.setChoice(defaultChoice, for: .agent)
                     // Refresh the roles to update the display
                     await roles.refreshAvailability()
                 }
@@ -131,9 +139,9 @@ struct ModelRoleSection: View {
 
     /// The choices for one role, in the three groups the menu shows.
     ///
-    /// Only what that job can actually be given: a model file from the library belongs to
-    /// the everyday assistant, because Next Notes loads one of them at a time, and an agent
-    /// app can only take coding work. Offering the rest and then quietly using something
+    /// Only what that job can actually be given: a model file from the library answers the
+    /// everyday assistant and meeting notes, because Next Notes loads one of them at a time,
+    /// and an agent app can only take coding work. Offering the rest and then quietly using something
     /// else is what this screen exists to stop, so they are not offered — see
     /// `ModelRole.canUse`.
     private func options(for role: ModelRole) -> [ModelRoleOptionGroup] {

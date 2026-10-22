@@ -66,17 +66,16 @@ final class MeetingContextStore {
 
     var reconcileScheduledForTesting: Bool { SelfTest.isRunning && reconcileTask != nil }
 
-    /// Swap the reconcile completer (self-tests inject a fake).
-    func useCompleter(_ completer: any MeetingContextCompleter) {
-        self.completer = completer
-    }
-
-    /// Exercise the actual cadence/run/apply/save path in an isolated diagnostic.
     func runReconcileForTesting() async {
         precondition(SelfTest.isRunning)
         reconcileTask?.cancel()
         reconcileTask = nil
         await runReconcile()
+    }
+
+    /// Swap the reconcile completer (self-tests inject a fake).
+    func useCompleter(_ completer: any MeetingContextCompleter) {
+        self.completer = completer
     }
 
     func ingest(_ segments: [TranscriptSegment], meeting: Meeting) {
@@ -249,7 +248,7 @@ final class MeetingContextStore {
         // One rule, two places: this asks whether to *arm* a pass, and the completer asks
         // again before it resolves a provider and spends a model call. Automatic mode with
         // an online model must not even schedule the debounce.
-        guard isLiveUnderstandingEnabled, cadence.isDue(now: Date()) else { return }
+        guard optionalAdmission(), isLiveUnderstandingEnabled, cadence.isDue(now: Date()) else { return }
         scheduleReconcile()
     }
 
@@ -267,7 +266,8 @@ final class MeetingContextStore {
     private func runReconcile() async {
         guard let context = current else { return }
         let now = Date()
-        guard isLiveUnderstandingEnabled, cadence.isDue(now: now) else { return }
+        guard optionalAdmission(), isLiveUnderstandingEnabled, cadence.isDue(now: now),
+              !Task.isCancelled else { return }
 
         // Counted before awaiting so a long stretch of talk that arrives while the model is
         // working starts a fresh window rather than immediately re-arming on the same speech.
@@ -283,7 +283,7 @@ final class MeetingContextStore {
             now: elapsed
         )
         let suggestion = await completer.refine(snapshot)
-        guard suggestion.hasRefinements, !Task.isCancelled else { return }
+        guard suggestion.hasRefinements, optionalAdmission(), !Task.isCancelled else { return }
 
         // Drop the result if the live meeting moved on while we waited.
         guard current?.meetingID == context.meetingID else { return }

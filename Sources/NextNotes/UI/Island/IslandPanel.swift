@@ -126,7 +126,10 @@ final class IslandPanel: NSPanel {
 
         // False only while expanded, so that a collapsed island hanging over the menu bar
         // never eats a click meant for the menu next to the notch.
-        ignoresMouseEvents = !state.isExpanded
+        // And true for an open card with nothing to press: the live dictation card opens by
+        // itself over the top of the screen while someone is typing by voice into a window
+        // that may be right under it, and it must never take a click meant for that window.
+        ignoresMouseEvents = !state.isExpanded || !state.kind.takesClicks
         container.islandRect = metrics?.islandRect(expanded: state.isExpanded) ?? .zero
         present()
     }
@@ -191,6 +194,9 @@ final class IslandPanel: NSPanel {
     }
 
     private func dismiss() {
+        // Hidden cards must release input immediately, including during the fade.
+        ignoresMouseEvents = true
+        container.islandRect = .zero
         stopWatchingPointer()
         state.isHovered = false
         guard isPresented else { return }

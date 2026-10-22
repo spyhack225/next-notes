@@ -30,6 +30,10 @@
 #                 credential-bound diagnostics, and `--selftest-cleanup`. These are
 #                 allowed to be red or to report an absent precondition honestly.
 #
+# `--jobs-report` is intentionally outside the self-test tiers: it reads real task history
+# before harness isolation. Its deterministic owned-store cases ride --selftest-activity;
+# run the real report separately only with explicit owner-read scope.
+#
 # Honest accounting
 # -----------------
 # The app's own rules are the source of truth: `writeSelfTest` in NextNotesApp.swift
@@ -132,6 +136,7 @@ CORE_ENTRIES=(
   "selftest-imessage-approval|300"
   # ACP and MCP fixtures
   "selftest-acp|300"
+  "selftest-acp-offered-options|300"
   "selftest-mcp|300"
 )
 
@@ -150,6 +155,9 @@ INTEGRATION_ENTRIES=(
   "selftest-memory|300"
   "selftest-memory-review|300"
   "selftest-memory-portability|300"
+  # Actual reader fitting and transcript-grounded meeting review producer regressions.
+  "selftest-meeting-agent-fit|300"
+  "selftest-meeting-agent-evidence|300"
   # routines / schedule
   "selftest-schedule|300"
   "selftest-routine-authority|300"
@@ -497,6 +505,11 @@ classify() {
 run_one() {
   local tier=$1 flag=$2 timeout=$3 modes=$4
   local out="$RUN_DIR/$flag.out"
+  # The early-entry ACP fixture admits only a fresh confined Foundation temp
+  # parent; it creates that parent itself before writing the actual verdict.
+  if [[ "$flag" == "selftest-acp-offered-options" ]]; then
+    out="${TMPDIR%/}/NextNotesACPOptionsTest-$(uuidgen)/selftest.log"
+  fi
   local log="$RUN_DIR/$flag.log"
   local cmd=("$LAUNCHER")
   if [[ ",$modes," == *",via-open,"* ]]; then

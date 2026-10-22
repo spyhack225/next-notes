@@ -47,6 +47,67 @@ enum MeetingFinalPass {
         return (segments, windows)
     }
 
+    /// Reads one bounded cut domain at a time through the existing sample source.
+    /// The array overload above is retained as the original parity baseline.
+    static func transcribeTrack(
+        audioSource: any AudioSampleSource,
+        source: AudioSource,
+        config: ChunkedTranscriber.WindowConfig = .finals,
+        onWindowCutForTesting: (@Sendable (Int) -> Void)? = nil,
+        transcribe: @Sendable ([Float]) async throws -> ASRResult
+    ) async throws -> (segments: [TranscriptSegment], windows: [ClosedRange<TimeInterval>]) {
+        guard AudioConversion.usesBoundedMeetingAudioExperiment else { throw CocoaError(.fileReadNoPermission) }
+        guard config.maxWindowSeconds.isFinite, config.maxWindowSeconds > 0,
+              config.minWindowSeconds.isFinite, config.minWindowSeconds >= 0,
+              config.maxWindowSeconds < Double(Int.max / 16_000 - 320) else {
+            throw CocoaError(.fileReadCorruptFile)
+        }
+        let observeCut = SelfTest.isRunning ? onWindowCutForTesting : nil
+        let bound = ChunkedTranscriber.maximumCutSamples(config: config)
+        guard bound > 0, audioSource.sampleCount >= 0 else { throw CocoaError(.fileReadCorruptFile) }
+        var pending: [Float] = []
+        var readOffset = 0
+        var origin = 0
+        var segments: [TranscriptSegment] = []
+        var windows: [ClosedRange<TimeInterval>] = []
+        while origin < audioSource.sampleCount {
+            try Task.checkCancellation()
+            let count = min(bound - pending.count, audioSource.sampleCount - readOffset)
+            if count > 0 {
+                let existing = pending.count
+                pending.append(contentsOf: repeatElement(Float(0), count: count))
+                try pending.withUnsafeMutableBufferPointer { pointer in
+                    guard let destination = pointer.baseAddress else { return }
+                    try audioSource.copySamples(into: destination + existing, offset: readOffset, count: count)
+                }
+                readOffset += count
+            }
+            let cuts = ChunkedTranscriber.cutPoints(in: pending, config: config,
+                                                    includeTail: readOffset == audioSource.sampleCount)
+            guard let consumed = cuts.last, consumed > 0 else { throw CocoaError(.fileReadCorruptFile) }
+            var offset = 0
+            for cut in cuts {
+                observeCut?(origin + cut)
+                let window = Array(pending[offset..<cut])
+                let start = Double(origin + offset) / ChunkedTranscriber.sampleRate
+                offset = cut
+                guard window.count >= ParakeetInput.minimumCapturedSamples else { continue }
+                guard ChunkedTranscriber.containsSpeech(window) else { continue }
+                try Task.checkCancellation()
+                let result = try await transcribe(ParakeetInput.padded(window))
+                let text = result.text.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !text.isEmpty else { continue }
+                let duration = Double(window.count) / ChunkedTranscriber.sampleRate
+                windows.append(start...(start + duration))
+                segments.append(contentsOf: ChunkedTranscriber.segments(
+                    from: result, text: text, start: start, duration: duration, source: source))
+            }
+            origin += consumed
+            pending = Array(pending[consumed...])
+        }
+        return (segments, windows)
+    }
+
     /// Pure. Keeps live `.agentCommand` segments; drops final mic segments
     /// overlapping them (the command was not meeting speech). Final system
     /// segments stand even over a command — the far end kept talking.

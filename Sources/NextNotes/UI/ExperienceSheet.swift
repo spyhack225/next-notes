@@ -20,6 +20,8 @@ enum ExperienceSheet {
             SelfTest.diagnostic("EXPERIENCE_SHEET_FAILED: choose an output outside Application Support")
             return false
         }
+        let originalAppearance = NSApp.appearance
+        defer { NSApp.appearance = originalAppearance }
         let before = SelfTestStoreGuard.take()
         let store = AgentActivityStore.shared
         store.resetForSelfTest()
@@ -32,17 +34,24 @@ enum ExperienceSheet {
             try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
             var count = 0
             for dark in [false, true] {
+                // Test the application forcing contract after either requested OS style.
+                // The app's target remains light; these are not alternate app themes.
+                NSApp.appearance = NSAppearance(named: dark ? .darkAqua : .aqua)
+                ThemeFixed.apply()
+                guard NSApp.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .aqua else {
+                    throw SheetError.render("fixed light appearance")
+                }
                 for reduced in [false, true] {
                     // 560pt is DS's actual detail floor in the 900x600 main window;
                     // 1000pt represents a larger detail area. These are content captures.
                     for width in [DS.Size.detailMin, CGFloat(1000)] {
                         for fixture in Fixture.allCases {
-                            let name = "\(fixture.rawValue)-\(Int(width))-\(dark ? "dark" : "light")-\(reduced ? "reduced" : "standard").png"
+                            let name = "\(fixture.rawValue)-\(Int(width))-\(dark ? "os-dark" : "os-light")-\(reduced ? "reduced" : "standard").png"
                             let view = content(fixture, task: task)
                                 .padding(DS.Space.l)
                                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                                 .background(DS.Color.window)
-                                .environment(\.colorScheme, dark ? .dark : .light)
+                                .environment(\.colorScheme, .light)
                                 .environment(\._accessibilityReduceMotion, reduced)
                                 .environment(\._accessibilityReduceTransparency, reduced)
                             guard let data = render(view, width: width, dark: dark) else {
@@ -58,7 +67,7 @@ enum ExperienceSheet {
                 SelfTest.diagnostic("EXPERIENCE_SHEET_FAILED: owner stores changed")
                 return false
             }
-            SelfTest.diagnostic("EXPERIENCE_SHEET_OK: \(count) isolated layout images; \(root.path)")
+            SelfTest.diagnostic("EXPERIENCE_SHEET_OK: \(count) fixed-light isolated layout images (both requested OS styles); \(root.path)")
             return true
         } catch {
             SelfTest.diagnostic("EXPERIENCE_SHEET_FAILED: \(error.localizedDescription)")
@@ -128,7 +137,7 @@ enum ExperienceSheet {
         let panel = NSPanel(contentRect: NSRect(x: 0, y: 0, width: width, height: DS.Size.windowMin.height),
                             styleMask: [.titled], backing: .buffered, defer: false)
         defer { panel.close() }
-        panel.appearance = NSAppearance(named: dark ? .darkAqua : .aqua)
+        panel.appearance = NSApp.appearance
         let hosting = NSHostingView(rootView: view)
         hosting.frame = NSRect(x: 0, y: 0, width: width, height: DS.Size.windowMin.height)
         panel.contentView = hosting

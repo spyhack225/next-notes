@@ -547,7 +547,19 @@ final class TaskStore: @unchecked Sendable {
                     } else {
                         guard worker.voiceOrigin == nil, worker.voiceRevision == nil,
                               worker.voiceInputRequestID == nil, worker.voicePermission == nil else { throw TaskStoreError.authorityConflict }
-                        let starting = worker.status == .queued && next.status == .running
+                        let recovering = worker.status == .recovering && next.status == .running
+                        if recovering {
+                            guard let revision = worker.typedRevision, worker.typedPending == nil,
+                                  worker.attempt > 0, worker.attempt < Int.max, worker.leaseOwner != nil,
+                                  next.source == "text", next.origin == .typed, next.backend == "local",
+                                  next.scheduleID == nil, next.pendingInteraction == nil, next.revision == revision,
+                                  next.durability?.leaseOwner == String(ProcessInfo.processInfo.processIdentifier),
+                                  next.durability?.attemptStartedAt != nil,
+                                  events.count == 2, events.map(\.kind) == [.workerRecovered, .workerStarted],
+                                  events.allSatisfy({ $0.taskID == worker.taskID
+                                      && $0.attempt == worker.attempt + 1 }) else { throw TaskStoreError.authorityConflict }
+                        }
+                        let starting = (worker.status == .queued || recovering) && next.status == .running
                         guard worker.attempt >= 0, !starting || worker.attempt < Int.max,
                               next.durability?.attempt == worker.attempt + (starting ? 1 : 0),
                               starting || next.durability?.leaseOwner == worker.leaseOwner,

@@ -235,6 +235,8 @@ final class CalendarService {
     }
 
     func refreshGoogleCalendars() async {
+        // Offscreen fixture lifecycle is not an account refresh. Other live tests retain it.
+        guard SelfTest.requested != "--selftest-settings-sheet" else { return }
         guard Settings.shared.calendarGoogleEnabled else { return }
         do {
             googleCalendars = try await google.calendars()
