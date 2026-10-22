@@ -95,7 +95,7 @@ No capture/voice turn waits for this development coordination.
   A later attempt caught the benchmark's live runtime reference mistakenly placed in its Codable report;
   that source error is corrected. [Failed full build](native-build-resume.log.gz).
 - The combined 891-file module typecheck passes, and the optimized full app links:
-  [typecheck](native-typecheck.log.gz), [build](native-build-combined.log.gz),
+  [typecheck](native-typecheck.log), [build](native-build-combined.log.gz),
   [build command/exit](native-build-result.json). Full-app source check passes. The peer's isolated
   Google/stream/clock checks also pass at root; its inherited nested production-tool-loop failure remains
   explicitly outside this TTS acceptance (see the archive integration report).
