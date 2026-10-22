@@ -1,0 +1,161 @@
+{
+  "schema_version": 1,
+  "description": "Sanitized public recovery sources; original exact snapshots/ignored archives remain private locally. Empty filtered snapshots resolve to their nearest retained sanitized ancestor.",
+  "snapshots": {
+    "3651851c2a85fd514c9a66d23c37d9c1626e6baa": {
+      "name": "agent-delivery",
+      "public_commit": "61fadf0a206cf460d301a58a75e5238bd9483a2a",
+      "empty_private_snapshot": true
+    },
+    "2e257dd10b9f366f47ce6a4106b89497f36539d8": {
+      "name": "dictation-perf",
+      "public_commit": "b9f3ee6fc944aaae6bd42efc6c0ca0caa9ae6e66",
+      "empty_private_snapshot": false
+    },
+    "cfadc1d5d63d2728f2ec11b9326bfa8e0e17efa1": {
+      "name": "bakeoff2",
+      "public_commit": "8b6391c59fda6d7a21346f88e5289bdf324220ca",
+      "empty_private_snapshot": false
+    },
+    "2d41f7930894f30ac4bbae7c74a254d4f3984597": {
+      "name": "catchup",
+      "public_commit": "33bc14f0f0c2d943a9f83922bf2aff53ba0a70d0",
+      "empty_private_snapshot": false
+    },
+    "fb932322883f7ec0da8ee1fcf4c7932e7e5112a9": {
+      "name": "catchup-audio",
+      "public_commit": "b117c8941ac1c7eeb6a3292a214bcdf0734e24a2",
+      "empty_private_snapshot": false
+    },
+    "6b2779376cf719102cf73f59ccc86e064e3c0e0b": {
+      "name": "catchup-final",
+      "public_commit": "01dc32276ec5222b1b95a10849ad2cc401d44671",
+      "empty_private_snapshot": false
+    },
+    "772a350f143e8080961b1c51537a133df88fc1c5": {
+      "name": "catchup-port",
+      "public_commit": "134f485b00fd31ded3388fc8081ec4d8e53c8600",
+      "empty_private_snapshot": true
+    },
+    "06f00f90d1980d1285b29290d574650a0293873d": {
+      "name": "catchup-ui",
+      "public_commit": "b4a56a66524b8afbd2b596628c92d69a8d71e1ea",
+      "empty_private_snapshot": false
+    },
+    "7b092587661617f089a7f799358f2ff0362b0418": {
+      "name": "catchup-ui2",
+      "public_commit": "c0d3746236719dfa994abecd47918754f26d0c08",
+      "empty_private_snapshot": true
+    },
+    "4effa7b2dbc9def9a39a6fabd829270621517e97": {
+      "name": "clockfix",
+      "public_commit": "31577e272165e6fa8d6f0fda837e79abd96fc0d2",
+      "empty_private_snapshot": false
+    },
+    "55e856d710d250d0e6ad3b9fd816e90ce0eae6a8": {
+      "name": "google",
+      "public_commit": "180b0704eef572191cfe0a581412554ff637ded5",
+      "empty_private_snapshot": false
+    },
+    "9634bb996b4f31218d6b0607c55dbac6a90f6217": {
+      "name": "google-c",
+      "public_commit": "8fa825ae474e49d40b9340ea89e0731d7784f926",
+      "empty_private_snapshot": false
+    },
+    "224ba2d01f3792dcd7cd3a7f4f9e0613633d8ff9": {
+      "name": "listen",
+      "public_commit": "3e2eef1a696de4e0287c97d02b67b3a93d65ae7c",
+      "empty_private_snapshot": true
+    },
+    "e2e578776281344a41aca0d31752c963236fd1f6": {
+      "name": "listen2",
+      "public_commit": "bb718d649d9f64c7795d6f777ec173d68ea9d8d5",
+      "empty_private_snapshot": false
+    },
+    "c6d59c4128721e3e7b7a084b1985b56e7c0a5af9": {
+      "name": "no-apple",
+      "public_commit": "261bcb10cd67289b2d94e9998ecc10e035b06ebf",
+      "empty_private_snapshot": false
+    },
+    "2d19780a26265a48d3fbf6bacc49ec7f55c29150": {
+      "name": "thinking",
+      "public_commit": "54136866adaca3e5eae0d8d0dd0cf6f84fe0b14b",
+      "empty_private_snapshot": false
+    },
+    "a1c850242cb1af0cb1ebd0e9ba9bde56f9fb4928": {
+      "name": "thinking-review",
+      "public_commit": "5def549f5d9af6a9558f8b488f961d78939ada84",
+      "empty_private_snapshot": false
+    },
+    "90aea6c48471729f83563d3e5a152bedaad8586b": {
+      "name": "tooling",
+      "public_commit": "ad9783ed5868a1b2349617cd70d22aebc6a0a4e0",
+      "empty_private_snapshot": false
+    },
+    "fc8aa2af6e492987a81f1a5672a70af8eb9afa67": {
+      "name": "voice-ack",
+      "public_commit": "700f865650d10928d0ff7af6482d811ca516c9c9",
+      "empty_private_snapshot": false
+    },
+    "b168b67f0535afb3f53c8a669e96dc3a1b881e35": {
+      "name": "voice-mini",
+      "public_commit": "52ef3734100df232d2711d59792f8ba88ce5e951",
+      "empty_private_snapshot": true
+    },
+    "e15fee2ca7076f6298796def5dbe3498097989b5": {
+      "name": "voice-settings-ui",
+      "public_commit": "08fd03c47a2a4cccedfb3113a8fd02b5394d3084",
+      "empty_private_snapshot": false
+    },
+    "9c1d43621fb492f0f1a6d6e7a5d60e79e830b8f9": {
+      "name": "scratch-review-google",
+      "public_commit": "db262996486ff1ef6740aaaa007f433e4c7c5cab",
+      "empty_private_snapshot": false
+    },
+    "9afcaccc87fe45a5a4950489b80a03d5ef536181": {
+      "name": "scratch-voice-audit",
+      "public_commit": "3775d5022b60f1728dcc35ad4965ca017b515736",
+      "empty_private_snapshot": false
+    },
+    "648c8a87d7f22ac9a3dd0b9aacd418a323cac504": {
+      "name": "scratch-review-leak",
+      "public_commit": "bd8a319451725e03f3ae7a2191472eea986aa30e",
+      "empty_private_snapshot": false
+    },
+    "45ae74d83d3a58ae383ce91dfcfc071c76b154d2": {
+      "name": "scratch-review-noapple",
+      "public_commit": "ef1aa7bc0ad2437481c9b30aac95c468180873db",
+      "empty_private_snapshot": false
+    },
+    "04c3de8d92b453853adaa3c023ba84c8693e82b4": {
+      "name": "scratch-review-audio",
+      "public_commit": "2501f0df5c62538a28e6b18e530fb053d4ccde00",
+      "empty_private_snapshot": false
+    },
+    "6a757807c03f2bcc9d73383bdbc101da05a0c8c9": {
+      "name": "task-bakeoff",
+      "public_commit": "6853a94234ce386859c293c13ee9554a24e5ae20",
+      "empty_private_snapshot": false
+    },
+    "45360fef3b3af604a9aee4fd86d46eee562632cf": {
+      "name": "task-review-ack",
+      "public_commit": "345fb57804c923a36cd7b943d80ffdd8b4b43b7b",
+      "empty_private_snapshot": false
+    },
+    "23e728efe9e7dd9e8c4576110d0520e168ab0d4e": {
+      "name": "task-review-catchup",
+      "public_commit": "44e0b16721d41038e242b000e034244b930360bb",
+      "empty_private_snapshot": false
+    },
+    "8337efcc09d485eaf8db489da1863602d3b7748d": {
+      "name": "task-review-ui",
+      "public_commit": "c9aeb6af80516e8c6af56e792984b02fbd29f924",
+      "empty_private_snapshot": false
+    },
+    "803be7cb3fbba52aebeca622fc4b94000df3484b": {
+      "name": "task-roadmap",
+      "public_commit": "90141824118373c760cf6e560effdd990b66d60a",
+      "empty_private_snapshot": false
+    }
+  }
+}

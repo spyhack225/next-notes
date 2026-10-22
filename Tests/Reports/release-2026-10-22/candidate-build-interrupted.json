@@ -1,0 +1,17 @@
+{
+  "command": [
+    "make",
+    "app",
+    "CONFIG=release",
+    "STAMP_VERSION=1",
+    "VERSION=0.2.24",
+    "STAGE_RUN=/Users/sergekadjo/Library/Caches/NextNotesBuild/install-33181",
+    "SWIFT_BUILD_FLAGS=--jobs 2 -Xswiftc -no-whole-module-optimization -Xswiftc -enable-batch-mode -Xswiftc -driver-batch-count -Xswiftc 16 -Xswiftc -num-threads -Xswiftc 1"
+  ],
+  "exit": -2,
+  "stopped_reason": null,
+  "seconds": 284.9127214580076,
+  "app": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-33181/Next Notes.app",
+  "generated_at": "2026-10-22T18:23:32.717183+00:00",
+  "free_bytes": 8760741888
+}

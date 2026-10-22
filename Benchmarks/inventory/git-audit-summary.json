@@ -1,11 +1,11 @@
 {
-  "audited_at": "2026-10-22T16:05:05.575572+00:00",
+  "audited_at": "2026-10-22T18:21:55.907605+00:00",
   "refs": [
     {
       "ref": "refs/heads/main",
       "kind": "git_ref",
-      "commit": "5558f381eb41c039a2a1c36bb0edee1396658857",
-      "evidence_files": 3219
+      "commit": "fa8f72be3269d6e54801b33a5dd94f439d793c87",
+      "evidence_files": 3371
     },
     {
       "ref": "refs/remotes/origin/HEAD",
@@ -34,196 +34,227 @@
     {
       "ref": "preserved/agent-delivery",
       "kind": "preserved_snapshot",
-      "commit": "3651851c2a85fd514c9a66d23c37d9c1626e6baa",
+      "commit": "61fadf0a206cf460d301a58a75e5238bd9483a2a",
+      "original_snapshot_commit": "3651851c2a85fd514c9a66d23c37d9c1626e6baa",
       "evidence_files": 947
     },
     {
       "ref": "preserved/dictation-perf",
       "kind": "preserved_snapshot",
-      "commit": "2e257dd10b9f366f47ce6a4106b89497f36539d8",
-      "evidence_files": 2299
+      "commit": "b9f3ee6fc944aaae6bd42efc6c0ca0caa9ae6e66",
+      "original_snapshot_commit": "2e257dd10b9f366f47ce6a4106b89497f36539d8",
+      "evidence_files": 2289
     },
     {
       "ref": "preserved/bakeoff2",
       "kind": "preserved_snapshot",
-      "commit": "cfadc1d5d63d2728f2ec11b9326bfa8e0e17efa1",
+      "commit": "8b6391c59fda6d7a21346f88e5289bdf324220ca",
+      "original_snapshot_commit": "cfadc1d5d63d2728f2ec11b9326bfa8e0e17efa1",
       "evidence_files": 2288
     },
     {
       "ref": "preserved/catchup",
       "kind": "preserved_snapshot",
-      "commit": "2d41f7930894f30ac4bbae7c74a254d4f3984597",
+      "commit": "33bc14f0f0c2d943a9f83922bf2aff53ba0a70d0",
+      "original_snapshot_commit": "2d41f7930894f30ac4bbae7c74a254d4f3984597",
       "evidence_files": 815
     },
     {
       "ref": "preserved/catchup-audio",
       "kind": "preserved_snapshot",
-      "commit": "fb932322883f7ec0da8ee1fcf4c7932e7e5112a9",
+      "commit": "b117c8941ac1c7eeb6a3292a214bcdf0734e24a2",
+      "original_snapshot_commit": "fb932322883f7ec0da8ee1fcf4c7932e7e5112a9",
       "evidence_files": 2361
     },
     {
       "ref": "preserved/catchup-final",
       "kind": "preserved_snapshot",
-      "commit": "6b2779376cf719102cf73f59ccc86e064e3c0e0b",
+      "commit": "01dc32276ec5222b1b95a10849ad2cc401d44671",
+      "original_snapshot_commit": "6b2779376cf719102cf73f59ccc86e064e3c0e0b",
       "evidence_files": 2450
     },
     {
       "ref": "preserved/catchup-port",
       "kind": "preserved_snapshot",
-      "commit": "772a350f143e8080961b1c51537a133df88fc1c5",
+      "commit": "134f485b00fd31ded3388fc8081ec4d8e53c8600",
+      "original_snapshot_commit": "772a350f143e8080961b1c51537a133df88fc1c5",
       "evidence_files": 2288
     },
     {
       "ref": "preserved/catchup-ui",
       "kind": "preserved_snapshot",
-      "commit": "06f00f90d1980d1285b29290d574650a0293873d",
+      "commit": "b4a56a66524b8afbd2b596628c92d69a8d71e1ea",
+      "original_snapshot_commit": "06f00f90d1980d1285b29290d574650a0293873d",
       "evidence_files": 815
     },
     {
       "ref": "preserved/catchup-ui2",
       "kind": "preserved_snapshot",
-      "commit": "7b092587661617f089a7f799358f2ff0362b0418",
+      "commit": "c0d3746236719dfa994abecd47918754f26d0c08",
+      "original_snapshot_commit": "7b092587661617f089a7f799358f2ff0362b0418",
       "evidence_files": 2288
     },
     {
       "ref": "preserved/clockfix",
       "kind": "preserved_snapshot",
-      "commit": "4effa7b2dbc9def9a39a6fabd829270621517e97",
+      "commit": "31577e272165e6fa8d6f0fda837e79abd96fc0d2",
+      "original_snapshot_commit": "4effa7b2dbc9def9a39a6fabd829270621517e97",
       "evidence_files": 2346
     },
     {
       "ref": "preserved/google",
       "kind": "preserved_snapshot",
-      "commit": "55e856d710d250d0e6ad3b9fd816e90ce0eae6a8",
+      "commit": "180b0704eef572191cfe0a581412554ff637ded5",
+      "original_snapshot_commit": "55e856d710d250d0e6ad3b9fd816e90ce0eae6a8",
       "evidence_files": 818
     },
     {
       "ref": "preserved/google-c",
       "kind": "preserved_snapshot",
-      "commit": "9634bb996b4f31218d6b0607c55dbac6a90f6217",
+      "commit": "8fa825ae474e49d40b9340ea89e0731d7784f926",
+      "original_snapshot_commit": "9634bb996b4f31218d6b0607c55dbac6a90f6217",
       "evidence_files": 2731
     },
     {
       "ref": "preserved/listen",
       "kind": "preserved_snapshot",
-      "commit": "224ba2d01f3792dcd7cd3a7f4f9e0613633d8ff9",
+      "commit": "3e2eef1a696de4e0287c97d02b67b3a93d65ae7c",
+      "original_snapshot_commit": "224ba2d01f3792dcd7cd3a7f4f9e0613633d8ff9",
       "evidence_files": 815
     },
     {
       "ref": "preserved/listen2",
       "kind": "preserved_snapshot",
-      "commit": "e2e578776281344a41aca0d31752c963236fd1f6",
+      "commit": "bb718d649d9f64c7795d6f777ec173d68ea9d8d5",
+      "original_snapshot_commit": "e2e578776281344a41aca0d31752c963236fd1f6",
       "evidence_files": 2415
     },
     {
       "ref": "preserved/no-apple",
       "kind": "preserved_snapshot",
-      "commit": "c6d59c4128721e3e7b7a084b1985b56e7c0a5af9",
+      "commit": "261bcb10cd67289b2d94e9998ecc10e035b06ebf",
+      "original_snapshot_commit": "c6d59c4128721e3e7b7a084b1985b56e7c0a5af9",
       "evidence_files": 2567
     },
     {
       "ref": "preserved/thinking",
       "kind": "preserved_snapshot",
-      "commit": "2d19780a26265a48d3fbf6bacc49ec7f55c29150",
+      "commit": "54136866adaca3e5eae0d8d0dd0cf6f84fe0b14b",
+      "original_snapshot_commit": "2d19780a26265a48d3fbf6bacc49ec7f55c29150",
       "evidence_files": 815
     },
     {
       "ref": "preserved/thinking-review",
       "kind": "preserved_snapshot",
-      "commit": "a1c850242cb1af0cb1ebd0e9ba9bde56f9fb4928",
+      "commit": "5def549f5d9af6a9558f8b488f961d78939ada84",
+      "original_snapshot_commit": "a1c850242cb1af0cb1ebd0e9ba9bde56f9fb4928",
       "evidence_files": 2321
     },
     {
       "ref": "preserved/tooling",
       "kind": "preserved_snapshot",
-      "commit": "90aea6c48471729f83563d3e5a152bedaad8586b",
+      "commit": "ad9783ed5868a1b2349617cd70d22aebc6a0a4e0",
+      "original_snapshot_commit": "90aea6c48471729f83563d3e5a152bedaad8586b",
       "evidence_files": 2292
     },
     {
       "ref": "preserved/voice-ack",
       "kind": "preserved_snapshot",
-      "commit": "fc8aa2af6e492987a81f1a5672a70af8eb9afa67",
-      "evidence_files": 2658
+      "commit": "700f865650d10928d0ff7af6482d811ca516c9c9",
+      "original_snapshot_commit": "fc8aa2af6e492987a81f1a5672a70af8eb9afa67",
+      "evidence_files": 2657
     },
     {
       "ref": "preserved/voice-mini",
       "kind": "preserved_snapshot",
-      "commit": "b168b67f0535afb3f53c8a669e96dc3a1b881e35",
+      "commit": "52ef3734100df232d2711d59792f8ba88ce5e951",
+      "original_snapshot_commit": "b168b67f0535afb3f53c8a669e96dc3a1b881e35",
       "evidence_files": 2484
     },
     {
       "ref": "preserved/voice-settings-ui",
       "kind": "preserved_snapshot",
-      "commit": "e15fee2ca7076f6298796def5dbe3498097989b5",
+      "commit": "08fd03c47a2a4cccedfb3113a8fd02b5394d3084",
+      "original_snapshot_commit": "e15fee2ca7076f6298796def5dbe3498097989b5",
       "evidence_files": 2652
     },
     {
       "ref": "preserved/scratch-review-google",
       "kind": "preserved_snapshot",
-      "commit": "9c1d43621fb492f0f1a6d6e7a5d60e79e830b8f9",
+      "commit": "db262996486ff1ef6740aaaa007f433e4c7c5cab",
+      "original_snapshot_commit": "9c1d43621fb492f0f1a6d6e7a5d60e79e830b8f9",
       "evidence_files": 0
     },
     {
       "ref": "preserved/scratch-voice-audit",
       "kind": "preserved_snapshot",
-      "commit": "9afcaccc87fe45a5a4950489b80a03d5ef536181",
+      "commit": "3775d5022b60f1728dcc35ad4965ca017b515736",
+      "original_snapshot_commit": "9afcaccc87fe45a5a4950489b80a03d5ef536181",
       "evidence_files": 0
     },
     {
       "ref": "preserved/scratch-review-leak",
       "kind": "preserved_snapshot",
-      "commit": "648c8a87d7f22ac9a3dd0b9aacd418a323cac504",
+      "commit": "bd8a319451725e03f3ae7a2191472eea986aa30e",
+      "original_snapshot_commit": "648c8a87d7f22ac9a3dd0b9aacd418a323cac504",
       "evidence_files": 0
     },
     {
       "ref": "preserved/scratch-review-noapple",
       "kind": "preserved_snapshot",
-      "commit": "45ae74d83d3a58ae383ce91dfcfc071c76b154d2",
+      "commit": "ef1aa7bc0ad2437481c9b30aac95c468180873db",
+      "original_snapshot_commit": "45ae74d83d3a58ae383ce91dfcfc071c76b154d2",
       "evidence_files": 0
     },
     {
       "ref": "preserved/scratch-review-audio",
       "kind": "preserved_snapshot",
-      "commit": "04c3de8d92b453853adaa3c023ba84c8693e82b4",
+      "commit": "2501f0df5c62538a28e6b18e530fb053d4ccde00",
+      "original_snapshot_commit": "04c3de8d92b453853adaa3c023ba84c8693e82b4",
       "evidence_files": 0
     },
     {
       "ref": "preserved/task-bakeoff",
       "kind": "preserved_snapshot",
-      "commit": "6a757807c03f2bcc9d73383bdbc101da05a0c8c9",
+      "commit": "6853a94234ce386859c293c13ee9554a24e5ae20",
+      "original_snapshot_commit": "6a757807c03f2bcc9d73383bdbc101da05a0c8c9",
       "evidence_files": 0
     },
     {
       "ref": "preserved/task-review-ack",
       "kind": "preserved_snapshot",
-      "commit": "45360fef3b3af604a9aee4fd86d46eee562632cf",
+      "commit": "345fb57804c923a36cd7b943d80ffdd8b4b43b7b",
+      "original_snapshot_commit": "45360fef3b3af604a9aee4fd86d46eee562632cf",
       "evidence_files": 0
     },
     {
       "ref": "preserved/task-review-catchup",
       "kind": "preserved_snapshot",
-      "commit": "23e728efe9e7dd9e8c4576110d0520e168ab0d4e",
+      "commit": "44e0b16721d41038e242b000e034244b930360bb",
+      "original_snapshot_commit": "23e728efe9e7dd9e8c4576110d0520e168ab0d4e",
       "evidence_files": 0
     },
     {
       "ref": "preserved/task-review-ui",
       "kind": "preserved_snapshot",
-      "commit": "8337efcc09d485eaf8db489da1863602d3b7748d",
+      "commit": "c9aeb6af80516e8c6af56e792984b02fbd29f924",
+      "original_snapshot_commit": "8337efcc09d485eaf8db489da1863602d3b7748d",
       "evidence_files": 0
     },
     {
       "ref": "preserved/task-roadmap",
       "kind": "preserved_snapshot",
-      "commit": "803be7cb3fbba52aebeca622fc4b94000df3484b",
+      "commit": "90141824118373c760cf6e560effdd990b66d60a",
+      "original_snapshot_commit": "803be7cb3fbba52aebeca622fc4b94000df3484b",
       "evidence_files": 0
     }
   ],
   "worktrees": [
     {
       "path": "/Users/sergekadjo/Documents/Claude/Projects/next-notes",
-      "commit": "5558f381eb41c039a2a1c36bb0edee1396658857",
+      "commit": "fa8f72be3269d6e54801b33a5dd94f439d793c87",
       "branch": "refs/heads/main",
-      "evidence_files": 3219,
+      "evidence_files": 3379,
       "different_files": 0
     }
   ]

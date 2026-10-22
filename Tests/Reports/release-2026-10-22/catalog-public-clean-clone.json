@@ -1,0 +1,6 @@
+{
+  "exit": 0,
+  "original_private_head_absent": true,
+  "public_mapped_snapshots": 31,
+  "scope": "fresh Git transport of public main only; patched catalog producer/map copied before their commit"
+}

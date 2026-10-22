@@ -1,0 +1,10 @@
+{
+  "original_private_head": "9d34258b266e3976e6d43984daaeed150c10b864",
+  "public_head": "fa8f72be3269d6e54801b33a5dd94f439d793c87",
+  "published_boundary": "f2f5b6067e6283026d417edf007420113681941b",
+  "application_tree_unchanged": true,
+  "working_and_staged_diffs_unchanged": true,
+  "private_bundle_bytes": 70354455,
+  "private_bundle_sha256": "fccf108fc15438118a2dc3694385daf7b6ac44b28709a0de62712d22ba58a298",
+  "public_push_fast_forward": true
+}

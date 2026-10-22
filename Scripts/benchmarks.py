@@ -202,20 +202,24 @@ def audit():
     for line in git('for-each-ref', '--format=%(refname) %(objectname)', 'refs/heads', 'refs/remotes').splitlines():
         ref, commit = line.split()
         refs.append({'ref': ref, 'kind': 'git_ref', 'commit': commit, 'evidence': evidence_tree(commit)})
-    # Retired checkouts remain benchmark sources through immutable, main-reachable snapshots.
+    # Public sources use sanitized ancestry. Exact ignored recovery archives stay local.
     for manifest in sorted((ROOT / 'Benchmarks/inventory').glob('worktree-repair-*/snapshots.json')):
+        public_map_path = manifest.with_name('public-snapshots.json')
+        public_map = json.loads(public_map_path.read_text())['snapshots'] if public_map_path.exists() else {}
         for snapshot in json.loads(manifest.read_text()):
-            commit = snapshot['snapshot_commit']
+            original = snapshot['snapshot_commit']
+            public_source = public_map.get(original)
+            commit = public_source['public_commit'] if public_source else original
             assert re.fullmatch(r'[0-9a-f]{40}', commit), 'invalid recovery commit'
             git('merge-base', '--is-ancestor', commit, 'HEAD')
             rows = evidence_tree(commit)
             container = '.worktree-preservation/ignored.tar.gz'
-            for path in snapshot.get('ignored_paths', []):
+            for path in ([] if public_source else snapshot.get('ignored_paths', [])):
                 if evidence_path(path):
                     rows.append({'path': path, 'git_blob': snapshot['ignored_archive_git_blob'],
                                  'container': container, 'archive_member': path, 'category': category(path)})
             refs.append({'ref': 'preserved/' + snapshot['name'], 'kind': 'preserved_snapshot',
-                         'commit': commit, 'evidence': rows})
+                         'commit': commit, 'original_snapshot_commit': original, 'evidence': rows})
     trees = []
     for block in git('worktree', 'list', '--porcelain').strip().split('\n\n'):
         fields = dict(line.split(' ', 1) if ' ' in line else (line, True) for line in block.splitlines())
@@ -264,7 +268,7 @@ def audit():
         lines.append(f"| [{Path(tree['path']).name}]({quote(tree['path'], safe='/')}) | {tree['branch'] or 'detached'} | {len(tree['evidence'])} | {count} |")
     lines += ['', '## Retrieve a historical result', '',
               'Use the exact commit and path in the JSON with `git show <commit>:<path>`. Do not substitute a branch tip after it moves. A historical result does not qualify the current build.', '',
-              'This scans current local/remote refs and worktrees plus main-reachable recovery snapshots from retired checkouts. Preserved snapshots are evidence sources, not additional branches or worktrees. It does not claim recovery of deleted/unreachable commits, ignored temporary files, inaccessible chats, or external owner recordings.', '']
+              'This scans current local/remote refs and worktrees plus main-reachable public recovery sources from retired checkouts. Public sources exclude ignored recovery archives and command/session logs. Original exact snapshots and ignored archives are retained privately on the owner machine under refs/archive/private-worktree-history-20261022 and its private backup bundle; never push that ref. Preserved sources are not additional branches, worktrees or independent measurements. It does not claim recovery of inaccessible chats or external owner recordings.', '']
     current_paths = {r['path'] for r in scan()}
     missing = {}
     for ref in refs:
