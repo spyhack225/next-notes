@@ -64,6 +64,9 @@ enum VoiceLatencySelfTest {
         return Double(to - from) / 1_000_000_000
     }
 
+    static func acknowledgementDeadlineMet(_ values: [Double], expected: Int) -> Bool {
+        expected > 0 && values.count == expected && values.allSatisfy { $0.isFinite && $0 >= 0 && $0 < 0.200 }
+    }
     static func acceptsAnswerModelArgument(_ argument: String) -> Bool {
         !argument.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             && !argument.hasPrefix("--") && argument != "agent"
@@ -202,8 +205,22 @@ enum VoiceLatencySelfTest {
             _ = clipCache.useHarnessDirectory(nil)
             try? FileManager.default.removeItem(at: ackDirectory)
         }
+        let cacheRequestsBefore = speech.speechSynthesisCallsForTesting
         if acknowledgementEnabled, !(await clipCache.prepareForLatency()) {
             return absent("selected Pocket acknowledgement clips did not become ready")
+        }
+        if acknowledgementEnabled {
+            let renderRequests = speech.speechSynthesisCallsForTesting - cacheRequestsBefore
+            SelfTest.diagnostic("VOICE_ACK_CENSUS render_requests=\(renderRequests) expected=2")
+            if renderRequests != 2 { wrong.append("two fresh Pocket courtesy renders must enter permitted request census") }
+            clipCache.invalidate()
+            let restored = await clipCache.prepareForLatency()
+            let restorationRequests = speech.speechSynthesisCallsForTesting - cacheRequestsBefore - renderRequests
+            SelfTest.diagnostic("VOICE_ACK_CENSUS restoration_requests=\(restorationRequests) expected=0")
+            if !restored || restorationRequests != 0 { wrong.append("disk restoration must be ready without native synthesis") }
+            if CommandLine.arguments.contains("--voice-latency-ack-census") {
+                return finish(wrong)
+            }
         }
         SelfTest.diagnostic("VOICE_ACK_CACHE ready=\(clipCache.readyCount) isolated=true enabled=\(acknowledgementEnabled) "
             + "engine=\(VoiceAcknowledgementClips.Selection.current.engine) voice=\(VoiceAcknowledgementClips.Selection.current.voice)")
@@ -271,9 +288,9 @@ enum VoiceLatencySelfTest {
         }
         if acknowledgementEnabled {
             let ack = counted.compactMap { listenSeconds("ACK", turn: $0) }
-            let met = ack.count == runs && median(ack).map { $0 < 0.200 } == true
-            SelfTest.diagnostic("VOICE_ACK_GATE=\(met ? "PASS" : "FAIL") target_median_s=0.200 n=\(ack.count)")
-            if !met { wrong.append("acknowledgement median must be <200ms across all counted turns") }
+            let met = acknowledgementDeadlineMet(ack, expected: runs)
+            SelfTest.diagnostic("VOICE_ACK_GATE=\(met ? "PASS" : "FAIL") target_per_turn_s=0.200 n=\(ack.count)")
+            if !met { wrong.append("every counted acknowledgement must be <200ms") }
         }
         let speechSynthesisAfter = AgentSpeechSynthesizer.shared.speechSynthesisCallsForTesting
         SelfTest.diagnostic("VOICE_ACK_ALLOWED_SYNTHESIS_CALLS=\(speechSynthesisAfter - speechSynthesisBefore)")

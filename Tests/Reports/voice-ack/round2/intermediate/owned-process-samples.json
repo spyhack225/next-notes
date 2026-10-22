@@ -1,0 +1,53 @@
+{
+  "scope": "1s sampled own processes only; hosted services/children excluded; not continuous peaks",
+  "runs": {
+    "3169:3390501204649": {
+      "pid": 3169,
+      "start": 3390501204649,
+      "rows": [
+        {
+          "utc": 1791527072.221057,
+          "rss": 32768,
+          "footprint": 81992,
+          "wired": 0
+        },
+        {
+          "utc": 1791527073.267936,
+          "rss": 180224,
+          "footprint": 229520,
+          "wired": 0
+        },
+        {
+          "utc": 1791527074.300834,
+          "rss": 97419264,
+          "footprint": 20055024,
+          "wired": 0
+        },
+        {
+          "utc": 1791527075.335134,
+          "rss": 157925376,
+          "footprint": 115344512,
+          "wired": 52543488
+        },
+        {
+          "utc": 1791527076.388465,
+          "rss": 158334976,
+          "footprint": 63702144,
+          "wired": 32768
+        },
+        {
+          "utc": 1791527077.445118,
+          "rss": 158515200,
+          "footprint": 61228160,
+          "wired": 32768
+        },
+        {
+          "utc": 1791527078.4870899,
+          "rss": 159580160,
+          "footprint": 61588608,
+          "wired": 32768
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,4 @@
+warning: 'voice-ack': found 1 file(s) which are unhandled; explicitly declare them as resources or exclude from the target
+    /Users/sergekadjo/Library/Caches/NextNotesBuild/wt/voice-ack/Sources/NextNotes/IMessage/Database/TYPEDSTREAM-NOTES.md
+Building for production...
+[2 / 5] NextNotes-product

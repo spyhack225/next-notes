@@ -1,0 +1,2 @@
+VOICE_LATENCY_INSTRUMENTATION_ONLY: no audio or model latency measured
+VOICE_LATENCY_OK

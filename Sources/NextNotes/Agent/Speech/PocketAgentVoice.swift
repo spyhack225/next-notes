@@ -47,6 +47,14 @@ final class PocketAgentVoice {
     func startReplyPlayback(_ playback: PocketSpeechBacking,
         operation: @escaping @MainActor @Sendable () async -> Void
     ) -> Task<Void, Never>? {
+        startSpeechProduction(playback: playback, operation: operation)
+    }
+
+    /// Optional courtesy and answers share this existing cancellation/native join.
+    func startSpeechProduction(playback: PocketSpeechBacking? = nil,
+        settled: @escaping @MainActor @Sendable () -> Void = {},
+        operation: @escaping @MainActor @Sendable () async -> Void
+    ) -> Task<Void, Never>? {
         guard !terminationRequested else { return nil }
         let previous = replyTask
         if let priorBacking = replyPlayback, priorBacking !== playback { priorBacking.stop() }
@@ -55,6 +63,7 @@ final class PocketAgentVoice {
         let generation = replyGeneration
         replyPlayback = playback
         let pending = Task { @MainActor [weak self] in
+            defer { settled() }
             // Even a canceled successor must drain its captured predecessor.
             await previous?.value
             guard let self else { return }
@@ -68,6 +77,12 @@ final class PocketAgentVoice {
         }
         replyTask = pending
         return pending
+    }
+
+    func joinSpeechProductionForTesting() async {
+        guard SelfTest.isRunning, SelfTest.requested == "--selftest-voice-latency",
+              CommandLine.arguments.contains("--voice-latency-ack-policy") else { return }
+        await replyTask?.value
     }
 
     func replyPlaybackDrained(_ playback: PocketSpeechBacking) {
@@ -480,8 +495,10 @@ final class PocketSpeechBacking: AgentReplySpeechBacking {
     var replyWorkForTesting: (@MainActor @Sendable () async throws -> Void)? {
         get { replyWork }
         set {
-            if SelfTest.requested == "--selftest-tts-pocket"
-                && CommandLine.arguments.contains("--tts-pocket-pipeline") { replyWork = newValue }
+            if SelfTest.isRunning && ((SelfTest.requested == "--selftest-tts-pocket"
+                && CommandLine.arguments.contains("--tts-pocket-pipeline"))
+                || (SelfTest.requested == "--selftest-voice-latency"
+                    && CommandLine.arguments.contains("--voice-latency-ack-policy"))) { replyWork = newValue }
         }
     }
     private(set) var engineStartsForTesting = 0

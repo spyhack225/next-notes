@@ -1,0 +1,49 @@
+2026-10-09 02:52:34.658 NextNotes[8959:4885076] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.073s frontend-control provider=appleFoundation model=Apple Foundation Model
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.151s frontend-control provider=appleFoundation model=Apple Foundation Model
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.150s frontend-control provider=appleFoundation model=Apple Foundation Model
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.146s frontend-control provider=appleFoundation model=Apple Foundation Model
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.145s frontend-control provider=appleFoundation model=Apple Foundation Model
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.138s frontend-control provider=appleFoundation model=Apple Foundation Model
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.133s frontend-control provider=appleFoundation model=Apple Foundation Model
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.132s frontend-control provider=appleFoundation model=Apple Foundation Model
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.147s frontend-control provider=appleFoundation model=Apple Foundation Model
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.136s frontend-control provider=appleFoundation model=Apple Foundation Model
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.203s frontend-control provider=appleFoundation model=Apple Foundation Model
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.200s frontend-control provider=appleFoundation model=Apple Foundation Model
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.192s frontend-control provider=appleFoundation model=Apple Foundation Model
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.102s frontend-control provider=appleFoundation model=Apple Foundation Model
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.081s frontend-control provider=appleFoundation model=Apple Foundation Model
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.002s model provider=appleFoundation model=Apple Foundation Model
+VOICE_ACK_CHECKS=39 failures=0
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.123s frontend-control provider=appleFoundation model=Apple Foundation Model
+VOICE_DIAGNOSTIC_APPLE_CALLS=0 ready=false
+VOICE_DIAGNOSTIC_APPLE_CALLS=0 ready=true
+VOICE_ACK_CACHE_CHECKS=57 failures=10
+VOICE_DIAGNOSTIC_APPLE_CALLS=0 ready=false
+VOICE_DIAGNOSTIC_APPLE_CALLS=0 ready=true
+VOICE_ACK_WRONG: actual voice writer synchronously refuses old prepared PCM
+VOICE_ACK_WRONG: actual engine writer synchronously refuses old prepared PCM
+VOICE_ACK_WRONG: existing idle admission event rearms non-cancellation failure
+VOICE_ACK_WRONG: answer native entry waits inside existing producer for cancelled courtesy drain
+VOICE_ACK_WRONG: failed selected availability refuses cached courtesy
+VOICE_ACK_WRONG: one late counted turn fails deadline despite passing median
+VOICE_ACK_WRONG: prohibited installed sink stand-in makes diagnostic fixture fail
+VOICE_ACK_WRONG: cache automatic preparation refuses critical pressure before native entry
+VOICE_ACK_WRONG: cache automatic preparation refuses recording before native entry
+VOICE_ACK_WRONG: cache idle normal admission reaches same native owner once
+VOICE_ACK_FAILED
+VOICE_SESSION_DIVERGENCE: field=effectsHeld event=responseEnded reducer=false legacy=true
+VOICE_SESSION_DIVERGENCE: field=effectsHeld event=responseEnded reducer=false legacy=true
+VOICE_SESSION_DIVERGENCE: field=effectsHeld event=responseEnded reducer=false legacy=true
+VOICE_SESSION_DIVERGENCE: field=effectsHeld event=responseEnded reducer=false legacy=true
+VOICE_SESSION_DIVERGENCE: field=effectsHeld event=responseEnded reducer=false legacy=true
+VOICE_SESSION_DIVERGENCE: field=effectsHeld event=responseEnded reducer=false legacy=true
+VOICE_SESSION_DIVERGENCE: field=effectsHeld event=responseEnded reducer=false legacy=true
+VOICE_SESSION_DIVERGENCE: field=effectsHeld event=responseEnded reducer=false legacy=true
+VOICE_SESSION_DIVERGENCE: field=effectsHeld event=responseEnded reducer=false legacy=true
+VOICE_SESSION_DIVERGENCE: field=effectsHeld event=responseEnded reducer=false legacy=true
+VOICE_SESSION_DIVERGENCE: field=effectsHeld event=responseEnded reducer=false legacy=true
+VOICE_SESSION_DIVERGENCE: field=effectsHeld event=responseEnded reducer=false legacy=true
+VOICE_SESSION_DIVERGENCE: field=effectsHeld event=responseEnded reducer=false legacy=true
+VOICE_SESSION_DIVERGENCE: field=effectsHeld event=responseEnded reducer=false legacy=true

@@ -1,0 +1,9 @@
+{
+  "hardware": "      Model Name: MacBook Air\n      Model Identifier: Mac15,12\n      Chip: Apple M3\n      Total Number of Cores: 8 (4 Performance and 4 Efficiency)\n      Memory: 16 GB",
+  "os": "ProductName:\t\tmacOS\nProductVersion:\t\t27.2\nBuildVersion:\t\t26B5091g\n",
+  "power": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=40566883)\t100%; charged; 0:00 remaining present: true\n",
+  "thermal": "Note: No thermal warning level has been recorded\nNote: No performance warning level has been recorded\nNote: No CPU power status has been recorded\n",
+  "swap": "vm.swapusage: total = 7168.00M  used = 6248.44M  free = 919.56M  (encrypted)\n",
+  "load": "vm.loadavg: { 3.93 4.13 4.06 }\n",
+  "disk": "Filesystem      Size    Used   Avail Capacity iused ifree %iused  Mounted on\n/dev/disk3s5   228Gi   183Gi    13Gi    94%    2.5M  138M    2%   /System/Volumes/Data\n"
+}

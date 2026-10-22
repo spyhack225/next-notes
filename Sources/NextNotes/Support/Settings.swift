@@ -860,7 +860,10 @@ final class Settings {
         didSet {
             let normalized = Self.normalizedAgentVoiceEngine(agentVoiceEngine)
             if agentVoiceEngine != normalized { agentVoiceEngine = normalized }
-            if normalized != Self.normalizedAgentVoiceEngine(oldValue) { agentVoiceSelectionEpoch &+= 1 }
+            if normalized != Self.normalizedAgentVoiceEngine(oldValue) {
+                agentVoiceSelectionEpoch &+= 1
+                VoiceAcknowledgement.shared.voiceSelectionChanged()
+            }
             defaults.set(normalized, forKey: Keys.agentVoiceEngine)
         }
     }
@@ -975,7 +978,10 @@ final class Settings {
     }
 
     var agentPocketVoice: String {
-        didSet { defaults.set(agentPocketVoice, forKey: Keys.agentPocketVoice) }
+        didSet {
+            if agentPocketVoice != oldValue { VoiceAcknowledgement.shared.voiceSelectionChanged() }
+            defaults.set(agentPocketVoice, forKey: Keys.agentPocketVoice)
+        }
     }
 
     var wakePhrase: String {

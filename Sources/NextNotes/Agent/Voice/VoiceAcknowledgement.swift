@@ -24,6 +24,7 @@ final class VoiceAcknowledgement {
     private var played = false
     private var lastTestClip: String?
     private var observing = false
+    private var admissionObserver: NSObjectProtocol?
     private var output: OutputToken?
     private var permitsTest: Bool {
         SelfTest.isRunning && SelfTest.requested == "--selftest-voice-latency"
@@ -124,12 +125,25 @@ final class VoiceAcknowledgement {
             AgentSpeechSynthesizer.shared.cancelAcknowledgement()
         }
     }
+    /// The existing Settings writer retires old PCM synchronously, before any
+    /// observation callback or new selected voice preparation can run.
+    func voiceSelectionChanged() {
+        cancel()
+        VoiceAcknowledgementClips.shared.invalidate()
+    }
     func prewarm() {
         guard !SelfTest.isRunning || VoiceAcknowledgementClips.shared.permitsPrewarmForTesting else { return }
         observePrewarmInputs()
         VoiceAcknowledgementClips.shared.prewarm()
     }
     private func observePrewarmInputs() {
+        if admissionObserver == nil {
+            admissionObserver = NotificationCenter.default.addObserver(
+                forName: ModelResidencyPolicy.admissionChanged, object: nil, queue: nil
+            ) { [weak self] _ in
+                Task { @MainActor [weak self] in self?.prewarm() }
+            }
+        }
         guard !observing else { return }
         observing = true
         withObservationTracking {
@@ -137,6 +151,7 @@ final class VoiceAcknowledgement {
             _ = Settings.shared.agentPocketVoice
             _ = PocketAgentVoice.shared.isReady
             _ = KokoroAgentVoice.shared.isReady
+            _ = AgentSpeechSynthesizer.shared.availability
             _ = AppDelegate.current?.controller.state.isActive
             _ = MeetingController.shared.session
             _ = RealtimeAgent.shared.voiceInputActive
@@ -145,7 +160,7 @@ final class VoiceAcknowledgement {
             Task { @MainActor [weak self] in
                 guard let self else { return }
                 self.observing = false
-                if !self.environment(interaction: false).permits { self.cancel() }
+                if !self.environment(interaction: false).permits || !VoiceAcknowledgementClips.Selection.current.ready { self.cancel() }
                 if let selection = VoiceAcknowledgementClips.shared.selection, selection != .current {
                     self.cancel(); VoiceAcknowledgementClips.shared.invalidate()
                 }

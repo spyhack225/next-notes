@@ -18,6 +18,11 @@ enum VoiceAcknowledgementClipSelfTest {
             cache.clearRenderFixture(); _ = cache.useHarnessDirectory(nil)
             try? FileManager.default.removeItem(at: root)
         }
+        let synth = AgentSpeechSynthesizer.shared
+        let priorEngine = synth.engineOverrideForTesting
+        synth.engineOverrideForTesting = "pocket"
+        synth.setVoiceReadinessForTesting(engine: "pocket", ready: true)
+        defer { synth.clearVoiceReadinessForTesting(); synth.engineOverrideForTesting = priorEngine }
         ack.environmentForTesting = { .init() }
         var rendered: [(String, String)] = []
         let render: @MainActor (String, VoiceAcknowledgementClips.Selection) async throws -> LongFormRenderer.Audio = { text, choice in
@@ -145,6 +150,100 @@ enum VoiceAcknowledgementClipSelfTest {
         await capture.endSession(source: .done)
         coordinator.resetForTesting(); ack.clipsForTesting = nil
         speech.restoreSystemBacking()
+        // Actual isolated Settings writer; stored owner choices are never used.
+        let settings = Settings.shared
+        check(settings.usesHarnessPreferencesForTesting, "selection fixture uses isolated preferences")
+        if settings.usesHarnessPreferencesForTesting {
+            let oldVoice = settings.agentPocketVoice
+            let oldEngine = settings.agentVoiceEngine
+            cache.invalidate()
+            _ = cache.setRenderFixture(selection: first, ready: true, render: render)
+            check(await cache.prepareForLatency(), "selection writer starts with ready clips")
+            settings.agentPocketVoice = oldVoice + "-ack-fixture"
+            check(cache.readyCount == 0 && cache.next() == nil, "actual voice writer synchronously refuses old prepared PCM")
+            settings.agentPocketVoice = oldVoice
+            check(await cache.prepareForLatency(), "restored voice can reuse exact disk identity")
+            settings.agentVoiceEngine = oldEngine == "pocket" ? "kokoro" : "pocket"
+            check(cache.readyCount == 0 && cache.next() == nil, "actual engine writer synchronously refuses old prepared PCM")
+            settings.agentVoiceEngine = oldEngine
+        }
+        // A non-cancellation refusal stays silent, then retries at the
+        // existing resource-admission idle event; never an immediate retry loop.
+        cache.invalidate()
+        var recoveredRenders = 0
+        _ = cache.setRenderFixture(selection: .init(engine: "pocket", voice: "fixture-idle-recovery"), ready: true,
+            render: { _, _ in
+                recoveredRenders += 1
+                return .init(samples: recoveredRenders == 1 ? [0, 0] : Array(repeating: 0.125, count: 960), sampleRate: 24_000)
+            })
+        check(!(await cache.prepareForLatency()), "non-cancellation refusal stays silent")
+        check(recoveredRenders == 1, "failure does not spin an immediate retry")
+        NotificationCenter.default.post(name: ModelResidencyPolicy.admissionChanged, object: nil)
+        let recoveryDeadline = Date().addingTimeInterval(1)
+        while cache.readyCount != 2, Date() < recoveryDeadline { await Task.yield() }
+        check(cache.readyCount == 2, "existing idle admission event rearms non-cancellation failure")
+        // Held courtesy -> real input activity -> immediate answer through the
+        // SAME Pocket producer slot. Expensive native render alone is held.
+        cache.invalidate()
+        let courtesyHeld = HeldRender()
+        _ = cache.setRenderFixture(selection: .init(engine: "pocket", voice: "fixture-answer-owner"), ready: true,
+            render: { _, _ in await courtesyHeld.render() })
+        let courtesyPreparing = Task { await cache.prepareForLatency() }
+        let courtesyDeadline = Date().addingTimeInterval(1)
+        while !courtesyHeld.entered, Date() < courtesyDeadline { await Task.yield() }
+        check(courtesyHeld.entered, "held courtesy reached cache render")
+        ack.environmentForTesting = { .init(speaking: true) }
+        VoiceConversationCoordinator.shared.inputActivityStarted()
+        var answerEntered = false
+        let answerBacking = PocketSpeechBacking()
+        answerBacking.replyWorkForTesting = { answerEntered = true }
+        speech.useTestingBacking(answerBacking)
+        _ = OutputScheduler.shared.speakSessionless("Immediate answer.")
+        for _ in 0..<20 { await Task.yield() }
+        check(!answerEntered, "answer native entry waits inside existing producer for cancelled courtesy drain")
+        check(!ack.pendingForTesting, "input commit never waits on native courtesy join")
+        courtesyHeld.release()
+        _ = await courtesyPreparing.value
+        await PocketAgentVoice.shared.joinSpeechProductionForTesting()
+        speech.stop(); speech.restoreSystemBacking()
+        VoiceConversationCoordinator.shared.resetForTesting()
+        RealtimeAudioSession.shared.noteOutputFinished()
+        check(answerEntered && cache.readyCount == 0, "answer enters after courtesy drain with no stale publication")
+        ack.environmentForTesting = { .init() }
+        // Actual selected availability is authoritative even with backend-ready PCM.
+        cache.invalidate()
+        _ = cache.setRenderFixture(selection: .init(engine: "pocket", voice: "fixture-failed-availability"), ready: true, render: render)
+        check(await cache.prepareForLatency(), "available selection creates clips before failure")
+        synth.setVoiceFailureForTesting(true)
+        check(cache.readyCount == 0 && cache.next() == nil, "failed selected availability refuses cached courtesy")
+        synth.setVoiceFailureForTesting(false)
+        check(!VoiceLatencySelfTest.acknowledgementDeadlineMet([0.100, 0.110, 0.120, 0.130, 0.201], expected: 5),
+              "one late counted turn fails deadline despite passing median")
+        check(!VoiceDiagnosticSpeech.contractProblems(prohibitedStandIn: true).isEmpty,
+              "prohibited installed sink stand-in makes diagnostic fixture fail")
+        // Actual cache -> optional model preparation route. Only expensive
+        // initialization is replaced; the real owner applies pressure/recording.
+        cache.invalidate()
+        let kokoro = KokoroAgentVoice.shared
+        var initEntries = 0
+        var recording = false
+        var pressure = ModelResidencyPolicy.PressureSnapshot(level: .critical, generation: 0, changedAt: Date())
+        kokoro.initializeForTesting = { initEntries += 1; throw CancellationError() }
+        kokoro.pressureForTesting = { pressure }
+        kokoro.recordingForTesting = { recording }
+        synth.engineOverrideForTesting = "kokoro"
+        _ = cache.setRenderFixture(selection: .init(engine: "kokoro", voice: "fixture-auto-admission"), ready: false,
+            prepareOwner: true, render: render)
+        _ = await cache.prepareForLatency()
+        check(initEntries == 0, "cache automatic preparation refuses critical pressure before native entry")
+        pressure = .init(level: .normal, generation: 1, changedAt: Date()); recording = true
+        _ = await cache.prepareForLatency()
+        check(initEntries == 0, "cache automatic preparation refuses recording before native entry")
+        recording = false
+        _ = await cache.prepareForLatency()
+        check(initEntries == 1, "cache idle normal admission reaches same native owner once")
+        kokoro.initializeForTesting = nil; kokoro.pressureForTesting = nil; kokoro.recordingForTesting = nil
+        synth.engineOverrideForTesting = "pocket"
         // Actual capture quit join retains the same optional prewarm producer.
         cache.invalidate()
         let held = HeldRender()

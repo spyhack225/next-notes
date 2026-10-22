@@ -22,12 +22,10 @@ final class VoiceAcknowledgementClips {
         @MainActor var ready: Bool {
             if VoiceAcknowledgementClips.shared.permitsFixture,
                let fixture = VoiceAcknowledgementClips.shared.renderFixture,
-               fixture.selection == self { return fixture.ready }
-            return switch engine {
-            case "pocket": PocketAgentVoice.shared.isReady
-            case "kokoro": KokoroAgentVoice.isSupportedOS && KokoroAgentVoice.shared.isReady
-            default: false
+               fixture.selection == self {
+                return fixture.ready && AgentSpeechSynthesizer.shared.availability == .ready
             }
+            return self == .current && AgentSpeechSynthesizer.shared.availability == .ready
         }
         var key: String {
             SHA256.hash(data: Data("ack-v1/\(engine)/\(voice)".utf8))
@@ -51,12 +49,12 @@ final class VoiceAcknowledgementClips {
         SelfTest.isRunning && SelfTest.requested == "--selftest-voice-latency"
             && CommandLine.arguments.contains("--voice-latency-ack-policy")
     }
-    private var renderFixture: (selection: Selection, ready: Bool,
+    private var renderFixture: (selection: Selection, ready: Bool, prepareOwner: Bool,
         render: @MainActor (String, Selection) async throws -> LongFormRenderer.Audio)?
-    func setRenderFixture(selection: Selection, ready: Bool,
+    func setRenderFixture(selection: Selection, ready: Bool, prepareOwner: Bool = false,
         render: @escaping @MainActor (String, Selection) async throws -> LongFormRenderer.Audio) -> Bool {
         guard permitsFixture, harnessDirectory != nil else { return false }
-        renderFixture = (selection, ready, render)
+        renderFixture = (selection, ready, prepareOwner, render)
         return true
     }
     func clearRenderFixture() { if permitsFixture { invalidate(); renderFixture = nil } }
@@ -115,21 +113,20 @@ final class VoiceAcknowledgementClips {
         generation += 1
         let owned = generation
         clips = []; selection = nil
-        task = Task { @MainActor [weak self] in
+        task = AgentSpeechSynthesizer.shared.startCourtesyProduction(engine: selected.engine, settled: { [weak self] in
             guard let self else { return }
-            defer {
-                task = nil
-                // A native cancellation can finish after the idle observation
-                // already fired. Re-arm here once the same producer has joined.
-                if selected != .current || Task.isCancelled,
-                   VoiceAcknowledgement.shared.idleForPrewarm { startPrewarm() }
-            }
+            task = nil
+            // Re-arm cancelled work only after its existing producer drains.
+            if selected != .current || generation != owned,
+               VoiceAcknowledgement.shared.idleForPrewarm { startPrewarm() }
+        }) { [weak self] in
+            guard let self else { return }
             guard !Task.isCancelled, generation == owned else { return }
             // Prewarm only joins the already-selected model owner, away from a turn.
             guard VoiceAcknowledgement.shared.idleForPrewarm else { return }
-            if renderFixture == nil {
-                if selected.engine == "pocket" { await PocketAgentVoice.shared.prepare() }
-                else { await KokoroAgentVoice.shared.prepare() }
+            if renderFixture == nil || renderFixture?.prepareOwner == true {
+                if selected.engine == "pocket" { await PocketAgentVoice.shared.prepareAutomatically() }
+                else { await KokoroAgentVoice.shared.prepare(automatic: true) }
             }
             guard !Task.isCancelled, selected == .current, selected.ready else { return }
             let inspectCache = SelfTest.isRunning && SelfTest.requested == "--selftest-voice-latency"
@@ -139,6 +136,13 @@ final class VoiceAcknowledgementClips {
             }
             var stage = "mkdir"
             trace("selection engine=\(selected.engine) voice=\(selected.voice) generation=\(owned)")
+            let lane: UUID?
+            if renderFixture == nil {
+                guard ModelResidencyPolicy.pressureSnapshot.allowsOptionalWork else { return }
+                lane = await ComputeScheduler.shared.acquireCancellable(.background)
+                guard lane != nil else { return }
+            } else { lane = nil }
+            defer { if let lane { Task { await ComputeScheduler.shared.release(lane) } } }
             do {
                 try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
                 var prepared: [Clip] = []
@@ -154,6 +158,11 @@ final class VoiceAcknowledgementClips {
                     stage = "clip-\(index)-entry"
                     trace("stage=\(stage) generation=\(generation) cancelled=\(Task.isCancelled)")
                     try Task.checkCancellation()
+                    if let lane {
+                        await ComputeScheduler.shared.checkpoint(lane)
+                        try Task.checkCancellation()
+                        guard ModelResidencyPolicy.pressureSnapshot.allowsOptionalWork else { return }
+                    }
                     guard VoiceAcknowledgement.shared.idleForPrewarm, selected == .current else { return }
                     let url = directory.appendingPathComponent("ack-\(selected.key)-\(index).wav")
                     let buffer: AVAudioPCMBuffer
@@ -170,6 +179,7 @@ final class VoiceAcknowledgementClips {
                             do {
                                 try Task.checkCancellation()
                                 stage = "clip-\(index)-frames"
+                                PocketAgentVoice.shared.noteSynthesisRequestForTesting()
                                 session.enqueue(text); session.finish()
                                 for try await frame in session.frames {
                                     try Task.checkCancellation()
@@ -226,7 +236,12 @@ final class VoiceAcknowledgementClips {
                 let failure = error as NSError
                 trace("failure stage=\(stage) type=\(String(reflecting: type(of: error))) domain=\(failure.domain) code=\(failure.code) generation=\(generation) cancelled=\(Task.isCancelled)")
                 // Optional courtesy audio has no fallback and no answer failure.
-                Log.agent.info("Acknowledgement clips unavailable")
+                let reason = error is CancellationError ? "cancelled"
+                    : ((error as? ClipError)?.rawValue ?? "render-or-io")
+                Log.agent.info("Acknowledgement clips unavailable stage=\(stage, privacy: .public) reason=\(reason, privacy: .public)")
+                if permitsFixture { SelfTest.diagnostic("VOICE_ACK_UNAVAILABLE stage=\(stage) reason=\(reason)") }
+                // No immediate retry loop. The next existing idle/input/output
+                // event re-enters prewarm after this same task releases its slot.
             }
         }
     }
@@ -250,9 +265,11 @@ final class VoiceAcknowledgementClips {
         return buffer
     }
     private static func prepare(_ audio: LongFormRenderer.Audio) throws -> AVAudioPCMBuffer {
-        guard audio.sampleRate == 24_000, audio.samples.count <= 48_000,
-              audio.samples.allSatisfy(\.isFinite),
-              let first = audio.samples.firstIndex(where: { abs($0) > 0.0001 }),
+        guard audio.sampleRate == 24_000 else { throw ClipError.format }
+        guard audio.samples.count <= 48_000 else { throw ClipError.oversized }
+        guard audio.samples.allSatisfy(\.isFinite) else { throw ClipError.nonfinite }
+        guard audio.samples.contains(where: { abs($0) > 0.0001 }) else { throw ClipError.silent }
+        guard let first = audio.samples.firstIndex(where: { abs($0) > 0.0001 }),
               let last = audio.samples.lastIndex(where: { abs($0) > 0.0001 }),
               let format = AVAudioFormat(standardFormatWithSampleRate: 24_000, channels: 1),
               let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(last - first + 1)),
@@ -274,5 +291,5 @@ final class VoiceAcknowledgementClips {
         }
         return result
     }
-    private enum ClipError: Error { case invalidPCM }
+    private enum ClipError: String, Error { case invalidPCM = "invalid-pcm", oversized, silent, nonfinite, format }
 }

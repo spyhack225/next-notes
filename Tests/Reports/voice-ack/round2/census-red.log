@@ -1,0 +1,5 @@
+VOICE_ACK_CENSUS render_requests=0 expected=2
+VOICE_ACK_CENSUS restoration_requests=0 expected=0
+VOICE_LATENCY_WRONG: two fresh Pocket courtesy renders must enter permitted request census
+VOICE_DIAGNOSTIC_APPLE_CALLS=0 silent_failure_clauses=0
+VOICE_LATENCY_FAILED: two fresh Pocket courtesy renders must enter permitted request census

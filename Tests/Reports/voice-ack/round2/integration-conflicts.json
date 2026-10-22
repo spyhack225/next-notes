@@ -1,0 +1,62 @@
+{
+  "base": "19a212a8",
+  "canonical_head": "55d402ee3778e7b2204e969adec9c5108c2b192a",
+  "ack_files": [
+    "Sources/NextNotes/Activation/AgentCaptureController.swift",
+    "Sources/NextNotes/Agent/Duplex/OutputScheduler.swift",
+    "Sources/NextNotes/Agent/RealtimeAudioSession.swift",
+    "Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift",
+    "Sources/NextNotes/Agent/Voice/VoiceAcknowledgement.swift",
+    "Sources/NextNotes/Agent/Voice/VoiceAcknowledgementClipSelfTest.swift",
+    "Sources/NextNotes/Agent/Voice/VoiceAcknowledgementClips.swift",
+    "Sources/NextNotes/Agent/Voice/VoiceAcknowledgementSelfTest.swift",
+    "Sources/NextNotes/Agent/Voice/VoiceDiagnosticSpeech.swift",
+    "Sources/NextNotes/Agent/Voice/VoiceLatencySelfTest.swift",
+    "Sources/NextNotes/Agent/Voice/VoiceLatencyTimeline.swift",
+    "Sources/NextNotes/Agent/VoiceConversationCoordinator.swift",
+    "Tests/Reports/voice-ack/after-ack-final.log",
+    "Tests/Reports/voice-ack/after-ack.log",
+    "Tests/Reports/voice-ack/apple-synthesis-counter.patch",
+    "Tests/Reports/voice-ack/before-no-ack-final.log",
+    "Tests/Reports/voice-ack/before-no-ack.log",
+    "Tests/Reports/voice-ack/cache-path-original-artifact-pins.json",
+    "Tests/Reports/voice-ack/cache-path-original.log",
+    "Tests/Reports/voice-ack/cleaned-resume-green-trace.log",
+    "Tests/Reports/voice-ack/cleaned-resume-original-artifact-pins.json",
+    "Tests/Reports/voice-ack/cleaned-resume-original-source-pins.json",
+    "Tests/Reports/voice-ack/cleaned-resume-red.log",
+    "Tests/Reports/voice-ack/final-invariance.json",
+    "Tests/Reports/voice-ack/first-native-artifact-pins.json",
+    "Tests/Reports/voice-ack/first-native-source-pins.json",
+    "Tests/Reports/voice-ack/green-policy-final.log",
+    "Tests/Reports/voice-ack/green-policy.log",
+    "Tests/Reports/voice-ack/native-artifact-pins.json",
+    "Tests/Reports/voice-ack/native-clips-profiles-artifact-pins.json",
+    "Tests/Reports/voice-ack/native-clips-profiles-source-pins.json",
+    "Tests/Reports/voice-ack/native-clips-red-retry.log",
+    "Tests/Reports/voice-ack/output-idle-original-artifact-pins.json",
+    "Tests/Reports/voice-ack/output-idle-original-source-pins.json",
+    "Tests/Reports/voice-ack/output-idle-red.log",
+    "Tests/Reports/voice-ack/red-build.log",
+    "Tests/Reports/voice-ack/red-source-pins.json",
+    "Tests/Reports/voice-ack/red.txt"
+  ],
+  "declared_dirty_overlap": [],
+  "actual_dirty_overlap": [],
+  "peers": {
+    "claude2/voice-settings-ui": {
+      "head": "98f9205a5f1309f3cee2b497f2ad0b89ac6465db",
+      "overlap": [
+        "Sources/NextNotes/Agent/Duplex/OutputScheduler.swift",
+        "Sources/NextNotes/Agent/RealtimeAudioSession.swift",
+        "Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift"
+      ]
+    },
+    "claude2/catchup-final": {
+      "head": "b42c574e840f6b287754b545f6f0bbb633c6d394",
+      "overlap": [
+        "Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift"
+      ]
+    }
+  }
+}

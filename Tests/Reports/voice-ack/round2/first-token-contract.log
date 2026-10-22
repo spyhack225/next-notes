@@ -1,0 +1,3 @@
+2026-10-09 03:02:28.503 NextNotes[10298:4902593] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+VOICE_LATENCY_INSTRUMENTATION_ONLY: no audio or model latency measured
+VOICE_LATENCY_OK

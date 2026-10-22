@@ -1,0 +1,4 @@
+VOICE_ACK_CENSUS render_requests=2 expected=2
+VOICE_ACK_CENSUS restoration_requests=0 expected=0
+VOICE_DIAGNOSTIC forbidden_entries=0 allowed_requests=2 failed=false
+VOICE_LATENCY_OK

@@ -183,6 +183,14 @@ final class AgentSpeechSynthesizer {
         }
     }
 
+    /// Courtesy uses the existing native producer admission; playback stays separate.
+    func startCourtesyProduction(engine: String,
+        settled: @escaping @MainActor @Sendable () -> Void = {},
+        operation: @escaping @MainActor @Sendable () async -> Void) -> Task<Void, Never>? {
+        if engine == "pocket" { return PocketAgentVoice.shared.startSpeechProduction(settled: settled, operation: operation) }
+        if engine == "kokoro" { return kokoroBacking.startProduction(settled: settled, operation: operation) }
+        return nil
+    }
     private let preparedBacking = PreparedPCMSpeechBacking()
     var forbiddenSpeechEntriesForTesting: Int { preparedBacking.forbiddenTextCallsForTesting }
     private var acknowledgement: (first: () -> Void, finished: () -> Void)?
@@ -192,7 +200,11 @@ final class AgentSpeechSynthesizer {
         guard token.output.raw > 0, !isSpeaking, !replyOpen, currentClause == nil else { finished(); return }
         playbackTokenCounter &+= 1
         currentPlaybackToken = playbackTokenCounter
-        acknowledgement = (first, finished)
+        let selection = VoiceAcknowledgementClips.Selection.current
+        acknowledgement = ({ [weak self] in
+            guard selection == .current, selection.ready else { self?.cancelAcknowledgement(); return }
+            first()
+        }, finished)
         preparedBacking.playPrepared(clip.buffers, volume: utteranceVolume, token: currentPlaybackToken)
     }
     func cancelAcknowledgement() {

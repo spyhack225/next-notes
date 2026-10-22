@@ -30,6 +30,7 @@ final class KokoroAgentVoice {
     var initializeForTesting: (@MainActor () async throws -> Void)?
     var schedulerForTesting: ComputeScheduler?
     var pressureForTesting: (() -> ModelResidencyPolicy.PressureSnapshot)?
+    var recordingForTesting: (() -> Bool)?
     private var preparationScheduler: ComputeScheduler {
         SelfTest.isRunning ? schedulerForTesting ?? .shared : .shared
     }
@@ -40,7 +41,10 @@ final class KokoroAgentVoice {
     private var prepareTask: Task<Void, Never>?
     private var automaticPreparationDeferred = false
     private var pressureObserver: NSObjectProtocol?
-    private var preparationRecording: Bool { !SelfTest.isRunning && LiveLongFormEnvironment().isRecording }
+    private var preparationRecording: Bool {
+        if SelfTest.isRunning { return recordingForTesting?() ?? false }
+        return LiveLongFormEnvironment().isRecording
+    }
     private func deferAutomaticPreparation() {
         automaticPreparationDeferred = true; isPreparing = true
         guard preparationRecording else { return }
@@ -219,7 +223,7 @@ final class KokoroSpeechBacking: NSObject, AgentSpeechBacking {
         pausedForListening = false
         currentText = text
         currentVolume = volume
-        task = Task { @MainActor [weak self] in
+        task = startProduction { [weak self] in
             guard let self else { return }
             do {
                 let data = try await KokoroAgentVoice.shared.wav(for: text)
@@ -290,9 +294,22 @@ final class KokoroSpeechBacking: NSObject, AgentSpeechBacking {
         }
     }
 
+    /// The existing backing task also owns optional courtesy native work.
+    func startProduction(settled: @escaping @MainActor @Sendable () -> Void = {}, operation: @escaping @MainActor @Sendable () async -> Void) -> Task<Void, Never> {
+        let previous = task
+        previous?.cancel()
+        let pending = Task { @MainActor in
+            defer { settled() }
+            await previous?.value
+            if !Task.isCancelled { await operation() }
+        }
+        task = pending
+        return pending
+    }
+
     func stop() {
         task?.cancel()
-        task = nil
+        // Retain the cancelled native predecessor until its next owner joins.
         player.stop()
         playbackEngine.stop()
         VoicePlaybackReference.stopped()
