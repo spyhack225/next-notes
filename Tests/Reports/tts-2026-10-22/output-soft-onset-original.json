@@ -1,0 +1,5 @@
+{
+  "compileExit": 0,
+  "exit": 1,
+  "log": "{\"firstRenderedMs\":20,\"baselineRMS\":0.0010000000474974513,\"estimatedPresentationMs\":320,\"qualified\":false,\"route\":[90,83],\"captureWindows\":251,\"presentationLatencyMs\":300,\"firstRenderedOrigin\":\"authored-render-generation-17\",\"firstRenderedHost\":12646625151208,\"acousticCorrelation\":1,\"callerToken\":17,\"requestHost\":12646624671208,\"referenceWindows\":250,\"renderOrigins\":[\"authored-render-generation-17\"],\"reason\":\"Acoustic onset unqualified: onset=none, lagMs=80.0, threshold=0.004000000189989805, micPeak=0.01288231775168847, referencePeak=0.05152927100675388, baselineWindows=71, missingTimestamp=false, overflow=false, routeStable=true. No audible result accepted.\"}\nTTS_SOFT_ONSET_CONTROL_FAILED\n"
+}

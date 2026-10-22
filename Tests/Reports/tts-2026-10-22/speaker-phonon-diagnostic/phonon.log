@@ -1,0 +1,3 @@
+dyld[89671]: Library not loaded: @rpath/llama.framework/Versions/Current/llama
+  Referenced from: <BDBDE601-BABC-32B7-8ECF-4112C90D303B> /Users/sergekadjo/Library/Caches/NextNotesBuild/tts-output-diagnostic/Next Notes.app/Contents/MacOS/NextNotes
+  Reason: tried: '/Users/sergekadjo/Library/Caches/NextNotesBuild/tts-output-diagnostic/Next Notes.app/Contents/MacOS/llama.framework/Versions/Current/llama' (no such file), '/Users/sergekadjo/Library/Caches/NextNotesBuild/tts-output-diagnostic/Next Notes.app/Contents/MacOS/llama.framework/Versions/Current/llama' (no such file)

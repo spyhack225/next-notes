@@ -1,0 +1,27 @@
+..phonon: preparing one model, then measuring; log: /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/tts-runner-test-znrwnbtg/reports/phonon.log
+phonon: failed; temporary model removed
+.phonon: preparing one model, then measuring; log: /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/tts-runner-test-6y4y7i8n/reports/phonon.log
+phonon: failed; temporary model removed
+.phonon: not-run; temporary model removed
+.phonon: preparing one model, then measuring; log: /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/tts-runner-test-s49jo6q1/reports/phonon.log
+phonon: measured; temporary model removed
+qwen: preparing one model, then measuring; log: /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/tts-runner-test-s49jo6q1/reports/qwen.log
+qwen: measured; temporary model removed
+.phonon: not-run; temporary model removed
+.phonon: preparing one model, then measuring; log: /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/tts-runner-test-q1m8hcxi/reports/phonon.log
+phonon: failed; temporary model removed
+.phonon: preparing one model, then measuring; log: /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/tts-runner-test-ydugkizi/reports/phonon.log
+phonon: measured; temporary model removed
+.phonon: preparing one model, then measuring; log: /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/tts-runner-test-ofcsxp88/reports/phonon.log
+Result not safely saved; retained owned files at /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/tts-runner-test-ofcsxp88/nextnotes-tts-j_a5fqsl
+.phonon: preparing one model, then measuring; log: /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/tts-runner-test-bv0_gw8r/reports/phonon.log
+phonon: measured; temporary model removed
+.phonon: preparing one model, then measuring; log: /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/tts-runner-test-4_a9z9cv/reports/phonon.log
+phonon: failed; temporary model removed
+.phonon: preparing one model, then measuring; log: /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/tts-runner-test-h9snypzx/reports/phonon.log
+phonon: partial; temporary model removed
+.
+----------------------------------------------------------------------
+Ran 13 tests in 1.343s
+
+OK

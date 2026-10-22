@@ -1,0 +1,162 @@
+{
+  "cleanupVerified": true,
+  "elapsedSeconds": 64.65463070804253,
+  "engine": "qwen",
+  "exitCode": 0,
+  "freeBytesAfterCleanup": 3357663232,
+  "freeBytesBefore": 4882231296,
+  "measurement": {
+    "engine": "qwen",
+    "generatedAt": "2026-10-22T20:43:28Z",
+    "macOS": "Version 27.2 (Build 26B5091g)",
+    "memoryBytes": 17179869184,
+    "model": "Qwen3-TTS-0.6B-CustomVoice-4bit@08c72cad5e2fd0f41730c8bd1f28149585e46361",
+    "notes": [
+      "Actual production playback backings; only the selected adapter's model is loaded in this child.",
+      "firstPCMms is absent from the speaker-output schema; native render and estimated presentation are separate from correlated microphone pickup.",
+      "Microphone energy envelopes are retained only in memory; no raw microphone audio is saved. Acoustic detection uses 10 ms windows, 4x room baseline/0.001 RMS threshold and >=0.75 envelope correlation.",
+      "One first-after-prepare trial plus paced, varied warm phrases. Component output experiment, not speech-end/ASR/EOU or all-route acceptance."
+    ],
+    "peakRSSBytes": 964952064,
+    "preparationMs": 17590.967667,
+    "schema": "nextnotes.tts-speaker-output.v1",
+    "text": "I found three matching files. The latest is enclosure version seventeen.",
+    "trials": [
+      {
+        "completionMs": 13320.220541666666,
+        "index": 0,
+        "output": {
+          "acousticCorrelation": 0.9282729804300723,
+          "acousticOnsetMs": 7632.645083333333,
+          "baselineRMS": 0.0014058662915451762,
+          "callerToken": 1,
+          "captureWindows": 1325,
+          "estimatedPresentationMs": 7461.683540999999,
+          "firstRenderedHost": 12681895139923,
+          "firstRenderedMs": 7460.141874999999,
+          "firstRenderedOrigin": "source--7614386415390839808-token-1",
+          "presentationLatencyMs": 1.541666,
+          "qualified": true,
+          "reason": "Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only.",
+          "referenceWindows": 1254,
+          "renderOrigins": [
+            "source--7614386415390839808-token-0",
+            "source--7614386415390839808-token-1"
+          ],
+          "requestHost": 12681716096518,
+          "route": [
+            90,
+            83
+          ]
+        },
+        "phase": "first-after-prepare",
+        "spokenText": "I found three matching files. The latest is enclosure version seventeen."
+      },
+      {
+        "completionMs": 11368.761083333335,
+        "index": 1,
+        "output": {
+          "acousticCorrelation": 0.611225967036865,
+          "baselineRMS": 0.0016359099772685398,
+          "callerToken": 2,
+          "captureWindows": 1132,
+          "estimatedPresentationMs": 5248.037207666666,
+          "firstRenderedHost": 12682178605376,
+          "firstRenderedMs": 5246.495541666666,
+          "firstRenderedOrigin": "source--7614386415390839808-token-2",
+          "presentationLatencyMs": 1.541666,
+          "qualified": false,
+          "reason": "Acoustic onset unqualified: onset=none, lagMs=40.0, threshold=0.006543639909074159, micPeak=0.00720064087023334, referencePeak=0.03803056457734012, baselineWindows=79, missingTimestamp=false, timestampFailure=none, overflow=false, routeStable=true. No audible result accepted.",
+          "referenceWindows": 1113,
+          "renderOrigins": [
+            "source--7614386415390839808-token-1",
+            "source--7614386415390839808-token-2"
+          ],
+          "requestHost": 12682052689483,
+          "route": [
+            90,
+            83
+          ]
+        },
+        "phase": "warm",
+        "spokenText": "Your next meeting starts in fifteen minutes."
+      },
+      {
+        "completionMs": 9914.169624999999,
+        "index": 2,
+        "output": {
+          "acousticCorrelation": 0.701609331077724,
+          "baselineRMS": 0.0035815915536903014,
+          "callerToken": 3,
+          "captureWindows": 985,
+          "estimatedPresentationMs": 3801.721041,
+          "firstRenderedHost": 12682433582249,
+          "firstRenderedMs": 3800.1793749999997,
+          "firstRenderedOrigin": "source--7614386415390839808-token-3",
+          "presentationLatencyMs": 1.541666,
+          "qualified": false,
+          "reason": "Acoustic onset unqualified: onset=none, lagMs=60.0, threshold=0.014326366214761205, micPeak=0.0120523955801169, referencePeak=0.09559687124809209, baselineWindows=76, missingTimestamp=false, timestampFailure=none, overflow=false, routeStable=true. No audible result accepted.",
+          "referenceWindows": 992,
+          "renderOrigins": [
+            "source--7614386415390839808-token-2",
+            "source--7614386415390839808-token-3"
+          ],
+          "requestHost": 12682342377944,
+          "route": [
+            90,
+            83
+          ]
+        },
+        "phase": "warm",
+        "spokenText": "I saved the notes and found the latest version."
+      },
+      {
+        "completionMs": 8972.919791666667,
+        "index": 3,
+        "output": {
+          "acousticCorrelation": 0.9605060149329879,
+          "acousticOnsetMs": 3557.7237083333334,
+          "baselineRMS": 0.0017009290848830861,
+          "callerToken": 4,
+          "captureWindows": 893,
+          "estimatedPresentationMs": 2846.328832666667,
+          "firstRenderedHost": 12682665529523,
+          "firstRenderedMs": 2844.787166666667,
+          "firstRenderedOrigin": "source--7614386415390839808-token-4",
+          "presentationLatencyMs": 1.541666,
+          "qualified": true,
+          "reason": "Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only.",
+          "referenceWindows": 898,
+          "renderOrigins": [
+            "source--7614386415390839808-token-3",
+            "source--7614386415390839808-token-4"
+          ],
+          "requestHost": 12682597254631,
+          "route": [
+            90,
+            83
+          ]
+        },
+        "phase": "warm",
+        "spokenText": "Yes, that works for tomorrow."
+      }
+    ]
+  },
+  "reason": "At least one acoustic trial unqualified; no audible median accepted.",
+  "referenceASRAfter": {
+    "active": true,
+    "lastResponseMonotonic": 528449.950120833,
+    "responses": 94,
+    "scope": "Cached native Parakeet v3; authored English prefixes at 400ms then one-second updates. Concurrent decoder load, not production mic/EOU/full-duplex acceptance.",
+    "workerPID": 925
+  },
+  "referenceASRBefore": {
+    "active": true,
+    "lastResponseMonotonic": 528385.032627208,
+    "responses": 27,
+    "scope": "Cached native Parakeet v3; authored English prefixes at 400ms then one-second updates. Concurrent decoder load, not production mic/EOU/full-duplex acceptance.",
+    "workerPID": 925
+  },
+  "status": "partial",
+  "temporaryLogicalBytesBeforeCleanup": 1698370595
+}

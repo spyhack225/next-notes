@@ -967,7 +967,7 @@ struct ModelsSettingsTab: View {
         case .phonon: 7.8
         case .qwen: 2709.3025
         }
-        return String(format: "%.0f ms · %.1f%% of longest wait", wait, wait / 2709.3025 * 100)
+        return String(format: "Audio ready: %.0f ms · %.1f%% of longest wait", wait, wait / 2709.3025 * 100)
     }
 
     private func spaceComparison(_ engine: VoiceEngine) -> String {
@@ -1027,7 +1027,7 @@ struct ModelsSettingsTab: View {
             return "Pocket TTS and macOS voices work now. Kokoro is disabled on macOS 26.4–26.5 "
                 + "because its Core ML runtime can crash; macOS 26.6 is required."
         }
-        return "Choose a voice and preview it here. Downloads happen one at a time. The comparison uses five warm English trials on a 16 GB M3 MacBook Air; first use and speaker output can take longer. Benchmarks save each result and remove their temporary model before testing the next."
+        return "Choose a voice and preview it here. Downloads happen one at a time. Speed shows when audio is ready, before the speaker starts: five repeat English tests on a 16 GB M3 MacBook Air. A smaller percentage means less waiting or space. Open the benchmarks for speaker measurements and incomplete tests. Each benchmark saves its result and removes its temporary model before the next."
     }
 
     private func startPreview() {

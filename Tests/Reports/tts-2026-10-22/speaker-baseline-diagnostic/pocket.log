@@ -1,0 +1,6 @@
+TTS_NATIVE_INPUT rate=48000.0 channels=1 interleaved=false
+TTS_TRIAL 0 qualified=true onset=1513.7922916666666 Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only. baselineWhole=0.004290420643831021, baselineRecent500=0.004929896016524009, baselinePreProbeWindows=2.
+TTS_TRIAL 1 qualified=false onset=none Acoustic onset unqualified: onset=none, lagMs=60.0, threshold=0.027247656483220938, micPeak=0.026644993738758043, referencePeak=0.27749181265874556, baselineWindows=81, baselineRecent500=0.0070316306678866805, baselinePreProbeWindows=9, missingTimestamp=false, timestampFailure=none, overflow=false, routeStable=true. No audible result accepted.
+TTS_TRIAL 2 qualified=true onset=493.2685416666667 Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only. baselineWhole=0.004305831529194877, baselineRecent500=0.004902402648067501, baselinePreProbeWindows=9.
+TTS_TRIAL 3 qualified=true onset=296.7094583333333 Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only. baselineWhole=0.002089906043364253, baselineRecent500=0.002429555747548129, baselinePreProbeWindows=4.
+TTS_BENCHMARK_OK

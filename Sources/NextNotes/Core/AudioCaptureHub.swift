@@ -28,6 +28,10 @@ final class AudioCaptureHub {
     /// must not increment this above one until a full stop.
     private(set) var inputEngineStarts = 0
 
+    /// Hardware-format diagnostic consumers use the input frame's own clock,
+    /// without treating resampler output as if it began at the same sample.
+    var nativeInputFormatForDiagnostics: AVAudioFormat { engine.inputNode.outputFormat(forBus: 0) }
+
     private var engine = AVAudioEngine()
     private var sinkNode: AVAudioSinkNode?
     private var sinkRing: AudioSinkCaptureRing?

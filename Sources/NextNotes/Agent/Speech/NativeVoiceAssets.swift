@@ -104,8 +104,11 @@ enum NativeVoiceAssets {
             try await cloneCachedDirectory(from: existing, to: phononDirectory)
             if PhononModels.isInstalled(at: phononDirectory) { return }
         }
-        // Allow for the archive, unpacked packages and Core ML's compiled copy.
-        guard ModelDownloader.availableDiskBytes(at: root) >= downloadReserve + 1_500_000_000 else {
+        // Pinned v0.4.0 observed compiled benchmark roots are323.7 MB;
+        // the137.1 MB archive is removed after extraction. A1 GB diagnostic
+        // budget retains >539 MB above both together. Production stays1.5 GB.
+        let transient: Int64 = benchmarkRoot == nil ? 1_500_000_000 : 1_000_000_000
+        guard ModelDownloader.availableDiskBytes(at: root) >= downloadReserve + transient else {
             throw NativeVoiceError.space
         }
         try await ModelDownloader.download(phononArchive, directory: root, reserveBytes: downloadReserve, progress: progress)

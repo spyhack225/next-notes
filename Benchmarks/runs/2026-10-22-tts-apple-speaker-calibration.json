@@ -4,9 +4,9 @@
   "title": "macOS voice: physical speaker-to-microphone calibration",
   "date": "2026-10-22",
   "category": "tts",
-  "status": "measured",
-  "scope": "Two actual Apple playback requests with timestamped microphone pickup and matching rendered-audio energy envelopes; collector calibration only.",
-  "summary": "First-after-preparation pickup 1247 ms; next phrase 299 ms. Both correlated with actual rendered audio. One warm sample, no ASR load, no model ranking or default choice.",
+  "status": "partial",
+  "scope": "Historical two-request collector calibration using converted16k microphone buffers; superseded by native-format microphone observation.",
+  "summary": "Original collector returned1247ms then299ms microphone pickup. Later loaded tests exposed converted-buffer host-window regressions; these historical values are not current qualified speaker timing or default evidence.",
   "environment": {
     "hardware": "Apple M3 MacBook Air,16GB RAM",
     "os": "Version 27.2 (Build 26B5091g)",
@@ -73,6 +73,7 @@
     }
   ],
   "limitations": [
+    "Superseded collector:16k converted microphone windows can overlap under decoder load. Current speaker tests observe native48k hardware-format buffers. Original numbers are retained as diagnostic history, not current physical acceptance.",
     "Calibration only: n1 per phase; no median/tail or fastest-default conclusion.",
     "Microphone onset uses10ms energy windows and >max(0.001RMS,4x room baseline); it is not human perceptual onset.",
     "Native render and maximum presentation-latency estimate are separate from actual microphone observation.",
@@ -86,7 +87,7 @@
   ],
   "publication": {
     "approved": true,
-    "reviewed_by": "Codex TTS: public fields reviewed for privacy and calibration-only scope",
+    "reviewed_by": "Codex TTS: historical scope corrected after native-clock producer investigation",
     "reviewed_on": "2026-10-22"
   }
 }

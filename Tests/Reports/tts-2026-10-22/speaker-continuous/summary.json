@@ -1,0 +1,28 @@
+{
+  "appSHA256": "86e202a003036c32d6141cc63ac71e97e620371e18e4cdaa4f306e23d3734776",
+  "machine": "macOS-27.2-arm64-arm-64bit-Mach-O",
+  "results": [
+    {
+      "cleanupVerified": true,
+      "elapsedSeconds": 105.2869928330183,
+      "engine": "phonon",
+      "exitCode": -15,
+      "freeBytesAfterCleanup": 5436940288,
+      "freeBytesBefore": 4669902848,
+      "reason": "Reference ASR stopped; no concurrent-workload timing accepted.",
+      "referenceASRAfter": {
+        "active": false
+      },
+      "referenceASRBefore": {
+        "active": true,
+        "lastResponseMonotonic": 528161.963109,
+        "responses": 8,
+        "scope": "Cached native Parakeet v3; authored English prefixes at 400ms then one-second updates. Concurrent decoder load, not production mic/EOU/full-duplex acceptance.",
+        "workerPID": 99992
+      },
+      "status": "failed",
+      "temporaryLogicalBytesBeforeCleanup": 323566806
+    }
+  ],
+  "workload": "One continuously running microphone per model child, actual production playback backings, paced cached native Parakeet v3 ASR decoder. Route90/83,source volume0.75, hardware output38% input51% retained. Same frozen2x10ms/max(.001RMS,4xbaseline)/>=.75 correlation criteria, strict timestamp gates and callback-token checks. Prior fresh-capture/low-disk attempts retained. Component comparison; full-turn/AEC/EOU/quality gates open."
+}

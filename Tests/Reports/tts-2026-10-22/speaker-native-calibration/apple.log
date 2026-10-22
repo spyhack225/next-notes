@@ -1,0 +1,6 @@
+TTS_NATIVE_INPUT rate=48000.0 channels=1 interleaved=false
+TTS_TRIAL 0 qualified=true onset=1246.2627083333332 Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only.
+TTS_TRIAL 1 qualified=true onset=300.32404166666663 Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only.
+TTS_TRIAL 2 qualified=true onset=803.670875 Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only.
+TTS_TRIAL 3 qualified=true onset=189.02458333333334 Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only.
+TTS_BENCHMARK_OK

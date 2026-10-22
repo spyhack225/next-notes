@@ -1,0 +1,25 @@
+{
+  "cleanupVerified": true,
+  "elapsedSeconds": 97.32467641704716,
+  "engine": "apple",
+  "exitCode": -5,
+  "freeBytesAfterCleanup": 3001548800,
+  "freeBytesBefore": 3032989696,
+  "reason": "Engine failed; see its log. No timing result was accepted.",
+  "referenceASRAfter": {
+    "active": true,
+    "lastResponseMonotonic": 527171.149066583,
+    "responses": 190,
+    "scope": "Cached native Parakeet v3; authored English prefixes at 400ms then one-second updates. Concurrent decoder load, not production mic/EOU/full-duplex acceptance.",
+    "workerPID": 91289
+  },
+  "referenceASRBefore": {
+    "active": true,
+    "lastResponseMonotonic": 527073.89454075,
+    "responses": 85,
+    "scope": "Cached native Parakeet v3; authored English prefixes at 400ms then one-second updates. Concurrent decoder load, not production mic/EOU/full-duplex acceptance.",
+    "workerPID": 91289
+  },
+  "status": "failed",
+  "temporaryLogicalBytesBeforeCleanup": 5
+}

@@ -1,0 +1,18 @@
+{
+  "exit": 0,
+  "seconds": 1.2421994170872495,
+  "source_revision": "b2bc0e3c6176e13fde1361147b66de34de6f4782",
+  "source_sha256": "da9f29ca99df2643983e3f35d01c3c72a8e372060c28a1b307bd17fbe7545acf",
+  "source_unchanged": true,
+  "full_source_context": 900,
+  "original_object_sha256": "9c77ecf21ed1939cf17ed623daeb2626727ac122841b0e65f9b1b12c9b7fbf1f",
+  "fixed_object_sha256": "9c77ecf21ed1939cf17ed623daeb2626727ac122841b0e65f9b1b12c9b7fbf1f",
+  "controller_global_symbols_equal": true,
+  "primary_source": "Sources/NextNotes/Agent/Speech/NativeVoiceAssets.swift",
+  "symbol_scope": "NativeVoiceAssets",
+  "original_symbol_count": 33,
+  "fixed_symbol_count": 33,
+  "missing_symbols": [],
+  "added_symbols": [],
+  "compiler_command_sha256": "bd27b9638db478e794b86c51396dd77c08099c62df1e840e1f51bbf462dcbce8"
+}

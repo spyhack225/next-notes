@@ -1,0 +1,43 @@
+{
+  "activeMachineClaims": [],
+  "assessed": "pass",
+  "coverage": {
+    "disk": "measured",
+    "load": "measured",
+    "swap": "measured"
+  },
+  "freeGb": 4.287322998046875,
+  "kind": "preflight",
+  "load": 5.92,
+  "measurements": {
+    "freeGb": {
+      "error": null,
+      "source": "df -Pk Tests/Reports/tts-2026-10-22/speaker-phonon-fixed-calibration",
+      "timestamp": "2026-10-22T20:24:30.927Z",
+      "value": 4.287322998046875
+    },
+    "load": {
+      "error": null,
+      "source": "sysctl vm.loadavg",
+      "timestamp": "2026-10-22T20:24:30.925Z",
+      "value": 5.92
+    },
+    "swapGb": {
+      "error": null,
+      "source": "sysctl vm.swapusage",
+      "timestamp": "2026-10-22T20:24:30.923Z",
+      "value": 11.03607421875
+    }
+  },
+  "mode": "permissive",
+  "ok": true,
+  "path": "Tests/Reports/tts-2026-10-22/speaker-phonon-fixed-calibration",
+  "reasons": [],
+  "require": [
+    "swap",
+    "load",
+    "disk"
+  ],
+  "swapGb": 11.03607421875,
+  "unknown": []
+}

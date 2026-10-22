@@ -1,9 +1,9 @@
 {
-  "sourceSHA256": "3bd03709108f61cdbdaba67c4e044941954e6de1574078a80c492c5512361035",
+  "sourceSHA256": "5d6b3a51becc22df84cc2e712213d50af91e030d0b2a2af14488a73d3935a88c",
   "fixtureSHA256": "b9d7b08bf3b5415843ed4f9b17f421621882a1fe339ea54599cc5d2b1bbfec71",
   "compileExit": 0,
   "compileLog": "",
   "scope": "Authored correlated pickup, silence and overflow controls; no physical measurement.",
   "exit": 0,
-  "log": "{\"requestHost\":12481579969291,\"presentationLatencyMs\":300,\"referenceWindows\":250,\"firstRenderedMs\":200,\"baselineRMS\":9.999999747378752e-06,\"qualified\":true,\"acousticOnsetMs\":277.94620833333335,\"firstRenderedHost\":12481584769291,\"firstRenderedOrigin\":\"authored-render-generation-17\",\"reason\":\"Correlated microphone onset; 10 ms energy windows, threshold-dependent; physical route only.\",\"renderOrigins\":[\"authored-render-generation-17\"],\"estimatedPresentationMs\":500,\"callerToken\":17,\"captureWindows\":251,\"route\":[90,83],\"acousticCorrelation\":1}\nTTS_MAXIMUM_LATENCY_CONTROL_OK\n"
+  "log": "{\"qualified\":true,\"route\":[90,83],\"estimatedPresentationMs\":500,\"firstRenderedMs\":200,\"presentationLatencyMs\":300,\"requestHost\":12647052326509,\"acousticCorrelation\":1,\"renderOrigins\":[\"authored-render-generation-17\"],\"acousticOnsetMs\":276.39545833333335,\"firstRenderedHost\":12647057126509,\"baselineRMS\":9.999999747378752e-06,\"callerToken\":17,\"reason\":\"Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only.\",\"referenceWindows\":250,\"captureWindows\":251,\"firstRenderedOrigin\":\"authored-render-generation-17\"}\nTTS_MAXIMUM_LATENCY_CONTROL_OK\n"
 }

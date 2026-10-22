@@ -1,0 +1,6 @@
+{
+  "sourceSHA256": "5d6b3a51becc22df84cc2e712213d50af91e030d0b2a2af14488a73d3935a88c",
+  "compileExit": 0,
+  "exit": 0,
+  "log": "{\"route\":[90,83],\"qualified\":true,\"estimatedPresentationMs\":320,\"acousticOnsetMs\":372.26779166666665,\"referenceWindows\":250,\"firstRenderedOrigin\":\"authored-render-generation-17\",\"firstRenderedHost\":12647027705573,\"presentationLatencyMs\":300,\"callerToken\":17,\"captureWindows\":251,\"baselineRMS\":0.0010000000474974513,\"renderOrigins\":[\"authored-render-generation-17\"],\"acousticCorrelation\":1,\"reason\":\"Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only.\",\"firstRenderedMs\":20,\"requestHost\":12647027225573}\nTTS_SOFT_ONSET_CONTROL_OK\n"
+}

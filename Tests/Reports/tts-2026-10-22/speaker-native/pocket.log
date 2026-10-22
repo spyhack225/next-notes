@@ -1,0 +1,33 @@
+TTS_NATIVE_INPUT rate=48000.0 channels=1 interleaved=false
+TTS_TRIAL 0 qualified=false onset=none Acoustic onset unqualified: onset=620.7846666666667, lagMs=70.0, threshold=0.006992220812972818, micPeak=0.03450977581774616, referencePeak=0.20929209792264364, baselineWindows=74, missingTimestamp=false, timestampFailure=none, overflow=false, routeStable=true. No audible result accepted.
+TTS_TRIAL 1 qualified=false onset=none Acoustic onset unqualified: onset=231.5005, lagMs=60.0, threshold=0.0059007352732074105, micPeak=0.05351475925432083, referencePeak=0.264975021418342, baselineWindows=84, missingTimestamp=false, timestampFailure=none, overflow=false, routeStable=true. No audible result accepted.
+TTS_TRIAL 2 qualified=false onset=none Acoustic onset unqualified: onset=none, lagMs=60.0, threshold=0.03743714487928735, micPeak=0.02921854305518499, referencePeak=0.19868341619841745, baselineWindows=85, missingTimestamp=false, timestampFailure=none, overflow=false, routeStable=true. No audible result accepted.
+TTS_TRIAL 3 qualified=false onset=none Acoustic onset unqualified: onset=none, lagMs=60.0, threshold=0.051912863758983976, micPeak=0.03928291715105078, referencePeak=0.1955168939070986, baselineWindows=85, missingTimestamp=false, timestampFailure=none, overflow=false, routeStable=true. No audible result accepted.
+TTS_TRIAL 4 qualified=true onset=779.2407083333334 Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only.
+TTS_TRIAL 5 qualified=true onset=261.05487500000004 Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only.
+TTS_TRIAL 6 qualified=true onset=296.1128333333333 Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only.
+TTS_TRIAL 7 qualified=true onset=231.84949999999998 Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only.
+TTS_TRIAL 8 qualified=true onset=289.49241666666666 Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only.
+TTS_TRIAL 9 qualified=true onset=340.279375 Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only.
+TTS_TRIAL 10 qualified=true onset=233.761125 Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only.
+TTS_TRIAL 11 qualified=true onset=248.64383333333333 Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only.
+TTS_TRIAL 12 qualified=true onset=236.51970833333334 Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only.
+TTS_TRIAL 13 qualified=true onset=262.24525 Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only.
+TTS_TRIAL 14 qualified=true onset=266.1659583333333 Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only.
+TTS_TRIAL 15 qualified=true onset=255.29320833333335 Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only.
+TTS_TRIAL 16 qualified=true onset=264.986375 Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only.
+TTS_TRIAL 17 qualified=true onset=278.6587916666667 Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only.
+TTS_TRIAL 18 qualified=true onset=247.1595 Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only.
+TTS_TRIAL 19 qualified=true onset=246.68145833333332 Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only.
+TTS_TRIAL 20 qualified=true onset=327.03004166666665 Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only.
+TTS_TRIAL 21 qualified=true onset=266.4010416666667 Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only.
+TTS_TRIAL 22 qualified=true onset=502.450375 Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only.
+TTS_TRIAL 23 qualified=true onset=275.0625416666667 Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only.
+TTS_TRIAL 24 qualified=true onset=375.96820833333334 Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only.
+TTS_TRIAL 25 qualified=true onset=2545.525958333333 Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only.
+TTS_TRIAL 26 qualified=true onset=209.49425 Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only.
+TTS_TRIAL 27 qualified=true onset=270.3495833333333 Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only.
+TTS_TRIAL 28 qualified=true onset=241.98770833333333 Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only.
+TTS_TRIAL 29 qualified=true onset=303.44512499999996 Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only.
+TTS_TRIAL 30 qualified=true onset=264.6687083333333 Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only.
+TTS_BENCHMARK_OK

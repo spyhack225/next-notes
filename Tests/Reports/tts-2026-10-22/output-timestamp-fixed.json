@@ -1,0 +1,5 @@
+{
+  "compileExit": 0,
+  "exit": 0,
+  "log": "{\"reason\":\"Acoustic onset unqualified: onset=381.088125, lagMs=80.0, threshold=0.004000000189989804, micPeak=0.014375000260770321, referencePeak=0.05605630647472247, baselineWindows=71, missingTimestamp=true, overflow=false, routeStable=true. No audible result accepted.\",\"presentationLatencyMs\":300,\"captureWindows\":251,\"route\":[90,83],\"estimatedPresentationMs\":320,\"callerToken\":17,\"baselineRMS\":0.001000000047497451,\"referenceWindows\":250,\"acousticCorrelation\":0.9981507403443848,\"firstRenderedMs\":20,\"firstRenderedHost\":12655504533885,\"requestHost\":12655504053885,\"qualified\":false,\"renderOrigins\":[\"authored-render-generation-17\"],\"firstRenderedOrigin\":\"authored-render-generation-17\"}\nTTS_SOFT_ONSET_CONTROL_OK\n"
+}

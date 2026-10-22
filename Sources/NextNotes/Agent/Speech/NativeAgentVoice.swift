@@ -2,6 +2,7 @@ import Foundation
 import Observation
 import PhononTTS
 import MLXAudioTTS
+import MLX
 
 /// Optional native voices. Loading/downloads happen only after a selection in Settings.
 /// The benchmark uses its own instance and temporary model directory in a separate process.
@@ -53,8 +54,14 @@ final class NativeAgentVoice {
                     try await NativeVoiceAssets.downloadQwen(progress: report)
                     let directory = NativeVoiceAssets.qwenDirectory
                     qwenModel = try await Task.detached(priority: .userInitiated) {
-                        try await Qwen3TTSModel.fromModelDirectory(directory)
+                        if CommandLine.arguments.contains("--selftest-tts-benchmark") {
+                            FileHandle.standardError.write(Data("QWEN_MEMORY before-load \(Memory.snapshot()) cacheLimit=\(Memory.cacheLimit)\n".utf8))
+                        }
+                        return try await Qwen3TTSModel.fromModelDirectory(directory)
                     }.value
+                    if CommandLine.arguments.contains("--selftest-tts-benchmark") {
+                        FileHandle.standardError.write(Data("QWEN_MEMORY prepared \(Memory.snapshot())\n".utf8))
+                    }
                 case .phonon:
                     if !installed { try await NativeVoiceAssets.downloadPhonon(progress: report) }
                     phononModel = try await Phonon.load(models: NativeVoiceAssets.phononDirectory, language: .english)
@@ -82,10 +89,17 @@ final class NativeAgentVoice {
             // a drain receipt; never overlap mutable decoder state after interruption.
             let task = Task.detached(priority: .userInitiated) {
                 try Task.checkCancellation()
+                if CommandLine.arguments.contains("--selftest-tts-benchmark") {
+                    FileHandle.standardError.write(Data("QWEN_MEMORY before-clause \(Memory.snapshot())\n".utf8))
+                }
                 let audio = try await model.generate(text: text, voice: "Ryan", refAudio: nil,
                                                      refText: nil, language: "English")
                 try Task.checkCancellation()
-                return audio.asArray(Float.self)
+                let samples = audio.asArray(Float.self)
+                if CommandLine.arguments.contains("--selftest-tts-benchmark") {
+                    FileHandle.standardError.write(Data("QWEN_MEMORY after-clause \(Memory.snapshot())\n".utf8))
+                }
+                return samples
             }
             let samples = try await withTaskCancellationHandler {
                 try await task.value

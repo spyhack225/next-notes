@@ -1,0 +1,18 @@
+{
+  "exit": 0,
+  "seconds": 3.470919582992792,
+  "source_revision": "b2bc0e3c6176e13fde1361147b66de34de6f4782",
+  "source_sha256": "ceee687f0b34ce03cd7bf4fcfa5f40f16fb0ead9003f967d2b5283203c84c0e5",
+  "source_unchanged": true,
+  "full_source_context": 900,
+  "original_object_sha256": "a27e9c2c7935978edea0c21f98a0dd6e8d6ac432e120a5843a309512cc42a701",
+  "fixed_object_sha256": "5db3a3dd655c072c2a57edef303b0e4612024152716b16b0bd2ce755445d3215",
+  "controller_global_symbols_equal": true,
+  "primary_source": "Sources/NextNotes/UI/Settings/ModelsSettingsTab.swift",
+  "symbol_scope": "ModelsSettingsTab",
+  "original_symbol_count": 116,
+  "fixed_symbol_count": 116,
+  "missing_symbols": [],
+  "added_symbols": [],
+  "compiler_command_sha256": "8f2e089adfd10184c21be27bd209c578bc33d31591c2c06fe28f2ec3904e2d26"
+}

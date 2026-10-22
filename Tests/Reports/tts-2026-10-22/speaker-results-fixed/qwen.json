@@ -1,0 +1,25 @@
+{
+  "cleanupVerified": true,
+  "elapsedSeconds": 59.64866354095284,
+  "engine": "qwen",
+  "exitCode": -15,
+  "freeBytesAfterCleanup": 3033047040,
+  "freeBytesBefore": 6202466304,
+  "reason": "Disk guard stopped the owned process group before cleanup.",
+  "referenceASRAfter": {
+    "active": true,
+    "lastResponseMonotonic": 527073.505096833,
+    "responses": 84,
+    "scope": "Cached native Parakeet v3; authored English prefixes at 400ms then one-second updates. Concurrent decoder load, not production mic/EOU/full-duplex acceptance.",
+    "workerPID": 91289
+  },
+  "referenceASRBefore": {
+    "active": true,
+    "lastResponseMonotonic": 527013.891898333,
+    "responses": 20,
+    "scope": "Cached native Parakeet v3; authored English prefixes at 400ms then one-second updates. Concurrent decoder load, not production mic/EOU/full-duplex acceptance.",
+    "workerPID": 91289
+  },
+  "status": "failed",
+  "temporaryLogicalBytesBeforeCleanup": 1698364895
+}

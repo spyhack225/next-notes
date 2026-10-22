@@ -1,0 +1,47 @@
+QWEN_MEMORY before-load Peak:   0K           (0)
+Active: 0K           (0)
+Cache:  0K           (0) cacheLimit=16320875724
+QWEN_MEMORY prepared Peak:   1634M        (1714131200)
+Active: 1610M        (1688965376)
+Cache:  24M          (25168980)
+TTS_NATIVE_INPUT rate=48000.0 channels=1 interleaved=false
+QWEN_MEMORY before-clause Peak:   1634M        (1714131200)
+Active: 1610M        (1688965376)
+Cache:  24M          (25168980)
+QWEN_MEMORY after-clause Peak:   4390M        (4603562696)
+Active: 1643M        (1723129920)
+Cache:  543M         (569840446)
+TTS_TRIAL 0 qualified=true onset=7632.645083333333 Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only.
+QWEN_MEMORY before-clause Peak:   4390M        (4603562696)
+Active: 1642M        (1722523712)
+Cache:  544M         (570446654)
+QWEN_MEMORY after-clause Peak:   4422M        (4637051308)
+Active: 1643M        (1723113548)
+Cache:  523M         (548589075)
+TTS_TRIAL 1 qualified=false onset=none Acoustic onset unqualified: onset=none, lagMs=40.0, threshold=0.006543639909074159, micPeak=0.00720064087023334, referencePeak=0.03803056457734012, baselineWindows=79, missingTimestamp=false, timestampFailure=none, overflow=false, routeStable=true. No audible result accepted.
+QWEN_MEMORY before-clause Peak:   4422M        (4637051308)
+Active: 1642M        (1722523700)
+Cache:  523M         (549178923)
+QWEN_MEMORY after-clause Peak:   4422M        (4637067284)
+Active: 1643M        (1723113536)
+Cache:  523M         (548605063)
+TTS_TRIAL 2 qualified=false onset=none Acoustic onset unqualified: onset=none, lagMs=60.0, threshold=0.014326366214761205, micPeak=0.0120523955801169, referencePeak=0.09559687124809209, baselineWindows=76, missingTimestamp=false, timestampFailure=none, overflow=false, routeStable=true. No audible result accepted.
+QWEN_MEMORY before-clause Peak:   4422M        (4637067284)
+Active: 1642M        (1722523712)
+Cache:  523M         (549194887)
+QWEN_MEMORY after-clause Peak:   4422M        (4637067284)
+Active: 1643M        (1723113548)
+Cache:  523M         (548587027)
+TTS_TRIAL 3 qualified=true onset=3557.7237083333334 Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only.
+Generated tokenizer.json from vocab.json + merges.txt
+Loaded speech tokenizer decoder
+Loaded Qwen3-TTS model (custom_voice)
+[Qwen3TTS] CustomVoice: speaker 'Ryan' → spkId=3061
+[Qwen3TTS] CustomVoice: codec prefix length = 7
+[Qwen3TTS] CustomVoice: speaker 'Ryan' → spkId=3061
+[Qwen3TTS] CustomVoice: codec prefix length = 7
+[Qwen3TTS] CustomVoice: speaker 'Ryan' → spkId=3061
+[Qwen3TTS] CustomVoice: codec prefix length = 7
+[Qwen3TTS] CustomVoice: speaker 'Ryan' → spkId=3061
+[Qwen3TTS] CustomVoice: codec prefix length = 7
+TTS_BENCHMARK_OK

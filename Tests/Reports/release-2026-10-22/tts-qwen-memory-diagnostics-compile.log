@@ -1,0 +1,15 @@
+/Users/sergekadjo/Documents/Claude/Projects/next-notes/Sources/NextNotes/Agent/Speech/NativeAgentVoice.swift:48:66: warning: 'weak' ownership of capture 'self' differs from implicitly-captured strong reference in outer scope [#ImplicitStrongCapture]
+ 43 |         isPreparing = true
+ 44 |         errorMessage = nil
+ 45 |         let task = Task { @MainActor in
+    |                         |- note: 'self' implicitly strongly captured here
+    |                         `- note: add 'self' as a capture list item to silence
+ 46 |             defer { isPreparing = false; preparation = nil }
+ 47 |             do {
+ 48 |                 let report: @Sendable (Double) -> Void = { [weak self] fraction in
+    |                                                                  |- warning: 'weak' ownership of capture 'self' differs from implicitly-captured strong reference in outer scope [#ImplicitStrongCapture]
+    |                                                                  `- note: explicitly assign the capture list item to silence
+ 49 |                     Task { @MainActor in self?.progress = fraction }
+ 50 |                 }
+
+[#ImplicitStrongCapture]: <https://docs.swift.org/compiler/documentation/diagnostics/implicit-strong-capture>

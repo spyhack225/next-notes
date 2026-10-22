@@ -1,0 +1,24 @@
+{
+  "cleanupVerified": true,
+  "elapsedSeconds": 7.320800796151161e-05,
+  "engine": "kokoro",
+  "freeBytesAfterCleanup": 3033006080,
+  "freeBytesBefore": 3033006080,
+  "reason": "Insufficient disk headroom for this one model.",
+  "referenceASRAfter": {
+    "active": true,
+    "lastResponseMonotonic": 527073.89454075,
+    "responses": 85,
+    "scope": "Cached native Parakeet v3; authored English prefixes at 400ms then one-second updates. Concurrent decoder load, not production mic/EOU/full-duplex acceptance.",
+    "workerPID": 91289
+  },
+  "referenceASRBefore": {
+    "active": true,
+    "lastResponseMonotonic": 527073.89454075,
+    "responses": 85,
+    "scope": "Cached native Parakeet v3; authored English prefixes at 400ms then one-second updates. Concurrent decoder load, not production mic/EOU/full-duplex acceptance.",
+    "workerPID": 91289
+  },
+  "status": "not-run",
+  "temporaryLogicalBytesBeforeCleanup": 6
+}

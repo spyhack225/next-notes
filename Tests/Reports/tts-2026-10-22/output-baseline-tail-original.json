@@ -1,0 +1,6 @@
+{
+  "sourceSHA256": "6e870226f9de1fa88788e95ffcb9c7c64b569d7b65628e45eecbb266ca705540",
+  "compileExit": 0,
+  "exit": 1,
+  "log": "{\"renderOrigins\":[\"authored-render-generation-17\"],\"baselineRMS\":0.02190229436509162,\"acousticCorrelation\":1,\"callerToken\":17,\"firstRenderedHost\":12709547097239,\"estimatedPresentationMs\":320,\"reason\":\"Acoustic onset unqualified: onset=none, lagMs=80.0, threshold=0.08760917746036648, micPeak=0.013601822594536949, referencePeak=0.054407290378147795, baselineWindows=101, baselineRecent500=0.0010000000474974513, baselinePreProbeWindows=1, missingTimestamp=false, timestampFailure=none, overflow=false, routeStable=true. No audible result accepted.\",\"referenceWindows\":250,\"firstRenderedOrigin\":\"authored-render-generation-17\",\"captureWindows\":251,\"presentationLatencyMs\":300,\"firstRenderedMs\":20,\"requestHost\":12709546617239,\"qualified\":false,\"route\":[90,83]}\nTTS_BASELINE_TAIL_CONTROL_FAILED\n"
+}

@@ -1,0 +1,21 @@
+{
+  "exit": 0,
+  "seconds": 1.7504055000608787,
+  "source_revision": "b2bc0e3c6176e13fde1361147b66de34de6f4782",
+  "source_sha256": "6e870226f9de1fa88788e95ffcb9c7c64b569d7b65628e45eecbb266ca705540",
+  "source_unchanged": true,
+  "full_source_context": 900,
+  "original_object_sha256": "c8a97962ae1607235892d5cf55c1f62d4a437552bb5d1420c5d88d0b1ffad0cb",
+  "fixed_object_sha256": "3e28dd86835308adb7722ccaff77bd8794770361fc9e902272a3771dfac4d596",
+  "controller_global_symbols_equal": false,
+  "primary_source": "Sources/NextNotes/Agent/Speech/TTSOutputProbe.swift",
+  "symbol_scope": "TTSOutputProbe",
+  "original_symbol_count": 85,
+  "fixed_symbol_count": 86,
+  "missing_symbols": [],
+  "added_symbols": [
+    "_$s9NextNotes14TTSOutputProbeC11createdHost33_D959AD8F531C68F8542A230C7BB880EELLs6UInt64Vvpfi"
+  ],
+  "compiler_command_sha256": "1fdf26386e292d58de7ff9df8b6ed01872297cf0047eb407392ee2ebbbc13e2d",
+  "acceptedAdditiveLayout": "One private immutable creation-clock field initializer. All existing globals retained; TTSFirstAudioBenchmark consumer recompiled against the same layout (tts-baseline-layout-context). The intermediate unpromoted-object link was not executed."
+}

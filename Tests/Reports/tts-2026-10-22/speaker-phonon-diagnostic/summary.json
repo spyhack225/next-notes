@@ -1,0 +1,18 @@
+{
+  "appSHA256": "3344ffb1abad65ed3e7ae9ae669343a038edc6624ae51679cebb6c8047bfe5c3",
+  "machine": "macOS-27.2-arm64-arm-64bit-Mach-O",
+  "results": [
+    {
+      "cleanupVerified": true,
+      "elapsedSeconds": 1.708932040957734,
+      "engine": "phonon",
+      "exitCode": -6,
+      "freeBytesAfterCleanup": 6713151488,
+      "freeBytesBefore": 7110201344,
+      "reason": "Engine failed; see its log. No timing result was accepted.",
+      "status": "failed",
+      "temporaryLogicalBytesBeforeCleanup": 6
+    }
+  ],
+  "workload": "Diagnostic only, no concurrent ASR; investigate rejected onset without changing thresholds."
+}

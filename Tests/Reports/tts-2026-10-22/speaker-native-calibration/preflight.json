@@ -1,0 +1,43 @@
+{
+  "activeMachineClaims": [],
+  "assessed": "pass",
+  "coverage": {
+    "disk": "measured",
+    "load": "measured",
+    "swap": "measured"
+  },
+  "freeGb": 4.595855712890625,
+  "kind": "preflight",
+  "load": 2.89,
+  "measurements": {
+    "freeGb": {
+      "error": null,
+      "source": "df -Pk Tests/Reports/tts-2026-10-22/speaker-native-calibration",
+      "timestamp": "2026-10-22T20:42:05.254Z",
+      "value": 4.595855712890625
+    },
+    "load": {
+      "error": null,
+      "source": "sysctl vm.loadavg",
+      "timestamp": "2026-10-22T20:42:05.252Z",
+      "value": 2.89
+    },
+    "swapGb": {
+      "error": null,
+      "source": "sysctl vm.swapusage",
+      "timestamp": "2026-10-22T20:42:05.249Z",
+      "value": 9.096494140625
+    }
+  },
+  "mode": "permissive",
+  "ok": true,
+  "path": "Tests/Reports/tts-2026-10-22/speaker-native-calibration",
+  "reasons": [],
+  "require": [
+    "swap",
+    "load",
+    "disk"
+  ],
+  "swapGb": 9.096494140625,
+  "unknown": []
+}

@@ -1,0 +1,21 @@
+{
+  "cleanupVerified": true,
+  "elapsedSeconds": 105.2869928330183,
+  "engine": "phonon",
+  "exitCode": -15,
+  "freeBytesAfterCleanup": 5436940288,
+  "freeBytesBefore": 4669902848,
+  "reason": "Reference ASR stopped; no concurrent-workload timing accepted.",
+  "referenceASRAfter": {
+    "active": false
+  },
+  "referenceASRBefore": {
+    "active": true,
+    "lastResponseMonotonic": 528161.963109,
+    "responses": 8,
+    "scope": "Cached native Parakeet v3; authored English prefixes at 400ms then one-second updates. Concurrent decoder load, not production mic/EOU/full-duplex acceptance.",
+    "workerPID": 99992
+  },
+  "status": "failed",
+  "temporaryLogicalBytesBeforeCleanup": 323566806
+}

@@ -1,0 +1,129 @@
+{
+  "appSHA256": "d0abf0c940bccac19b0edd09affa0f3d0e81f1bd63b3f9cbe680d8b0225c3c9e",
+  "machine": "macOS-27.2-arm64-arm-64bit-Mach-O",
+  "results": [
+    {
+      "cleanupVerified": true,
+      "elapsedSeconds": 59.64866354095284,
+      "engine": "qwen",
+      "exitCode": -15,
+      "freeBytesAfterCleanup": 3033047040,
+      "freeBytesBefore": 6202466304,
+      "reason": "Disk guard stopped the owned process group before cleanup.",
+      "referenceASRAfter": {
+        "active": true,
+        "lastResponseMonotonic": 527073.505096833,
+        "responses": 84,
+        "scope": "Cached native Parakeet v3; authored English prefixes at 400ms then one-second updates. Concurrent decoder load, not production mic/EOU/full-duplex acceptance.",
+        "workerPID": 91289
+      },
+      "referenceASRBefore": {
+        "active": true,
+        "lastResponseMonotonic": 527013.891898333,
+        "responses": 20,
+        "scope": "Cached native Parakeet v3; authored English prefixes at 400ms then one-second updates. Concurrent decoder load, not production mic/EOU/full-duplex acceptance.",
+        "workerPID": 91289
+      },
+      "status": "failed",
+      "temporaryLogicalBytesBeforeCleanup": 1698364895
+    },
+    {
+      "cleanupVerified": true,
+      "elapsedSeconds": 0.00010258308611810207,
+      "engine": "phonon",
+      "freeBytesAfterCleanup": 3033047040,
+      "freeBytesBefore": 3033055232,
+      "reason": "Insufficient disk headroom for this one model.",
+      "referenceASRAfter": {
+        "active": true,
+        "lastResponseMonotonic": 527073.89454075,
+        "responses": 85,
+        "scope": "Cached native Parakeet v3; authored English prefixes at 400ms then one-second updates. Concurrent decoder load, not production mic/EOU/full-duplex acceptance.",
+        "workerPID": 91289
+      },
+      "referenceASRBefore": {
+        "active": true,
+        "lastResponseMonotonic": 527073.89454075,
+        "responses": 85,
+        "scope": "Cached native Parakeet v3; authored English prefixes at 400ms then one-second updates. Concurrent decoder load, not production mic/EOU/full-duplex acceptance.",
+        "workerPID": 91289
+      },
+      "status": "not-run",
+      "temporaryLogicalBytesBeforeCleanup": 6
+    },
+    {
+      "cleanupVerified": true,
+      "elapsedSeconds": 8.062506094574928e-05,
+      "engine": "pocket",
+      "freeBytesAfterCleanup": 3033022464,
+      "freeBytesBefore": 3033022464,
+      "reason": "Insufficient disk headroom for this one model.",
+      "referenceASRAfter": {
+        "active": true,
+        "lastResponseMonotonic": 527073.89454075,
+        "responses": 85,
+        "scope": "Cached native Parakeet v3; authored English prefixes at 400ms then one-second updates. Concurrent decoder load, not production mic/EOU/full-duplex acceptance.",
+        "workerPID": 91289
+      },
+      "referenceASRBefore": {
+        "active": true,
+        "lastResponseMonotonic": 527073.89454075,
+        "responses": 85,
+        "scope": "Cached native Parakeet v3; authored English prefixes at 400ms then one-second updates. Concurrent decoder load, not production mic/EOU/full-duplex acceptance.",
+        "workerPID": 91289
+      },
+      "status": "not-run",
+      "temporaryLogicalBytesBeforeCleanup": 6
+    },
+    {
+      "cleanupVerified": true,
+      "elapsedSeconds": 7.320800796151161e-05,
+      "engine": "kokoro",
+      "freeBytesAfterCleanup": 3033006080,
+      "freeBytesBefore": 3033006080,
+      "reason": "Insufficient disk headroom for this one model.",
+      "referenceASRAfter": {
+        "active": true,
+        "lastResponseMonotonic": 527073.89454075,
+        "responses": 85,
+        "scope": "Cached native Parakeet v3; authored English prefixes at 400ms then one-second updates. Concurrent decoder load, not production mic/EOU/full-duplex acceptance.",
+        "workerPID": 91289
+      },
+      "referenceASRBefore": {
+        "active": true,
+        "lastResponseMonotonic": 527073.89454075,
+        "responses": 85,
+        "scope": "Cached native Parakeet v3; authored English prefixes at 400ms then one-second updates. Concurrent decoder load, not production mic/EOU/full-duplex acceptance.",
+        "workerPID": 91289
+      },
+      "status": "not-run",
+      "temporaryLogicalBytesBeforeCleanup": 6
+    },
+    {
+      "cleanupVerified": true,
+      "elapsedSeconds": 97.32467641704716,
+      "engine": "apple",
+      "exitCode": -5,
+      "freeBytesAfterCleanup": 3001548800,
+      "freeBytesBefore": 3032989696,
+      "reason": "Engine failed; see its log. No timing result was accepted.",
+      "referenceASRAfter": {
+        "active": true,
+        "lastResponseMonotonic": 527171.149066583,
+        "responses": 190,
+        "scope": "Cached native Parakeet v3; authored English prefixes at 400ms then one-second updates. Concurrent decoder load, not production mic/EOU/full-duplex acceptance.",
+        "workerPID": 91289
+      },
+      "referenceASRBefore": {
+        "active": true,
+        "lastResponseMonotonic": 527073.89454075,
+        "responses": 85,
+        "scope": "Cached native Parakeet v3; authored English prefixes at 400ms then one-second updates. Concurrent decoder load, not production mic/EOU/full-duplex acceptance.",
+        "workerPID": 91289
+      },
+      "status": "failed",
+      "temporaryLogicalBytesBeforeCleanup": 5
+    }
+  ],
+  "workload": "Actual production playback backings, built-in speakers and microphone; paced cached native Parakeet v3 ASR decoder load. Source volume0.75, hardware output38%,input51%,unmuted retained from first suite. Fixed observer uses two consecutive10ms threshold windows within correlated utterance, >=0.75 correlation, 4xbaseline/0.001RMS. Component comparison, not production EOU/AEC/full-turn acceptance."
+}

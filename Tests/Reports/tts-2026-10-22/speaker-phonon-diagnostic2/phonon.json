@@ -1,0 +1,11 @@
+{
+  "cleanupVerified": true,
+  "elapsedSeconds": 0.9813751250039786,
+  "engine": "phonon",
+  "exitCode": -6,
+  "freeBytesAfterCleanup": 6782980096,
+  "freeBytesBefore": 6783352832,
+  "reason": "Engine failed; see its log. No timing result was accepted.",
+  "status": "failed",
+  "temporaryLogicalBytesBeforeCleanup": 6
+}

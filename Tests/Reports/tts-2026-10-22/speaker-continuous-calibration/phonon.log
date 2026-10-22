@@ -1,0 +1,5 @@
+TTS_TRIAL 0 qualified=true onset=306.57462499999997 Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only.
+TTS_TRIAL 1 qualified=true onset=335.11924999999997 Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only.
+TTS_TRIAL 2 qualified=true onset=525.3988333333334 Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only.
+TTS_TRIAL 3 qualified=true onset=316.6293333333333 Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only.
+TTS_BENCHMARK_OK

@@ -8,6 +8,25 @@ const areas = ["all", "asr", "dictation", "meetings", "agent", "voice", "tts", "
 const labels: Record<string, string> = { all: "All areas", asr: "Speech recognition", tts: "Speech synthesis" };
 const asrAppRows = asrModels.map(model => ({ ...model, name: model.name.replace(/\s*\([^)]*\)/g, ""), live: asrAppLatency.find(run => run.id === model.id)?.languages }));
 
+
+// The same reviewed registry supplies the cards and the voice comparison.
+const ttsRows = [
+  { id: "apple", name: "macOS", bytes: 0 },
+  { id: "pocket", name: "Pocket", bytes: 454246490 },
+  { id: "kokoro", name: "Kokoro", bytes: 107370410 },
+  { id: "phonon", name: "Phonon", bytes: 323569035 },
+  { id: "qwen", name: "Qwen3-TTS", bytes: 1698367268 },
+].map(voice => {
+  const generated = data.runs.find(run => run.id === `2026-10-22-tts-${voice.id}-native`);
+  const speaker = data.runs.find(run => run.id === `2026-10-22-tts-${voice.id}-speaker-output`);
+  return { ...voice,
+    pcm: generated?.metrics.find(metric => metric.name === "Warm first generated PCM")?.value,
+    sound: speaker?.metrics.find(metric => metric.name === "Warm microphone pickup median")?.value,
+    confirmed: speaker?.metrics.find(metric => metric.name === "Qualified warm microphone trials")?.value,
+    attempted: speaker?.metrics.find(metric => metric.name === "Attempted warm microphone trials")?.value,
+  };
+});
+
 export default function Benchmarks() {
   const [language, setLanguage] = useState<"en" | "fr">("en");
   const [area, setArea] = useState("all");
@@ -47,6 +66,24 @@ export default function Benchmarks() {
           <p className="text-muted-foreground">22 October 2026, signed app build 800. Audio was fed in real time in 20 ms pieces; first words include the app’s 400 ms initial window. Finalization starts at release and includes pending inference. Timings end at the app’s transcript consumer and exclude cold loading, physical microphone, display, cleanup, insertion and concurrent voice. Three trials used one 7.25-second English or 6.65-second French excerpt.</p>
           <p className="text-muted-foreground">The percentage is from an earlier, separate runtime test on one longer authored recording: 136 English or 151 French words, calculated as 100 × (1 − word error rate). It is not current full-app or general accuracy; number formatting can count as errors. Model size is downloaded artifacts, excluding compilation caches and temporary setup space.</p>
           <p className="text-muted-foreground">Phonon was fastest for English. Whistle was fastest for French in the app’s short test, where its final wording matched Voz; Voz scored higher in the earlier longer French test. Qwen 1.7B scored highest on that longer French recording. Each candidate was tested and its temporary files removed before the next. Phonon’s first preparation took about 223 seconds; warm speed excludes that setup.</p>
+        </section>
+        <section id="tts-comparison" aria-labelledby="tts-heading">
+          <h2 id="tts-heading">Voice speed and space</h2>
+          <p>All five voices are available in Settings. Audio preparation and sound from the speakers are different waits.</p>
+          <div className="benchmark-table-scroll"><table>
+            <caption>M3 MacBook Air · 16 GB · 22 October 2026</caption>
+            <thead><tr><th scope="col">Voice</th><th scope="col">Audio prepared</th><th scope="col">Preparation wait vs Qwen</th><th scope="col">Sound at microphone</th><th scope="col">Extra model space</th><th scope="col">Size vs largest</th></tr></thead>
+            <tbody>{ttsRows.map(voice => <tr key={voice.id}>
+              <th scope="row"><a href={`#2026-10-22-tts-${voice.id}-speaker-output`}>{voice.name}</a></th>
+              <td>{voice.pcm !== undefined ? `${voice.pcm.toLocaleString(undefined, { maximumFractionDigits: 1 })} ms` : "Not measured"}</td>
+              <td>{voice.pcm !== undefined ? `${(voice.pcm / 2709.3025 * 100).toFixed(1)}%` : "—"}</td>
+              <td>{voice.sound !== undefined ? `${Math.round(voice.sound)} ms` : voice.attempted !== undefined && voice.attempted > 0 ? `Incomplete (${voice.confirmed ?? 0}/${voice.attempted} confirmed)` : "Not run"}</td>
+              <td>{voice.bytes === 0 ? "Built in" : `≈${Math.round(voice.bytes / 1000000)} MB`}</td>
+              <td>{`${Math.round(voice.bytes / 1698367268 * 100)}%`}</td>
+            </tr>)}</tbody>
+          </table></div>
+          <p className="text-muted-foreground">Preparation: median of five warm same-text requests to first generated audio, before playback. The percentage is that wait divided by Qwen’s 2,709 ms; lower means less waiting. It does not rank speaker output. Model space uses prepared files, including shared Kokoro assets once; Apple’s existing system assets are excluded. Downloads and runtime memory are separate.</p>
+          <p className="text-muted-foreground">Speaker tests use the actual playback backings, laptop speakers and native-format microphone, with concurrent speech-decoder load. Pickup requires matching audio and two consecutive 10 ms windows above the room threshold. This includes the acoustic and input paths; it is not human perceptual onset or full conversation latency. An incomplete result has no accepted speaker median. Each temporary model is removed before the next starts.</p>
         </section>
         <form className="benchmark-filters" onSubmit={event => event.preventDefault()}>
           <label>Search results<input type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Model or workflow" /></label>

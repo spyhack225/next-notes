@@ -1,0 +1,21 @@
+{
+  "exit": 0,
+  "seconds": 3.768141333013773,
+  "source_revision": "b2bc0e3c6176e13fde1361147b66de34de6f4782",
+  "source_sha256": "6d6748f0b7b5d1849c8ee4662c46e65784f987caaa01dfb2d2dee8950c74dc72",
+  "source_unchanged": true,
+  "full_source_context": 900,
+  "original_object_sha256": "59e5275b4f09a604c78183fd2faf331deea6d62d2f7074ad15a364dcb7003c8f",
+  "fixed_object_sha256": "56a09c7382188da0a0f9e788ac05db75cf6d7bd24fcb58057259d968ff43c997",
+  "controller_global_symbols_equal": false,
+  "primary_source": "Sources/NextNotes/Core/AudioCaptureHub.swift",
+  "symbol_scope": "AudioCaptureHub",
+  "original_symbol_count": 104,
+  "fixed_symbol_count": 105,
+  "missing_symbols": [],
+  "added_symbols": [
+    "_$s9NextNotes15AudioCaptureHubC31nativeInputFormatForDiagnosticsSo07AVAudioH0Cvg"
+  ],
+  "compiler_command_sha256": "6d442c6c3ce4c8041cf33659736cffa24004620db0f5e97bb6ee711be42efff7",
+  "acceptedAdditiveAPI": "Exactly one read-only diagnostic format getter, no missing or altered existing global symbols; no stored class fields added."
+}

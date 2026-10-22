@@ -19,9 +19,13 @@ import tempfile
 import time
 
 ENGINES = ("apple", "pocket", "kokoro", "phonon", "qwen")
-# Conservative transient storage estimates, in addition to the diagnostic reserve.
-SPACE = {"apple": 0, "pocket": 1_500_000_000, "kokoro": 1_500_000_000,
-         "phonon": 1_500_000_000, "qwen": 1_800_000_000}
+# Per-model transient budgets above the unchanged diagnostic reserve. Pocket
+# and Kokoro reuse precompiled owner assets through CoW; observed complete roots
+# are454MB/107MB. These budgets retain296MB/393MB transient allowance.
+# Pinned Phonon v0.4.0 observed323.7MB compiled +137.1MB archive leaves
+# >539MB allowance in its1GB budget. Production native reserve is unchanged.
+SPACE = {"apple": 0, "pocket": 750_000_000, "kokoro": 500_000_000,
+         "phonon": 1_000_000_000, "qwen": 1_800_000_000}
 RESERVE = 2 * 1024**3  # Diagnostic-only; production ModelDownloader retains 4 GiB.
 
 

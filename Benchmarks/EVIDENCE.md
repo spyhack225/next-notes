@@ -1,12 +1,23 @@
 # Evidence discovery
 
-3640 current evidence files discovered under Tests/Reports, bench, docs and roadmaps.
+3776 current evidence files discovered under Tests/Reports, bench, docs and roadmaps.
 
 Imported third-party reference trees and website assets are excluded. Files are catalogued without moving them or extracting private payloads. Legacy files remain unclassified until a reviewed run manifest records their scope and verdict.
 
 [Machine-readable inventory](inventory/files.json) · [Git/worktree audit](inventory/README.md)
 
 ## Reviewed run sources
+
+### Qwen3-TTS0.6B4bit: native speaker-output experiment
+
+Actual production playback backing with native48k mono microphone observation under paced native Parakeet-v3 decoder load. Threshold-qualified arrival, not human perception or full-turn latency. **partial**
+
+- [Tests/Reports/tts-2026-10-22/speaker-native-calibration/qwen.json](../Tests/Reports/tts-2026-10-22/speaker-native-calibration/qwen.json)
+- [Tests/Reports/tts-2026-10-22/speaker-native-calibration/summary.json](../Tests/Reports/tts-2026-10-22/speaker-native-calibration/summary.json)
+- [Tests/Reports/tts-2026-10-22/README.md](../Tests/Reports/tts-2026-10-22/README.md)
+- [Tests/Reports/tts-2026-10-22/speaker-native-source-pins.json](../Tests/Reports/tts-2026-10-22/speaker-native-source-pins.json)
+- [Tests/Reports/tts-2026-10-22/speaker-native/qwen.json](../Tests/Reports/tts-2026-10-22/speaker-native/qwen.json)
+- [Tests/Reports/tts-2026-10-22/speaker-native-calibration/qwen.log](../Tests/Reports/tts-2026-10-22/speaker-native-calibration/qwen.log)
 
 ### Qwen3-TTS-0.6B-CustomVoice-4bit@08c72cad5e2fd0f41730c8bd1f28149585e46361: native first generated audio
 
@@ -21,6 +32,15 @@ Known English text request to first non-empty generated PCM through the actual n
 - [Tests/Reports/tts-2026-10-22/final-model-cleanup.json](../Tests/Reports/tts-2026-10-22/final-model-cleanup.json)
 - [Tests/Reports/tts-2026-10-22/owner-cache-preservation.json](../Tests/Reports/tts-2026-10-22/owner-cache-preservation.json)
 
+### Pocket: native speaker-output experiment
+
+Actual production playback backing with native48k mono microphone observation under paced native Parakeet-v3 decoder load. Threshold-qualified arrival, not human perception or full-turn latency. **partial**
+
+- [Tests/Reports/tts-2026-10-22/speaker-native/pocket.json](../Tests/Reports/tts-2026-10-22/speaker-native/pocket.json)
+- [Tests/Reports/tts-2026-10-22/speaker-native/summary.json](../Tests/Reports/tts-2026-10-22/speaker-native/summary.json)
+- [Tests/Reports/tts-2026-10-22/README.md](../Tests/Reports/tts-2026-10-22/README.md)
+- [Tests/Reports/tts-2026-10-22/speaker-native-source-pins.json](../Tests/Reports/tts-2026-10-22/speaker-native-source-pins.json)
+
 ### FluidAudio/PocketTTS-int8/alba: native first generated audio
 
 Known English text request to first non-empty generated PCM through the actual native adapter; separate muted native playback checks for Qwen/Phonon. **measured**
@@ -33,6 +53,15 @@ Known English text request to first non-empty generated PCM through the actual n
 - [Tests/Reports/tts-2026-10-22/verification.json](../Tests/Reports/tts-2026-10-22/verification.json)
 - [Tests/Reports/tts-2026-10-22/final-model-cleanup.json](../Tests/Reports/tts-2026-10-22/final-model-cleanup.json)
 - [Tests/Reports/tts-2026-10-22/owner-cache-preservation.json](../Tests/Reports/tts-2026-10-22/owner-cache-preservation.json)
+
+### Phonon31m: native speaker-output experiment
+
+Actual production playback backing with native48k mono microphone observation under paced native Parakeet-v3 decoder load. Threshold-qualified arrival, not human perception or full-turn latency. **blocked**
+
+- [Tests/Reports/tts-2026-10-22/speaker-native/phonon.json](../Tests/Reports/tts-2026-10-22/speaker-native/phonon.json)
+- [Tests/Reports/tts-2026-10-22/speaker-native/summary.json](../Tests/Reports/tts-2026-10-22/speaker-native/summary.json)
+- [Tests/Reports/tts-2026-10-22/README.md](../Tests/Reports/tts-2026-10-22/README.md)
+- [Tests/Reports/tts-2026-10-22/speaker-native-source-pins.json](../Tests/Reports/tts-2026-10-22/speaker-native-source-pins.json)
 
 ### Phonon31m-CoreML/v0.4.0: native first generated audio
 
@@ -56,6 +85,15 @@ Five completed native generated-PCM comparisons plus a prepared separate physica
 - [Tests/Reports/tts-2026-10-22/output-maximum-latency-original.json](../Tests/Reports/tts-2026-10-22/output-maximum-latency-original.json)
 - [Tests/Reports/tts-2026-10-22/output-maximum-latency-fixed.json](../Tests/Reports/tts-2026-10-22/output-maximum-latency-fixed.json)
 
+### Kokoro: native speaker-output experiment
+
+Actual production playback backing with native48k mono microphone observation under paced native Parakeet-v3 decoder load. Threshold-qualified arrival, not human perception or full-turn latency. **partial**
+
+- [Tests/Reports/tts-2026-10-22/speaker-native/kokoro.json](../Tests/Reports/tts-2026-10-22/speaker-native/kokoro.json)
+- [Tests/Reports/tts-2026-10-22/speaker-native/summary.json](../Tests/Reports/tts-2026-10-22/speaker-native/summary.json)
+- [Tests/Reports/tts-2026-10-22/README.md](../Tests/Reports/tts-2026-10-22/README.md)
+- [Tests/Reports/tts-2026-10-22/speaker-native-source-pins.json](../Tests/Reports/tts-2026-10-22/speaker-native-source-pins.json)
+
 ### FluidAudio/Kokoro82M/af_heart: native first generated audio
 
 Known English text request to first non-empty generated PCM through the actual native adapter; separate muted native playback checks for Qwen/Phonon. **measured**
@@ -69,9 +107,18 @@ Known English text request to first non-empty generated PCM through the actual n
 - [Tests/Reports/tts-2026-10-22/final-model-cleanup.json](../Tests/Reports/tts-2026-10-22/final-model-cleanup.json)
 - [Tests/Reports/tts-2026-10-22/owner-cache-preservation.json](../Tests/Reports/tts-2026-10-22/owner-cache-preservation.json)
 
+### macOS: native speaker-output experiment
+
+Actual production playback backing with native48k mono microphone observation under paced native Parakeet-v3 decoder load. Threshold-qualified arrival, not human perception or full-turn latency. **partial**
+
+- [Tests/Reports/tts-2026-10-22/speaker-native/apple.json](../Tests/Reports/tts-2026-10-22/speaker-native/apple.json)
+- [Tests/Reports/tts-2026-10-22/speaker-native/summary.json](../Tests/Reports/tts-2026-10-22/speaker-native/summary.json)
+- [Tests/Reports/tts-2026-10-22/README.md](../Tests/Reports/tts-2026-10-22/README.md)
+- [Tests/Reports/tts-2026-10-22/speaker-native-source-pins.json](../Tests/Reports/tts-2026-10-22/speaker-native-source-pins.json)
+
 ### macOS voice: physical speaker-to-microphone calibration
 
-Two actual Apple playback requests with timestamped microphone pickup and matching rendered-audio energy envelopes; collector calibration only. **measured**
+Historical two-request collector calibration using converted16k microphone buffers; superseded by native-format microphone observation. **partial**
 
 - [Tests/Reports/tts-2026-10-22/speaker-calibration/apple.json](../Tests/Reports/tts-2026-10-22/speaker-calibration/apple.json)
 - [Tests/Reports/tts-2026-10-22/speaker-calibration/summary.json](../Tests/Reports/tts-2026-10-22/speaker-calibration/summary.json)

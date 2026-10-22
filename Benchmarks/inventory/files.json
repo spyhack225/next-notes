@@ -9474,6 +9474,110 @@
       "category": "other"
     },
     {
+      "path": "Tests/Reports/release-2026-10-22/tts-baseline-layout-context-compile.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/tts-baseline-layout-context.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/tts-baseline-window-diagnostics-compile.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/tts-baseline-window-diagnostics.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/tts-continuous-capture-compile.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/tts-continuous-capture.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/tts-native-input-format-compile.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/tts-native-input-format.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/tts-native-microphone-capture-compile.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/tts-native-microphone-capture.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/tts-output-diagnostics-compile.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/tts-output-diagnostics.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/tts-output-monotonic-compile.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/tts-output-monotonic.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/tts-output-rejection-details-compile.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/tts-output-rejection-details.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/tts-output-soft-onset-compile.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/tts-output-soft-onset.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/tts-pinned-phonon-budget-compile.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/tts-pinned-phonon-budget-final-compile.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/tts-pinned-phonon-budget-final.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/tts-pinned-phonon-budget.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/tts-qwen-memory-diagnostics-compile.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/tts-qwen-memory-diagnostics.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/tts-settings-timing-labels-compile.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/tts-settings-timing-labels.json",
+      "category": "tts"
+    },
+    {
       "path": "Tests/Reports/release-2026-10-22/website-build.log",
       "category": "other"
     },
@@ -10594,6 +10698,10 @@
       "category": "tts"
     },
     {
+      "path": "Tests/Reports/tts-2026-10-22/active-reference-root.json",
+      "category": "tts"
+    },
+    {
       "path": "Tests/Reports/tts-2026-10-22/compressed-logs.json",
       "category": "tts"
     },
@@ -10734,6 +10842,10 @@
       "category": "tts"
     },
     {
+      "path": "Tests/Reports/tts-2026-10-22/output-baseline-tail-original.json",
+      "category": "tts"
+    },
+    {
       "path": "Tests/Reports/tts-2026-10-22/output-maximum-latency-fixed.json",
       "category": "tts"
     },
@@ -10746,7 +10858,23 @@
       "category": "tts"
     },
     {
+      "path": "Tests/Reports/tts-2026-10-22/output-soft-onset-fixed.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/output-soft-onset-original.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/output-timestamp-fixed.json",
+      "category": "tts"
+    },
+    {
       "path": "Tests/Reports/tts-2026-10-22/owner-cache-preservation.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/owner-cache-speaker-preservation.json",
       "category": "tts"
     },
     {
@@ -10758,12 +10886,24 @@
       "category": "tts"
     },
     {
+      "path": "Tests/Reports/tts-2026-10-22/owner-caches-speaker-after.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/owner-caches-speaker-before.json",
+      "category": "tts"
+    },
+    {
       "path": "Tests/Reports/tts-2026-10-22/pause-only-component-pins.json",
       "category": "tts"
     },
     {
       "path": "Tests/Reports/tts-2026-10-22/preflight/preflight.json",
       "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/reference-asr-probe-build.json",
+      "category": "asr"
     },
     {
       "path": "Tests/Reports/tts-2026-10-22/resource-blocked.json",
@@ -10779,6 +10919,10 @@
     },
     {
       "path": "Tests/Reports/tts-2026-10-22/retired-app-build-artifacts.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/runner-tests-followup.log",
       "category": "tts"
     },
     {
@@ -10806,6 +10950,22 @@
       "category": "tts"
     },
     {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-baseline-diagnostic/pocket.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-baseline-diagnostic/pocket.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-baseline-diagnostic/preflight.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-baseline-diagnostic/summary.json",
+      "category": "tts"
+    },
+    {
       "path": "Tests/Reports/tts-2026-10-22/speaker-calibration/apple.json",
       "category": "tts"
     },
@@ -10822,7 +10982,387 @@
       "category": "tts"
     },
     {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-cohort-cached/kokoro.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-cohort-cached/kokoro.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-cohort-cached/pocket.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-cohort-cached/pocket.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-cohort-cached/preflight.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-cohort-cached/summary.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-cohort/apple.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-cohort/apple.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-cohort/kokoro.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-cohort/phonon.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-cohort/phonon.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-cohort/pocket.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-cohort/preflight.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-cohort/summary.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-continuous-calibration/phonon.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-continuous-calibration/phonon.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-continuous-calibration/preflight.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-continuous-calibration/summary.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-continuous-source-pins.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-continuous/phonon.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-continuous/phonon.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-continuous/preflight.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-continuous/summary.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-final-disk-installed.json",
+      "category": "tts"
+    },
+    {
       "path": "Tests/Reports/tts-2026-10-22/speaker-followup-prebuild-validation.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-native-calibration/apple.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-native-calibration/apple.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-native-calibration/preflight.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-native-calibration/qwen.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-native-calibration/qwen.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-native-calibration/summary.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-native-source-pins.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-native/apple.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-native/apple.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-native/kokoro.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-native/kokoro.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-native/phonon.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-native/pocket.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-native/pocket.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-native/preflight.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-native/qwen.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-native/summary.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-phonon-diagnostic/phonon.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-phonon-diagnostic/phonon.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-phonon-diagnostic/preflight.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-phonon-diagnostic/summary.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-phonon-diagnostic2/phonon.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-phonon-diagnostic2/phonon.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-phonon-diagnostic2/preflight.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-phonon-diagnostic2/summary.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-phonon-diagnostic3/phonon.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-phonon-diagnostic3/phonon.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-phonon-diagnostic3/preflight.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-phonon-diagnostic3/summary.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-phonon-fixed-calibration/phonon.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-phonon-fixed-calibration/phonon.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-phonon-fixed-calibration/preflight.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-phonon-fixed-calibration/summary.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-reference-asr-baseline/ready.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-reference-asr-baseline/receipt.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-reference-asr-baseline/rpc.json.diagnostic.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-reference-asr-cohort/ready.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-reference-asr-cohort/receipt.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-reference-asr-cohort/rpc.json.diagnostic.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-reference-asr-continuous/ready.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-reference-asr-continuous/receipt.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-reference-asr-continuous/rpc.json.diagnostic.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-reference-asr-fixed/ready.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-reference-asr-fixed/receipt.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-reference-asr-fixed/rpc.json.diagnostic.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-reference-asr-native/ready.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-reference-asr-native/receipt.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-reference-asr-native/rpc.json.diagnostic.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-reference-asr/ready.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-reference-asr/receipt.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-reference-asr/rpc.json.diagnostic.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-results-fixed/apple.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-results-fixed/apple.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-results-fixed/kokoro.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-results-fixed/phonon.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-results-fixed/pocket.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-results-fixed/preflight.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-results-fixed/qwen.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-results-fixed/qwen.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-results-fixed/summary.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-results/apple.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-results/apple.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-results/kokoro.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-results/phonon.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-results/phonon.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-results/pocket.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-results/preflight.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-results/qwen.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-results/summary.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-source-final.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/speaker-source-fixed.log",
       "category": "tts"
     },
     {
@@ -10839,6 +11379,10 @@
     },
     {
       "path": "Tests/Reports/tts-2026-10-22/verification.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/voice-preferences-after-speaker-suite.json",
       "category": "tts"
     },
     {

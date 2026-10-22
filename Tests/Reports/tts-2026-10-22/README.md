@@ -211,3 +211,132 @@ model. Twelve TTS lifecycle tests and a real fake-RPC-worker stop/join/cleanup t
 The reference worker declares concurrent decoder load; it does not establish the production
 microphone/AEC/EOU/turn path or recognition accuracy under physical overlap. Ephemeral health
 markers replace atomically without fsync; results/receipts retain durable save-before-delete.
+
+
+### Physical output follow-up and collector repair (22 October, continuing)
+
+The original signed809 physical attempt under paced cached Parakeet-v3 decoder load is retained in
+`speaker-results/`: Apple completed30/30 warm trials (median170.940ms, empirical p95272.869ms).
+Phonon was0/31 qualified; Pocket/Kokoro/Qwen were disk-admission skips. These are not a complete
+five-engine physical ranking. Both processes joined; each owned TTS root and ASR snapshot was removed.
+Existing104 voice cache hashes were pinned before the attempt. Decoder load is not production
+microphone/AEC/EOU/endpoint qualification.
+
+Precise diagnostic reproduction (`speaker-phonon-diagnostic3/`) confirms a collector error:
+Phonon’s first faint rendered sample preceded the microphone’s fixed threshold crossing by more than
+the detector’s arbitrary80ms search window. Correlation was strong, baseline quiet, route stable,
+timestamps present, and microphone peak exceeded threshold. The repaired producer searches the
+correlation-aligned utterance for the first two consecutive10ms microphone windows above
+max(.001RMS,4x baseline), with simultaneous voiced reference. Thresholds/correlation are retained;
+the persistence criterion is explicit. This is threshold-qualified arrival, not human perception.
+The same authored soft-lead control fails the original collector and passes the repair; existing
+maximum-presentation, silent and overflow controls still pass. Timestamp regression is rejected
+rather than entering ordered lookup or unsigned timestamp arithmetic. The subsequent Apple process
+exit-5 is retained; its actual termination cause is not established by this arithmetic control.
+
+`speaker-results-fixed/` retains the second, incomplete attempt: Qwen hit the existing1.5GiB live
+disk stop before a result; its process group was joined and owned model deleted. Three models were
+refused at admission. Apple later exited-5 without a saved native report. No physical medians from
+this attempt are accepted and no default changed. Free space recovered after workload shutdown;
+no user files, shared caches, swap files or another agent’s retained artifacts were deleted.
+
+The diagnostic app is an owned APFS clone of installed809 with ABI-equal targeted app-primary
+repairs, original SDK objects and portable resource getters; package rpath/signature are restored
+before execution. Two earlier diagnostic packaging failures (missing framework rpath) are retained
+in `speaker-phonon-diagnostic{,2}/`; no model loaded. They are not provider failures.
+Qwen benchmark-only stderr now records MLX memory snapshots around loading and each clause to
+investigate pressure before claiming any allocator fix. Production allocator settings are unchanged.
+
+The VOICE-TURN-DETECTION agent reviewed current source/evidence through agent-relay (message
+f823d51e-3466-41bd-9c65-62472de16848). Its existing `04-TTS-AUDIBLE-ALIGNMENT.md` remains the
+contract: preserve original failed cells, one repaired same-binary cohort,30 varied warm trials,
+clear boundaries/percent denominators, quality and actual selected-ASR/AEC/EOU/interruption checks
+before default promotion. English-only model quality and physical double-talk remain open.
+
+
+### Native microphone-clock boundary
+
+The continuous16k observer run was deliberately stopped once its precise diagnostics established
+repeated **regressed microphone host** windows under paced ASR load. Both parent and native ASR
+joined, the failed result/log was saved, and the owned TTS/ASR roots were deleted. No later model
+started. It did not justify accepting earlier rejected pickups. Continuous capture alone did not
+repair the clock boundary; the no-ASR calibration's4/4 pass is a smaller claim.
+
+The observer now requests the hub's native hardware format (48000Hz, mono, noninterleaved Float32)
+through the existing consumer seam; it receives owned copies with the hardware frame's original
+host time. A read-only diagnostic format getter is the only hub addition. Capture/converter/ASR
+production behavior is unchanged. The old16k consumer attached each input timestamp to resampler
+output, which is not the exact boundary requested by this experiment. The underlying converted
+sample/host overlap cause remains open; selecting native observation is a measurement correction,
+not a claimed ASR/capture repair. Under the same ASR decoder load, native-format Apple calibration
+passes4/4, without the clock rejection. The subsequent30-trial cohort is separately retained in
+`speaker-native/` with source/binary/probe pins in `speaker-native-source-pins.json`.
+
+The same native-format Qwen diagnostic (`speaker-native-calibration/qwen.json`) completes without
+a disk stop: first-after-preparation pickup7632.645ms and one qualifying warm pickup3557.724ms.
+Two of three warm requests fail the frozen acoustic threshold/persistence; no warm median or
+ranking is accepted. MLX reports1.689GB active after loading,1.723GB active/0.55GB cache after a
+clause, and4.637GB transient peak during synthesis, distinct from0.965GB peak resident RSS. Its
+allocator's default cache limit is16.32GB, but observed post-clause cache is0.55GB; this does not
+prove a leak or establish cache limit as the allocating cause. No allocator settings or output
+loudness were changed to make a trial pass. The1.698GB temporary model root was removed after
+result persistence and native exit. Pressure can still prevent another admitted run.
+
+Per-model diagnostic disk budgets for existing CoW/precompiled Pocket/Kokoro were refined to
+750MB/500MB above the unchanged2GiB reserve, based on observed full roots454MB/107MB and additional
+296MB/393MB transient allowance. Their old1.5GB blanket admission skips remain recorded. Phonon
+and Qwen budgets and the1.5GiB live process-stop floor are unchanged. Production downloads retain
+4GiB reserve. All13 runner/lifecycle/workload controls pass after this refinement.
+
+
+### Environment admission and baseline diagnostic
+
+The owner confirmed that other sound/audio was playing during these physical runs. Physical
+experiments and the concurrent reference ASR were stopped; both joined and all current owned model
+roots were deleted. No audible default is chosen from this noisy-room cohort. The owner was asked
+whether a quiet10–15minute interval is now available; physical work waits for that condition while
+code/report/publication work continues. Earlier Apple171ms (30/30 by the original collector) and
+299ms calibration values remain historical exploratory outputs, **not current native-clock
+qualification**. The public calibration record is amended topartial/superseded.
+
+The new native48k cohort has zero timestamp failures for Pocket, Kokoro and Apple. Warm acoustic
+qualification is27/30,26/30 and28/30 respectively. Rejected requests are retained, not replaced by
+survivor-only medians. Phonon and Qwen's later30-request cells were refused at disk admission.
+Qwen's separate native3-warm calibration has1/3 qualified; its complete four requests and MLX
+snapshots remain available. Generated-PCM medians from the earlier five-model experiment remain
+valid for their distinct synthesis boundary.
+
+A baseline-contamination hypothesis was checked without changing grading. `speaker-baseline-diagnostic/`
+logs the whole baseline, its most recent500ms, and the number of delivered clock windows predating
+probe creation. Recent RMS was as high or higher in the observed failures (for example whole.00681,
+recent.00703; another whole.00431,recent.00490). Thus discarding an early prefix would not explain or
+repair this noisy-room attempt. No baseline, SNR or persistence threshold was loosened. The authored
+`output-baseline-tail-original.json` demonstrates a possible earlier-tail false refusal, but is an
+open diagnostic case, not a claimed native producer fix or a maintained passing regression.
+
+Pinned Phonon diagnostic preparation now budgets1GB above the same2GiB reserve: observed compiled
+roots323.7MB plus137.1MB archive leave >539MB additional transient allowance. This arithmetic is
+not a measured transient high-water trace. The actual free-disk1.5GiB stop stays active; production
+retains4GiB reserve plus1.5GB preparation allowance. The original stricter refusals remain in evidence.
+Task-owned diagnostic executable copies now use APFS CoW as well as model snapshots, avoiding an
+unnecessary second full executable allocation. No unrelated caches, user data or recordings were swept.
+
+
+### Follow-up handoff and publication
+
+The latest diagnostic executable passes `--selftest-tts-source` (actual muted output graph;
+`speaker-source-final.log`), and all13 model-free runner controls pass. No microphone or audible
+playback was required for this final source check. `owner-cache-speaker-preservation.json` confirms
+all104 existing voice files are unchanged; the three voice preferences and installed809 executable
+are also unchanged. `speaker-final-disk-installed.json` records about5.6GiB available at handoff;
+free space fluctuates as the OS reclaims pressure. No broad user/cache/swap cleanup was performed.
+The useful owned diagnostic app and18MB reference probe are retained for the pending quiet retry;
+temporary TTS model roots and ASR snapshots have been deleted by their joined runners.
+
+The five `*-speaker-output` registry records deliberately contain no warm acoustic median. The
+comparison page displays complete earlier first-generated-PCM values with their own speed/size
+percentage denominators, and explicit incomplete/not-run physical results. This is publication of
+partial evidence, not a completed audible ranking. The current source makes the Settings speed
+label explicit as “Audio ready”; installed809 already has all five choices, serial preparation and
+comparison percentages, but this follow-up label/collector source is not yet installed there.
+The owner’s Pocket/Alba default remains pending a valid physical comparison and roadmap acceptance.

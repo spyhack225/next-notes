@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "id": "2026-10-22-tts-pocket-speaker-output",
+  "title": "Pocket: native speaker-output experiment",
+  "date": "2026-10-22",
+  "category": "tts",
+  "status": "partial",
+  "scope": "Actual production playback backing with native48k mono microphone observation under paced native Parakeet-v3 decoder load. Threshold-qualified arrival, not human perception or full-turn latency.",
+  "summary": "27/30 warm pickups qualified. No acoustic median or fastest-default decision accepted. Background audio was present; all attempts and refusals remain retained.",
+  "environment": {
+    "hardware": "Apple M3 MacBook Air,16GB RAM,256GB storage",
+    "os": "Version 27.2 (Build 26B5091g)",
+    "workload": "Paced cached native Parakeet-v3 authored English prefixes,400ms then1s updates; decoder load, not production mic/AEC/EOU integration. Other room/audio sound present.",
+    "cold_warm": "One separate first-after-prepare request; 30 completed varied warm requests, cycling five English phrases. No voice-quality inference.",
+    "audio_route": "Built-in speakers/microphone; native48000Hz mono float32. Source gain0.75. Hardware output38%,input51%,unmuted retained from setup; not audited at each trial boundary.",
+    "power_thermal": "Not continuously sampled or controlled."
+  },
+  "provenance": {
+    "binary_sha256": "5dec9acbe7b5c0c97f26f14aaf5e139d6f123908d99699bea6a9109550c3aa91",
+    "model_revision": "FluidAudio/PocketTTS-int8/alba",
+    "command": "Tools/tts_compare.py --speaker-output --trials 30 --workload-ready <reference-ASR-ready-file>; Qwen retained diagnostic uses --trials 3. Exact source, binary/probe pins and original attempts are linked in the report.",
+    "grader": "Native host timestamps; two consecutive10ms windows above max(.001RMS,4x room baseline), >=.75 rendered/microphone envelope correlation, strict timestamps/callbacktokens/route/drop gates. No survivor-only acoustic medians."
+  },
+  "metrics": [
+    {
+      "name": "Attempted warm microphone trials",
+      "value": 30,
+      "unit": "trials",
+      "boundary": "Completed warm requests in the retained native report; admission refusals have zero.",
+      "samples": 30,
+      "aggregation": "count"
+    },
+    {
+      "name": "Qualified warm microphone trials",
+      "value": 27,
+      "unit": "trials",
+      "boundary": "Requests passing frozen clock/room/correlation/onset/route gates; not an engine quality score.",
+      "samples": 30,
+      "aggregation": "count"
+    },
+    {
+      "name": "Warm first non-silent render",
+      "value": 140.9545,
+      "unit": "ms",
+      "boundary": "Text request \u2192 actual post-gain render timestamp",
+      "samples": 30,
+      "aggregation": "median"
+    },
+    {
+      "name": "Warm estimated presentation",
+      "value": 142.49616666666665,
+      "unit": "ms",
+      "boundary": "Render timestamp + queried output-node maximum presentation estimate; not observed sound.",
+      "samples": 30,
+      "aggregation": "median"
+    }
+  ],
+  "limitations": [
+    "Background audio prevents a qualified quiet-room ranking; incomplete results do not change the default.",
+    "Microphone pickup is threshold-dependent and includes acoustic/input timing; it is not human perceptual onset.",
+    "Render and queried presentation estimates are separate component boundaries and do not substitute for physical output.",
+    "Global utterance-envelope correlation does not independently prove every earliest transient belongs to the utterance; click/cough, route/format and double-talk controls remain open.",
+    "Five English phrases, one route; no general language/voice-quality or production full-duplex/EOU acceptance.",
+    "Timestamp regressions in the earlier converted16k collector are retained as superseded evidence; this report uses the native-format observer."
+  ],
+  "sources": [
+    "Tests/Reports/tts-2026-10-22/speaker-native/pocket.json",
+    "Tests/Reports/tts-2026-10-22/speaker-native/summary.json",
+    "Tests/Reports/tts-2026-10-22/README.md",
+    "Tests/Reports/tts-2026-10-22/speaker-native-source-pins.json"
+  ],
+  "publication": {
+    "approved": true,
+    "reviewed_by": "Codex TTS: reviewed aggregate-only partial scope; no audio, transcript, private task data or host context in public fields",
+    "reviewed_on": "2026-10-22"
+  }
+}

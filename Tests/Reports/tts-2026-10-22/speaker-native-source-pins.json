@@ -1,0 +1,18 @@
+{
+  "binarySHA256": "5dec9acbe7b5c0c97f26f14aaf5e139d6f123908d99699bea6a9109550c3aa91",
+  "sourceSHA256": {
+    "Sources/NextNotes/Agent/Speech/AgentPCMRenderer.swift": "3062c90f34af600c23990e8157f7ea175bf67be3b0690e91387fb0df2f64f726",
+    "Sources/NextNotes/Agent/Speech/NativeAgentVoice.swift": "17f9ac313dc940e4cbad9d1089405374cb0132316e00139dc9aa46af4325e9ee",
+    "Sources/NextNotes/Agent/Speech/TTSFirstAudioBenchmark.swift": "34694aaf00216b6d7c4a76bbbf99d215b4e74985961711a9b85d5048f1a7ea5d",
+    "Sources/NextNotes/Agent/Speech/TTSOutputProbe.swift": "0f2271685288cbfb56cbda871d4a6f05c28bc1e863fc02ab7cd6a21d7c18703c",
+    "Sources/NextNotes/Agent/Speech/NativeVoiceAssets.swift": "9926c359b88e51ac855b4994985b6bc7eca43e142083ad2670e7014d1e1882bf",
+    "Sources/NextNotes/Agent/Speech/RealtimePCMReferenceRing.swift": "9c30f8441c29b7b31a0ce45ab0c265c4518d3c4921964a331dd4278acc63d88b",
+    "Sources/NextNotes/Core/AudioCaptureHub.swift": "6d6748f0b7b5d1849c8ee4662c46e65784f987caaa01dfb2d2dee8950c74dc72"
+  },
+  "runnerSHA256": "a69b636079c726f6109c2da1735be7d72b655e66be4a8fb7cff385c44986f0bf",
+  "ASRProbeSHA256": "84e25e37e7c5a5f86ebf2cb2286ec7e92c205e75cbb16402644a15cebced2aab",
+  "nativeInput": "48000Hz mono float32, noninterleaved; no converter on observer subscriber",
+  "cohort": "speaker-native",
+  "boundary": "request to threshold-qualified correlated speaker-to-microphone pickup; not human perceptual onset",
+  "microphone": "one continuous shared-hub subscription per child; no raw audio saved"
+}

@@ -1,0 +1,162 @@
+{
+  "cleanupVerified": true,
+  "elapsedSeconds": 18.1722176669864,
+  "engine": "apple",
+  "exitCode": 0,
+  "freeBytesAfterCleanup": 4882415616,
+  "freeBytesBefore": 4934729728,
+  "measurement": {
+    "engine": "apple",
+    "generatedAt": "2026-10-22T20:42:23Z",
+    "macOS": "Version 27.2 (Build 26B5091g)",
+    "memoryBytes": 17179869184,
+    "model": "AVSpeechSynthesizer/system-default",
+    "notes": [
+      "Actual production playback backings; only the selected adapter's model is loaded in this child.",
+      "firstPCMms is absent from the speaker-output schema; native render and estimated presentation are separate from correlated microphone pickup.",
+      "Microphone energy envelopes are retained only in memory; no raw microphone audio is saved. Acoustic detection uses 10 ms windows, 4x room baseline/0.001 RMS threshold and >=0.75 envelope correlation.",
+      "One first-after-prepare trial plus paced, varied warm phrases. Component output experiment, not speech-end/ASR/EOU or all-route acceptance."
+    ],
+    "peakRSSBytes": 84819968,
+    "preparationMs": 150.755166,
+    "schema": "nextnotes.tts-speaker-output.v1",
+    "text": "I found three matching files. The latest is enclosure version seventeen.",
+    "trials": [
+      {
+        "completionMs": 5968.3112083333335,
+        "index": 0,
+        "output": {
+          "acousticCorrelation": 0.9344277970296997,
+          "acousticOnsetMs": 1246.2627083333332,
+          "baselineRMS": 0.0024273828008423764,
+          "callerToken": 1,
+          "captureWindows": 595,
+          "estimatedPresentationMs": 1181.7590833333334,
+          "firstRenderedHost": 12680906254913,
+          "firstRenderedMs": 1180.2174166666666,
+          "firstRenderedOrigin": "mixer-3622867328552005518-epoch-0",
+          "presentationLatencyMs": 1.5416666666666667,
+          "qualified": true,
+          "reason": "Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only.",
+          "referenceWindows": 471,
+          "renderOrigins": [
+            "mixer-3622867328552005518-epoch-0"
+          ],
+          "requestHost": 12680877929695,
+          "route": [
+            90,
+            83
+          ]
+        },
+        "phase": "first-after-prepare",
+        "spokenText": "I found three matching files. The latest is enclosure version seventeen."
+      },
+      {
+        "completionMs": 2750.9745,
+        "index": 1,
+        "output": {
+          "acousticCorrelation": 0.9057895373121505,
+          "acousticOnsetMs": 300.32404166666663,
+          "baselineRMS": 0.0038014716554707864,
+          "callerToken": 2,
+          "captureWindows": 274,
+          "estimatedPresentationMs": 141.8598333333333,
+          "firstRenderedHost": 12681042479859,
+          "firstRenderedMs": 140.31816666666666,
+          "firstRenderedOrigin": "mixer-3622867328552005518-epoch-2",
+          "presentationLatencyMs": 1.5416666666666667,
+          "qualified": true,
+          "reason": "Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only.",
+          "referenceWindows": 251,
+          "renderOrigins": [
+            "mixer-3622867328552005518-epoch-2"
+          ],
+          "requestHost": 12681039112223,
+          "route": [
+            90,
+            83
+          ]
+        },
+        "phase": "warm",
+        "spokenText": "Your next meeting starts in fifteen minutes."
+      },
+      {
+        "completionMs": 2705.610625,
+        "index": 2,
+        "output": {
+          "acousticCorrelation": 0.8887840623076687,
+          "acousticOnsetMs": 803.670875,
+          "baselineRMS": 0.0033791336255445644,
+          "callerToken": 3,
+          "captureWindows": 264,
+          "estimatedPresentationMs": 122.00954166666668,
+          "firstRenderedHost": 12681125923128,
+          "firstRenderedMs": 120.467875,
+          "firstRenderedOrigin": "mixer-3622867328552005518-epoch-4",
+          "presentationLatencyMs": 1.5416666666666667,
+          "qualified": true,
+          "reason": "Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only.",
+          "referenceWindows": 241,
+          "renderOrigins": [
+            "mixer-3622867328552005518-epoch-4"
+          ],
+          "requestHost": 12681123031899,
+          "route": [
+            90,
+            83
+          ]
+        },
+        "phase": "warm",
+        "spokenText": "I saved the notes and found the latest version."
+      },
+      {
+        "completionMs": 2284.437625,
+        "index": 3,
+        "output": {
+          "acousticCorrelation": 0.9219774270798536,
+          "acousticOnsetMs": 189.02458333333334,
+          "baselineRMS": 0.0016121586428187954,
+          "callerToken": 4,
+          "captureWindows": 218,
+          "estimatedPresentationMs": 100.83120833333334,
+          "firstRenderedHost": 12681208326359,
+          "firstRenderedMs": 99.28954166666666,
+          "firstRenderedOrigin": "mixer-3622867328552005518-epoch-6",
+          "presentationLatencyMs": 1.5416666666666667,
+          "qualified": true,
+          "reason": "Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only.",
+          "referenceWindows": 211,
+          "renderOrigins": [
+            "mixer-3622867328552005518-epoch-6"
+          ],
+          "requestHost": 12681205943410,
+          "route": [
+            90,
+            83
+          ]
+        },
+        "phase": "warm",
+        "spokenText": "Yes, that works for tomorrow."
+      }
+    ]
+  },
+  "referenceASRAfter": {
+    "active": true,
+    "lastResponseMonotonic": 528385.032627208,
+    "responses": 27,
+    "scope": "Cached native Parakeet v3; authored English prefixes at 400ms then one-second updates. Concurrent decoder load, not production mic/EOU/full-duplex acceptance.",
+    "workerPID": 925
+  },
+  "referenceASRBefore": {
+    "active": true,
+    "lastResponseMonotonic": 528367.717507166,
+    "responses": 8,
+    "scope": "Cached native Parakeet v3; authored English prefixes at 400ms then one-second updates. Concurrent decoder load, not production mic/EOU/full-duplex acceptance.",
+    "workerPID": 925
+  },
+  "status": "measured",
+  "temporaryLogicalBytesBeforeCleanup": 5226,
+  "timingBoundary": "microphone-pickup",
+  "warmMedianMs": 300.32404166666663,
+  "warmP95Ms": 803.670875
+}

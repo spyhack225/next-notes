@@ -1,0 +1,43 @@
+{
+  "activeMachineClaims": [],
+  "assessed": "pass",
+  "coverage": {
+    "disk": "measured",
+    "load": "measured",
+    "swap": "measured"
+  },
+  "freeGb": 6.621925354003906,
+  "kind": "preflight",
+  "load": 4.62,
+  "measurements": {
+    "freeGb": {
+      "error": null,
+      "source": "df -Pk Tests/Reports/tts-2026-10-22/speaker-phonon-diagnostic",
+      "timestamp": "2026-10-22T20:17:00.365Z",
+      "value": 6.621925354003906
+    },
+    "load": {
+      "error": null,
+      "source": "sysctl vm.loadavg",
+      "timestamp": "2026-10-22T20:17:00.336Z",
+      "value": 4.62
+    },
+    "swapGb": {
+      "error": null,
+      "source": "sysctl vm.swapusage",
+      "timestamp": "2026-10-22T20:17:00.334Z",
+      "value": 8.92669921875
+    }
+  },
+  "mode": "permissive",
+  "ok": true,
+  "path": "Tests/Reports/tts-2026-10-22/speaker-phonon-diagnostic",
+  "reasons": [],
+  "require": [
+    "swap",
+    "load",
+    "disk"
+  ],
+  "swapGb": 8.92669921875,
+  "unknown": []
+}

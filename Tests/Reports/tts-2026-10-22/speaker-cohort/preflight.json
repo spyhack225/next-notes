@@ -1,0 +1,43 @@
+{
+  "activeMachineClaims": [],
+  "assessed": "pass",
+  "coverage": {
+    "disk": "measured",
+    "load": "measured",
+    "swap": "measured"
+  },
+  "freeGb": 3.6760902404785156,
+  "kind": "preflight",
+  "load": 3.75,
+  "measurements": {
+    "freeGb": {
+      "error": null,
+      "source": "df -Pk Tests/Reports/tts-2026-10-22/speaker-cohort",
+      "timestamp": "2026-10-22T20:25:59.738Z",
+      "value": 3.6760902404785156
+    },
+    "load": {
+      "error": null,
+      "source": "sysctl vm.loadavg",
+      "timestamp": "2026-10-22T20:25:59.736Z",
+      "value": 3.75
+    },
+    "swapGb": {
+      "error": null,
+      "source": "sysctl vm.swapusage",
+      "timestamp": "2026-10-22T20:25:59.734Z",
+      "value": 10.92669921875
+    }
+  },
+  "mode": "permissive",
+  "ok": true,
+  "path": "Tests/Reports/tts-2026-10-22/speaker-cohort",
+  "reasons": [],
+  "require": [
+    "swap",
+    "load",
+    "disk"
+  ],
+  "swapGb": 10.92669921875,
+  "unknown": []
+}

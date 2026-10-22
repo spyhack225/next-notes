@@ -1,0 +1,21 @@
+{
+  "binarySHA256": "86e202a003036c32d6141cc63ac71e97e620371e18e4cdaa4f306e23d3734776",
+  "sourceSHA256": {
+    "TTSOutputProbe.swift": "0f2271685288cbfb56cbda871d4a6f05c28bc1e863fc02ab7cd6a21d7c18703c",
+    "TTSFirstAudioBenchmark.swift": "71f0476922414b149f039db921c7a858ed4f4276af23bd48bcd88fc4281ddef7",
+    "NativeAgentVoice.swift": "17f9ac313dc940e4cbad9d1089405374cb0132316e00139dc9aa46af4325e9ee",
+    "NativeVoiceAssets.swift": "9926c359b88e51ac855b4994985b6bc7eca43e142083ad2670e7014d1e1882bf",
+    "AgentPCMRenderer.swift": "3062c90f34af600c23990e8157f7ea175bf67be3b0690e91387fb0df2f64f726",
+    "RealtimePCMReferenceRing.swift": "9c30f8441c29b7b31a0ce45ab0c265c4518d3c4921964a331dd4278acc63d88b"
+  },
+  "runnerSHA256": "a69b636079c726f6109c2da1735be7d72b655e66be4a8fb7cff385c44986f0bf",
+  "probeSHA256": "84e25e37e7c5a5f86ebf2cb2286ec7e92c205e75cbb16402644a15cebced2aab",
+  "micMode": "one continuous hub subscription per model process; quiet baseline per utterance; no raw audio saved",
+  "cohort": "speaker-continuous",
+  "priorAttemptsRetained": [
+    "speaker-results",
+    "speaker-results-fixed",
+    "speaker-cohort",
+    "speaker-cohort-cached"
+  ]
+}

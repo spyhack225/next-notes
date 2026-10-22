@@ -255,29 +255,48 @@ enum TTSFirstAudioBenchmark {
         guard AVCaptureDevice.authorizationStatus(for: .audio) == .authorized else {
             throw BenchmarkError.preparation("Microphone permission is required for measured speaker pickup.")
         }
-        let format = AgentPCMRenderer.sourceFormat
+        let format = AudioCaptureHub.shared.nativeInputFormatForDiagnostics
+        guard format.sampleRate > 0, format.channelCount > 0 else { throw BenchmarkError.playback }
+        FileHandle.standardError.write(Data("TTS_NATIVE_INPUT rate=\(format.sampleRate) channels=\(format.channelCount) interleaved=\(format.isInterleaved)\n".utf8))
         let phrases = [text, "Your next meeting starts in fifteen minutes.",
             "I saved the notes and found the latest version.", "Yes, that works for tomorrow.",
             "There are three items to review before Friday."]
         var rows: [Trial] = []
+        // A warm voice conversation keeps its microphone running between replies.
+        // Reopening capture for every sample measures ADC/graph startup instead.
+        let currentProbe = Mutex<TTSOutputProbe?>(nil)
+        let seat = AudioCaptureHub.Consumer.client(UUID())
+        try AudioCaptureHub.shared.subscribe(seat, outputFormat: format,
+            onBuffer: { chunk in currentProbe.withLock { $0 }?.captured(chunk) },
+            onOverflow: { _ in currentProbe.withLock { $0 }?.dropped() })
+        defer {
+            currentProbe.withLock { $0 = nil }
+            TTSOutputProbe.install(nil)
+            AudioCaptureHub.shared.unsubscribe(seat)
+        }
         for index in 0...count {
             let probe = TTSOutputProbe()
-            let seat = AudioCaptureHub.Consumer.client(UUID())
-            try AudioCaptureHub.shared.subscribe(seat, outputFormat: format,
-                onBuffer: { probe.captured($0) }, onOverflow: { _ in probe.dropped() })
+            currentProbe.withLock { $0 = probe }
             TTSOutputProbe.install(probe)
-            var finished = false, failed = false
-            if let apple = backing as? AVSpeechBacking { apple.onUtteranceFinished = { _ in finished = true } }
+            var started = false, finished = false, failed = false
+            let expectedToken = UInt64(index + 1)
+            if let apple = backing as? AVSpeechBacking {
+                apple.onUtteranceStarted = { token in if token == expectedToken { started = true } else { probe.dropped() } }
+                apple.onUtteranceFinished = { token in if token == expectedToken { finished = true } else { probe.dropped() } }
+            }
             if let source = backing as? PocketSourceSpeechBacking {
-                source.onUtteranceFinished = { _ in finished = true }
+                source.onUtteranceStarted = { token in if token == expectedToken { started = true } else { probe.dropped() } }
+                source.onUtteranceFinished = { token in if token == expectedToken { finished = true } else { probe.dropped() } }
                 source.onFailure = { _,_,_ in failed = true }
             }
             if let pocket = backing as? PocketSpeechBacking {
-                pocket.onUtteranceFinished = { _ in finished = true }
+                pocket.onUtteranceStarted = { token in if token == expectedToken { started = true } else { probe.dropped() } }
+                pocket.onUtteranceFinished = { token in if token == expectedToken { finished = true } else { probe.dropped() } }
                 pocket.onFailure = { _,_,_ in failed = true }
             }
             if let kokoro = backing as? KokoroSpeechBacking {
-                kokoro.onUtteranceFinished = { _ in finished = true }
+                kokoro.onUtteranceStarted = { token in if token == expectedToken { started = true } else { probe.dropped() } }
+                kokoro.onUtteranceFinished = { token in if token == expectedToken { finished = true } else { probe.dropped() } }
                 kokoro.onFailure = { _,_,_ in failed = true }
             }
             do {
@@ -290,22 +309,23 @@ enum TTSFirstAudioBenchmark {
                 backing.speak(spoken, volume: 0.75, token: UInt64(index + 1))
                 let deadline = Date().addingTimeInterval(60)
                 while !finished && !failed && Date() < deadline { try await Task.sleep(for: .milliseconds(10)) }
-                guard finished, !failed else { throw BenchmarkError.playback }
+                guard started, finished, !failed else { throw BenchmarkError.playback }
                 // Capture delivery can trail native drain by one input block.
                 try await Task.sleep(for: .milliseconds(100))
                 let evidence = probe.finish(request: request, route: route)
+                FileHandle.standardError.write(Data("TTS_TRIAL \(index) qualified=\(evidence.qualified) onset=\(evidence.acousticOnsetMs.map(String.init(describing:)) ?? "none") \(evidence.reason)\n".utf8))
                 rows.append(Trial(index: index, phase: index == 0 ? "first-after-prepare" : "warm",
                     firstPCMms: nil, completionMs: (Double(mach_absolute_time()) - Double(request))
                         / Double(AVAudioTime.hostTime(forSeconds: 1)) * 1_000,
                     frames: nil, audioSeconds: nil, output: evidence, spokenText: spoken))
             } catch {
-                backing.stop(); TTSOutputProbe.install(nil); AudioCaptureHub.shared.unsubscribe(seat)
+                backing.stop(); currentProbe.withLock { $0 = nil }; TTSOutputProbe.install(nil)
                 (backing as? PocketSourceSpeechBacking)?.endSession()
                 throw error
             }
             backing.stop()
+            currentProbe.withLock { $0 = nil }
             TTSOutputProbe.install(nil)
-            AudioCaptureHub.shared.unsubscribe(seat)
         }
         (backing as? PocketSourceSpeechBacking)?.endSession()
         return rows

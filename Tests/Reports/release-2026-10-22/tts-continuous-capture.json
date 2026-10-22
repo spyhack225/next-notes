@@ -1,0 +1,18 @@
+{
+  "exit": 0,
+  "seconds": 1.8725199589971453,
+  "source_revision": "b2bc0e3c6176e13fde1361147b66de34de6f4782",
+  "source_sha256": "71f0476922414b149f039db921c7a858ed4f4276af23bd48bcd88fc4281ddef7",
+  "source_unchanged": true,
+  "full_source_context": 900,
+  "original_object_sha256": "0514aab6e5e97bdd2054d8b75b881280cb4f71758df4b6f32a1d4c7da9453599",
+  "fixed_object_sha256": "e18518a3ba5c5203023f518e15d169afb71b417d381813461fe7b2bc8f0ec4ad",
+  "controller_global_symbols_equal": true,
+  "primary_source": "Sources/NextNotes/Agent/Speech/TTSFirstAudioBenchmark.swift",
+  "symbol_scope": "TTSFirstAudioBenchmark",
+  "original_symbol_count": 104,
+  "fixed_symbol_count": 104,
+  "missing_symbols": [],
+  "added_symbols": [],
+  "compiler_command_sha256": "bf392e895944f7c09d11f0c9ffc7a4506e9bd651c74baebffede6547523dcbaa"
+}
