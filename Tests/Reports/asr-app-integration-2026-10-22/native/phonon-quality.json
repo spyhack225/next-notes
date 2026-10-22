@@ -1,0 +1,47 @@
+{
+  "scope": "Literal parent-scored WER on actual app final;20EN/22FR authored reference words, number formatting can count as errors; not general accuracy.",
+  "trials": [
+    {
+      "language": "en",
+      "trial": 0,
+      "fixture": {
+        "path": "Tests/Fixtures/meetings/en-dialogue.wav",
+        "source_sha256": "5e4c00f6c703bd20e49bd8e7470703776311169e3ba0aff8d8fd247bd875f203",
+        "samples": 116000,
+        "seconds": 7.25,
+        "reference": "Okay so the plan is to ship the installer on Friday. Right, and then we write the release note together."
+      },
+      "edits": 0,
+      "reference_words": 20,
+      "wer": 0.0
+    },
+    {
+      "language": "en",
+      "trial": 1,
+      "fixture": {
+        "path": "Tests/Fixtures/meetings/en-dialogue.wav",
+        "source_sha256": "5e4c00f6c703bd20e49bd8e7470703776311169e3ba0aff8d8fd247bd875f203",
+        "samples": 116000,
+        "seconds": 7.25,
+        "reference": "Okay so the plan is to ship the installer on Friday. Right, and then we write the release note together."
+      },
+      "edits": 0,
+      "reference_words": 20,
+      "wer": 0.0
+    },
+    {
+      "language": "en",
+      "trial": 2,
+      "fixture": {
+        "path": "Tests/Fixtures/meetings/en-dialogue.wav",
+        "source_sha256": "5e4c00f6c703bd20e49bd8e7470703776311169e3ba0aff8d8fd247bd875f203",
+        "samples": 116000,
+        "seconds": 7.25,
+        "reference": "Okay so the plan is to ship the installer on Friday. Right, and then we write the release note together."
+      },
+      "edits": 0,
+      "reference_words": 20,
+      "wer": 0.0
+    }
+  ]
+}

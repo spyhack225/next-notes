@@ -1,0 +1,7 @@
+APP_ASR ultra en/0 first=507 final=71 ms
+APP_ASR ultra en/1 first=468 final=56 ms
+APP_ASR ultra en/2 first=462 final=94 ms
+APP_ASR ultra fr/0 first=496 final=145 ms
+APP_ASR ultra fr/1 first=481 final=80 ms
+APP_ASR ultra fr/2 first=469 final=81 ms
+ASR_LIVE_OK

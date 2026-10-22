@@ -1,0 +1,7 @@
+APP_ASR parakeet en/0 first=497 final=61 ms
+APP_ASR parakeet en/1 first=507 final=66 ms
+APP_ASR parakeet en/2 first=515 final=71 ms
+APP_ASR parakeet fr/0 first=494 final=83 ms
+APP_ASR parakeet fr/1 first=479 final=92 ms
+APP_ASR parakeet fr/2 first=507 final=76 ms
+ASR_LIVE_OK

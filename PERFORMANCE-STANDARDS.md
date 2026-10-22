@@ -11,6 +11,10 @@ The [benchmark hub](Benchmarks/README.md) indexes model and workflow evidence ac
 
 ## Reference machine and acceptance
 
+22 October 2026 signed-app ASR follow-up: [eight-model application integration](Tests/Reports/asr-app-integration-2026-10-22/README.md). All8 optimized/signed candidate model cases pass45 warmed paced holds through the actual factory, segmented engine, scheduler and transcript consumer, with SDK fallback bundles hidden. Median English first/final: Phonon424/5ms; Voz448/28ms. French: Whistle417/38ms (fastest raw), Voz450/58ms. Owner-requested Automatic chooses Phonon for English and Voz for Multi; existing manual choices survive. Current Whistle short French wording matches Voz; earlier longer-fixture accuracy remains separate, not current full-app quality. Phonon cold preparation223s excludes later warm-shape passes. Physical mic/UI/polish/insertion/concurrent voice remain unverified. Original native usage attribution fails2, repaired same case passes0. All candidate children joined and owned models/HTTP files deleted,6.1GiB free at handoff; one candidate at a time. Process context now records only PID/CPU/RSS because macOS comm can include arguments. Release installation/publication remain separately verified actions.
+
+Earlier pressure-limited ASR attempt (superseded by the later serial/app reports):
+
 22 October 2026 ASR live work: [paced latency and Whistle CoreML audit](Tests/Reports/asr-live-latency-2026-10-22/README.md).
 Whistle alone completed three paced short holds per language under memory/storage pressure: median first provisional text
 421 ms EN / 420 ms FR; native commitment 2,443 / 1,439 ms; release-to-ASR-final 68 / 86 ms. This excludes physical capture,

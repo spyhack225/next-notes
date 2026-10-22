@@ -1,0 +1,178 @@
+[
+  {
+    "model": "phonon",
+    "appSHA256": "32a35bfcf9220dbdc87734466ccd63b9df1dc0a5e2488d1541b7e08a4207c8ed",
+    "command": [
+      "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-36587/Next Notes.app/Contents/MacOS/NextNotes",
+      "--selftest-asr-live",
+      "--asr-model",
+      "phonon",
+      "--asr-fixtures",
+      "/Users/sergekadjo/Documents/Claude/Projects/next-notes/Tests/Fixtures/meetings",
+      "--asr-output",
+      "/Users/sergekadjo/Documents/Claude/Projects/next-notes/Tests/Reports/asr-app-integration-2026-10-22/native/phonon.json"
+    ],
+    "exit": 0,
+    "seconds": 247.7549362090067,
+    "stopped": null,
+    "freeBefore": 4915306496,
+    "freeAfter": 5882986496,
+    "ownedFailureRootsDeleted": [],
+    "childJoined": true,
+    "httpTemporaryDeleted": true
+  },
+  {
+    "model": "voz",
+    "appSHA256": "32a35bfcf9220dbdc87734466ccd63b9df1dc0a5e2488d1541b7e08a4207c8ed",
+    "command": [
+      "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-36587/Next Notes.app/Contents/MacOS/NextNotes",
+      "--selftest-asr-live",
+      "--asr-model",
+      "voz",
+      "--asr-fixtures",
+      "/Users/sergekadjo/Documents/Claude/Projects/next-notes/Tests/Fixtures/meetings",
+      "--asr-output",
+      "/Users/sergekadjo/Documents/Claude/Projects/next-notes/Tests/Reports/asr-app-integration-2026-10-22/native/voz.json"
+    ],
+    "exit": 0,
+    "seconds": 60.39363633398898,
+    "stopped": null,
+    "freeBefore": 5882834944,
+    "freeAfter": 5415755776,
+    "ownedFailureRootsDeleted": [],
+    "childJoined": true,
+    "httpTemporaryDeleted": true
+  },
+  {
+    "model": "parakeet",
+    "appSHA256": "32a35bfcf9220dbdc87734466ccd63b9df1dc0a5e2488d1541b7e08a4207c8ed",
+    "command": [
+      "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-36587/Next Notes.app/Contents/MacOS/NextNotes",
+      "--selftest-asr-live",
+      "--asr-model",
+      "parakeet",
+      "--asr-fixtures",
+      "/Users/sergekadjo/Documents/Claude/Projects/next-notes/Tests/Fixtures/meetings",
+      "--asr-output",
+      "/Users/sergekadjo/Documents/Claude/Projects/next-notes/Tests/Reports/asr-app-integration-2026-10-22/native/parakeet.json"
+    ],
+    "exit": 0,
+    "seconds": 65.53648804198019,
+    "stopped": null,
+    "freeBefore": 5415665664,
+    "freeAfter": 4914106368,
+    "ownedFailureRootsDeleted": [],
+    "childJoined": true,
+    "httpTemporaryDeleted": true
+  },
+  {
+    "model": "whistle",
+    "appSHA256": "32a35bfcf9220dbdc87734466ccd63b9df1dc0a5e2488d1541b7e08a4207c8ed",
+    "command": [
+      "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-36587/Next Notes.app/Contents/MacOS/NextNotes",
+      "--selftest-asr-live",
+      "--asr-model",
+      "whistle",
+      "--asr-fixtures",
+      "/Users/sergekadjo/Documents/Claude/Projects/next-notes/Tests/Fixtures/meetings",
+      "--asr-output",
+      "/Users/sergekadjo/Documents/Claude/Projects/next-notes/Tests/Reports/asr-app-integration-2026-10-22/native/whistle.json"
+    ],
+    "exit": 0,
+    "seconds": 43.939010708010755,
+    "stopped": null,
+    "freeBefore": 4913942528,
+    "freeAfter": 7049289728,
+    "ownedFailureRootsDeleted": [],
+    "childJoined": true,
+    "httpTemporaryDeleted": true
+  },
+  {
+    "model": "redux",
+    "appSHA256": "32a35bfcf9220dbdc87734466ccd63b9df1dc0a5e2488d1541b7e08a4207c8ed",
+    "command": [
+      "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-36587/Next Notes.app/Contents/MacOS/NextNotes",
+      "--selftest-asr-live",
+      "--asr-model",
+      "redux",
+      "--asr-fixtures",
+      "/Users/sergekadjo/Documents/Claude/Projects/next-notes/Tests/Fixtures/meetings",
+      "--asr-output",
+      "/Users/sergekadjo/Documents/Claude/Projects/next-notes/Tests/Reports/asr-app-integration-2026-10-22/native/redux.json"
+    ],
+    "exit": 0,
+    "seconds": 58.00397291703848,
+    "stopped": null,
+    "freeBefore": 7058776064,
+    "freeAfter": 5884592128,
+    "ownedFailureRootsDeleted": [],
+    "childJoined": true,
+    "httpTemporaryDeleted": true
+  },
+  {
+    "model": "ultra",
+    "appSHA256": "32a35bfcf9220dbdc87734466ccd63b9df1dc0a5e2488d1541b7e08a4207c8ed",
+    "command": [
+      "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-36587/Next Notes.app/Contents/MacOS/NextNotes",
+      "--selftest-asr-live",
+      "--asr-model",
+      "ultra",
+      "--asr-fixtures",
+      "/Users/sergekadjo/Documents/Claude/Projects/next-notes/Tests/Fixtures/meetings",
+      "--asr-output",
+      "/Users/sergekadjo/Documents/Claude/Projects/next-notes/Tests/Reports/asr-app-integration-2026-10-22/native/ultra.json"
+    ],
+    "exit": 0,
+    "seconds": 66.6014531669789,
+    "stopped": null,
+    "freeBefore": 5894217728,
+    "freeAfter": 6543175680,
+    "ownedFailureRootsDeleted": [],
+    "childJoined": true,
+    "httpTemporaryDeleted": true
+  },
+  {
+    "model": "qwen-06b",
+    "appSHA256": "32a35bfcf9220dbdc87734466ccd63b9df1dc0a5e2488d1541b7e08a4207c8ed",
+    "command": [
+      "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-36587/Next Notes.app/Contents/MacOS/NextNotes",
+      "--selftest-asr-live",
+      "--asr-model",
+      "qwen-06b",
+      "--asr-fixtures",
+      "/Users/sergekadjo/Documents/Claude/Projects/next-notes/Tests/Fixtures/meetings",
+      "--asr-output",
+      "/Users/sergekadjo/Documents/Claude/Projects/next-notes/Tests/Reports/asr-app-integration-2026-10-22/native/qwen-06b.json"
+    ],
+    "exit": 0,
+    "seconds": 60.49505024997052,
+    "stopped": null,
+    "freeBefore": 6543015936,
+    "freeAfter": 6515724288,
+    "ownedFailureRootsDeleted": [],
+    "childJoined": true,
+    "httpTemporaryDeleted": true
+  },
+  {
+    "model": "qwen-17b",
+    "appSHA256": "32a35bfcf9220dbdc87734466ccd63b9df1dc0a5e2488d1541b7e08a4207c8ed",
+    "command": [
+      "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-36587/Next Notes.app/Contents/MacOS/NextNotes",
+      "--selftest-asr-live",
+      "--asr-model",
+      "qwen-17b",
+      "--asr-fixtures",
+      "/Users/sergekadjo/Documents/Claude/Projects/next-notes/Tests/Fixtures/meetings",
+      "--asr-output",
+      "/Users/sergekadjo/Documents/Claude/Projects/next-notes/Tests/Reports/asr-app-integration-2026-10-22/native/qwen-17b.json"
+    ],
+    "exit": 0,
+    "seconds": 66.54968395800097,
+    "stopped": null,
+    "freeBefore": 6515523584,
+    "freeAfter": 6514589696,
+    "ownedFailureRootsDeleted": [],
+    "childJoined": true,
+    "httpTemporaryDeleted": true
+  }
+]

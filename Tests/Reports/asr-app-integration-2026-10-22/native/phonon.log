@@ -1,0 +1,4 @@
+APP_ASR phonon en/0 first=424 final=14 ms
+APP_ASR phonon en/1 first=425 final=5 ms
+APP_ASR phonon en/2 first=419 final=0 ms
+ASR_LIVE_OK

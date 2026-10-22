@@ -1,0 +1,7 @@
+APP_ASR voz en/0 first=451 final=53 ms
+APP_ASR voz en/1 first=431 final=28 ms
+APP_ASR voz en/2 first=447 final=27 ms
+APP_ASR voz fr/0 first=456 final=60 ms
+APP_ASR voz fr/1 first=450 final=55 ms
+APP_ASR voz fr/2 first=443 final=57 ms
+ASR_LIVE_OK

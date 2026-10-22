@@ -1,10 +1,12 @@
 import { useMemo, useState } from "react";
 import data from "./generated/benchmarks.json";
 import asrModels from "../../shared/asr-models.json";
+import asrAppLatency from "../../shared/asr-app-latency.json";
 import { REPO_URL } from "./lib/motion";
 
 const areas = ["all", "asr", "dictation", "meetings", "agent", "voice", "tts", "workflows", "models"];
 const labels: Record<string, string> = { all: "All areas", asr: "Speech recognition", tts: "Speech synthesis" };
+const asrAppRows = asrModels.map(model => ({ ...model, live: asrAppLatency.find(run => run.id === model.id)?.languages }));
 
 export default function Benchmarks() {
   const [language, setLanguage] = useState<"en" | "fr">("en");
@@ -31,18 +33,20 @@ export default function Benchmarks() {
         </header>
         <section id="asr-comparison" aria-labelledby="asr-heading">
           <h2 id="asr-heading">Speech model comparison</h2>
-          <p>Speed-first choices: Phonon for English, Voz for Multi. Multi supports 25 European languages; French is the second language measured here.</p>
+          <p>App defaults: Phonon for English, Voz for Multi. Voz supports 25 European languages; English and French were tested here. You can choose any compatible model in Settings.</p>
           <label>Test language <select value={language} onChange={event => setLanguage(event.target.value as "en" | "fr")}><option value="en">English</option><option value="fr">French</option></select></label>
           <div className="benchmark-table-scroll"><table>
-            <caption>M3 Mac · median of three warmed paced holds · sorted by time after release</caption>
-            <thead><tr><th scope="col">Model</th><th scope="col">First words</th><th scope="col">After release</th><th scope="col">Size</th><th scope="col">Words correct in our test</th></tr></thead>
-            <tbody>{[...asrModels].sort((a,b) => (a.languages[language]?.finalMs ?? Infinity) - (b.languages[language]?.finalMs ?? Infinity)).map(model => {
-              const measured = model.languages[language];
-              return <tr key={model.id}><th scope="row">{model.name}</th><td>{measured ? `${Math.round(measured.firstMs)} ms` : "English only"}</td><td>{measured ? `${Math.round(measured.finalMs)} ms` : "—"}</td><td>{(model.bytes/1000000).toLocaleString(undefined,{maximumFractionDigits:0})} MB</td><td>{measured ? `${measured.wordAccuracy.toFixed(1)}%` : "—"}</td></tr>;
+            <caption>Signed app on M3 Mac · median of three warmed paced holds · sorted by time after release</caption>
+            <thead><tr><th scope="col">Model</th><th scope="col">First words</th><th scope="col">After release</th><th scope="col">Size</th><th scope="col">Longer test: words correct</th></tr></thead>
+            <tbody>{[...asrAppRows].sort((a,b) => (a.live?.[language]?.finalMs ?? Infinity) - (b.live?.[language]?.finalMs ?? Infinity)).map(model => {
+              const measured = model.live?.[language];
+              const accuracy = model.languages[language]?.wordAccuracy;
+              return <tr key={model.id}><th scope="row">{model.name}</th><td>{measured ? `${Math.round(measured.firstMs)} ms` : "English only"}</td><td>{measured ? `${Math.round(measured.finalMs)} ms` : "—"}</td><td>{(model.bytes/1000000).toLocaleString(undefined,{maximumFractionDigits:0})} MB</td><td>{accuracy !== undefined ? `${accuracy.toFixed(1)}%` : "—"}</td></tr>;
             })}</tbody>
           </table></div>
-          <p className="text-muted-foreground">22 October 2026. First words include a 400 ms initial audio feed, then one-second updates. Finalization starts at release and includes pending inference. These are runtime callbacks, excluding cold loading, microphone, display, cleanup and insertion. Accuracy is 100 × (1 − word error rate) on one separate authored recording: 136 English or 151 French words; number formatting can count as errors. It is not a general accuracy percentage.</p>
-          <p className="text-muted-foreground">Whistle’s provisional French word arrives first, but Voz finishes sooner and made fewer content errors in the short excerpt. Qwen 1.7B scored highest on the French accuracy recording. Each candidate was downloaded, measured and removed before the next.</p>
+          <p className="text-muted-foreground">22 October 2026, signed app build 800. Audio was fed in real time in 20 ms pieces; first words include the app’s 400 ms initial window. Finalization starts at release and includes pending inference. Timings end at the app’s transcript consumer and exclude cold loading, physical microphone, display, cleanup, insertion and concurrent voice. Three trials used one 7.25-second English or 6.65-second French excerpt.</p>
+          <p className="text-muted-foreground">The percentage is from an earlier, separate runtime test on one longer authored recording: 136 English or 151 French words, calculated as 100 × (1 − word error rate). It is not current full-app or general accuracy; number formatting can count as errors. Model size is downloaded artifacts, excluding compilation caches and temporary setup space.</p>
+          <p className="text-muted-foreground">Phonon was fastest for English. Whistle was fastest for French in the app’s short test, where its final wording matched Voz; Voz scored higher in the earlier longer French test. Qwen 1.7B scored highest on that longer French recording. Each candidate was tested and its temporary files removed before the next. Phonon’s first preparation took about 223 seconds; warm speed excludes that setup.</p>
         </section>
         <form className="benchmark-filters" onSubmit={event => event.preventDefault()}>
           <label>Search results<input type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Model or workflow" /></label>

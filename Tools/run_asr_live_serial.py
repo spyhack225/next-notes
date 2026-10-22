@@ -23,7 +23,7 @@ def context():
         "disk_free_bytes": shutil.disk_usage(ROOT).free}
     for name, cmd in [("thermal",["pmset","-g","therm"]),
         ("swap",["sysctl","vm.swapusage"]), ("power",["pmset","-g","batt"]),
-        ("load",["sysctl","vm.loadavg"]), ("processes",["ps","-axo","pid,pcpu,rss,comm"])]:
+        ("load",["sysctl","vm.loadavg"]), ("processes",["ps","-axo","pid,pcpu,rss"])]:
         p = subprocess.run(cmd, capture_output=True, text=True)
         result[name] = p.stdout
     return result

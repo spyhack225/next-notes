@@ -1,0 +1,62 @@
+{
+  "model" : "whistle",
+  "preparationMS" : 1412.8187500173226,
+  "scope" : "Optimized app factory\/segmented engine\/scheduler\/transcript consumer,20ms paced PCM; excludes physical mic\/UI\/polish\/insertion\/concurrent voice. Warm shape preparation excluded.",
+  "temporaryAssetsDeleted" : true,
+  "trials" : [
+    {
+      "capturedSamples" : 116000,
+      "firstWordMS" : 418.893541675061,
+      "index" : 0,
+      "language" : "en",
+      "partialCount" : 9,
+      "releaseToFinalMS" : 22.599458345212042,
+      "text" : "Okeso the plan is to ship the installer on Friday. Right, and then we write the release note together."
+    },
+    {
+      "capturedSamples" : 116000,
+      "firstWordMS" : 425.6380833685398,
+      "index" : 1,
+      "language" : "en",
+      "partialCount" : 9,
+      "releaseToFinalMS" : 9.212666656821966,
+      "text" : "Okeso the plan is to ship the installer on Friday. Right, and then we write the release note together."
+    },
+    {
+      "capturedSamples" : 116000,
+      "firstWordMS" : 431.5446250257082,
+      "index" : 2,
+      "language" : "en",
+      "partialCount" : 9,
+      "releaseToFinalMS" : 2.5288333417847753,
+      "text" : "Okeso the plan is to ship the installer on Friday. Right, and then we write the release note together."
+    },
+    {
+      "capturedSamples" : 106400,
+      "firstWordMS" : 417.31120832264423,
+      "index" : 0,
+      "language" : "fr",
+      "partialCount" : 9,
+      "releaseToFinalMS" : 86.20695827994496,
+      "text" : "Donc on garde le budget à 40 000 pour le moment. Oui, c'est ça, je t'envoie le devis demain matin."
+    },
+    {
+      "capturedSamples" : 106400,
+      "firstWordMS" : 413.72962499735877,
+      "index" : 1,
+      "language" : "fr",
+      "partialCount" : 9,
+      "releaseToFinalMS" : 26.987333316355944,
+      "text" : "Donc on garde le budget à 40 000 pour le moment. Oui, c'est ça, je t'envoie le devis demain matin."
+    },
+    {
+      "capturedSamples" : 106400,
+      "firstWordMS" : 422.1980000147596,
+      "index" : 2,
+      "language" : "fr",
+      "partialCount" : 9,
+      "releaseToFinalMS" : 38.294416677672416,
+      "text" : "Donc on garde le budget à 40 000 pour le moment. Oui, c'est ça, je t'envoie le devis demain matin."
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+Generated tokenizer.json at: /Users/sergekadjo/Library/Caches/NextNotesASRBench/app-D134C9D0-DCF0-462F-AF46-3B512E21CBDB/qwen-17b/tokenizer.json
+APP_ASR qwen-17b en/0 first=793 final=643 ms
+APP_ASR qwen-17b en/1 first=597 final=644 ms
+APP_ASR qwen-17b en/2 first=636 final=594 ms
+APP_ASR qwen-17b fr/0 first=657 final=992 ms
+APP_ASR qwen-17b fr/1 first=677 final=986 ms
+APP_ASR qwen-17b fr/2 first=677 final=941 ms
+ASR_LIVE_OK

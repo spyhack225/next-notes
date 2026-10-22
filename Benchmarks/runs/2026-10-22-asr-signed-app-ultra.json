@@ -1,0 +1,75 @@
+{
+  "schema_version": 1,
+  "id": "2026-10-22-asr-signed-app-ultra",
+  "title": "Parakeet Ultra (CoreML) signed-app live ASR",
+  "date": "2026-10-22",
+  "category": "asr",
+  "status": "measured",
+  "scope": "Signed optimized application factory, segmented engine, scheduler and transcript consumer;20ms paced authored PCM",
+  "summary": "Three warmed holds per supported language; each model downloaded, tested, unloaded and removed before the next. English-only Phonon; English and French for the others.",
+  "environment": {
+    "hardware": "Apple M3,16GB RAM",
+    "os": "macOS27.2 build26B5091g",
+    "workload": "Normal desktop apps; coordinated serial window with no concurrent native build/model job. Existing swap/desktop pressure retained in per-model context; no concurrent voice qualification.",
+    "power_thermal": "Per-model power/thermal/load/swap observations retained. Cold preparation is separate from warmed timing."
+  },
+  "provenance": {
+    "model": "Pinned artifacts in shared/asr-artifacts.json; existing owner v3 cache",
+    "source": "Signed build800,0.2.24; executableSHA25632a35bfcf9220dbdc87734466ccd63b9df1dc0a5e2488d1541b7e08a4207c8ed; ASR source frozen761f42ad plus DictationController attributionaf77cb3a; SDK fallback bundles hidden",
+    "command": "Tools/asr_app_compare.py; exact per-model argv in native/runner.json",
+    "source_report": "Tests/Reports/asr-app-integration-2026-10-22/native"
+  },
+  "metrics": [
+    {
+      "name": "EN First provisional text",
+      "value": 468.7494166428223,
+      "unit": "ms",
+      "boundary": "Paced PCM start to first nonempty provisional transcript at app consumer; includes initial400ms audio window",
+      "samples": 3,
+      "aggregation": "median of three warmed holds; raw min/max retained"
+    },
+    {
+      "name": "EN Release to ASR final",
+      "value": 71.5277916751802,
+      "unit": "ms",
+      "boundary": "Actual release after final paced buffer to final app transcript consumer; includes pending inference; excludes microphone/UI/polish/insertion",
+      "samples": 3,
+      "aggregation": "median of three warmed holds; raw min/max retained"
+    },
+    {
+      "name": "FR First provisional text",
+      "value": 481.4142083050683,
+      "unit": "ms",
+      "boundary": "Paced PCM start to first nonempty provisional transcript at app consumer; includes initial400ms audio window",
+      "samples": 3,
+      "aggregation": "median of three warmed holds; raw min/max retained"
+    },
+    {
+      "name": "FR Release to ASR final",
+      "value": 81.5941666951403,
+      "unit": "ms",
+      "boundary": "Actual release after final paced buffer to final app transcript consumer; includes pending inference; excludes microphone/UI/polish/insertion",
+      "samples": 3,
+      "aggregation": "median of three warmed holds; raw min/max retained"
+    }
+  ],
+  "limitations": [
+    "One7.25sEnglish/6.65sFrench authored excerpt, three timing trials; not a broad corpus or percentile estimate.",
+    "Physical microphone, visible Settings/display, cleanup, insertion, concurrent ASR+voice and M2 hardware are unverified.",
+    "First readable provisional text may change; this is not stable-word commitment. Warm timings exclude download, cold graph compilation/load and shape warmup.",
+    "Short app final-word scoring is separate from the earlier136/151-word runtime accuracy fixture. Do not relabel earlier accuracy as current full-app quality.",
+    "Default selection is the owner-requested PhononEnglish/VozMulti setting; Whistle has the lowest raw French latency in this short app run."
+  ],
+  "sources": [
+    "Tests/Reports/asr-app-integration-2026-10-22/README.md",
+    "Tests/Reports/asr-app-integration-2026-10-22/native/ultra.json",
+    "Tests/Reports/asr-app-integration-2026-10-22/native/ultra-quality.json",
+    "Tests/Reports/asr-app-integration-2026-10-22/native/ultra-context.json",
+    "Tests/Reports/asr-app-integration-2026-10-22/native/runner.json"
+  ],
+  "publication": {
+    "approved": true,
+    "reviewed_by": "Codex; owner requested benchmark page publication; public fields reviewed for privacy and measurement scope",
+    "reviewed_on": "2026-10-22"
+  }
+}

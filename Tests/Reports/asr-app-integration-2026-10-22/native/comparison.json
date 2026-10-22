@@ -1,0 +1,396 @@
+{
+  "scope": "Actual signed-app paced consumer timings; prior full-recording accuracy is separate",
+  "rows": [
+    {
+      "id": "parakeet-v3",
+      "model": "parakeet",
+      "languages": {
+        "en": {
+          "firstMs": 507.6617499580607,
+          "firstMsRange": [
+            497.83050001133233,
+            515.1865416555665
+          ],
+          "finalMs": 66.26170838717371,
+          "finalMsRange": [
+            61.668666661717,
+            71.81758334627375
+          ],
+          "shortLiteralWER": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "fr": {
+          "firstMs": 494.38995838863775,
+          "firstMsRange": [
+            479.3637917027809,
+            507.00833334121853
+          ],
+          "finalMs": 83.00708333263174,
+          "finalMsRange": [
+            76.38820837019011,
+            92.9195000207983
+          ],
+          "shortLiteralWER": [
+            0.09090909090909091,
+            0.09090909090909091,
+            0.09090909090909091
+          ]
+        }
+      },
+      "preparationMS": 22483.04479167564,
+      "memory": {
+        "samples": 64,
+        "peak_footprint_bytes": 69370936,
+        "peak_resident_bytes": 501366784,
+        "swap_start_mb": 9200.88,
+        "swap_end_mb": 9168.88,
+        "swap_peak_mb": 9200.88,
+        "swap_growth_mb": -32.0,
+        "swap_over_abort_limit": false
+      }
+    },
+    {
+      "id": "whistle",
+      "model": "whistle",
+      "languages": {
+        "en": {
+          "firstMs": 425.6380833685398,
+          "firstMsRange": [
+            418.893541675061,
+            431.5446250257082
+          ],
+          "finalMs": 9.212666656821966,
+          "finalMsRange": [
+            2.5288333417847753,
+            22.599458345212042
+          ],
+          "shortLiteralWER": [
+            0.1,
+            0.1,
+            0.1
+          ]
+        },
+        "fr": {
+          "firstMs": 417.31120832264423,
+          "firstMsRange": [
+            413.72962499735877,
+            422.1980000147596
+          ],
+          "finalMs": 38.294416677672416,
+          "finalMsRange": [
+            26.987333316355944,
+            86.20695827994496
+          ],
+          "shortLiteralWER": [
+            0.09090909090909091,
+            0.09090909090909091,
+            0.09090909090909091
+          ]
+        }
+      },
+      "preparationMS": 1412.8187500173226,
+      "memory": {
+        "samples": 43,
+        "peak_footprint_bytes": 53363480,
+        "peak_resident_bytes": 98140160,
+        "swap_start_mb": 9168.88,
+        "swap_end_mb": 9168.88,
+        "swap_peak_mb": 9168.88,
+        "swap_growth_mb": 0.0,
+        "swap_over_abort_limit": false
+      }
+    },
+    {
+      "id": "redux",
+      "model": "redux",
+      "languages": {
+        "en": {
+          "firstMs": 590.8773749833927,
+          "firstMsRange": [
+            586.9356666808017,
+            598.7517083412968
+          ],
+          "finalMs": 133.84191662771627,
+          "finalMsRange": [
+            126.95258331950754,
+            151.17870829999447
+          ],
+          "shortLiteralWER": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "fr": {
+          "firstMs": 582.7102083712816,
+          "firstMsRange": [
+            572.0488333608955,
+            590.3450416517444
+          ],
+          "finalMs": 151.77054167725146,
+          "finalMsRange": [
+            151.61758329486474,
+            155.2787916152738
+          ],
+          "shortLiteralWER": [
+            0.13636363636363635,
+            0.13636363636363635,
+            0.13636363636363635
+          ]
+        }
+      },
+      "preparationMS": 13899.41687497776,
+      "memory": {
+        "samples": 57,
+        "peak_footprint_bytes": 78103536,
+        "peak_resident_bytes": 1310359552,
+        "swap_start_mb": 9168.88,
+        "swap_end_mb": 9152.88,
+        "swap_peak_mb": 9168.88,
+        "swap_growth_mb": -16.0,
+        "swap_over_abort_limit": false
+      }
+    },
+    {
+      "id": "ultra",
+      "model": "ultra",
+      "languages": {
+        "en": {
+          "firstMs": 468.7494166428223,
+          "firstMsRange": [
+            462.9894582903944,
+            507.58229166967794
+          ],
+          "finalMs": 71.5277916751802,
+          "finalMsRange": [
+            56.41345836920664,
+            94.28175003267825
+          ],
+          "shortLiteralWER": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "fr": {
+          "firstMs": 481.4142083050683,
+          "firstMsRange": [
+            469.5009166607633,
+            496.28066667355597
+          ],
+          "finalMs": 81.5941666951403,
+          "finalMsRange": [
+            80.41375002358109,
+            145.21966670872644
+          ],
+          "shortLiteralWER": [
+            0.09090909090909091,
+            0.09090909090909091,
+            0.09090909090909091
+          ]
+        }
+      },
+      "preparationMS": 23281.01054165745,
+      "memory": {
+        "samples": 66,
+        "peak_footprint_bytes": 79496416,
+        "peak_resident_bytes": 701775872,
+        "swap_start_mb": 9152.88,
+        "swap_end_mb": 9104.75,
+        "swap_peak_mb": 9152.88,
+        "swap_growth_mb": -48.1,
+        "swap_over_abort_limit": false
+      }
+    },
+    {
+      "id": "phonon",
+      "model": "phonon",
+      "languages": {
+        "en": {
+          "firstMs": 424.07520837150514,
+          "firstMsRange": [
+            419.5461666677147,
+            425.7784583605826
+          ],
+          "finalMs": 5.254708288703114,
+          "finalMsRange": [
+            0.4474583547562361,
+            14.955708291381598
+          ],
+          "shortLiteralWER": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
+      },
+      "preparationMS": 222900.83066665102,
+      "memory": {
+        "samples": 245,
+        "peak_footprint_bytes": 195020024,
+        "peak_resident_bytes": 494518272,
+        "swap_start_mb": 10594.12,
+        "swap_end_mb": 9208.88,
+        "swap_peak_mb": 10594.12,
+        "swap_growth_mb": -1385.2,
+        "swap_over_abort_limit": false
+      }
+    },
+    {
+      "id": "qwen-06b",
+      "model": "qwen-06b",
+      "languages": {
+        "en": {
+          "firstMs": 541.881958313752,
+          "firstMsRange": [
+            525.6287083029747,
+            567.1157083124854
+          ],
+          "finalMs": 230.1473332918249,
+          "finalMsRange": [
+            201.69499999610707,
+            362.2960833599791
+          ],
+          "shortLiteralWER": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "fr": {
+          "firstMs": 560.7227083528414,
+          "firstMsRange": [
+            541.5402083890513,
+            576.0446666972712
+          ],
+          "finalMs": 328.06658337358385,
+          "finalMsRange": [
+            314.90558333462104,
+            395.2396250097081
+          ],
+          "shortLiteralWER": [
+            0.045454545454545456,
+            0.045454545454545456,
+            0.045454545454545456
+          ]
+        }
+      },
+      "preparationMS": 10602.50812501181,
+      "memory": {
+        "samples": 60,
+        "peak_footprint_bytes": 1675642848,
+        "peak_resident_bytes": 510836736,
+        "swap_start_mb": 9104.75,
+        "swap_end_mb": 9096.75,
+        "swap_peak_mb": 9104.75,
+        "swap_growth_mb": -8.0,
+        "swap_over_abort_limit": false
+      }
+    },
+    {
+      "id": "qwen-17b",
+      "model": "qwen-17b",
+      "languages": {
+        "en": {
+          "firstMs": 636.5525416913442,
+          "firstMsRange": [
+            597.349374962505,
+            793.977499997709
+          ],
+          "finalMs": 643.7757916282862,
+          "finalMsRange": [
+            594.595208298415,
+            644.0680833766237
+          ],
+          "shortLiteralWER": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "fr": {
+          "firstMs": 677.19550000038,
+          "firstMsRange": [
+            657.2330833296292,
+            677.6145833428018
+          ],
+          "finalMs": 986.6442499915138,
+          "finalMsRange": [
+            941.2607499980368,
+            992.1918750042096
+          ],
+          "shortLiteralWER": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
+      },
+      "preparationMS": 16511.359583353624,
+      "memory": {
+        "samples": 66,
+        "peak_footprint_bytes": 2797734648,
+        "peak_resident_bytes": 362889216,
+        "swap_start_mb": 9096.75,
+        "swap_end_mb": 9588.94,
+        "swap_peak_mb": 9588.94,
+        "swap_growth_mb": 492.2,
+        "swap_over_abort_limit": false
+      }
+    },
+    {
+      "id": "voz",
+      "model": "voz",
+      "languages": {
+        "en": {
+          "firstMs": 447.6427499903366,
+          "firstMsRange": [
+            431.5902083180845,
+            451.43579167779535
+          ],
+          "finalMs": 28.010166657622904,
+          "finalMsRange": [
+            27.237458329182118,
+            53.52287500863895
+          ],
+          "shortLiteralWER": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "fr": {
+          "firstMs": 450.2714583068155,
+          "firstMsRange": [
+            443.25391663005576,
+            456.75329165533185
+          ],
+          "finalMs": 57.75437504053116,
+          "finalMsRange": [
+            55.19975000061095,
+            60.82545832032338
+          ],
+          "shortLiteralWER": [
+            0.09090909090909091,
+            0.09090909090909091,
+            0.09090909090909091
+          ]
+        }
+      },
+      "preparationMS": 17545.266208355315,
+      "memory": {
+        "samples": 59,
+        "peak_footprint_bytes": 92062896,
+        "peak_resident_bytes": 431259648,
+        "swap_start_mb": 9208.88,
+        "swap_end_mb": 9200.88,
+        "swap_peak_mb": 9208.88,
+        "swap_growth_mb": -8.0,
+        "swap_over_abort_limit": false
+      }
+    }
+  ]
+}

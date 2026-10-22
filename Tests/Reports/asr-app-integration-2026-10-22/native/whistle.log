@@ -1,0 +1,7 @@
+APP_ASR whistle en/0 first=418 final=22 ms
+APP_ASR whistle en/1 first=425 final=9 ms
+APP_ASR whistle en/2 first=431 final=2 ms
+APP_ASR whistle fr/0 first=417 final=86 ms
+APP_ASR whistle fr/1 first=413 final=26 ms
+APP_ASR whistle fr/2 first=422 final=38 ms
+ASR_LIVE_OK

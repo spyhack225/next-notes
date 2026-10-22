@@ -38,3 +38,28 @@ Diagnostic parent refinement after the source checkpoint: actual failure leaves 
 The signed candidate's existing Usage D2 case fails two assertions: its injected non-Apple engine is labelled Apple instead of the legacy Parakeet identity. The producer correction shares the existing currentEngineChoice helper: concrete Apple/Parakeet engines retain their actual identities, an injected unknown engine retains the old identity, and an outcome before any engine exists retains the configured selection. Original failure is retained in the release candidate's usage-log.log. Commits10fef9db/af77cb3a await the same native regression on the rebuilt candidate; no passing verdict is inferred from source inspection.
 
 The parent now reuses Scripts/model-bench.py's Mach physical-footprint/RSS/swap sampler and the prior serial ASR context collector for per-model power, thermal, load, disk and process observations. All14 ASR harness tests pass. Owned disposable SDK source extraction/probes were removed after checking for open users (temporary-source-cleanup.json); vendored sources/pins and owner caches remain.
+
+## Signed application results — completed
+
+All8 candidates pass45 timed holds (three per supported language), on locally signed optimized0.2.24 build800, executable SHA256 `32a35bfcf9220dbdc87734466ccd63b9df1dc0a5e2488d1541b7e08a4207c8ed`. The five developer-cache SDK resource bundles were hidden throughout, proving packaged resources work for the actual model consumers. Original Usage D2 fails2 assertions; repaired same native flag passes0, with ASR Settings/stream/dictation-segmentation green. Later release metadata-isolation changes are separate and require their own checks.
+
+| Model | English first / final ms | French first / final ms | Download + cold preparation s |
+|---|---:|---:|---:|
+| Parakeet v3 (cached FluidAudio) | 507.7 / 66.3 | 494.4 / 83.0 | 22.5 |
+| Whistle | 425.6 / 9.2 | 417.3 / 38.3 | 1.4 |
+| Parakeet Redux (CoreML) | 590.9 / 133.8 | 582.7 / 151.8 | 13.9 |
+| Parakeet Ultra (CoreML) | 468.7 / 71.5 | 481.4 / 81.6 | 23.3 |
+| Phonon-2 (CoreML) | 424.1 / 5.3 | English only | 222.9 |
+| Qwen3-ASR 0.6B (4-bit MLX) | 541.9 / 230.1 | 560.7 / 328.1 | 10.6 |
+| Qwen3-ASR 1.7B (4-bit MLX) | 636.6 / 643.8 | 677.2 / 986.6 | 16.5 |
+| Voz (CoreML CLI) | 447.6 / 28.0 | 450.3 / 57.8 | 17.5 |
+
+Medians of three warm trials; raw min/max, exact final texts, literal WER and parent-scored fixture hashes are retained in native/. First provisional text can change. Preparation includes download/compilation/load and excludes subsequent explicit shape warmups; Phonon223s is a cold setup observation, not a warm latency.
+
+Phonon is fastest in English on this short app fixture. Whistle is fastest in French on raw latency. The owner-requested Multi default remains Voz. Current Whistle French final wording matches Voz: both have only the same literal numeral-formatting edits in this short hold. The earlier separate151-word runtime fixture scored Voz88.1% versus Whistle80.1%; that earlier quality measurement must not be relabelled as current full-app quality. Qwen1.7B led that longer French fixture at96.0%, with greater latency/storage. No broad-corpus accuracy grade follows from these authored fixtures.
+
+All8 parent rows confirm child exit0/join, temporary model deletion and HTTP temporary deletion. No app-* or app-http-* roots remain; 6.1GiB free at handoff. The existing owner v3 cache is reused and never removed. All newly saved process inventories retain PID/CPU/RSS only: macOS comm can contain process-set arguments, so title columns were removed before staging and the shared collector now requests no command column.
+
+Physical microphone/display, Settings clicks, cleanup/insertion and simultaneous ASR+voice remain outside these replay tests. Native Settings access was unavailable earlier; no physical dictation claim is made. The public comparison uses these app timings and labels the separate earlier accuracy fixture. Eight reviewed signed-app public manifests are registered separately from the prior runtime records.
+
+App-process footprint was sampled once per second across preparation and replay: Qwen0.6B peaked1.68GB, Qwen1.7B2.80GB (decimal). These exclude Apple/ANE compiler service peaks and do not measure whole-machine model memory. Existing swap was roughly9–10.6GB; the large Qwen case added about492MB. The figures are pressure-context observations, not pristine or concurrent-voice qualification.

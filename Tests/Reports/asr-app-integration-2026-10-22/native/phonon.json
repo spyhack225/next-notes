@@ -1,0 +1,35 @@
+{
+  "model" : "phonon",
+  "preparationMS" : 222900.83066665102,
+  "scope" : "Optimized app factory\/segmented engine\/scheduler\/transcript consumer,20ms paced PCM; excludes physical mic\/UI\/polish\/insertion\/concurrent voice. Warm shape preparation excluded.",
+  "temporaryAssetsDeleted" : true,
+  "trials" : [
+    {
+      "capturedSamples" : 116000,
+      "firstWordMS" : 424.07520837150514,
+      "index" : 0,
+      "language" : "en",
+      "partialCount" : 9,
+      "releaseToFinalMS" : 14.955708291381598,
+      "text" : "Okay, so the plan is to ship the installer on Friday. Right, and then we write the release note together."
+    },
+    {
+      "capturedSamples" : 116000,
+      "firstWordMS" : 425.7784583605826,
+      "index" : 1,
+      "language" : "en",
+      "partialCount" : 9,
+      "releaseToFinalMS" : 5.254708288703114,
+      "text" : "Okay, so the plan is to ship the installer on Friday. Right, and then we write the release note together."
+    },
+    {
+      "capturedSamples" : 116000,
+      "firstWordMS" : 419.5461666677147,
+      "index" : 2,
+      "language" : "en",
+      "partialCount" : 10,
+      "releaseToFinalMS" : 0.4474583547562361,
+      "text" : "Okay, so the plan is to ship the installer on Friday. Right, and then we write the release note together."
+    }
+  ]
+}

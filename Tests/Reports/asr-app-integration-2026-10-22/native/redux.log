@@ -1,0 +1,7 @@
+APP_ASR redux en/0 first=598 final=151 ms
+APP_ASR redux en/1 first=590 final=133 ms
+APP_ASR redux en/2 first=586 final=126 ms
+APP_ASR redux fr/0 first=582 final=151 ms
+APP_ASR redux fr/1 first=572 final=155 ms
+APP_ASR redux fr/2 first=590 final=151 ms
+ASR_LIVE_OK
