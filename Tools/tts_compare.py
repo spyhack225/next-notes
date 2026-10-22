@@ -111,6 +111,8 @@ def run_one(app, engine, output, trials, text, timeout):
             elif "reason" not in result:
                 result["reason"] = "Engine failed; see its log. No timing result was accepted."
         result["elapsedSeconds"] = time.monotonic() - started
+        result["temporaryLogicalBytesBeforeCleanup"] = sum(
+            path.stat().st_size for path in root.rglob("*") if path.is_file())
         # Save even failures/refusals before deleting anything; a save failure
         # retains the model directory for recovery and halts the whole comparison.
         save(result_path, result)
@@ -125,6 +127,7 @@ def run_one(app, engine, output, trials, text, timeout):
     if root.exists():
         raise RuntimeError(f"Cleanup failed: {root}; refusing to start the next engine")
     result["cleanupVerified"] = True
+    result["freeBytesAfterCleanup"] = shutil.disk_usage(output).free
     save(result_path, result)
     print(f"{engine}: {result['status']}; temporary model removed", flush=True)
     return result
@@ -141,17 +144,22 @@ def main():
     parser.add_argument("--workload", default="Standalone; ASR-plus-voice reference workload is unqualified")
     parser.add_argument("--preflight-only", action="store_true", help="Save resource/claim state without loading or downloading anything")
     parser.add_argument("--relay-owner", help="Reuse this agent's existing heavy claim; never release another owner's claim")
+    parser.add_argument("--max-swap-gb", type=float, default=8,
+                        help="Record an explicit diagnostic admission limit; actual free disk is still monitored")
     options = parser.parse_args()
     engines = options.engines.split(",")
     if not set(engines) <= set(ENGINES) or len(set(engines)) != len(engines):
         parser.error("Choose distinct engines from " + ",".join(ENGINES))
     if not 1 <= options.trials <= 100 or not 0 < options.timeout <= 3600:
         parser.error("Trials must be 1–100 and timeout must be 0–3600 seconds")
+    if not math.isfinite(options.max_swap_gb) or options.max_swap_gb <= 0:
+        parser.error("Swap admission limit must be positive and finite")
     options.app = options.app.resolve(strict=True)
     options.output.mkdir(parents=True, exist_ok=True)
     if any((options.output / (engine + ".json")).exists() for engine in engines):
         parser.error("Use a fresh output folder to preserve previous results")
-    gate = subprocess.run(["agent-relay", "gate", "--min-free-gb", "2", "--path", str(options.output)], text=True, capture_output=True, check=False)
+    gate = subprocess.run(["agent-relay", "gate", "--min-free-gb", "2", "--max-swap-gb",
+                           str(options.max_swap_gb), "--path", str(options.output)], text=True, capture_output=True, check=False)
     assessment = json.loads(gate.stdout)
     peers = subprocess.run(["agent-relay", "agents", "--active"], text=True, capture_output=True, check=False)
     claims = json.loads(peers.stdout).get("claims", [])

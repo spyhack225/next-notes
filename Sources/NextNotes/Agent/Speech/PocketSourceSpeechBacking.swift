@@ -141,7 +141,8 @@ final class PocketSourceSpeechBacking: AgentSpeechBacking {
                         frameSamples.withUnsafeBufferPointer { source in
                             samples.update(from: source.baseAddress!.advanced(by: offset), count: count)
                         }
-                        try await renderer.enqueue(buffer, token: rendererToken, volume: volume)
+                        try await renderer.enqueue(buffer, token: rendererToken, volume: volume,
+                                                   initiallyPaused: pausedForListening)
                         enqueuedBuffers += 1
                     }
                 }

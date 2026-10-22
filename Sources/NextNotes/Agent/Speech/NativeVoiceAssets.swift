@@ -82,7 +82,9 @@ enum NativeVoiceAssets {
             try await cloneCachedDirectory(from: existing, to: qwenDirectory)
         }
         let missing = qwenFiles.filter { !isPresent($0) }.reduce(Int64(0)) { $0 + $1.expectedBytes }
-        guard ModelDownloader.availableDiskBytes(at: root) - missing >= downloadReserve else {
+        // An installed voice requires no download space. Keep the reserve at
+        // the actual download boundary rather than refusing offline loading.
+        guard missing == 0 || ModelDownloader.availableDiskBytes(at: root) - missing >= downloadReserve else {
             throw NativeVoiceError.space
         }
         let total = Double(qwenFiles.reduce(Int64(0)) { $0 + $1.expectedBytes })

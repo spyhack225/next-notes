@@ -87,10 +87,11 @@ pathlib.Path(arg("--tts-report")).write_text(json.dumps({
     def test_disk_pressure_after_start_stops_and_cleans_model(self):
         initial = type("Disk", (), {"free": 10**12})()
         pressured = type("Disk", (), {"free": 100})()
-        with patch.object(bench.shutil, "disk_usage", side_effect=[initial, pressured]):
+        with patch.object(bench.shutil, "disk_usage", side_effect=[initial, pressured, initial]):
             result = self.run_engine(text="timeout", timeout=5)
         self.assertIn("Disk guard", result["reason"])
         self.assertTrue(result["cleanupVerified"])
+        self.assertEqual(result["freeBytesAfterCleanup"], initial.free)
 
     def test_no_disk_means_no_child_or_download(self):
         with patch.object(bench.shutil, "disk_usage", return_value=type("Disk", (), {"free": 100})()), \

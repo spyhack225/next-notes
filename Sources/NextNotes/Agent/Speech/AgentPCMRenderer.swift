@@ -327,7 +327,7 @@ final class AgentPCMRenderer {
     /// Lossless bounded backpressure. The producer suspends while the render
     /// FIFO is full; stop invalidates the token and wakes it with cancellation.
     func enqueue(_ buffer: AVAudioPCMBuffer, token requested: UInt64,
-                 volume: Float) async throws {
+                 volume: Float, initiallyPaused: Bool = false) async throws {
         guard requested != 0 else { throw CancellationError() }
         // Recover an idle graph for the next clause. An active clause whose
         // graph stopped is failed instead of replaying any acknowledged PCM.
@@ -347,6 +347,10 @@ final class AgentPCMRenderer {
             finished = false
             firstDelivered = false
             drainDelivered = false
+            // A listening pause may precede the first PCM and therefore the
+            // renderer token. Publish that state before the render callback
+            // can acknowledge this generation and consume its first samples.
+            core.paused.store(initiallyPaused, ordering: .releasing)
             core.requestedToken.store(requested, ordering: .releasing)
             let deadline = Date().addingTimeInterval(2)
             while core.renderedToken.load(ordering: .acquiring) != requested {
@@ -376,7 +380,10 @@ final class AgentPCMRenderer {
         let gain = max(0, min(1, volume))
         let count = Int(input.frameLength)
         var offset = 0
-        let writeDeadline = Date().addingTimeInterval(2)
+        let clock = ContinuousClock()
+        var previousCheck = clock.now
+        var previouslyPaused = core.paused.load(ordering: .acquiring)
+        var activeWriteTime = Duration.zero
         // Scaling occurs off the render thread. Only the actual pulled,
         // already-scaled samples enter the reference FIFO.
         for index in 0..<count { samples[index] *= gain }
@@ -387,9 +394,16 @@ final class AgentPCMRenderer {
                 throw CancellationError()
             }
             if let failure = failure(for: core) { throw failure }
-            if !core.paused.load(ordering: .acquiring) {
+            let paused = core.paused.load(ordering: .acquiring)
+            let now = clock.now
+            if !paused && !previouslyPaused {
+                activeWriteTime += previousCheck.duration(to: now)
+            }
+            previousCheck = now
+            previouslyPaused = paused
+            if !paused {
                 guard engine?.isRunning == true else { throw RendererError.graphStopped }
-                guard Date() < writeDeadline else { throw RendererError.renderTimeout }
+                guard activeWriteTime < .seconds(2) else { throw RendererError.renderTimeout }
             }
             let accepted = core.output.write(samples.advanced(by: offset), count: count - offset)
             offset += accepted

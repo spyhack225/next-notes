@@ -84,7 +84,6 @@ enum TTSFirstAudioBenchmark {
         var schema = "nextnotes.tts-first-pcm.v1"
         let engine: String
         let model: String
-        var nativeVoice: NativeAgentVoice?
         let macOS: String
         let memoryBytes: UInt64
         let peakRSSBytes: Int64
@@ -133,13 +132,15 @@ enum TTSFirstAudioBenchmark {
         typealias Render = @MainActor (String, @escaping @MainActor (Int, Double, UInt64) -> Void) async throws -> Void
         let render: Render
         let model: String
+        var nativeVoice: NativeAgentVoice?
         var notes = ["Measures request to first non-empty generated PCM, not speaker output or speech-end-to-answer latency.",
                      "Trial zero is the first synthesis after preparation; later trials are back-to-back warm runs.",
                      "Preparation includes downloading and loading. No microphone or speaker is opened."]
         switch engine {
         case "apple":
             model = "AVSpeechSynthesizer/system-default"
-            render = { text, observe in try await apple(text, observe: observe) }
+            let synthesizer = AVSpeechSynthesizer()
+            render = { text, observe in try await apple(text, synthesizer: synthesizer, observe: observe) }
         case "pocket":
             let cached = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".cache/fluidaudio/Models/pocket-tts")
             try await NativeVoiceAssets.cloneCachedDirectory(from: cached, to: root.appendingPathComponent("Models/pocket-tts"))
@@ -240,8 +241,8 @@ enum TTSFirstAudioBenchmark {
         }
     }
 
-    private static func apple(_ text: String, observe: @escaping @MainActor (Int, Double, UInt64) -> Void) async throws {
-        let synth = AVSpeechSynthesizer()
+    private static func apple(_ text: String, synthesizer synth: AVSpeechSynthesizer,
+                              observe: @escaping @MainActor (Int, Double, UInt64) -> Void) async throws {
         let capture = AppleCapture()
         synth.write(AVSpeechUtterance(string: text)) { capture.accept($0) }
         defer { synth.stopSpeaking(at: .immediate) }
