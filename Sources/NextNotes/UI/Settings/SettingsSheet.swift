@@ -72,9 +72,61 @@ enum SettingsSheet {
                 rendered.append(path.lastPathComponent)
             }
         }
+        // The catch-up screens, which sit below the fold of the Agent pane and in a pane that
+        // needs a finished run to show anything. Same panel, same widths; the fixtures are
+        // injected finished runs, never the owner's.
+        for width in widths {
+            for (name, content) in catchUpPreviews() {
+                guard let png = render(content.background(DS.Color.window), width: width),
+                      (try? png.write(to: root.appendingPathComponent("\(name)-\(Int(width)).png"))) != nil
+                else {
+                    print("SETTINGS_SHEET_FAILED: \(name) at \(Int(width))pt did not render")
+                    return false
+                }
+                rendered.append("\(name)-\(Int(width)).png")
+            }
+        }
         print("SETTINGS_SHEET_OK \(rendered.count) pane(s): \(root.path)")
         for name in rendered { print("  \(name)") }
         return true
+    }
+
+    private static func catchUpPreviews() -> [(String, AnyView)] {
+        let routine = UUID()
+        func library(_ tasks: [AgentTask]) -> CatchUpLibrary {
+            let suite = UserDefaults(suiteName: "NextNotesCatchUpPreview-\(UUID().uuidString)")
+            let library = CatchUpLibrary(
+                tasks: { tasks }, catchUpScheduleIDs: { [routine] in [routine] },
+                fileExists: { _ in true }, measure: { _ in 19 }, defaults: suite)
+            library.reload(announce: false)
+            return library
+        }
+        func run(_ id: String, minutesAgo: Double, title: String, audio: Bool) -> AgentTask {
+            let when = Date().addingTimeInterval(-minutesAgo * 60)
+            return AgentTask(
+                id: id, objective: title, source: AgentTask.scheduledSource, createdAt: when,
+                status: .completed, result: CatchUpPresentationSelfTest.sample,
+                artifacts: audio ? [LongFormRenderer.audioDirectory
+                    .appendingPathComponent("\(id).m4a").absoluteString] : [],
+                scheduleID: routine, finishedAt: when)
+        }
+        let ready = library([
+            run("a", minutesAgo: 4, title: "Your morning catch-up", audio: true),
+            run("b", minutesAgo: 60 * 26, title: "Your afternoon catch-up", audio: true),
+            run("c", minutesAgo: 60 * 50, title: "While you were out", audio: false),
+        ])
+        let preparing = library([run("d", minutesAgo: 2, title: "Your morning catch-up", audio: false)])
+        return [
+            ("catchup-library", AnyView(SettingsPane(tab: .agent) {
+                AgentPaneScroll { CatchUpPaneSection(library: ready) }
+            })),
+            ("catchup-preparing", AnyView(SettingsPane(tab: .agent) {
+                AgentPaneScroll { CatchUpPaneSection(library: preparing) }
+            })),
+            ("catchup-settings", AnyView(SettingsPane(tab: .agent) {
+                Form { CatchUpSettingsSection() }
+            })),
+        ]
     }
 
     /// One pane, laid out and drawn through a real hosting view. `ImageRenderer` is no use

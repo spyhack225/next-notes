@@ -8,7 +8,7 @@ import SwiftUI
 /// never before, and shows the two to four things it is about. The newest one also carries its
 /// closing question as a real button, because that is the next step the Agent suggests.
 struct CatchUpPaneSection: View {
-    @State private var library = CatchUpLibrary.shared
+    var library: CatchUpLibrary = .shared
     @State private var store = ScheduleStore.shared
     @State private var showEarlier = false
 
@@ -22,7 +22,7 @@ struct CatchUpPaneSection: View {
                 let entries = showEarlier ? library.entries : Array(library.entries.prefix(visibleCount))
                 AgentCardGrid(minimum: DS.Size.agentCardMinWidth) {
                     ForEach(entries) { entry in
-                        CatchUpCard(entry: entry)
+                        CatchUpCard(entry: entry, library: library)
                     }
                 }
                 if library.entries.count > visibleCount {
@@ -84,8 +84,8 @@ private extension String {
 /// One catch-up.
 struct CatchUpCard: View {
     let entry: CatchUpEntry
+    var library: CatchUpLibrary = .shared
 
-    @State private var library = CatchUpLibrary.shared
     @State private var player = CatchUpPlayer.shared
     @State private var reading = false
 
