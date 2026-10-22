@@ -683,8 +683,10 @@ extension RealtimeAgent {
                     let stream = await ModelPassRecorder.$current.withValue(recorder) {
                         if voice {
                             return await LatencyCorrelation.$current.withValue(correlation) {
-                                await currentProvider.streamInteractiveConversation(
-                                    system: system, messages: messages, maxTokens: visible)
+                                await LocalThinkingRole.$current.withValue(.off) {
+                                    await currentProvider.streamInteractiveConversation(
+                                        system: system, messages: messages, maxTokens: visible)
+                                }
                             }
                         } else {
                             return await currentProvider.streamConversation(

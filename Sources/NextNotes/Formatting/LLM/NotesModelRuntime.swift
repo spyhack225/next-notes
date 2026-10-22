@@ -871,10 +871,11 @@ actor NotesModelRuntime {
         messages: [LLMChatMessage],
         maxTokens: Int,
         workClass: WorkClass = .background,
-        thinking: LocalThinkingRole = .agent,
+        thinking: LocalThinkingRole? = nil,
         grammar: GBNFGrammar? = nil
     ) -> AsyncThrowingStream<String, Error> {
-        let role = LocalThinkingRole.current ?? thinking
+        // A conversational request explicitly closes thinking even inside work/notes.
+        let role = thinking ?? LocalThinkingRole.current ?? .agent
         return AsyncThrowingStream { continuation in
             let task = Task {
                 do {

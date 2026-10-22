@@ -118,7 +118,7 @@ extension AgentPlannerBackend {
     func stream(
         system: String, messages: [LLMChatMessage], maxTokens: Int, interactive: Bool
     ) async -> AsyncThrowingStream<String, Error> {
-        await LocalThinkingRole.$current.withValue(.agent) {
+        await LocalThinkingRole.$current.withValue(interactive ? .off : .agent) {
             if messages.count == 1, messages[0].role == .user, !interactive {
                 return await provider.stream(
                     system: system, user: messages[0].content, maxTokens: maxTokens)
@@ -138,7 +138,7 @@ extension AgentPlannerBackend {
         system: String, messages: [LLMChatMessage], maxTokens: Int, interactive: Bool,
         grammar: GBNFGrammar
     ) async -> AsyncThrowingStream<String, Error> {
-        await LocalThinkingRole.$current.withValue(.agent) {
+        await LocalThinkingRole.$current.withValue(interactive ? .off : .agent) {
             if messages.count == 1, messages[0].role == .user, !interactive {
                 return await provider.stream(
                     system: system, user: messages[0].content, maxTokens: maxTokens, grammar: grammar)

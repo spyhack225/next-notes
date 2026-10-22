@@ -37,7 +37,7 @@ enum PrefixCacheSelfTest {
     }
 
     static func runSelfTest() async -> Bool {
-        let pure = pureFailures()
+        let pure = pureFailures() + (await thinkingCallerFailures()) + (await thinkingPrecedenceFailures())
         for problem in pure {
             SelfTest.diagnostic("LLM_PREFIX_CACHE_WRONG: \(problem)")
         }
@@ -347,6 +347,105 @@ enum PrefixCacheSelfTest {
                 secondSeconds: stats2.seconds)
         }
         return .failed(failures)
+    }
+
+    /// Captures the role at the actual protocol hop, including providers whose
+    /// interactive default forwards through ordinary completion.
+    private struct ThinkingRoleProbe: LLMProvider {
+        let id = LLMProviderID.appLLM
+        let contextTokens = 2_048
+        var unavailableReason: String? { nil }
+        func countTokens(_ text: String) async throws -> Int { text.count }
+        func complete(system: String, user: String, maxTokens: Int) async throws -> LLMCompletion {
+            .init(text: "\(LocalThinkingRole.current?.tokenLimit ?? -1)", generatedTokens: 1, duration: 0)
+        }
+    }
+
+    private static func thinkingCallerFailures() async -> [String] {
+        let planner = PromptConventionPlanner(provider: ThinkingRoleProbe())
+        let grammar = GBNFGrammar(text: "root ::= \"OK\"")
+        var failures: [String] = []
+        for interactive in [false, true] {
+            for constrained in [false, true] {
+                let stream = await LocalThinkingRole.$current.withValue(.notes) {
+                    if constrained {
+                        return await planner.stream(system: "S", messages: [.init(role: .user, content: "U")],
+                                                    maxTokens: 1, interactive: interactive, grammar: grammar)
+                    }
+                    return await planner.stream(system: "S", messages: [.init(role: .user, content: "U")],
+                                                maxTokens: 1, interactive: interactive)
+                }
+                let actual = await drain(stream)
+                let expected = interactive ? "0" : "512"
+                if actual.error != nil || actual.text != expected {
+                    failures.append("planner role interactive=\(interactive) grammar=\(constrained): \(actual.text), expected \(expected)")
+                }
+            }
+        }
+        return failures
+    }
+
+    /// Explicit installed-file pin only; never adopts a role or downloads a model.
+    /// Native prefill observes the actual runtime and both production planner callers.
+    private static func thinkingPrecedenceFailures() async -> [String] {
+        guard let path = SelfTest.value(after: "--thinking-model") else { return [] }
+        let url = URL(fileURLWithPath: path)
+        guard url.path == path, url.pathExtension.lowercased() == "gguf",
+              url.deletingLastPathComponent().standardizedFileURL == ModelSpec.directory.standardizedFileURL,
+              let bytes = try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize,
+              bytes > 0 else {
+            return ["THINKING_PRECEDENCE_ABSENT: explicit installed GGUF is unavailable"]
+        }
+        let spec = ModelSpec(displayName: "Thinking precedence fixture", fileName: url.lastPathComponent,
+                             url: url, expectedBytes: Int64(bytes), expectedSHA256: nil)
+        let runtime = NotesModelRuntime(spec: spec, gpuLayers: NotesModelRuntime.allGPULayers)
+        let provider = LlamaLLMProvider(runtime: runtime)
+        let planner = PromptConventionPlanner(provider: provider)
+        let system = "Reply with OK."
+        let messages: [LLMChatMessage] = [.init(role: .user, content: "Ready?")]
+        let grammar = GBNFGrammar(text: "root ::= \"OK\"")
+        var failures: [String] = []
+        var offTokens: Int?
+        // Direct interactive calls: absent ambient role, agent and notes.
+        // Planner calls exercise the ordinary and grammar protocol overloads.
+        let cases: [(String, LocalThinkingRole?, Int)] = [
+            ("direct/nil", nil, 0), ("direct/agent", .agent, 0), ("direct/notes", .notes, 0),
+            ("planner/plain", .agent, 1), ("planner/grammar", .notes, 2),
+            ("work/agent", .agent, 3), ("work/notes", .notes, 3),
+        ]
+        for (name, ambient, route) in cases {
+            let stream = await LocalThinkingRole.$current.withValue(ambient) {
+                switch route {
+                case 1:
+                    return await planner.stream(system: system, messages: messages, maxTokens: 1, interactive: true)
+                case 2:
+                    return await planner.stream(system: system, messages: messages, maxTokens: 1, interactive: true, grammar: grammar)
+                case 3:
+                    return await runtime.streamConversation(system: system, messages: messages, maxTokens: 1)
+                default:
+                    return await runtime.streamInteractiveConversation(system: system, messages: messages, maxTokens: 1)
+                }
+            }
+            let result = await drain(stream)
+            if let error = result.error { failures.append("thinking precedence \(name): \(error)") }
+            guard await runtime.family == .minicpm5,
+                  let stats = await runtime.prefillStatsForTesting() else {
+                failures.append("thinking precedence \(name): no MiniCPM native prefill")
+                break
+            }
+            if offTokens == nil { offTokens = stats.promptTokens }
+            SelfTest.diagnostic("THINKING_PREFILL: \(name) prompt=\(stats.promptTokens) off=\(offTokens ?? -1)")
+            if route == 3 {
+                if stats.promptTokens == offTokens {
+                    failures.append("thinking precedence \(name): work control did not open thinking")
+                }
+            } else if stats.promptTokens != offTokens {
+                failures.append("thinking precedence \(name): explicit OFF lost to ambient role (\(stats.promptTokens) vs \(offTokens ?? -1))")
+            }
+        }
+        _ = await runtime.shutdown()
+        SelfTest.diagnostic(failures.isEmpty ? "THINKING_PRECEDENCE_OK: 7 native runtime/planner paths" : "THINKING_PRECEDENCE_FAILED: \(failures.count) problem(s)")
+        return failures
     }
 
     // MARK: - Fixtures and helpers
