@@ -1,0 +1,16 @@
+{
+  "scope": "Model-free diagnostic lifecycle tests, actual fake child processes; no native models/inference. App source remains frozen.",
+  "checkedAt": "2026-10-22T18:42:18.675624+00:00",
+  "ttsRunner": {
+    "checks": 12,
+    "exit": 0,
+    "log": ".phonon: preparing one model, then measuring; log: /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/tts-runner-test-kxagglhw/reports/phonon.log\nphonon: failed; temporary model removed\n.phonon: preparing one model, then measuring; log: /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/tts-runner-test-lgsxw3zt/reports/phonon.log\nphonon: failed; temporary model removed\n.phonon: not-run; temporary model removed\n.phonon: preparing one model, then measuring; log: /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/tts-runner-test-msy1lmff/reports/phonon.log\nphonon: measured; temporary model removed\nqwen: preparing one model, then measuring; log: /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/tts-runner-test-msy1lmff/reports/qwen.log\nqwen: measured; temporary model removed\n.phonon: not-run; temporary model removed\n.phonon: preparing one model, then measuring; log: /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/tts-runner-test-xl9g778x/reports/phonon.log\nphonon: failed; temporary model removed\n.phonon: preparing one model, then measuring; log: /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/tts-runner-test-6sik6_36/reports/phonon.log\nphonon: measured; temporary model removed\n.phonon: preparing one model, then measuring; log: /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/tts-runner-test-4v6kwzgh/reports/phonon.log\nResult not safely saved; retained owned files at /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/tts-runner-test-4v6kwzgh/nextnotes-tts-pdx4syc8\n.phonon: preparing one model, then measuring; log: /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/tts-runner-test-_385fmjf/reports/phonon.log\nphonon: measured; temporary model removed\n.phonon: preparing one model, then measuring; log: /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/tts-runner-test-dafk6gdd/reports/phonon.log\nphonon: failed; temporary model removed\n.phonon: preparing one model, then measuring; log: /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/tts-runner-test-fq2vvh__/reports/phonon.log\nphonon: partial; temporary model removed\n.\n----------------------------------------------------------------------\nRan 12 tests in 0.905s\n\nOK\n"
+  },
+  "asrWorkloadLifecycle": {
+    "checks": 1,
+    "exit": 0,
+    "log": ".\n----------------------------------------------------------------------\nRan 1 test in 0.505s\n\nOK\n"
+  },
+  "nativeSpeakerCollection": "pending release and ASR serial handoff",
+  "status": "Physical Apple calibration complete; full comparison pending ASR model handoff."
+}

@@ -1,0 +1,12 @@
+{
+  "scope": "Read-only authorization guard probe; intentionally unsupported engine; no model, no audio graph, no speaker measurement.",
+  "exit": 1,
+  "seconds": 0.11411929194582626,
+  "status": "authorized-guard-passed-engine-dispatch-reached",
+  "log": "TTS_BENCHMARK_FAILED: This speech engine is unavailable on this Mac.\n",
+  "ownedRootContents": [
+    ".benchmark-owned"
+  ],
+  "temporaryRootDeleted": true,
+  "interpretation": "Expected unsupported diagnostic-engine branch reached after the authorized-microphone guard; no audio opened."
+}

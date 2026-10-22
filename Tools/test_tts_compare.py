@@ -80,6 +80,22 @@ pathlib.Path(arg("--tts-report")).write_text(json.dumps({
         self.assertIsNone(result["measurement"]["trials"][0]["output"]["acousticOnsetMs"])
         self.assertTrue(result["cleanupVerified"])
 
+    def test_missing_reference_refuses_model_start(self):
+        with patch.object(bench.subprocess, "Popen") as start:
+            result = bench.run_one(self.app, "phonon", self.output, 3, "fixture", 5,
+                                   speaker_output=True, workload_ready=self.root/"absent.json")
+            start.assert_not_called()
+        self.assertEqual(result["status"], "not-run")
+        self.assertTrue(result["cleanupVerified"])
+
+    def test_reference_failure_joins_model_before_cleanup(self):
+        with patch.object(bench, "reference_workload", side_effect=[{"active":True}, {"active":False}, {"active":False}]):
+            result = bench.run_one(self.app, "phonon", self.output, 3, "timeout", 5,
+                                   speaker_output=True, workload_ready=self.root/"load.json")
+        self.assertEqual(result["status"], "failed")
+        self.assertIn("Reference ASR stopped", result["reason"])
+        self.assertTrue(result["cleanupVerified"])
+
     def test_result_is_on_disk_before_model_deletion(self):
         original = bench.shutil.rmtree
         def remove(path, *args, **kwargs):

@@ -1,0 +1,90 @@
+{
+  "cleanupVerified": true,
+  "elapsedSeconds": 11.07753195904661,
+  "engine": "apple",
+  "exitCode": 0,
+  "freeBytesAfterCleanup": 5113888768,
+  "freeBytesBefore": 5150117888,
+  "measurement": {
+    "engine": "apple",
+    "generatedAt": "2026-10-22T19:18:38Z",
+    "macOS": "Version 27.2 (Build 26B5091g)",
+    "memoryBytes": 17179869184,
+    "model": "AVSpeechSynthesizer/system-default",
+    "notes": [
+      "Actual production playback backings; only the selected adapter's model is loaded in this child.",
+      "firstPCMms is absent from the speaker-output schema; native render and estimated presentation are separate from correlated microphone pickup.",
+      "Microphone energy envelopes are retained only in memory; no raw microphone audio is saved. Acoustic detection uses 10 ms windows, 4x room baseline/0.001 RMS threshold and >=0.75 envelope correlation.",
+      "One first-after-prepare trial plus paced, varied warm phrases. Component output experiment, not speech-end/ASR/EOU or all-route acceptance."
+    ],
+    "peakRSSBytes": 83378176,
+    "preparationMs": 137.772125,
+    "schema": "nextnotes.tts-speaker-output.v1",
+    "text": "I found three matching files. The latest is enclosure version seventeen.",
+    "trials": [
+      {
+        "completionMs": 5952.100291666667,
+        "index": 0,
+        "output": {
+          "acousticCorrelation": 0.9231112309500964,
+          "acousticOnsetMs": 1246.5490833333333,
+          "baselineRMS": 0.000876714374133061,
+          "callerToken": 1,
+          "captureWindows": 687,
+          "estimatedPresentationMs": 1172.1431666666667,
+          "firstRenderedHost": 12560455777258,
+          "firstRenderedMs": 1170.6015,
+          "firstRenderedOrigin": "mixer--6648818096953493208-epoch-0",
+          "presentationLatencyMs": 1.5416666666666667,
+          "qualified": true,
+          "reason": "Correlated microphone onset; 10 ms energy windows, threshold-dependent; physical route only.",
+          "referenceWindows": 471,
+          "renderOrigins": [
+            "mixer--6648818096953493208-epoch-0"
+          ],
+          "requestHost": 12560427682822,
+          "route": [
+            90,
+            83
+          ]
+        },
+        "phase": "first-after-prepare",
+        "spokenText": "I found three matching files. The latest is enclosure version seventeen."
+      },
+      {
+        "completionMs": 2818.557125,
+        "index": 1,
+        "output": {
+          "acousticCorrelation": 0.9284385920387775,
+          "acousticOnsetMs": 299.17245833333334,
+          "baselineRMS": 0.0008119547253715434,
+          "callerToken": 2,
+          "captureWindows": 318,
+          "estimatedPresentationMs": 209.47120833333332,
+          "firstRenderedHost": 12560595330170,
+          "firstRenderedMs": 207.92954166666667,
+          "firstRenderedOrigin": "mixer--6648818096953493208-epoch-2",
+          "presentationLatencyMs": 1.5416666666666667,
+          "qualified": true,
+          "reason": "Correlated microphone onset; 10 ms energy windows, threshold-dependent; physical route only.",
+          "referenceWindows": 251,
+          "renderOrigins": [
+            "mixer--6648818096953493208-epoch-2"
+          ],
+          "requestHost": 12560590339861,
+          "route": [
+            90,
+            83
+          ]
+        },
+        "phase": "warm",
+        "spokenText": "Your next meeting starts in fifteen minutes."
+      }
+    ]
+  },
+  "status": "measured",
+  "temporaryLogicalBytesBeforeCleanup": 3135,
+  "timingBoundary": "microphone-pickup",
+  "warmMedianMs": 299.17245833333334,
+  "warmP95Ms": 299.17245833333334
+}

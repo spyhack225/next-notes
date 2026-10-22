@@ -1,0 +1,92 @@
+{
+  "schema_version": 1,
+  "id": "2026-10-22-tts-apple-speaker-calibration",
+  "title": "macOS voice: physical speaker-to-microphone calibration",
+  "date": "2026-10-22",
+  "category": "tts",
+  "status": "measured",
+  "scope": "Two actual Apple playback requests with timestamped microphone pickup and matching rendered-audio energy envelopes; collector calibration only.",
+  "summary": "First-after-preparation pickup 1247 ms; next phrase 299 ms. Both correlated with actual rendered audio. One warm sample, no ASR load, no model ranking or default choice.",
+  "environment": {
+    "hardware": "Apple M3 MacBook Air,16GB RAM",
+    "os": "Version 27.2 (Build 26B5091g)",
+    "workload": "Apple-only physical calibration; no ASR load; not model-ranking or default evidence. Built-in microphone and speakers; current hardware volume retained.",
+    "cold_warm": "One first request after preparation; one varied subsequent phrase. OS service caches not hardware-cold.",
+    "audio_route": "Built-in microphone and speakers; source volume0.75. Existing hardware volume retained; not sampled at the exact trial boundaries.",
+    "power_thermal": "Not continuously sampled; no claim of a controlled thermal/power state."
+  },
+  "provenance": {
+    "binary_sha256": "32a35bfcf9220dbdc87734466ccd63b9df1dc0a5e2488d1541b7e08a4207c8ed",
+    "model_revision": "AVSpeechSynthesizer/system-default",
+    "fixture_sha256": "89bc2cbbb042d3eac7a0fbf040798d0828cdb2b2a4128795042218ef22e1b2ad",
+    "command": "Tools/tts_compare.py --engines apple --trials1 --speaker-output; complete command/source context in retained report",
+    "grader": "Native captured host timestamps; >=0.75 rendered/microphone envelope correlation; quiet baseline, threshold and route/drop gates. No microphone recording saved."
+  },
+  "metrics": [
+    {
+      "name": "First-after-preparation microphone pickup",
+      "value": 1246.5490833333333,
+      "unit": "ms",
+      "boundary": "Text request \u2192 correlated microphone pickup, above frozen detector threshold.",
+      "samples": 1,
+      "aggregation": "single observation"
+    },
+    {
+      "name": "First-after-preparation non-silent render",
+      "value": 1170.6015,
+      "unit": "ms",
+      "boundary": "Text request \u2192 first post-gain rendered sample >=0.001 amplitude, native host timestamp.",
+      "samples": 1,
+      "aggregation": "single observation"
+    },
+    {
+      "name": "First-after-preparation estimated presentation",
+      "value": 1172.1431666666667,
+      "unit": "ms",
+      "boundary": "Text request \u2192 render timestamp + queried maximum downstream presentation-latency estimate; not observed acoustic output.",
+      "samples": 1,
+      "aggregation": "single observation"
+    },
+    {
+      "name": "Subsequent phrase microphone pickup",
+      "value": 299.17245833333334,
+      "unit": "ms",
+      "boundary": "Text request \u2192 correlated microphone pickup, above frozen detector threshold.",
+      "samples": 1,
+      "aggregation": "single observation"
+    },
+    {
+      "name": "Subsequent phrase non-silent render",
+      "value": 207.92954166666667,
+      "unit": "ms",
+      "boundary": "Text request \u2192 first post-gain rendered sample >=0.001 amplitude, native host timestamp.",
+      "samples": 1,
+      "aggregation": "single observation"
+    },
+    {
+      "name": "Subsequent phrase estimated presentation",
+      "value": 209.47120833333332,
+      "unit": "ms",
+      "boundary": "Text request \u2192 render timestamp + queried maximum downstream presentation-latency estimate; not observed acoustic output.",
+      "samples": 1,
+      "aggregation": "single observation"
+    }
+  ],
+  "limitations": [
+    "Calibration only: n1 per phase; no median/tail or fastest-default conclusion.",
+    "Microphone onset uses10ms energy windows and >max(0.001RMS,4x room baseline); it is not human perceptual onset.",
+    "Native render and maximum presentation-latency estimate are separate from actual microphone observation.",
+    "No concurrent ASR/EOU/normal voice conversation, no route matrix or double-talk qualification."
+  ],
+  "sources": [
+    "Tests/Reports/tts-2026-10-22/speaker-calibration/apple.json",
+    "Tests/Reports/tts-2026-10-22/speaker-calibration/summary.json",
+    "Tests/Reports/tts-2026-10-22/README.md",
+    "Tests/Reports/tts-2026-10-22/microphone-authorization-probe.json"
+  ],
+  "publication": {
+    "approved": true,
+    "reviewed_by": "Codex TTS: public fields reviewed for privacy and calibration-only scope",
+    "reviewed_on": "2026-10-22"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "domain": "ai.pivotstudio.nextnotes",
+  "values": {
+    "agentVoiceEngine": "pocket",
+    "agentVoiceIdentifier": null,
+    "agentPocketVoice": "alba"
+  },
+  "scope": "Read-only three TTS preferences before the suite; no settings changed."
+}

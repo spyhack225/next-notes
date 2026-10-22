@@ -25,14 +25,15 @@ SPACE = {"apple": 0, "pocket": 1_500_000_000, "kokoro": 1_500_000_000,
 RESERVE = 2 * 1024**3  # Diagnostic-only; production ModelDownloader retains 4 GiB.
 
 
-def save(path, value):
-    """Durably save before retiring the only model copy for this engine."""
+def save(path, value, *, durable=True):
+    """Persist results before cleanup; ephemeral health may opt out of fsync."""
     temporary = path.with_suffix(path.suffix + ".partial")
     with temporary.open("w") as stream:
         json.dump(value, stream, indent=2, sort_keys=True, allow_nan=False)
         stream.write("\n")
-        stream.flush()
-        os.fsync(stream.fileno())
+        if durable:
+            stream.flush()
+            os.fsync(stream.fileno())
     temporary.replace(path)
 
 
@@ -53,7 +54,20 @@ def stop_process_group(process):
     process.wait()
 
 
-def run_one(app, engine, output, trials, text, timeout, speaker_output=False):
+def reference_workload(path):
+    if path is None:
+        return None
+    try:
+        state = json.loads(Path(path).read_text())
+        os.kill(int(state["workerPID"]), 0)
+        if not state.get("active"):
+            raise ValueError("Reference ASR is inactive")
+        return state
+    except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError):
+        return {"active": False}
+
+
+def run_one(app, engine, output, trials, text, timeout, speaker_output=False, workload_ready=None):
     """Return only after result persistence, process exit and verified cleanup."""
     root = Path(tempfile.mkdtemp(prefix="nextnotes-tts-"))
     (root / ".benchmark-owned").write_text(engine)
@@ -65,7 +79,12 @@ def run_one(app, engine, output, trials, text, timeout, speaker_output=False):
     try:
         free = shutil.disk_usage(root).free
         result["freeBytesBefore"] = free
-        if free < RESERVE + SPACE[engine]:
+        load = reference_workload(workload_ready)
+        if workload_ready is not None:
+            result["referenceASRBefore"] = load
+        if load is not None and not load.get("active"):
+            result.update(status="not-run", reason="Reference ASR is inactive; no model started.")
+        elif free < RESERVE + SPACE[engine]:
             result.update(status="not-run", reason="Insufficient disk headroom for this one model.")
         else:
             args = [str(app), "--selftest-tts-benchmark", "--tts-engine", engine,
@@ -85,6 +104,11 @@ def run_one(app, engine, output, trials, text, timeout, speaker_output=False):
                                            env=environment)
                 deadline = time.monotonic() + timeout
                 while process.poll() is None:
+                    load = reference_workload(workload_ready)
+                    if load is not None and not load.get("active"):
+                        result["reason"] = "Reference ASR stopped; no concurrent-workload timing accepted."
+                        stop_process_group(process)
+                        break
                     if shutil.disk_usage(root).free < int(1.5 * 1024**3):
                         result["reason"] = "Disk guard stopped the owned process group before cleanup."
                         stop_process_group(process)
@@ -119,6 +143,12 @@ def run_one(app, engine, output, trials, text, timeout, speaker_output=False):
                                   warmP95Ms=ordered[max(0, math.ceil(.95 * len(ordered)) - 1)])
             elif "reason" not in result:
                 result["reason"] = "Engine failed; see its log. No timing result was accepted."
+        if workload_ready is not None:
+            result["referenceASRAfter"] = reference_workload(workload_ready)
+            if not result["referenceASRAfter"].get("active") and result["status"] == "measured":
+                result.update(status="partial", reason="Reference ASR unavailable at result acceptance; timing unqualified.")
+                result.pop("warmMedianMs", None)
+                result.pop("warmP95Ms", None)
         result["elapsedSeconds"] = time.monotonic() - started
         result["temporaryLogicalBytesBeforeCleanup"] = sum(
             path.stat().st_size for path in root.rglob("*") if path.is_file())
@@ -151,6 +181,7 @@ def main():
     parser.add_argument("--text", default="I found three matching files. The latest is enclosure version seventeen.")
     parser.add_argument("--timeout", type=float, default=600, help="Per-engine preparation and measurement deadline")
     parser.add_argument("--workload", default="Standalone; ASR-plus-voice reference workload is unqualified")
+    parser.add_argument("--workload-ready", type=Path, help="Ready/health file from the declared paced ASR reference workload")
     parser.add_argument("--speaker-output", action="store_true", help="Measure actual playback and correlated microphone pickup; requires granted mic and speakers")
     parser.add_argument("--preflight-only", action="store_true", help="Save resource/claim state without loading or downloading anything")
     parser.add_argument("--relay-owner", help="Reuse this agent's existing heavy claim; never release another owner's claim")
@@ -204,9 +235,11 @@ def main():
         for engine in engines:
             # Sequential by construction: run_one saves, joins and deletes before returning.
             results.append(run_one(options.app, engine, options.output, options.trials, options.text, options.timeout,
-                                   speaker_output=options.speaker_output))
+                                   speaker_output=options.speaker_output, workload_ready=options.workload_ready))
             save(options.output / "summary.json", {"appSHA256": digest, "machine": platform.platform(),
                  "workload": options.workload, "results": results})
+            if options.workload_ready is not None and not reference_workload(options.workload_ready).get("active"):
+                break
     finally:
         if claimed:
             subprocess.run(["agent-relay", "release", "--as", identity, "--scope", "machine", "heavy"], check=False, capture_output=True)

@@ -182,3 +182,32 @@ estimated presentation still 500 ms). Silence/overflow controls also pass. This 
 Original/fixed source and fixture SHA pins/logs are retained in
 `output-maximum-latency-{original,fixed}.json`; the shared build was deliberately held
 before app compilation while correcting this diagnostic producer.
+
+
+### Signed physical calibration (before model comparison)
+
+The signed 0.2.24 diagnostic candidate (`32a35bfcf9220dbdc87734466ccd63b9df1dc0a5e2488d1541b7e08a4207c8ed`)
+passed the microphone-authorization guard and two Apple output trials on built-in input/output
+route IDs 90/83. First-after-preparation microphone pickup was 1246.55 ms; the next varied
+phrase was 299.17 ms. Render timestamps were 1170.60/207.93 ms and the separate downstream
+maximum presentation estimates 1172.14/209.47 ms. Matched envelope correlations were
+0.923/0.928 and quiet-room RMS 0.000877/0.000812. These are threshold-dependent microphone
+observations, not an output-latency subtraction or human perceptual-onset measurement.
+
+This calibration has only **one warm sample and no concurrent ASR load**. It proves the
+collector works on the physical route; it does not rank models, supply a tail percentile,
+qualify a fastest default, or replace the planned 30-sample concurrent-ASR comparison.
+`speaker-calibration/apple.json` retains both samples and `summary.json` the exact binary
+hash. Its child exited and the result was saved before verified temporary-root deletion;
+no model was downloaded. The machine claim was handed directly back to the ASR agent.
+The owner still has Pocket/Alba selected; the Apple voice identifier is unset. No preference
+was changed by these diagnostics.
+
+For the comparison, the diagnostic-only `Tools/tts_asr_workload.py` reuses the existing
+native Parakeet v3 RPC worker and paced authored-English harness, with an owned APFS snapshot
+of installed weights. It downloads no recognizer. The TTS parent checks its active worker
+before/through/after each child; a stopped workload invalidates timing and prevents the next
+model. Twelve TTS lifecycle tests and a real fake-RPC-worker stop/join/cleanup test pass.
+The reference worker declares concurrent decoder load; it does not establish the production
+microphone/AEC/EOU/turn path or recognition accuracy under physical overlap. Ephemeral health
+markers replace atomically without fsync; results/receipts retain durable save-before-delete.
