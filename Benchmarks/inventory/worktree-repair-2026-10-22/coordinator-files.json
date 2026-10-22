@@ -1,0 +1,37 @@
+[
+  {
+    "original": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/INTEGRATION.md",
+    "retained": "Benchmarks/inventory/worktree-repair-2026-10-22/retained-coordination/INTEGRATION.md",
+    "sha256": "23017b762c896fd1401442bec90a86592c209cce7af2e76314d43127ecaa0e61"
+  },
+  {
+    "original": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/MAIN-DIRTY-SOURCES.txt",
+    "retained": "Benchmarks/inventory/worktree-repair-2026-10-22/retained-coordination/MAIN-DIRTY-SOURCES.txt",
+    "sha256": "b265b3d6fd2b5b4bc4dd37a975404a39e844908b6ab11cf0b4497f51c8ed93d4"
+  },
+  {
+    "original": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/RULES-2.md",
+    "retained": "Benchmarks/inventory/worktree-repair-2026-10-22/retained-coordination/RULES-2.md",
+    "sha256": "aaf9b9086e3cd8b57cb2d047cff9cb86be79c153005b5a216f0efbd131d6d7a6"
+  },
+  {
+    "original": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/RULES.md",
+    "retained": "Benchmarks/inventory/worktree-repair-2026-10-22/retained-coordination/RULES.md",
+    "sha256": "5132b4cbb5bee8f4a83eb50e981a32b8d0aab645f6e15692a69872a67bf5c370"
+  },
+  {
+    "original": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/gate.sh",
+    "retained": "Benchmarks/inventory/worktree-repair-2026-10-22/retained-coordination/gate.sh",
+    "sha256": "370ac8463e24342fb4aa5b4f5c3a6b0f3884b1bb7f73caea45f139c089bb9367"
+  },
+  {
+    "original": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/heavy.sh",
+    "retained": "Benchmarks/inventory/worktree-repair-2026-10-22/retained-coordination/heavy.sh",
+    "sha256": "e6e02efd4ca8355526f92fbf517910de6d7a017bbc8e80b9692e9c30c064c0ef"
+  },
+  {
+    "original": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/heavy.sh.v2-backup",
+    "retained": "Benchmarks/inventory/worktree-repair-2026-10-22/retained-coordination/heavy.sh.v2-backup",
+    "sha256": "b9ed8b1d79385f299cee805335827da2189631c50abbd32349f07771ac6f597c"
+  }
+]
