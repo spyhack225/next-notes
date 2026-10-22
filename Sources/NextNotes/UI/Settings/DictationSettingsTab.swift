@@ -90,7 +90,7 @@ struct DictationSettingsTab: View {
                 Link("Voz by Desert Ant Labs", destination: URL(string: "https://desertant.com/models/voz/")!)
             } header: { Text("Compare speech models") }
             footer: {
-                SettingsNote(text: "Measured on an M3 Mac: first words while speaking, then time to finish after release. Accuracy is word accuracy on one English or French recording, not a guarantee. Voz supports25 European languages; Multi shows the French test results. Downloads happen one model at a time; only your chosen model downloads.")
+                SettingsNote(text: "Speed was measured in the signed app on an M3 Mac, using three runs of a short recording played in real time. Microphone, display and text cleanup are excluded. Accuracy is from an earlier, separate longer English or French recording, not a general guarantee. Size excludes setup caches. Voz supports 25 European languages; Multi shows French results. Only your chosen model downloads, one at a time.")
             }
 
             Section {
