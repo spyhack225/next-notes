@@ -1,0 +1,11 @@
+run-selftest: direct /Users/sergekadjo/Library/Caches/NextNotesBuild/install-36587/Next Notes.app/Contents/MacOS/NextNotes --selftest-meeting-title-match --selftest-timeout 90
+TITLE_MATCH_CASE join-url pass=true
+TITLE_MATCH_CASE window pass=true
+TITLE_MATCH_CASE ambiguous pass=true
+TITLE_MATCH_CASE unicode pass=true
+TITLE_MATCH_CASE renamed pass=true
+TITLE_MATCH_CASE fetch-failure pass=true
+TITLE_MATCH_CASE title-source pass=true
+TITLE_MATCH_CASE deterministic pass=true
+TITLE_MATCH_CASE_RESULT checks=34 wrong=0
+TITLE_MATCH_OK

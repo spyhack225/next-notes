@@ -1,0 +1,2 @@
+error: codesign verification failed for /Users/sergekadjo/Library/Caches/NextNotesBuild/install-36587/Next Notes.app
+/Users/sergekadjo/Library/Caches/NextNotesBuild/install-36587/Next Notes.app: code has no resources but signature indicates they must be present

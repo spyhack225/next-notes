@@ -1,0 +1,2 @@
+run-selftest: direct /Users/sergekadjo/Library/Caches/NextNotesBuild/install-36587/Next Notes.app/Contents/MacOS/NextNotes --selftest-tts-source --selftest-timeout 90
+TTS_SOURCE_OK

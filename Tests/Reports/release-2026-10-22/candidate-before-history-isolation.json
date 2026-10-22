@@ -1,0 +1,316 @@
+{
+  "app": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-36587/Next Notes.app",
+  "binary_sha256": "32a35bfcf9220dbdc87734466ccd63b9df1dc0a5e2488d1541b7e08a4207c8ed",
+  "runs": [
+    {
+      "flag": "asr-settings",
+      "exit": 0,
+      "timeout": false,
+      "seconds": 1.579,
+      "final_marker": "ASR_SETTINGS_OK",
+      "accepted": true,
+      "nested_failure_markers": []
+    },
+    {
+      "flag": "stream",
+      "exit": 0,
+      "timeout": false,
+      "seconds": 0.713,
+      "final_marker": "STREAM_OK",
+      "accepted": true,
+      "nested_failure_markers": []
+    },
+    {
+      "flag": "dictation-segments",
+      "exit": 0,
+      "timeout": false,
+      "seconds": 0.448,
+      "final_marker": "DICTATION_SEGMENTS_OK",
+      "accepted": true,
+      "nested_failure_markers": []
+    },
+    {
+      "flag": "usage-log",
+      "exit": 0,
+      "timeout": false,
+      "seconds": 2.069,
+      "final_marker": "USAGE_LOG_OK",
+      "accepted": true,
+      "nested_failure_markers": []
+    },
+    {
+      "flag": "tts-source",
+      "exit": 0,
+      "timeout": false,
+      "seconds": 4.688,
+      "final_marker": "TTS_SOURCE_OK",
+      "accepted": true,
+      "nested_failure_markers": []
+    },
+    {
+      "flag": "chat-template",
+      "exit": 0,
+      "timeout": false,
+      "seconds": 4.019,
+      "final_marker": "CHAT_TEMPLATE_OK",
+      "accepted": true,
+      "nested_failure_markers": []
+    },
+    {
+      "flag": "google-connect",
+      "exit": 0,
+      "timeout": false,
+      "seconds": 6.072,
+      "final_marker": "GOOGLE_CONNECT_OK",
+      "accepted": true,
+      "nested_failure_markers": []
+    },
+    {
+      "flag": "gws",
+      "exit": 0,
+      "timeout": false,
+      "seconds": 1.706,
+      "final_marker": "GWS_OK",
+      "accepted": true,
+      "nested_failure_markers": []
+    },
+    {
+      "flag": "calendar",
+      "exit": 0,
+      "timeout": false,
+      "seconds": 0.883,
+      "final_marker": "CALENDAR_OK",
+      "accepted": true,
+      "nested_failure_markers": []
+    },
+    {
+      "flag": "mac-accounts",
+      "exit": 0,
+      "timeout": false,
+      "seconds": 1.261,
+      "final_marker": "MAC_ACCOUNTS_OK",
+      "accepted": true,
+      "nested_failure_markers": []
+    },
+    {
+      "flag": "capability-manifest",
+      "exit": 0,
+      "timeout": false,
+      "seconds": 0.875,
+      "final_marker": "CAPABILITY_MANIFEST_OK",
+      "accepted": true,
+      "nested_failure_markers": []
+    },
+    {
+      "flag": "ui-strings",
+      "exit": 0,
+      "timeout": false,
+      "seconds": 2.597,
+      "final_marker": "UI_STRINGS_OK",
+      "accepted": true,
+      "nested_failure_markers": []
+    },
+    {
+      "flag": "task-durability",
+      "exit": 0,
+      "timeout": false,
+      "seconds": 1.159,
+      "final_marker": "TASK_DURABILITY_OK",
+      "accepted": true,
+      "nested_failure_markers": []
+    },
+    {
+      "flag": "task-recovery",
+      "exit": 0,
+      "timeout": false,
+      "seconds": 1.267,
+      "final_marker": "TASK_RECOVERY_OK",
+      "accepted": true,
+      "nested_failure_markers": []
+    },
+    {
+      "flag": "task-authority",
+      "exit": 0,
+      "timeout": false,
+      "seconds": 1.23,
+      "final_marker": "TASK_AUTHORITY_OK",
+      "accepted": true,
+      "nested_failure_markers": []
+    },
+    {
+      "flag": "task-restoration",
+      "exit": 0,
+      "timeout": false,
+      "seconds": 2.892,
+      "final_marker": "TASK_RESTORATION_OK",
+      "accepted": true,
+      "nested_failure_markers": []
+    },
+    {
+      "flag": "task-history-repair",
+      "exit": 0,
+      "timeout": false,
+      "seconds": 1.814,
+      "final_marker": "TASK_HISTORY_REPAIR_OK",
+      "accepted": true,
+      "nested_failure_markers": []
+    },
+    {
+      "flag": "task-worker-attempt",
+      "exit": 1,
+      "timeout": false,
+      "seconds": 7.803,
+      "final_marker": "TASK_WORKER_ATTEMPT_FAILED",
+      "accepted": false,
+      "nested_failure_markers": []
+    },
+    {
+      "flag": "receipt-persistence",
+      "exit": 0,
+      "timeout": false,
+      "seconds": 0.783,
+      "final_marker": "RECEIPT_RUNTIME_OK",
+      "accepted": true,
+      "nested_failure_markers": []
+    },
+    {
+      "flag": "agent-presentation",
+      "exit": 0,
+      "timeout": false,
+      "seconds": 1.0,
+      "final_marker": "AGENT_PRESENTATION_OK",
+      "accepted": true,
+      "nested_failure_markers": []
+    },
+    {
+      "flag": "routine-authority",
+      "exit": 0,
+      "timeout": false,
+      "seconds": 3.481,
+      "final_marker": "ROUTINE_AUTHORITY_OK",
+      "accepted": true,
+      "nested_failure_markers": []
+    },
+    {
+      "flag": "voice-session-reducer",
+      "exit": 0,
+      "timeout": false,
+      "seconds": 1.259,
+      "final_marker": "VOICE_SESSION_REDUCER_OK",
+      "accepted": true,
+      "nested_failure_markers": []
+    },
+    {
+      "flag": "voice-playback-projection",
+      "exit": 0,
+      "timeout": false,
+      "seconds": 2.566,
+      "final_marker": "VOICE_PLAYBACK_PROJECTION_OK",
+      "accepted": true,
+      "nested_failure_markers": []
+    },
+    {
+      "flag": "voice-playback-resume-receipt",
+      "exit": 0,
+      "timeout": false,
+      "seconds": 2.127,
+      "final_marker": "VOICE_PLAYBACK_RESUME_RECEIPT_OK",
+      "accepted": true,
+      "nested_failure_markers": []
+    },
+    {
+      "flag": "playback-ledger",
+      "exit": 0,
+      "timeout": false,
+      "seconds": 1.002,
+      "final_marker": "PLAYBACK_LEDGER_OK",
+      "accepted": true,
+      "nested_failure_markers": []
+    },
+    {
+      "flag": "meeting-frame-layout",
+      "exit": 0,
+      "timeout": false,
+      "seconds": 0.609,
+      "final_marker": "FRAME_LAYOUT_OK",
+      "accepted": true,
+      "nested_failure_markers": []
+    },
+    {
+      "flag": "meeting-frame-shape",
+      "exit": 0,
+      "timeout": false,
+      "seconds": 0.625,
+      "final_marker": "FRAME_SHAPE_OK",
+      "accepted": true,
+      "nested_failure_markers": []
+    },
+    {
+      "flag": "audio-conversion-stream",
+      "exit": 0,
+      "timeout": false,
+      "seconds": 0.564,
+      "final_marker": "CONVERSION_OK",
+      "accepted": true,
+      "nested_failure_markers": []
+    },
+    {
+      "flag": "meeting-capture-coverage",
+      "exit": 0,
+      "timeout": false,
+      "seconds": 0.557,
+      "final_marker": "COVERAGE_OK",
+      "accepted": true,
+      "nested_failure_markers": []
+    },
+    {
+      "flag": "notes-coverage",
+      "exit": 0,
+      "timeout": false,
+      "seconds": 0.619,
+      "final_marker": "NOTES_COVERAGE_OK",
+      "accepted": true,
+      "nested_failure_markers": []
+    },
+    {
+      "flag": "notes-truncation",
+      "exit": 0,
+      "timeout": false,
+      "seconds": 0.612,
+      "final_marker": "NOTES_TRUNCATION_OK",
+      "accepted": true,
+      "nested_failure_markers": []
+    },
+    {
+      "flag": "diarize-eligibility",
+      "exit": 0,
+      "timeout": false,
+      "seconds": 0.568,
+      "final_marker": "DIARIZE_ELIGIBILITY_OK",
+      "accepted": true,
+      "nested_failure_markers": []
+    },
+    {
+      "flag": "meeting-title-match",
+      "exit": 0,
+      "timeout": false,
+      "seconds": 0.558,
+      "final_marker": "TITLE_MATCH_OK",
+      "accepted": true,
+      "nested_failure_markers": []
+    },
+    {
+      "flag": "store-isolation",
+      "exit": 0,
+      "timeout": false,
+      "seconds": 30.99,
+      "final_marker": "STORE_ISOLATION_OK",
+      "accepted": true,
+      "nested_failure_markers": [
+        "TOOLLOOP_PRODUCTION_FAILED",
+        "TOOLLOOP_PRODUCTION_R02_MISSING"
+      ]
+    }
+  ],
+  "accepted": false
+}

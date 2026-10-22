@@ -28,7 +28,7 @@ def preferences():
 
 mode = sys.argv[1]
 current = dict(files=witness(support), settings=preferences())
-private = backup / 'before.json'
+private = backup / ('release-admission-baseline.json' if mode in ('final-checks','after-install') else 'before.json')
 if mode == 'before':
     saved = witness(backup / 'Next Notes')
     assert current['files'] == saved, 'Backup content mismatch; file names retained privately'

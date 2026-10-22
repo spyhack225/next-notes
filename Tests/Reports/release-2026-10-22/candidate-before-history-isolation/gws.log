@@ -1,0 +1,7 @@
+run-selftest: direct /Users/sergekadjo/Library/Caches/NextNotesBuild/install-36587/Next Notes.app/Contents/MacOS/NextNotes --selftest-gws --selftest-timeout 90
+GWS_FIXTURES_OK: 10 cases
+  binary: /opt/homebrew/bin/gws
+  version: gws 0.22.5
+  auth: Signed in — Connected through encrypted.
+  client config: /Users/sergekadjo/.config/gws/client_secret.json
+GWS_OK: gws 0.22.5 at /opt/homebrew/bin/gws, signed in

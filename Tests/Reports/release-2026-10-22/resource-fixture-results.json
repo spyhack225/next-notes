@@ -1,0 +1,20 @@
+[
+  {
+    "mode": "original",
+    "exit": -5,
+    "signature_valid": true,
+    "sdk_resource_absent": true,
+    "packaged_resource_exists": true,
+    "binary_sha256": "db1b7f8c7c9039904306bb34967219eb35173ed3c00249d20a124c47ff53af14",
+    "expected_output": false
+  },
+  {
+    "mode": "fixed",
+    "exit": 0,
+    "signature_valid": true,
+    "sdk_resource_absent": true,
+    "packaged_resource_exists": true,
+    "binary_sha256": "421fdbcbf37a0b256f87c48ee657ee8061244fd9aa0e9513f0a105ff5d1f9b62",
+    "expected_output": true
+  }
+]

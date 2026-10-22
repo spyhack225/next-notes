@@ -1,0 +1,17 @@
+{
+  "app": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-36587/Next Notes.app",
+  "binary_sha256": "bce5ef99b315110ef535122ded59329eb6bec1d7a53d6e573ac9a07f4af95620",
+  "version": "0.2.24",
+  "build": "809",
+  "signature_valid": true,
+  "production_revision": "899e02723b7bcb87d27d56c505f2251b085887b2",
+  "compiled_base": "761f42ad",
+  "targeted_primaries": [
+    "DictationController",
+    "AgentHarnessRouter",
+    "SelfTestStoreGuard",
+    "ASRMeasuredModels",
+    "DictationSettingsTab"
+  ],
+  "eight_model_path_evidence_binary": "32a35bfcf9220dbdc87734466ccd63b9df1dc0a5e2488d1541b7e08a4207c8ed"
+}

@@ -36,7 +36,7 @@ def main():
     for line in (scratch / (args.configuration + '.yaml')).read_text().splitlines():
         if line.startswith('    args: ['):
             command = json.loads(line.split('args: ', 1)[1])
-            if '-emit-executable' in command and '-o' in command and command[command.index('-o')+1] == str(binary):
+            if '-emit-executable' in command and '-o' in command and Path(command[command.index('-o')+1]).resolve() == binary:
                 links.append(command)
     assert len(links) == 1, 'Expected exactly one SwiftPM product linker command'
     link = links[0]

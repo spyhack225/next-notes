@@ -1,0 +1,7 @@
+run-selftest: direct /Users/sergekadjo/Library/Caches/NextNotesBuild/install-36587/Next Notes.app/Contents/MacOS/NextNotes --selftest-audio-conversion-stream --selftest-timeout 90
+CONVERSION_CASE a.stereo48 oneShot=19194 streaming=19194 expected=19200 oneShotLost=6 streamingLost=6
+CONVERSION_CASE b.mono48 oneShot=19194 streaming=19194 expected=19200 oneShotLost=6 streamingLost=6
+CONVERSION_CASE c.stereo441 oneShot=19194 streaming=19194 expected=19200 oneShotLost=6 streamingLost=6
+CONVERSION_CASE d.steady oneShot=9594 streaming=9594 expected=9600
+CONVERSION_CHECKS 11
+CONVERSION_OK

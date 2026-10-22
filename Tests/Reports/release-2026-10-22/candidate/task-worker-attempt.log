@@ -1,0 +1,135 @@
+run-selftest: direct /Users/sergekadjo/Library/Caches/NextNotesBuild/install-36587/Next Notes.app/Contents/MacOS/NextNotes --selftest-task-worker-attempt --selftest-timeout 90
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history was saved, but its additional local copy could not be updated.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history was saved, but its additional local copy could not be updated.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history was saved, but its additional local copy could not be updated.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history was saved, but its additional local copy could not be updated.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history was saved, but its additional local copy could not be updated.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history was saved, but its additional local copy could not be updated.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+RECEIPT_SOURCE_DIAGNOSTIC: load=missing writeCheck=unavailable
+RECEIPT_SOURCE_DIAGNOSTIC: load=missing writeCheck=unavailable
+RECEIPT_SOURCE_DIAGNOSTIC: load=missing writeCheck=unavailable
+RECEIPT_SOURCE_DIAGNOSTIC: load=missing writeCheck=unavailable
+RECEIPT_SOURCE_DIAGNOSTIC: load=missing writeCheck=unavailable
+SCOPED_MUTATION_RECEIPT_TRACE: mode=write-accepted effects=1 boundaryCalls=1 verifying=true finalCompleted=true exactPath=true
+TASK_PERSISTENCE_DIAGNOSTIC: Task history was saved, but its additional local copy could not be updated.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history was saved, but its additional local copy could not be updated.
+SCOPED_MUTATION_RECEIPT_TRACE: mode=write-export-rejected effects=1 boundaryCalls=1 verifying=true finalCompleted=true exactPath=true
+RECEIPT_SOURCE_DIAGNOSTIC: load=missing writeCheck=mismatch
+SCOPED_MUTATION_RECEIPT_TRACE: mode=write-source-changed effects=1 boundaryCalls=0 verifying=false finalCompleted=false exactPath=false
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+SCOPED_MUTATION_PRIMARY_REFUSAL_TRACE: retained=1 failed=true firedEvents=1 firedThenFailed=true exactAttempt=true exactPreparedPayload=true noToolStarted=true effects=0 boundaryCalls=0
+SCOPED_MUTATION_RECEIPT_TRACE: mode=write-primary-rejected effects=0 boundaryCalls=0 verifying=false finalCompleted=false exactPath=false
+SCOPED_MUTATION_RECEIPT_TRACE: mode=read-control effects=1 boundaryCalls=1 verifying=false finalCompleted=true exactPath=false
+SCOPED_MUTATION_RECEIPT_CHECKS: 57 problems=0
+CALENDAR_WORKSPACE_HELPERS: cases=10 problems=0 aggregateChecks=1
+CALENDAR_DUPLICATE_RECEIPT_TRACE: mode=duplicate-current wireQualified=true calls=2 returns=2 inserts=1 creates=0 reads=1 joined=true readStageFired=true resourceAliasesPrepared=true completed=true unverified=false
+CALENDAR_DUPLICATE_RECEIPT_TRACE: mode=duplicate-wrong-id wireQualified=true calls=2 returns=2 inserts=1 creates=0 reads=1 joined=true readStageFired=true resourceAliasesPrepared=true completed=false unverified=true
+CALENDAR_DUPLICATE_RECEIPT_TRACE: mode=duplicate-wrong-title wireQualified=true calls=2 returns=2 inserts=1 creates=0 reads=1 joined=true readStageFired=true resourceAliasesPrepared=true completed=false unverified=true
+CALENDAR_DUPLICATE_RECEIPT_TRACE: mode=duplicate-wrong-time wireQualified=true calls=2 returns=2 inserts=1 creates=0 reads=1 joined=true readStageFired=true resourceAliasesPrepared=true completed=false unverified=true
+CALENDAR_DUPLICATE_RECEIPT_TRACE: mode=duplicate-read-unavailable wireQualified=true calls=2 returns=2 inserts=1 creates=0 reads=1 joined=true readStageFired=true resourceAliasesPrepared=true completed=false unverified=true
+CALENDAR_DUPLICATE_RECEIPT_TRACE: mode=duplicate-wrong-description wireQualified=true calls=2 returns=2 inserts=1 creates=0 reads=1 joined=true readStageFired=true resourceAliasesPrepared=true completed=false unverified=true
+CALENDAR_DUPLICATE_RECEIPT_TRACE: mode=duplicate-wrong-attendees wireQualified=true calls=2 returns=2 inserts=1 creates=0 reads=1 joined=true readStageFired=true resourceAliasesPrepared=true completed=false unverified=true
+CALENDAR_DUPLICATE_RECEIPT_TRACE: mode=inserted-current wireQualified=true calls=2 returns=2 inserts=1 creates=1 reads=1 joined=true readStageFired=true resourceAliasesPrepared=true completed=true unverified=false
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+CALENDAR_DUPLICATE_RECEIPT_TRACE: mode=primary-refused wireQualified=true calls=0 returns=0 inserts=0 creates=0 reads=0 joined=false readStageFired=false resourceAliasesPrepared=false completed=false unverified=false
+RECEIPT_SOURCE_DIAGNOSTIC: load=missing writeCheck=unavailable
+CALENDAR_DUPLICATE_RECEIPT_TRACE: mode=receipt-refused wireQualified=true calls=2 returns=2 inserts=1 creates=0 reads=1 joined=true readStageFired=true resourceAliasesPrepared=true completed=false unverified=false
+CALENDAR_DUPLICATE_RECEIPT_CHECKS: 114 problems=0
+CALENDAR_PREPARED_RESOURCE_CHECKS: 10 problems=0
+CALENDAR_UNKNOWN_TRACE: mode=normal-current calls=2 returns=2 inserts=1 gets=1 lists=0 primaryLinked=true unknownAtRead=true savedCompleted=true savedUnknown=false failed=false
+CALENDAR_UNKNOWN_TRACE: mode=normal-wrong-id calls=2 returns=2 inserts=1 gets=1 lists=0 primaryLinked=true unknownAtRead=true savedCompleted=false savedUnknown=true failed=false
+CALENDAR_UNKNOWN_TRACE: mode=normal-wrong-description calls=2 returns=2 inserts=1 gets=1 lists=0 primaryLinked=true unknownAtRead=true savedCompleted=false savedUnknown=true failed=false
+CALENDAR_UNKNOWN_TRACE: mode=normal-unavailable calls=2 returns=2 inserts=1 gets=1 lists=0 primaryLinked=true unknownAtRead=true savedCompleted=false savedUnknown=true failed=false
+RECEIPT_SOURCE_DIAGNOSTIC: load=missing writeCheck=unavailable
+CALENDAR_UNKNOWN_TRACE: mode=normal-receipt-refused calls=2 returns=2 inserts=1 gets=1 lists=0 primaryLinked=true unknownAtRead=true savedCompleted=false savedUnknown=true failed=true
+CALENDAR_UNKNOWN_TRACE: mode=direct-current inserts=1 gets=1 lists=0 savedCompleted=true resultUnknown=false
+CALENDAR_UNKNOWN_TRACE: mode=direct-wrong-id inserts=1 gets=1 lists=0 savedCompleted=false resultUnknown=true
+CALENDAR_UNKNOWN_TRACE: mode=direct-wrong-description inserts=1 gets=1 lists=0 savedCompleted=false resultUnknown=true
+CALENDAR_UNKNOWN_TRACE: mode=direct-unavailable inserts=1 gets=1 lists=0 savedCompleted=false resultUnknown=true
+CALENDAR_UNKNOWN_TRACE: mode=legacy-missing-alias inserts=0 gets=0 lists=0 resultUnknown=true
+CALENDAR_UNKNOWN_TRACE: mode=legacy-missing-preparation inserts=0 gets=0 lists=0 resultUnknown=true
+CALENDAR_UNKNOWN_CHECKS: 82 problems=0
+CALENDAR_POSTREAD_TRACE: mode=held-current entered=true heldReturns=1 returnedPositive=true beforeValid=true afterValid=true primaryChanged=false cancelled=false inserts=1 gets=1 lists=0 savedCompleted=true savedUnknown=false primaryPreserved=true
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+CALENDAR_POSTREAD_TRACE: mode=held-primary entered=true heldReturns=1 returnedPositive=true beforeValid=true afterValid=false primaryChanged=true cancelled=false inserts=1 gets=1 lists=0 savedCompleted=false savedUnknown=true primaryPreserved=true
+CALENDAR_POSTREAD_TRACE: mode=held-cancel entered=true heldReturns=1 returnedPositive=true beforeValid=true afterValid=false primaryChanged=false cancelled=true inserts=1 gets=1 lists=0 savedCompleted=false savedUnknown=true primaryPreserved=true
+CALENDAR_POSTREAD_CHECKS: 31 problems=0
+RECEIPT_SOURCE_DIAGNOSTIC: load=missing writeCheck=unavailable
+TASK_RECEIPT_COMPLETION_TRACE: terminal=failed effects=1 resultDelivered=false retainedFired=true primaryLink=true
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+RECEIPT_SOURCE_DIAGNOSTIC: load=missing writeCheck=mismatch
+TASK_RECEIPT_SOURCE_TRACE: terminal=failed effects=1 resultDelivered=false retainedFired=true primaryLink=true
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_ACP_UNVERIFIED_PEER: mode=accepted stderr=missing
+TASK_ACP_UNVERIFIED_PEER: mode=accepted stderr=missing
+OWNER_METRICS_GUARD_TRACE: scope=workerAttempt before=readableSignature after=readableSignature cachedSignatureChanged=false sizeChanged=false mtimeChanged=false digestChanged=false
+TASK_WORKER_ATTEMPT_WRONG: actual worker fixture: missingSnapshot
+TASK_WORKER_ATTEMPT_FAILED: 1 assertions
+LATE_UNBOUND_WORKER mode=unbound-cancel-agent-error entered=true reads=1 returned=1 cancelled=true appended=1 generationDelta=1
+LATE_UNBOUND_WORKER mode=unbound-cancel-generic entered=true reads=1 returned=1 cancelled=true appended=1 generationDelta=1

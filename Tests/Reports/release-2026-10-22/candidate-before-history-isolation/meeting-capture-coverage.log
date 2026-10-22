@@ -1,0 +1,15 @@
+run-selftest: direct /Users/sergekadjo/Library/Caches/NextNotesBuild/install-36587/Next Notes.app/Contents/MacOS/NextNotes --selftest-meeting-capture-coverage --selftest-timeout 90
+COVERAGE_CASE old-format-no-integrity verdict=unknown
+COVERAGE_CASE old-format-full-coverage verdict=unknown
+COVERAGE_CASE half-trim-boundary verdict=partial(after=900, track=system)
+COVERAGE_CASE half-trim-counts-only verdict=partial(after=nil, track=system)
+COVERAGE_CASE live-fresh-tracks verdict=partial(after=600, track=system)
+COVERAGE_CASE live-system-stall-by-time verdict=stalled(system)
+COVERAGE_CASE live-system-stall-by-frame verdict=stalled(system)
+COVERAGE_CASE live-mic-stall-by-time verdict=stalled(mic)
+COVERAGE_CASE hysteresis-100-ticks verdict=partial(after=900, track=system)
+COVERAGE_CASE sticky-1000-ticks verdict=partial(after=900, track=system)
+COVERAGE_CASE capture-gap-only verdict=partial(after=nil, track=nil)
+COVERAGE_CASE source-seam-finished verdict=complete
+COVERAGE_OK: 74 checks
+COVERAGE_OK

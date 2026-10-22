@@ -1,0 +1,6 @@
+run-selftest: direct /Users/sergekadjo/Library/Caches/NextNotesBuild/install-36587/Next Notes.app/Contents/MacOS/NextNotes --selftest-notes-truncation --selftest-timeout 90
+NOTES_TRUNCATION cut calls=2 budget=2000,4000
+NOTES_TRUNCATION reduce calls=7 reduceBudget=3000,6000 parts=5
+NOTES_TRUNCATION factsCut=true maps=5 reduce=1
+NOTES_TRUNCATION_OK: a cut answer says so on the page, the single pass and the reduce each retry once at double the budget, the cap scales with the meeting, the wire finish reasons are read
+NOTES_TRUNCATION_OK

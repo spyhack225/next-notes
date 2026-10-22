@@ -1,0 +1,13 @@
+{
+  "app": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-36587/Next Notes.app",
+  "compiled_revision": "761f42ad462ca4e3c4ddb79f519fce37ec508be5",
+  "packaging_revision": "caeb3bcfc5633e368fd98b94cdf7b886d2e17d86",
+  "version": "0.2.24",
+  "build": "799",
+  "binary_sha256": "8b44b71c03e35384128edd78c7aeec936a51dcbbb487d63e07f0d4a7d07de368",
+  "binary_bytes": 168939192,
+  "codesign_verify_exit": 1,
+  "original_failure": "read-only staged SDK resources blocked xattr; full compile/link passed",
+  "staged_permission_fix_only": true,
+  "installed_app_replaced": false
+}

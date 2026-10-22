@@ -1,0 +1,2 @@
+run-selftest: direct /Users/sergekadjo/Library/Caches/NextNotesBuild/install-36587/Next Notes.app/Contents/MacOS/NextNotes --selftest-playback-ledger --selftest-timeout 90
+PLAYBACK_LEDGER_OK

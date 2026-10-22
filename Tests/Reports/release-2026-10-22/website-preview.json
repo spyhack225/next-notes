@@ -1,0 +1,12 @@
+{
+  "built_preview": "http://127.0.0.1:49324/?page=benchmarks",
+  "browser": "Codex in-app browser, hidden",
+  "approved_catalog_results": 42,
+  "language_switch": "English to French updates observed model timings and marks Phonon English-only",
+  "tts_filter_results": 9,
+  "completed_native_tts_generation_records": 5,
+  "public_scope": "Generation and paced runtime measurements retain explicit boundaries; physical speaker and full dictation claims remain separate",
+  "typecheck_build_exit": 0,
+  "lint_exit": 0,
+  "live_deployment": "pending"
+}

@@ -1,0 +1,18 @@
+/Users/sergekadjo/Documents/Claude/Projects/next-notes/Sources/NextNotes/Core/DictationController.swift:1890:42: warning: 'weak' ownership of capture 'self' differs from implicitly-captured strong reference in outer scope [#ImplicitStrongCapture]
+1791 |         }
+1792 | 
+1793 |         Task { @MainActor in
+     |              |- note: 'self' implicitly strongly captured here
+     |              `- note: add 'self' as a capture list item to silence
+1794 |             do {
+1795 |                 guard await requestMicrophone() else {
+     :
+1888 |                             }
+1889 |                         },
+1890 |                         onLevel: { [weak self] level in
+     |                                          |- warning: 'weak' ownership of capture 'self' differs from implicitly-captured strong reference in outer scope [#ImplicitStrongCapture]
+     |                                          `- note: explicitly assign the capture list item to silence
+1891 |                             Task { @MainActor in
+1892 |                                 guard let self, self.session == session, self.isCapturingAudio else { return }
+
+[#ImplicitStrongCapture]: <https://docs.swift.org/compiler/documentation/diagnostics/implicit-strong-capture>

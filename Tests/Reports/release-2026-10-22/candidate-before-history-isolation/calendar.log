@@ -1,0 +1,2 @@
+run-selftest: direct /Users/sergekadjo/Library/Caches/NextNotesBuild/install-36587/Next Notes.app/Contents/MacOS/NextNotes --selftest-calendar --selftest-timeout 90 --calendar-google-errors
+CALENDAR_OK: isolated Google error consumers behave

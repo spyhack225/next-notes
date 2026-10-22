@@ -1,0 +1,8 @@
+# SwiftPM may copy dependency resources read-only. Normalize only our staged
+# copy so metadata removal and signing never need to mutate shared caches.
+stamped 0.2.24 (804)
+/Users/sergekadjo/Library/Caches/NextNotesBuild/install-36587/Next Notes.app/Contents/Frameworks/llama.framework: replacing existing signature
+/Users/sergekadjo/Library/Caches/NextNotesBuild/install-36587/Next Notes.app/Contents/Frameworks/libwebrtc-audio-processing-2.1.dylib: replacing existing signature
+/Users/sergekadjo/Library/Caches/NextNotesBuild/install-36587/Next Notes.app/Contents/Frameworks/libNextNotesAEC.dylib: replacing existing signature
+/Users/sergekadjo/Library/Caches/NextNotesBuild/install-36587/Next Notes.app: replacing existing signature
+built /Users/sergekadjo/Library/Caches/NextNotesBuild/install-36587/Next Notes.app  [signed: Next Notes Local Signing]

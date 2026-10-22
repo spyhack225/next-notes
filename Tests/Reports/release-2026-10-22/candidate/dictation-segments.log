@@ -1,0 +1,2 @@
+run-selftest: direct /Users/sergekadjo/Library/Caches/NextNotesBuild/install-36587/Next Notes.app/Contents/MacOS/NextNotes --selftest-dictation-segments --selftest-timeout 90
+DICTATION_SEGMENTS_OK: pause cuts, hard cap, end of speech, key-up plan and committed pre-clean

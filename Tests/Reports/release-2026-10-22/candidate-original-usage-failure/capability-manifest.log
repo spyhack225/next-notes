@@ -1,0 +1,7 @@
+run-selftest: direct /Users/sergekadjo/Library/Caches/NextNotesBuild/install-36587/Next Notes.app/Contents/MacOS/NextNotes --selftest-capability-manifest --selftest-timeout 90
+CAPABILITY_MANIFEST_CATALOGUE: 79 registered, 77 at or below .send
+CAPABILITY_MANIFEST_PARITY: 65 allowed
+CAPABILITY_MANIFEST_SCAN: 97 id and alias spellings
+CAPABILITY_MANIFEST_PROMPT: 1714 tokens, 16 tools, compact=false catalogue=642
+CAPABILITY_MANIFEST_SMALL: 1125 tokens, 8 tools
+CAPABILITY_MANIFEST_OK

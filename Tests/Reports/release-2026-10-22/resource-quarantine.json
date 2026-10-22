@@ -1,0 +1,27 @@
+{
+  "state": "restored-after-final-isolation-checks",
+  "paths": [
+    {
+      "source": "/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/arm64-apple-macosx/release/swift-transformers_Hub.bundle",
+      "hidden": "/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/portable-resources/hidden-release-20261022/swift-transformers_Hub.bundle"
+    },
+    {
+      "source": "/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/arm64-apple-macosx/release/swift-crypto_Crypto.bundle",
+      "hidden": "/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/portable-resources/hidden-release-20261022/swift-crypto_Crypto.bundle"
+    },
+    {
+      "source": "/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/arm64-apple-macosx/release/DesertAnt_UsagePrivacy.bundle",
+      "hidden": "/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/portable-resources/hidden-release-20261022/DesertAnt_UsagePrivacy.bundle"
+    },
+    {
+      "source": "/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/arm64-apple-macosx/release/mlx-swift_Cmlx.bundle",
+      "hidden": "/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/portable-resources/hidden-release-20261022/mlx-swift_Cmlx.bundle"
+    },
+    {
+      "source": "/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/arm64-apple-macosx/release/FluidAudio_FluidAudio.bundle",
+      "hidden": "/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/portable-resources/hidden-release-20261022/FluidAudio_FluidAudio.bundle"
+    }
+  ],
+  "candidate_sha256": "bce5ef99b315110ef535122ded59329eb6bec1d7a53d6e573ac9a07f4af95620",
+  "reason": "Native portable-package checks; no SDK fallback may resolve. Restore all exact paths after serial tests."
+}

@@ -1,32 +1,31 @@
 {
   "schema_version": 1,
   "id": "2026-10-22-asr-live-pending",
-  "title": "Live speech recognition latency in progress",
+  "title": "Paced speech recognition in the signed app",
   "date": "2026-10-22",
   "category": "asr",
-  "status": "unrun",
+  "status": "partial",
   "scope": "Paced authored-fixture runtime replay",
-  "summary": "Native timings pending; live text, committed text and release-final clocks will be separate.",
+  "summary": "All eight signed-app model cases passed across 45 warmed paced holds. Live text, committed text and release-final clocks are reported separately.",
   "environment": {
-    "hardware": "unknown",
-    "os": "unknown",
-    "workload": "unknown",
-    "power_thermal": "unknown"
+    "hardware": "Apple M3,16GB RAM",
+    "os": "macOS27.2 build26B5091g",
+    "workload": "Normal desktop apps; coordinated serial window with no concurrent native build/model job. Existing swap/desktop pressure retained in per-model context; no concurrent voice qualification.",
+    "power_thermal": "Per-model power/thermal/load/swap observations retained. Cold preparation is separate from warmed timing."
   },
   "provenance": {
-    "source_revision": "unknown",
-    "binary_sha256": "unknown",
-    "model_revision": "unknown",
-    "fixture_sha256": "unknown",
-    "command": "unknown",
-    "grader": "unknown"
+    "model": "Pinned artifacts in shared/asr-artifacts.json; existing owner v3 cache",
+    "source": "Signed build800,0.2.24; executableSHA25632a35bfcf9220dbdc87734466ccd63b9df1dc0a5e2488d1541b7e08a4207c8ed; ASR source frozen761f42ad plus DictationController attributionaf77cb3a; SDK fallback bundles hidden",
+    "command": "Tools/asr_app_compare.py; exact per-model argv in native/runner.json",
+    "source_report": "Tests/Reports/asr-app-integration-2026-10-22/native"
   },
   "metrics": [],
   "limitations": [
-    "Active ASR agent is preparing a separate paced replay. Whole-file throughput cannot stand in for live latency.",
-    "No accepted native timing rows or app default promotion."
+    "Authored PCM replay exercises the app engine, scheduler and transcript consumer; physical microphone, UI insertion, cleanup and concurrent voice remain unverified.",
+    "Short-excerpt latency and full-fixture accuracy are separate measurements; this is not whole-app dictation latency."
   ],
   "sources": [
+    "Tests/Reports/asr-app-integration-2026-10-22/README.md",
     "Tests/Reports/asr-live-latency-2026-10-22/README.md"
   ],
   "publication": {

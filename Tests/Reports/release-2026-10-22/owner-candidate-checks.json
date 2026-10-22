@@ -1,0 +1,8 @@
+{
+  "stage": "candidate-checks",
+  "files": 1185,
+  "bytes": 13232163225,
+  "aggregate_sha256": "50d0c016b5c80b424955c4efc46f58d8181492bac598942ffe6d04f715cd9158",
+  "settings_keys": 89,
+  "unchanged": false
+}

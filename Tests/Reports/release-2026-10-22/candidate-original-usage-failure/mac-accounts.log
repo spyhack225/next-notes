@@ -1,0 +1,161 @@
+run-selftest: direct /Users/sergekadjo/Library/Caches/NextNotesBuild/install-36587/Next Notes.app/Contents/MacOS/NextNotes --selftest-mac-accounts --selftest-timeout 90
+  ok   nothing chosen, nothing signed in: this Mac
+  ok   an existing gws sign-in keeps working without being asked about
+  ok   a stored choice beats the facts
+  ok   …in either direction
+  ok   the Mac's account is told apart by its method
+  ok   the Mac answers the mail and calendar tools and no others
+  ok   every Workspace tool is accounted for in one list
+  ok   every step has words: nil
+  ok   every step has words: Optional(NextNotes.MacSetup.Step.allowCalendar)
+  ok   every step has words: Optional(NextNotes.MacSetup.Step.openCalendarSettings)
+  ok   every step has words: Optional(NextNotes.MacSetup.Step.addAccount)
+  ok   every step has words: Optional(NextNotes.MacSetup.Step.allowMailAccess)
+  ok   every step has words: Optional(NextNotes.MacSetup.Step.turnOnMail)
+  ok   every step has words: Optional(NextNotes.MacSetup.Step.ready)
+  ok   a connected account has nothing left to press
+  ok   the first button is the plain one, offered first
+  ok   the mail step says it is the same grant the iMessage chat needs
+  ok   not asked about the calendar: ask
+  ok   refused: only System Settings can change it
+  ok   no Google calendar and mail unreadable: the account may be only in Mail, so the grant comes first
+  ok   calendar and mail readable and no Google account in either: add one
+  ok   an account with unreadable mail: Full Disk Access
+  ok   an account whose Mail is off: turn Mail on
+  ok   everything reachable: ready
+  ok   an account is found by its calendar or by its mail
+  ok   unreadable mail marks the mail tools and only them as needing setup
+  ok   a ready setup has no gaps
+  ok   folder, sender, subject, unread, age and a free word are all kept
+  ok   dates are read as the start of their day (the model's dashes are mended on the way in)
+  ok   the drafts folder
+  ok   older_than is a bound
+  ok   “label:work” is refused by name, nothing was run
+  ok   “has:attachment” is refused by name, nothing was run
+  ok   “-from:bob” is refused by name, nothing was run
+  ok   “in:trash” is refused by name, nothing was run
+  ok   “is:starred” is refused by name, nothing was run
+  ok   “to:carol@example.com” is refused by name, nothing was run
+  ok   “category:promotions” is refused by name, nothing was run
+  ok   multipart: the plain part, quoted-printable decoded, attachment skipped: Hello — the plan is attached. Thanks.
+  ok   base64 in a legacy charset reads as the words it was
+  ok   an HTML-only message is reduced to its words
+  ok   an empty file has no text
+  ok   a damaged file never traps
+  ok   an enormous message is cut at 20000 characters
+  ok   the generated index is found and opens
+  ok   the probe reads the columns that are there
+  ok   the Google account is recognised by its [Gmail] folders; the iCloud one is not
+  ok   a Google account in Mail is found
+  ok   Mail's index is opened read-only: query_only reads back 1 and a write is refused
+  ok   the inbox is the Google inbox only, newest first, with no deleted and no iCloud message: ["mac-12345", "mac-2", "mac-3", "mac-4001", "mac-4002"]
+  ok   sender with its name, snippet and unread flag come through
+  ok   from: matches the sender, case-insensitively
+  ok   subject: matches the subject
+  ok   free words are matched against the preview Mail keeps
+  ok   unread only
+  ok   a date window is honoured at both ends
+  ok   a % in a search means a percent sign, not a wildcard
+  ok   the limit is honoured
+  ok   the sent folder
+  ok   the drafts folder
+  ok   mail from another account is never reachable by any query
+  ok   a message is read in full from the file Mail keeps (computed place)
+  ok   …and found by search when the layout is not the expected one
+  ok   a body Mail has not downloaded says so, it is not blank
+  ok   “mac-5” (not this person's Google mail) is not found
+  ok   “mac-999999” (not this person's Google mail) is not found
+  ok   “mac-abc” (not this person's Google mail) is not found
+  ok   “12345” (not this person's Google mail) is not found
+  ok   “” (not this person's Google mail) is not found
+  ok   a reply names Mail's own mailbox and number
+  ok   a reply to another account's mail is refused
+  ok   “is it there?” finds a message by its subject
+  ok   …and only in the folder it was asked about
+  ok   …and only since the time it was asked about
+  ok   no preview table: the search still answers, with no snippet
+  ok   …and free words are matched on what is there, not on a preview that is not
+  ok   no unread flag: an ordinary search still answers
+  ok   …and an unread search says it cannot, rather than answering a different question
+  ok   a shape this does not know is refused in plain words: Mail’s data has a shape Next Notes doesn’t know yet.
+  ok   Mail with only an iCloud account holds no Google account
+  ok   …and a search says so instead of reading the iCloud mail
+  ok   no Mail data on the Mac: said so
+  ok   …and a search says to add the account in Internet Accounts
+  ok   a refused read is reported as needing Full Disk Access
+  ok   …and a search says exactly which switch to flip
+  ok   every value goes in as its own argument, byte for byte (no escaping to get wrong)
+  ok   nothing a message says is ever part of the script
+  ok   a reply carries Mail's own mailbox and number
+  ok   the Google account sends; the Mac's default account is never used instead
+  ok   Mail answering ok is success
+  ok   success with no answer is not trusted
+  ok   a refusal to control Mail is named, and nothing was sent
+  ok   no Google account in Mail is named
+  ok   a reply target that is gone is named
+  ok   any other error after Mail was told is “not sure”, never “failed”
+  ok   every refusal that happens before anything is sent is known
+  ok   the runtime turns those into “not sure” and “failed” exactly as it does for Google
+  ok   Mail's script compiles against Mail's own scripting dictionary
+  ok   a Google calendar and Google mail that can be read is a ready account: MacSetup(calendar: NextNotes.MacCalendarAccess.granted, hasGoogleCalendar: true, mail: NextNotes.MailDatabase.Access.readable, hasGoogleMail: true)
+  ok   …and reads as connected, in the one word every screen uses
+  ok   the selected Mail sender supplies a real approval tag
+  ok   reordering two Mail senders changes the approval tag while Calendar stays fixed
+  ok   restoring the exact Mail sender restores its tag
+  ok   replacing the address in the selected Mail account changes its tag
+  ok   no calendar access yet: the next step is to ask
+  ok   a draft is written by Mail and found in Mail's Drafts afterwards, with one script run
+  ok   the compose consumer receives the exact selected Mail account and address
+  ok   …with exactly the reviewed subject
+  ok   Mail accepted it but nothing shows in Sent: that is said, not claimed
+  ok   “is it there?” finds the draft
+  ok   …and does not invent a send that is not there
+  ok   a reply goes to Mail with its own mailbox and number
+  ok   a reply to mail that is not the Google account's is refused and Mail is never told
+  ok   Automation denied: said plainly, nothing sent
+  ok   a send that times out is “not sure”, exactly as for Google
+  ok   an event is added to the Google calendar and read back
+  ok   …on the account's own writable calendar, not the read-only one and not iCloud
+  ok   an independent identical event has its own saved ID; matching details never claim identity
+  ok   a matching title and time with a different description is not the reviewed event
+  ok   “is it there?” finds the event
+  ok   …and only that event
+  ok   an event that cannot be read back is not called verified
+  ok   no Google calendar: nothing is created on an iCloud one
+  ok   a refused save says nothing was added
+  ok   no calendar access: the one switch is named
+  ok   the agenda is every calendar the Mac has, not only Google's
+  ok   a Google calendar source is told apart by its name or its address
+  ok   an event goes only to a writable Google calendar, the account's own first
+  ok   search prints the same numbered lines the Google path prints: 1) Mon 21 Sep 10:18 · Alice Example <alice@example.com> · Quarterly plan — Please look at the plan and send thoughts.
+  ok   no internal number reaches the text, and each hit is a verified source
+  ok   read_email prints the message by the number the search gave
+  ok   a real Mac mail read retains fetched source metadata for the existing result consumer
+  ok   a number nobody printed is a bad argument the model can correct
+  ok   an empty search says so in the same words
+  ok   an operator Mail cannot answer is refused by name
+  ok   get_agenda prints the day in the same shape: On Monday, September 21, 2026:
+- 10:00 A
+  ok   an event with guests is refused before anything is created
+  ok   an event with no guests is created and read back
+  ok   the created Mac event retains its exact saved identifier through the real runner
+  ok   times that are not times are refused before anything is created
+  ok   a draft says so and carries what was found
+  ok   a send says so and carries what was found
+  ok   a send nothing confirms carries no verification
+  ok   a reply by the printed number reaches Mail with that message's own number
+  ok   Drive is Google's: it is run through the Google runner and mail and calendar never were
+  ok   with the Google sign-in as the source, mail still goes through gws
+  ok   the admitted isolated CLI constructor keeps its executable with the Mac choice stored
+  ok   a send that never answered is looked for in Mail's Sent folder, and called “looks like” at most
+  ok   a calendar match without the saved event identifier cannot prove the approved event
+  ok   the executor answers a mail read from this Mac and never calls gws
+  ok   an approved send that never answers is “not sure”, with one read behind it and no second send: I’m not sure the email to x went out. It isn’t there yet.
+  ok   a changed Mail sender is refused before any compose or send
+  ok   a changed Mail sender is refused before any compose or send
+  ok   a normal prepared Mac calendar error stays uncertain without a fabricated Google resource ID
+  ok   an uncertain Mac calendar save is never repeated
+  ok   the actual prepared Mac calendar receipt retains uncertainty and no invented resource artifact
+  ok   a denied send says which switch to flip: Next Notes isn’t allowed to control Mail yet. Allow it in System Settings ▸ Privacy & Security ▸ Automation. Nothing was sent.
+MAC_ACCOUNTS_OK
+MAC_ACCOUNTS: the Google account already on this Mac

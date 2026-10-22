@@ -1,0 +1,5 @@
+created: /Users/sergekadjo/Library/Caches/NextNotesBuild/NextNotes-0.2.24.dmghdiutil: WARNING: 'hdiutil create -volname -format ...' is deprecated. Please use 'diskutil image create from/blank --volumeName --format ...' instead.
+
+built /Users/sergekadjo/Library/Caches/NextNotesBuild/NextNotes-0.2.24.dmg
+-rw-r--r--@ 1 sergekadjo  staff    63M Oct 22 15:48 /Users/sergekadjo/Library/Caches/NextNotesBuild/NextNotes-0.2.24.dmg
+1f0eae718c86f9df8dcf478740089a8c6a93f598eae4a4c005dda0e09cdae0d0  NextNotes-0.2.24.dmg

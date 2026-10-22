@@ -1,0 +1,16 @@
+Building for production...
+[0/6] Write sources
+[1/6] Copying probe.txt
+[2/6] Write sources
+[3/6] Write swift-version--58304C5D6DBC2206.txt
+warning: ignoring -num-threads argument; cannot multithread batch mode
+[5/8] Compiling ResourceLibrary lookup.swift
+[6/8] Compiling ResourceLibrary resource_bundle_accessor.swift
+[7/9] Emitting module ResourceLibrary
+warning: ignoring -num-threads argument; cannot multithread batch mode
+[8/11] Compiling Probe main.swift
+[9/11] Emitting module Probe
+[9/11] Write Objects.LinkFileList
+[10/11] Linking Probe
+Build complete! (2.51s)
+warning: '--build-system native' has been deprecated and will be removed in a future release; please report an issue at https://github.com/swiftlang/swift-package-manager/issues if you are unable to adopt the default build system.

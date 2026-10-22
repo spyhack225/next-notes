@@ -1,0 +1,4 @@
+run-selftest: direct /Users/sergekadjo/Library/Caches/NextNotesBuild/install-36587/Next Notes.app/Contents/MacOS/NextNotes --selftest-receipt-persistence --selftest-timeout 90
+RECEIPT_SOURCE_DIAGNOSTIC: load=missing writeCheck=unavailable
+RECEIPT_SOURCE_DIAGNOSTIC: load=missing writeCheck=unavailable
+RECEIPT_RUNTIME_OK: 5 cases

@@ -1,0 +1,37 @@
+run-selftest: direct /Users/sergekadjo/Library/Caches/NextNotesBuild/install-36587/Next Notes.app/Contents/MacOS/NextNotes --selftest-task-restoration --selftest-timeout 90
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_RESTORATION_QUEUE_PROBE: request=0 parked=true restored=true queued=0
+TASK_RESTORATION_QUEUE_PROBE: request=1 parked=true restored=true queued=1
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_RESTORATION_OK: 188 cases
+TASK_TEXT_INPUT_PRECISION mode=accepted idEqual=true taskEqual=true promptEqual=true toolEqual=true argumentEqual=true dateEqual=false liveDate=1792695299.869721 primaryDate=1792695299.0 canonicalEqual=true
+TASK_TEXT_INPUT_TRACE mode=accepted checks=21 question=1 initialEntries=1 fires=1 receipts=1
+TASK_TEXT_INPUT_PRECISION mode=tool-start-rejected idEqual=true taskEqual=true promptEqual=true toolEqual=true argumentEqual=true dateEqual=false liveDate=1792695299.908798 primaryDate=1792695299.0 canonicalEqual=true
+TASK_TEXT_INPUT_TRACE mode=tool-start-rejected checks=19 question=1 initialEntries=1 fires=0 receipts=1
+TASK_TEXT_INPUT_TRACE mode=question-rejected checks=5 question=0 initialEntries=1 fires=0 receipts=0
+TASK_TEXT_INPUT_RESULT checks=46 failures=0
+TASK_DIRECTORY_INPUT_PRECISION mode=accepted idEqual=true taskEqual=true promptEqual=true toolEqual=true argumentEqual=true dateEqual=false liveDate=1792695300.6283488 primaryDate=1792695300.0 canonicalEqual=true
+TASK_DIRECTORY_INPUT_TRACE mode=accepted checks=25 question=1 initialEntries=1 fires=1 receipts=1
+TASK_DIRECTORY_INPUT_PRECISION mode=tool-start-rejected idEqual=true taskEqual=true promptEqual=true toolEqual=true argumentEqual=true dateEqual=false liveDate=1792695300.775835 primaryDate=1792695300.0 canonicalEqual=true
+TASK_DIRECTORY_INPUT_TRACE mode=tool-start-rejected checks=23 question=1 initialEntries=1 fires=0 receipts=1
+TASK_DIRECTORY_INPUT_TRACE mode=question-rejected checks=7 question=0 initialEntries=1 fires=0 receipts=0
+TASK_DIRECTORY_INPUT_RESULT checks=60 failures=0

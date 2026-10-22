@@ -1,0 +1,13 @@
+run-selftest: direct /Users/sergekadjo/Library/Caches/NextNotesBuild/install-36587/Next Notes.app/Contents/MacOS/NextNotes --selftest-notes-coverage --selftest-timeout 90
+NOTES_COVERAGE_CASE provenance ok
+NOTES_COVERAGE_CASE position ok
+NOTES_COVERAGE_CASE tracks ok
+NOTES_COVERAGE_CASE clock ok
+NOTES_COVERAGE_CASE producer ok
+NOTES_COVERAGE_CASE intact ok
+NOTES_COVERAGE_CASE frozen ok
+NOTES_COVERAGE_CASE on-page ok
+NOTES_COVERAGE_CASE map-clock ok
+NOTES_COVERAGE_CASE notice-order ok
+NOTES_COVERAGE_OK: the notes' own input decides what is disclosed, the position comes from the producer that measured it, a quiet ending is not damage, an intact meeting's notes are byte-identical, and the uncertain clock reaches the map prompt only
+NOTES_COVERAGE_OK

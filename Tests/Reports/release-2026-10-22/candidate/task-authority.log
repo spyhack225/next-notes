@@ -1,0 +1,16 @@
+run-selftest: direct /Users/sergekadjo/Library/Caches/NextNotesBuild/install-36587/Next Notes.app/Contents/MacOS/NextNotes --selftest-task-authority --selftest-timeout 90
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history was saved, but its additional local copy could not be updated.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history was saved, but its additional local copy could not be updated.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history was saved, but its additional local copy could not be updated.
+TASK_AUTHORITY_CANONICAL: createdAt_delta=0.8421709537506104
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_AUTHORITY_OK: 63 cases

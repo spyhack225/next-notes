@@ -1,0 +1,10 @@
+run-selftest: direct /Users/sergekadjo/Library/Caches/NextNotesBuild/install-36587/Next Notes.app/Contents/MacOS/NextNotes --selftest-meeting-frame-shape --selftest-timeout 90
+FRAME_SHAPE_CASE healthy-cadence
+FRAME_SHAPE_CASE half-cadence
+FRAME_SHAPE_CASE stalled
+FRAME_SHAPE_CASE buffer-shape
+FRAME_SHAPE_CASE rate-independence
+FRAME_SHAPE_CASE converter-outcomes
+FRAME_SHAPE_CASE writer-coverage
+FRAME_SHAPE_OK: 45 checks
+FRAME_SHAPE_OK

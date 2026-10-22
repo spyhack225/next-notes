@@ -1,0 +1,12 @@
+{
+  "app": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-36587/Next Notes.app",
+  "binary_sha256": "32a35bfcf9220dbdc87734466ccd63b9df1dc0a5e2488d1541b7e08a4207c8ed",
+  "binary_bytes": 167976336,
+  "version": "0.2.24",
+  "signature_valid": true,
+  "full_compile_source": "761f42ad",
+  "targeted_primary_source": "af77cb3a",
+  "targeted_primary_receipt": "primary-repair.json",
+  "portable_resource_receipt": "portable-resource-build-final.json",
+  "packaging_revision": "d63c2a03e87022f5cd3ffe298be22e25c6f103fa"
+}

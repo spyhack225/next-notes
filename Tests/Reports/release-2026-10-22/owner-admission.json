@@ -1,0 +1,13 @@
+{
+  "original_backup_files": 1185,
+  "original_preferences_preserved": true,
+  "original_critical_files": 1181,
+  "reconciled_pre_candidate_derived_files": [
+    "file-index.sqlite",
+    "file-index.sqlite-wal",
+    "file-index.sqlite-shm",
+    "metrics.jsonl"
+  ],
+  "reason": "Derived index/metrics changed during prior normal baseline-app activity, before candidate flags; retained current versions and complete original private backup. Subsequent final checks and install compare every file against this exact admitted baseline, with no ignored paths.",
+  "original_harness_history_restored_exactly": true
+}

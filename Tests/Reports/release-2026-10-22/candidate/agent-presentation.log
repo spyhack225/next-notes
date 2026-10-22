@@ -1,0 +1,2 @@
+run-selftest: direct /Users/sergekadjo/Library/Caches/NextNotesBuild/install-36587/Next Notes.app/Contents/MacOS/NextNotes --selftest-agent-presentation --selftest-timeout 90
+AGENT_PRESENTATION_OK: actual typed stream, stable commit, Stop, isolation

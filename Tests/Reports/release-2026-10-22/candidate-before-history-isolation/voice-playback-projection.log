@@ -1,0 +1,4 @@
+run-selftest: direct /Users/sergekadjo/Library/Caches/NextNotesBuild/install-36587/Next Notes.app/Contents/MacOS/NextNotes --selftest-voice-playback-projection --selftest-timeout 90
+VOICE_PLAYBACK_PROJECTION_NATIVE: lateWhilePaused=false acknowledged=true pausedBeforeForward=false outputMatched=true token=1 generation=1 divergences=0
+VOICE_PLAYBACK_PROJECTION_NATIVE: lateWhilePaused=true acknowledged=true pausedBeforeForward=true outputMatched=true token=2 generation=4 divergences=0
+VOICE_PLAYBACK_PROJECTION_OK: 33 checks

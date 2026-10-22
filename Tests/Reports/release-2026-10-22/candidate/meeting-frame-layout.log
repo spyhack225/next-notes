@@ -1,0 +1,11 @@
+run-selftest: direct /Users/sergekadjo/Library/Caches/NextNotesBuild/install-36587/Next Notes.app/Contents/MacOS/NextNotes --selftest-meeting-frame-layout --selftest-timeout 90
+FRAME_LAYOUT_CASE a.interleaved frames=480
+FRAME_LAYOUT_CASE b.nonInterleaved frames=480 naive=240
+FRAME_LAYOUT_CASE c.truncated frames=300
+FRAME_LAYOUT_CASE d.resample 48k=160 44k1=160
+FRAME_LAYOUT_CASE e.rateChange expected=160000 half=80000
+FRAME_LAYOUT_CASE f.stallVersusSilence stalled=ok silent=aligned
+FRAME_LAYOUT_CASE g.delayed delivered=160000 expected=960000
+FRAME_LAYOUT_CASE h.hour expected=57600000 lost=57600
+FRAME_LAYOUT_CHECKS 19
+FRAME_LAYOUT_OK
