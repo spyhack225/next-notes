@@ -25,6 +25,13 @@ import Foundation
 /// checkpoint) for each one. `start()` still owns the lane around a cold model load.
 /// Models stay warm via `ParakeetModels`.
 actor ParakeetEngine: TranscriptionEngine {
+    nonisolated let modelChoice: SpeechEngineChoice
+    private let englishOnly: Bool
+    private var nativeBackend: NativeASRBackend?
+    private var managedModel: ManagedModel { modelChoice == .parakeet ? .parakeetASR : .localSpeech }
+    init(model: SpeechEngineChoice = .parakeet, englishOnly: Bool = false) {
+        self.modelChoice = model; self.englishOnly = englishOnly
+    }
     /// Self-test probe: the engine yields non-final chunks during a hold.
     nonisolated static let emitsPartialsWhileHeld = true
 
@@ -146,7 +153,7 @@ actor ParakeetEngine: TranscriptionEngine {
         // each model pass takes the lane itself. How long the queueing took is measured
         // where it happens (F-01), before the generation check, so a start that was
         // cancelled while parked still files what it waited.
-        if !(await ParakeetModels.shared.isLoaded) {
+        if !(await isModelLoaded()) {
             let laneBegan = Date()
             let jobID = await ComputeScheduler.shared.acquire(.realtimeASR)
             startLaneWaitSeconds = Date().timeIntervalSince(laneBegan)
@@ -158,21 +165,27 @@ actor ParakeetEngine: TranscriptionEngine {
             }
             schedulerJobID = jobID
         }
-        let runtimeGeneration = await ModelRuntimeManager.shared.beginLoading(.parakeetASR)
+        let runtimeGeneration = await ModelRuntimeManager.shared.beginLoading(managedModel)
         self.runtimeGeneration = runtimeGeneration
         runtimeLoaded = false
         do {
             // Force the (possibly very slow) first load to happen here rather than on release,
             // so the user waits before speaking instead of losing an utterance to a timeout.
-            _ = try await ParakeetModels.shared.manager()
+            if modelChoice == .parakeet {
+                _ = try await ParakeetModels.shared.manager()
+            } else {
+                try await ASRModelStore.shared.ready(modelChoice)
+                let directory = await ASRModelStore.directory(modelChoice)
+                nativeBackend = try await NativeASRRuntime.shared.backend(modelChoice, directory: directory)
+            }
             runtimeLoaded = true
             _ = await ModelRuntimeManager.shared.markReady(
-                .parakeetASR,
+                managedModel,
                 generation: runtimeGeneration
             )
         } catch {
             _ = await ModelRuntimeManager.shared.markWedged(
-                .parakeetASR,
+                managedModel,
                 generation: runtimeGeneration,
                 error: error.localizedDescription
             )
@@ -184,9 +197,9 @@ actor ParakeetEngine: TranscriptionEngine {
             // The model cache is process-wide. A superseded engine must not
             // call it unloaded when another session (or the shared load task)
             // still owns resident weights.
-            if await ParakeetModels.shared.isLoaded {
+            if await isModelLoaded() {
                 _ = await ModelRuntimeManager.shared.markReady(
-                    .parakeetASR,
+                    managedModel,
                     generation: runtimeGeneration
                 )
             }
@@ -196,7 +209,7 @@ actor ParakeetEngine: TranscriptionEngine {
         }
 
         _ = await ModelRuntimeManager.shared.markBusy(
-            .parakeetASR,
+            managedModel,
             generation: runtimeGeneration
         )
         activeSession = generation
@@ -238,7 +251,7 @@ actor ParakeetEngine: TranscriptionEngine {
         if let runtimeGeneration {
             if runtimeLoaded {
                 _ = await ModelRuntimeManager.shared.markReady(
-                    .parakeetASR,
+                    managedModel,
                     generation: runtimeGeneration
                 )
             }
@@ -252,6 +265,7 @@ actor ParakeetEngine: TranscriptionEngine {
             activeSession = nil
             worker = nil
             resetSession()
+            nativeBackend = nil
         }
 
         guard sampleCount >= ParakeetInput.minimumCapturedSamples else {
@@ -448,6 +462,7 @@ actor ParakeetEngine: TranscriptionEngine {
     /// still has the audio — so it is logged and answered with nil.
     private func modelPass(_ audio: [Float], isSegment: Bool) async -> String? {
         do {
+            if modelChoice != .parakeet { return try await nativePass(audio, isSegment: isSegment) }
             let manager = try await ParakeetModels.shared.manager()
             return try await transcribe(audio, with: manager, isSegment: isSegment)
         } catch {
@@ -462,8 +477,14 @@ actor ParakeetEngine: TranscriptionEngine {
     /// a stale partial still running on the first.
     private func keyUpPass(from: Int, to: Int) async throws -> String {
         let audio = Array(samples[(from - sampleOffset)..<(to - sampleOffset)])
-        let manager = try await ParakeetModels.shared.keyUpManager()
-        var text = try await transcribe(ParakeetInput.padded(audio), with: manager, isSegment: false)
+        let textResult: String
+        if modelChoice == .parakeet {
+            let manager = try await ParakeetModels.shared.keyUpManager()
+            textResult = try await transcribe(ParakeetInput.padded(audio), with: manager, isSegment: false)
+        } else {
+            textResult = try await nativePass(ParakeetInput.padded(audio), isSegment: false)
+        }
+        var text = textResult
         // D-04: 0.1–0.3 s of audio is zero-padded to the model's 0.3 s floor. Padding
         // silence can make the model invent words on a near-empty tap, so a long answer
         // from almost no audio is treated as empty.
@@ -472,6 +493,26 @@ actor ParakeetEngine: TranscriptionEngine {
             text = ""
         }
         return text
+    }
+
+    private func isModelLoaded() async -> Bool {
+        if modelChoice == .parakeet { return await ParakeetModels.shared.isLoaded }
+        return await NativeASRRuntime.shared.isLoaded(modelChoice)
+    }
+
+    private func nativePass(_ audio: [Float], isSegment: Bool) async throws -> String {
+        guard audio.contains(where: { $0 != 0 }) else { return "" }
+        guard let nativeBackend else { throw ASRModelError.unavailable }
+        await enterLane()
+        let began = Date()
+        do {
+            let text = try await nativeBackend.transcribe(audio, englishOnly: englishOnly)
+            await leaveLane()
+            diagnostics.passes += 1
+            if isSegment { diagnostics.segmentPasses += 1 }
+            diagnostics.computeSeconds += Date().timeIntervalSince(began)
+            return text.trimmingCharacters(in: .whitespacesAndNewlines)
+        } catch { await leaveLane(); throw error }
     }
 
     /// One model pass inside the shared `.realtimeASR` lane.

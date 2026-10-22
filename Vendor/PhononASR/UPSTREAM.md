@@ -1,0 +1,1 @@
+FermionResearch/Phonon-2-CoreML source archive, revision1143812fd4236522232a8c33e3115f0577e3cd7d. Source and native decoder unmodified; manifest restricted to the library. Speech weights download separately. Apache2 LICENSE/NOTICE retained.

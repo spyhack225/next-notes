@@ -145,6 +145,7 @@ enum UsageProvider: String, Codable, Sendable, CaseIterable {
     case needle
     case parakeet
     case appleSpeech
+    case localSpeech
     case s1mini
     case rules
     case diarizer

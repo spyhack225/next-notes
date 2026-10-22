@@ -5,30 +5,92 @@ import SwiftUI
 struct DictationSettingsTab: View {
     @State private var settings = Settings.shared
     @State private var models = LocalModelStore.shared
+    @State private var speechModels = ASRModelStore.shared
     @State private var runs = RunStore.shared
     @State private var isPickingAutoSendApp = false
 
     var body: some View {
         Form {
             Section {
-                Picker("Engine", selection: Binding(
+                Picker("Language", selection: Binding(
+                    get: { settings.dictationLanguage },
+                    set: { language in
+                        settings.dictationLanguage = language
+                        if language == .multi, settings.engine == .phonon { settings.engine = .automatic }
+                        speechModels.prepare(settings.resolvedSpeechEngine)
+                    }
+                )) {
+                    ForEach(DictationLanguage.allCases, id: \.self) { Text($0.displayName).tag($0) }
+                }
+                .disabled(speechModels.preparing != nil)
+
+                Picker("Speech model", selection: Binding(
                     get: { settings.engine },
                     set: { choice in
                         settings.engine = choice
-                        if choice == .parakeet { models.prepareParakeet() }
+                        speechModels.prepare(settings.resolvedSpeechEngine)
                     }
                 )) {
                     ForEach(SpeechEngineChoice.allCases, id: \.self) { choice in
-                        Text(choice.displayName).tag(choice)
+                        if choice != .phonon || settings.dictationLanguage == .english {
+                            Text(choice == .automatic ? "Automatic · " + settings.dictationLanguage.recommendedModel.displayName : choice.displayName).tag(choice)
+                        }
                     }
                 }
-                .disabled(settings.compareMode)
+                .disabled(settings.compareMode || speechModels.preparing != nil)
 
-                Toggle("Compare mode (run every engine)", isOn: $settings.compareMode)
+                Toggle("Compare Apple and Parakeet v3", isOn: $settings.compareMode)
             } header: {
                 Text("Transcription")
             } footer: {
                 SettingsNote(text: engineNote, orb: engineWork)
+            }
+
+            Section {
+                if speechModels.preparing != nil {
+                    HStack {
+                        ProgressView().controlSize(.small)
+                        Text(speechModels.message)
+                        Spacer()
+                        Button("Cancel download") { speechModels.cancel() }
+                    }
+                }
+                if let failure = speechModels.failure { Text(failure).foregroundStyle(DS.Color.textSecondary) }
+                ForEach(ASRModelCatalog.models, id: \.choice) { model in
+                    VStack(alignment: .leading, spacing: DS.Space.xs) {
+                        HStack {
+                            Text(model.choice.displayName)
+                            Spacer()
+                            if model.choice == settings.resolvedSpeechEngine {
+                                if speechModels.failure != nil {
+                                    Button("Try again") { speechModels.prepare(model.choice) }
+                                } else {
+                                    Text("Selected").foregroundStyle(DS.Color.textSecondary)
+                                }
+                            } else if model.choice == .phonon, settings.dictationLanguage == .multi {
+                                Text("English only").foregroundStyle(DS.Color.textSecondary)
+                            } else {
+                                Button("Use") {
+                                    settings.engine = model.choice
+                                    speechModels.prepare(model.choice)
+                                }.disabled(speechModels.preparing != nil)
+                            }
+                        }
+                        Text(modelSummary(model))
+                            .font(DS.Font.caption)
+                            .foregroundStyle(DS.Color.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                Button("Use recommended model") {
+                    settings.engine = .automatic
+                    speechModels.prepare(settings.resolvedSpeechEngine)
+                }.disabled(speechModels.preparing != nil)
+                Link("See benchmarks and test conditions", destination: ASRModelCatalog.benchmarkURL)
+                Link("Voz by Desert Ant Labs", destination: URL(string: "https://desertant.com/models/voz/")!)
+            } header: { Text("Compare speech models") }
+            footer: {
+                SettingsNote(text: "Measured on an M3 Mac: first words while speaking, then time to finish after release. Accuracy is word accuracy on one English or French recording, not a guarantee. Voz supports25 European languages; Multi shows the French test results. Downloads happen one model at a time; only your chosen model downloads.")
             }
 
             Section {
@@ -334,20 +396,23 @@ struct DictationSettingsTab: View {
 
     private var engineNote: String {
         if settings.compareMode {
-            return "Every engine transcribes each recording and the results appear in the "
+            return "Apple and Parakeet transcribe each recording and the results appear in the "
                 + "Comparison pane in Settings. Nothing is typed into the focused app in this mode."
         }
-        switch settings.engine {
-        case .apple:
-            return "Apple's on-device transcriber. Streams text while you speak; no download."
-        case .parakeet:
-            switch models.parakeetState {
-            case .notDownloaded: return "Parakeet shows text while you speak. Selecting it downloads ~470 MB once."
-            case .preparing(let message): return message
-            case .ready: return "Parakeet shows text while you speak and finishes when you release the key."
-            case .failed(let message): return "Parakeet failed: \(message) Retry from the Models tab."
-            }
+        if settings.resolvedSpeechEngine == .apple {
+            return "Apple’s on-device transcriber. Live text without a download; uses English or your Mac’s speech language."
         }
+        if speechModels.preparing != nil { return speechModels.message + " Apple transcribes while setup finishes." }
+        let choice = settings.resolvedSpeechEngine
+        return "\(choice.displayName) shows text while you speak and finishes when you release. "
+            + (ASRModelStore.isDownloaded(choice) ? "Ready on this Mac." : "Choose it to download and prepare it on this Mac.")
+    }
+
+    private func modelSummary(_ model: ASRModelInfo) -> String {
+        guard let measured = model.measurement(for: settings.dictationLanguage) else {
+            return "\(model.size) · English only"
+        }
+        return "First words \(Int(measured.firstMS.rounded())) ms · After release \(Int(measured.finalMS.rounded())) ms · \(model.size) · \(String(format: "%.1f", measured.wordAccuracy))% words correct in our test"
     }
 
     private var cleanupNote: String {

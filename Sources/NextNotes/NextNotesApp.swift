@@ -12,6 +12,8 @@ import SwiftUI
 @MainActor
 enum NextNotesEntryPoint {
     static func main() {
+        if CommandLine.arguments.contains("--selftest-asr-settings") { ASRSettingsSelfTest.runStandalone() }
+        if CommandLine.arguments.contains("--selftest-asr-live") { ASRLiveAppBenchmark.runStandalone() }
         if CommandLine.arguments.contains("--selftest-tts-source") {
             TTSFirstAudioBenchmark.runSourceContractStandalone()
         }
@@ -723,6 +725,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // dictation touches them first — so the first hold after every launch would stall
         // with the HUD showing nothing. Warm them in the background instead, but only when
         // they're actually going to be used and are already downloaded.
+        let selectedSpeech = Settings.shared.resolvedSpeechEngine
+        if !Settings.shared.compareMode, selectedSpeech != .apple, selectedSpeech != .parakeet {
+            ASRModelStore.shared.prepare(selectedSpeech)
+        }
         let willUseParakeet = Settings.shared.compareMode || Settings.shared.engine == .parakeet
         if willUseParakeet, ParakeetModels.isDownloaded {
             LocalModelStore.shared.prepareParakeet()
@@ -10835,6 +10841,8 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
         // Cancel file-render callers before native admission closes; join these same handles below.
         let eouTerminationTask = AgentCaptureController.sharedIfLoaded?.beginEOUTermination()
         let catchUpRenderTasks = CatchUpTemplate.beginTermination()
+        let speechPreparation = ASRModelStore.sharedIfLoaded
+        speechPreparation?.beginTermination()
         pocket.beginTermination()
         let wake = WakeWordAudioMonitor.shared
         wake.beginTermination()
@@ -10895,6 +10903,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
             await pocket.finishTermination()
             await wake.finishTermination()
             await parakeet.finishTermination()
+            await speechPreparation?.finishTermination()
             let drained = await runtime.finishTermination()
             let diagnosticDrain = self.otherLlamaTerminationFixtureForTesting?.safetyDrain
             // Preserve the ordinary nil path's existing release/reply ordering.

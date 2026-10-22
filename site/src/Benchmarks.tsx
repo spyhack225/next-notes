@@ -1,11 +1,13 @@
 import { useMemo, useState } from "react";
 import data from "./generated/benchmarks.json";
+import asrModels from "../../shared/asr-models.json";
 import { REPO_URL } from "./lib/motion";
 
 const areas = ["all", "asr", "dictation", "meetings", "agent", "voice", "tts", "workflows", "models"];
 const labels: Record<string, string> = { all: "All areas", asr: "Speech recognition", tts: "Speech synthesis" };
 
 export default function Benchmarks() {
+  const [language, setLanguage] = useState<"en" | "fr">("en");
   const [area, setArea] = useState("all");
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("all");
@@ -27,6 +29,21 @@ export default function Benchmarks() {
           <p>Model performance and workflow checks, with the conditions and limits that give each result meaning.</p>
           <p className="text-muted-foreground">These are dated observations. A measured component does not establish that the whole app passes. Targets and pending runs are kept separate.</p>
         </header>
+        <section id="asr-comparison" aria-labelledby="asr-heading">
+          <h2 id="asr-heading">Speech model comparison</h2>
+          <p>Speed-first choices: Phonon for English, Voz for Multi. Multi supports 25 European languages; French is the second language measured here.</p>
+          <label>Test language <select value={language} onChange={event => setLanguage(event.target.value as "en" | "fr")}><option value="en">English</option><option value="fr">French</option></select></label>
+          <div className="benchmark-table-scroll"><table>
+            <caption>M3 Mac · median of three warmed paced holds · sorted by time after release</caption>
+            <thead><tr><th scope="col">Model</th><th scope="col">First words</th><th scope="col">After release</th><th scope="col">Size</th><th scope="col">Words correct in our test</th></tr></thead>
+            <tbody>{[...asrModels].sort((a,b) => (a.languages[language]?.finalMs ?? Infinity) - (b.languages[language]?.finalMs ?? Infinity)).map(model => {
+              const measured = model.languages[language];
+              return <tr key={model.id}><th scope="row">{model.name}</th><td>{measured ? `${Math.round(measured.firstMs)} ms` : "English only"}</td><td>{measured ? `${Math.round(measured.finalMs)} ms` : "—"}</td><td>{(model.bytes/1000000).toLocaleString(undefined,{maximumFractionDigits:0})} MB</td><td>{measured ? `${measured.wordAccuracy.toFixed(1)}%` : "—"}</td></tr>;
+            })}</tbody>
+          </table></div>
+          <p className="text-muted-foreground">22 October 2026. First words include a 400 ms initial audio feed, then one-second updates. Finalization starts at release and includes pending inference. These are runtime callbacks, excluding cold loading, microphone, display, cleanup and insertion. Accuracy is 100 × (1 − word error rate) on one separate authored recording: 136 English or 151 French words; number formatting can count as errors. It is not a general accuracy percentage.</p>
+          <p className="text-muted-foreground">Whistle’s provisional French word arrives first, but Voz finishes sooner and made fewer content errors in the short excerpt. Qwen 1.7B scored highest on the French accuracy recording. Each candidate was downloaded, measured and removed before the next.</p>
+        </section>
         <form className="benchmark-filters" onSubmit={event => event.preventDefault()}>
           <label>Search results<input type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Model or workflow" /></label>
           <label>Area<select value={area} onChange={event => setArea(event.target.value)}>{areas.map(value => <option key={value} value={value}>{labels[value] ?? value}</option>)}</select></label>

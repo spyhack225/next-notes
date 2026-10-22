@@ -47,8 +47,8 @@
     "Tests/Reports/asr-live-latency-2026-10-22-resumed/phonon.json"
   ],
   "publication": {
-    "approved": false,
-    "reviewed_by": null,
-    "reviewed_on": null
+    "approved": true,
+    "reviewed_by": "Codex; owner requested benchmark-page publication",
+    "reviewed_on": "2026-10-22"
   }
 }

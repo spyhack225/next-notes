@@ -102,3 +102,23 @@ optional, opt-in, and reached over the network. They are services, not code in t
 
 Inter and Instrument Serif (Fontsource packages 5.3.0) are included in the Mac app.
 Local WOFF TrueType outlines were unwrapped into TTF containers without changing glyphs, character maps or PostScript names. The original copyright and SIL Open Font License 1.1 texts are bundled in `Resources/ThemeFonts/`. The provenance manifest records the source and output hashes. These are Latin subsets; the operating system supplies other glyphs. No font is installed into the user’s Fonts directory.
+
+## Additional local speech recognition
+
+Phonon-2 Core ML runtime by Fermion Research: Apache License 2.0; the pinned
+runtime's LICENSE and NOTICE are retained in Vendor/PhononASR. Phonon-2 weights
+are downloaded separately from FermionResearch/Phonon-2-CoreML; attribution:
+Fermion Research, Phonon-2, https://www.fermionresearch.com/models/phonon-2/.
+
+Voz by Desert Ant Labs — https://desertant.com/models/voz/.
+SDK revision 86b9b55fe8c61ec1c27c5b6383f545c6df1d6ceb; Desert Ant Labs
+Source-Available License 1.0, https://license.desertant.com/1.0.
+Voz model artifacts are downloaded separately. The attribution is also shown
+beside the speech-model comparison in Settings.
+
+Whistle and its Needle runtime by Cactus Compute are downloaded separately
+from their pinned official Cactus-Compute Hugging Face repositories.
+Qwen3-ASR by Qwen and the MLX community runs through MLX Audio Swift's
+MLXAudioSTT product. Parakeet Redux and Ultra artifacts are by Moondream,
+converted to Core ML by Fluid Inference; their original source credits and
+licenses remain with the separately downloaded models.

@@ -1,0 +1,62 @@
+[
+  {
+    "target": "PhononCoreML",
+    "command": [
+      "xcrun",
+      "swift",
+      "build",
+      "--scratch-path",
+      "/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch",
+      "-c",
+      "release",
+      "--jobs",
+      "2",
+      "--disable-automatic-resolution",
+      "--target",
+      "PhononCoreML"
+    ],
+    "exit": 0,
+    "elapsedSeconds": 61.239267500001006,
+    "stopped": null
+  },
+  {
+    "target": "Voz",
+    "command": [
+      "xcrun",
+      "swift",
+      "build",
+      "--scratch-path",
+      "/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch",
+      "-c",
+      "release",
+      "--jobs",
+      "2",
+      "--disable-automatic-resolution",
+      "--target",
+      "Voz"
+    ],
+    "exit": 0,
+    "elapsedSeconds": 20.091602250002325,
+    "stopped": null
+  },
+  {
+    "target": "MLXAudioSTT",
+    "command": [
+      "xcrun",
+      "swift",
+      "build",
+      "--scratch-path",
+      "/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch",
+      "-c",
+      "release",
+      "--jobs",
+      "2",
+      "--disable-automatic-resolution",
+      "--target",
+      "MLXAudioSTT"
+    ],
+    "exit": 1,
+    "elapsedSeconds": 4.0262948329909705,
+    "stopped": null
+  }
+]

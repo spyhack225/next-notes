@@ -1,0 +1,252 @@
+warning: 'next-notes': found 1 file(s) which are unhandled; explicitly declare them as resources or exclude from the target
+    /Users/sergekadjo/Documents/Claude/Projects/next-notes/Sources/NextNotes/IMessage/Database/TYPEDSTREAM-NOTES.md
+Building for production...
+[Pre-planning 1 / 37]
+[Planning deferred tasks]
+[8 / 15] PhononCoreML
+[8 / 15]
+[8 / 16] PhononCoreML
+[9 / 16] PhononCoreML
+[10 / 18]
+[13 / 86]
+[19 / 86]
+[20 / 86]
+[22 / 86]
+[29 / 86]
+[31 / 86]
+[33 / 86]
+[34 / 86]
+[38 / 86]
+[40 / 86]
+[42 / 86]
+[47 / 86]
+[50 / 86]
+[52 / 86]
+[54 / 86]
+[56 / 86]
+[61 / 86]
+[63 / 86]
+[65 / 86]
+[68 / 86]
+[70 / 86]
+[72 / 86]
+[74 / 86]
+[78 / 86]
+[79 / 86]
+[80 / 86] PhononCoreML
+/Users/sergekadjo/Documents/Claude/Projects/next-notes/Vendor/PhononASR/Sources/PhononCoreML/LogMel.swift:87:9: warning: 'cblas_sgemm' was deprecated in macOS 13.3: An updated CBLAS interface supporting ILP64 is available.  Please compile with -DACCELERATE_NEW_LAPACK to access the new headers and -DACCELERATE_LAPACK_ILP64 for ILP64 support. [#DeprecatedDeclaration]
+ 85 |         // mel [T x 128] = power [T x 257] @ melF^T
+ 86 |         var mel = [Float](repeating: 0, count: T * LogMel.nMels)
+ 87 |         cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasTrans, Int32(T), Int32(LogMel.nMels), Int32(nb), 1.0, power, Int32(nb), melF, Int32(nb), 0.0, &mel, Int32(LogMel.nMels))
+    |         `- warning: 'cblas_sgemm' was deprecated in macOS 13.3: An updated CBLAS interface supporting ILP64 is available.  Please compile with -DACCELERATE_NEW_LAPACK to access the new headers and -DACCELERATE_LAPACK_ILP64 for ILP64 support. [#DeprecatedDeclaration]
+ 88 |         for i in 0..<mel.count { mel[i] = log(mel[i] + LogMel.logGuard) }
+ 89 |         // per-feature normalisation over T frames (unbiased variance), then transpose to [128][T]
+
+/Users/sergekadjo/Documents/Claude/Projects/next-notes/Vendor/PhononASR/Sources/PhononCoreML/Transcriber.swift:124:99: warning: capture of 'self' with non-Sendable type 'Transcriber?' in a '@Sendable' closure [#SendableClosureCaptures]
+ 29 | }
+ 30 | 
+ 31 | public final class Transcriber {
+    |                    `- note: class 'Transcriber' does not conform to the 'Sendable' protocol
+ 32 |     public struct Options {
+ 33 |         public var computeUnits: MLComputeUnits = .cpuAndNeuralEngine
+    :
+122 |             bgLoads.enter()
+123 |             DispatchQueue.global(qos: .utility).async { [weak self] in
+124 |                 if par { DispatchQueue.concurrentPerform(iterations: rest.count) { i in guard let self else { return }; _ = try? self.loadFunction(rest[i]); self.modelLock.lock(); self.loading.remove(rest[i]); self.modelLock.unlock() } }
+    |                                                                                                   `- warning: capture of 'self' with non-Sendable type 'Transcriber?' in a '@Sendable' closure [#SendableClosureCaptures]
+125 |                 else { for k in rest { guard let self else { break }; _ = try? self.loadFunction(k); self.modelLock.lock(); self.loading.remove(k); self.modelLock.unlock() } }
+126 |                 self?.bgLoads.leave()
+
+/Users/sergekadjo/Documents/Claude/Projects/next-notes/Vendor/PhononASR/Sources/PhononCoreML/Transcriber.swift:124:99: warning: capture of 'self' with non-Sendable type 'Transcriber?' in a '@Sendable' closure [#SendableClosureCaptures]
+ 29 | }
+ 30 | 
+ 31 | public final class Transcriber {
+    |                    `- note: class 'Transcriber' does not conform to the 'Sendable' protocol
+ 32 |     public struct Options {
+ 33 |         public var computeUnits: MLComputeUnits = .cpuAndNeuralEngine
+    :
+122 |             bgLoads.enter()
+123 |             DispatchQueue.global(qos: .utility).async { [weak self] in
+124 |                 if par { DispatchQueue.concurrentPerform(iterations: rest.count) { i in guard let self else { return }; _ = try? self.loadFunction(rest[i]); self.modelLock.lock(); self.loading.remove(rest[i]); self.modelLock.unlock() } }
+    |                                                                                                   `- warning: capture of 'self' with non-Sendable type 'Transcriber?' in a '@Sendable' closure [#SendableClosureCaptures]
+125 |                 else { for k in rest { guard let self else { break }; _ = try? self.loadFunction(k); self.modelLock.lock(); self.loading.remove(k); self.modelLock.unlock() } }
+126 |                 self?.bgLoads.leave()
+
+/Users/sergekadjo/Documents/Claude/Projects/next-notes/Vendor/PhononASR/Sources/PhononCoreML/Transcriber.swift:124:99: warning: reference to captured var 'self' in concurrently-executing code [#SendableClosureCaptures]
+122 |             bgLoads.enter()
+123 |             DispatchQueue.global(qos: .utility).async { [weak self] in
+124 |                 if par { DispatchQueue.concurrentPerform(iterations: rest.count) { i in guard let self else { return }; _ = try? self.loadFunction(rest[i]); self.modelLock.lock(); self.loading.remove(rest[i]); self.modelLock.unlock() } }
+    |                                                                                                   `- warning: reference to captured var 'self' in concurrently-executing code [#SendableClosureCaptures]
+125 |                 else { for k in rest { guard let self else { break }; _ = try? self.loadFunction(k); self.modelLock.lock(); self.loading.remove(k); self.modelLock.unlock() } }
+126 |                 self?.bgLoads.leave()
+
+/Users/sergekadjo/Documents/Claude/Projects/next-notes/Vendor/PhononASR/Sources/PhononCoreML/Transcriber.swift:310:30: warning: capture of 'self' with non-Sendable type 'Transcriber' in a '@Sendable' closure [#SendableClosureCaptures]
+ 29 | }
+ 30 | 
+ 31 | public final class Transcriber {
+    |                    `- note: class 'Transcriber' does not conform to the 'Sendable' protocol
+ 32 |     public struct Options {
+ 33 |         public var computeUnits: MLComputeUnits = .cpuAndNeuralEngine
+    :
+308 |             encQ.async { [self] in
+309 |                 let e: ([Float], Int)
+310 |                 do { e = try encodeFeatures(feats, n: n) } catch { lock.lock(); firstError = firstError ?? error; lock.unlock(); encSlots.signal(); group.leave(); return }
+    |                              `- warning: capture of 'self' with non-Sendable type 'Transcriber' in a '@Sendable' closure [#SendableClosureCaptures]
+311 |                 encSlots.signal()
+312 |                 decSlots.wait()
+
+/Users/sergekadjo/Documents/Claude/Projects/next-notes/Vendor/PhononASR/Sources/PhononCoreML/Transcriber.swift:317:131: warning: capture of 'w' with non-Sendable type 'Window' in a '@Sendable' closure [#SendableClosureCaptures]
+315 |                     let d = decoders[di]
+316 |                     var toks = decode(d, e)
+317 |                     if options.rescue && longAudio, let better = try? rescue(samples[...], tokens: toks, decoder: d, windowStart: w.start, source: source) { toks = better }
+    |                                                                                                                                   `- warning: capture of 'w' with non-Sendable type 'Window' in a '@Sendable' closure [#SendableClosureCaptures]
+318 |                     lock.lock(); local[i] = toks; free.append(di); lock.unlock()
+319 |                     decSlots.signal(); group.leave()
+
+/Users/sergekadjo/Documents/Claude/Projects/next-notes/Vendor/PhononASR/Sources/PhononCoreML/Windower.swift:9:15: note: consider making struct 'Window' conform to the 'Sendable' protocol
+ 7 | import Foundation
+ 8 | 
+ 9 | public struct Window: Equatable {
+   |               `- note: consider making struct 'Window' conform to the 'Sendable' protocol
+10 |     public let start: Int, end: Int          // samples
+11 |     public let overlapFromPrevious: Bool     // this window begins inside the previous one
+
+/Users/sergekadjo/Documents/Claude/Projects/next-notes/Vendor/PhononASR/Sources/PhononCoreML/Transcriber.swift:317:148: warning: capture of 'source' with non-Sendable type 'any AudioSource' in a '@Sendable' closure [#SendableClosureCaptures]
+315 |                     let d = decoders[di]
+316 |                     var toks = decode(d, e)
+317 |                     if options.rescue && longAudio, let better = try? rescue(samples[...], tokens: toks, decoder: d, windowStart: w.start, source: source) { toks = better }
+    |                                                                                                                                                    `- warning: capture of 'source' with non-Sendable type 'any AudioSource' in a '@Sendable' closure [#SendableClosureCaptures]
+318 |                     lock.lock(); local[i] = toks; free.append(di); lock.unlock()
+319 |                     decSlots.signal(); group.leave()
+
+/Users/sergekadjo/Documents/Claude/Projects/next-notes/Vendor/PhononASR/Sources/PhononCoreML/AudioSource.swift:5:17: note: protocol 'AudioSource' does not conform to the 'Sendable' protocol
+  3 | import Foundation
+  4 | 
+  5 | public protocol AudioSource {
+    |                 `- note: protocol 'AudioSource' does not conform to the 'Sendable' protocol
+  6 |     var count: Int { get }                                   // samples at 16 kHz mono
+  7 |     func read(_ range: Range<Int>) throws -> [Float]         // samples of the range (mono, 16 kHz)
+
+/Users/sergekadjo/Documents/Claude/Projects/next-notes/Vendor/PhononASR/Sources/PhononCoreML/Transcriber.swift:318:34: warning: capture of 'local' with non-Sendable type '[[TimedToken]?]' in a '@Sendable' closure [#SendableClosureCaptures]
+316 |                     var toks = decode(d, e)
+317 |                     if options.rescue && longAudio, let better = try? rescue(samples[...], tokens: toks, decoder: d, windowStart: w.start, source: source) { toks = better }
+318 |                     lock.lock(); local[i] = toks; free.append(di); lock.unlock()
+    |                                  `- warning: capture of 'local' with non-Sendable type '[[TimedToken]?]' in a '@Sendable' closure [#SendableClosureCaptures]
+319 |                     decSlots.signal(); group.leave()
+320 |                 }
+
+/Users/sergekadjo/Documents/Claude/Projects/next-notes/Vendor/PhononASR/Sources/PhononCoreML/Words.swift:12:15: note: consider making struct 'TimedToken' conform to the 'Sendable' protocol
+10 | public struct Segment: Codable, Equatable { public let id: Int; public let start: Double; public let end: Double; public let text: String }
+11 | 
+12 | public struct TimedToken { public let piece: String; public let start: Double; public let duration: Double }   // seconds, window-relative; piece has "▁" as " "
+   |               `- note: consider making struct 'TimedToken' conform to the 'Sendable' protocol
+13 | 
+14 | enum Words {
+
+/Users/sergekadjo/Documents/Claude/Projects/next-notes/Vendor/PhononASR/Sources/PhononCoreML/Transcriber.swift:310:81: warning: mutation of captured var 'firstError' in concurrently-executing code [#SendableClosureCaptures]
+308 |             encQ.async { [self] in
+309 |                 let e: ([Float], Int)
+310 |                 do { e = try encodeFeatures(feats, n: n) } catch { lock.lock(); firstError = firstError ?? error; lock.unlock(); encSlots.signal(); group.leave(); return }
+    |                                                                                 `- warning: mutation of captured var 'firstError' in concurrently-executing code [#SendableClosureCaptures]
+311 |                 encSlots.signal()
+312 |                 decSlots.wait()
+
+/Users/sergekadjo/Documents/Claude/Projects/next-notes/Vendor/PhononASR/Sources/PhononCoreML/Transcriber.swift:310:94: warning: reference to captured var 'firstError' in concurrently-executing code [#SendableClosureCaptures]
+308 |             encQ.async { [self] in
+309 |                 let e: ([Float], Int)
+310 |                 do { e = try encodeFeatures(feats, n: n) } catch { lock.lock(); firstError = firstError ?? error; lock.unlock(); encSlots.signal(); group.leave(); return }
+    |                                                                                              `- warning: reference to captured var 'firstError' in concurrently-executing code [#SendableClosureCaptures]
+311 |                 encSlots.signal()
+312 |                 decSlots.wait()
+
+/Users/sergekadjo/Documents/Claude/Projects/next-notes/Vendor/PhononASR/Sources/PhononCoreML/Transcriber.swift:313:39: warning: mutation of captured var 'free' in concurrently-executing code [#SendableClosureCaptures]
+311 |                 encSlots.signal()
+312 |                 decSlots.wait()
+313 |                 lock.lock(); let di = free.removeLast(); lock.unlock()
+    |                                       `- warning: mutation of captured var 'free' in concurrently-executing code [#SendableClosureCaptures]
+314 |                 decQ.async { [self] in
+315 |                     let d = decoders[di]
+
+/Users/sergekadjo/Documents/Claude/Projects/next-notes/Vendor/PhononASR/Sources/PhononCoreML/Transcriber.swift:315:29: warning: capture of 'self' with non-Sendable type 'Transcriber' in a '@Sendable' closure [#SendableClosureCaptures]
+ 29 | }
+ 30 | 
+ 31 | public final class Transcriber {
+    |                    `- note: class 'Transcriber' does not conform to the 'Sendable' protocol
+ 32 |     public struct Options {
+ 33 |         public var computeUnits: MLComputeUnits = .cpuAndNeuralEngine
+    :
+313 |                 lock.lock(); let di = free.removeLast(); lock.unlock()
+314 |                 decQ.async { [self] in
+315 |                     let d = decoders[di]
+    |                             `- warning: capture of 'self' with non-Sendable type 'Transcriber' in a '@Sendable' closure [#SendableClosureCaptures]
+316 |                     var toks = decode(d, e)
+317 |                     if options.rescue && longAudio, let better = try? rescue(samples[...], tokens: toks, decoder: d, windowStart: w.start, source: source) { toks = better }
+
+/Users/sergekadjo/Documents/Claude/Projects/next-notes/Vendor/PhononASR/Sources/PhononCoreML/Transcriber.swift:317:131: warning: capture of 'w' with non-Sendable type 'Window' in a '@Sendable' closure [#SendableClosureCaptures]
+315 |                     let d = decoders[di]
+316 |                     var toks = decode(d, e)
+317 |                     if options.rescue && longAudio, let better = try? rescue(samples[...], tokens: toks, decoder: d, windowStart: w.start, source: source) { toks = better }
+    |                                                                                                                                   `- warning: capture of 'w' with non-Sendable type 'Window' in a '@Sendable' closure [#SendableClosureCaptures]
+318 |                     lock.lock(); local[i] = toks; free.append(di); lock.unlock()
+319 |                     decSlots.signal(); group.leave()
+
+/Users/sergekadjo/Documents/Claude/Projects/next-notes/Vendor/PhononASR/Sources/PhononCoreML/Windower.swift:9:15: note: consider making struct 'Window' conform to the 'Sendable' protocol
+ 7 | import Foundation
+ 8 | 
+ 9 | public struct Window: Equatable {
+   |               `- note: consider making struct 'Window' conform to the 'Sendable' protocol
+10 |     public let start: Int, end: Int          // samples
+11 |     public let overlapFromPrevious: Bool     // this window begins inside the previous one
+
+/Users/sergekadjo/Documents/Claude/Projects/next-notes/Vendor/PhononASR/Sources/PhononCoreML/Transcriber.swift:317:148: warning: capture of 'source' with non-Sendable type 'any AudioSource' in a '@Sendable' closure [#SendableClosureCaptures]
+315 |                     let d = decoders[di]
+316 |                     var toks = decode(d, e)
+317 |                     if options.rescue && longAudio, let better = try? rescue(samples[...], tokens: toks, decoder: d, windowStart: w.start, source: source) { toks = better }
+    |                                                                                                                                                    `- warning: capture of 'source' with non-Sendable type 'any AudioSource' in a '@Sendable' closure [#SendableClosureCaptures]
+318 |                     lock.lock(); local[i] = toks; free.append(di); lock.unlock()
+319 |                     decSlots.signal(); group.leave()
+
+/Users/sergekadjo/Documents/Claude/Projects/next-notes/Vendor/PhononASR/Sources/PhononCoreML/AudioSource.swift:5:17: note: protocol 'AudioSource' does not conform to the 'Sendable' protocol
+  3 | import Foundation
+  4 | 
+  5 | public protocol AudioSource {
+    |                 `- note: protocol 'AudioSource' does not conform to the 'Sendable' protocol
+  6 |     var count: Int { get }                                   // samples at 16 kHz mono
+  7 |     func read(_ range: Range<Int>) throws -> [Float]         // samples of the range (mono, 16 kHz)
+
+/Users/sergekadjo/Documents/Claude/Projects/next-notes/Vendor/PhononASR/Sources/PhononCoreML/Transcriber.swift:318:34: warning: capture of 'local' with non-Sendable type '[[TimedToken]?]' in a '@Sendable' closure [#SendableClosureCaptures]
+316 |                     var toks = decode(d, e)
+317 |                     if options.rescue && longAudio, let better = try? rescue(samples[...], tokens: toks, decoder: d, windowStart: w.start, source: source) { toks = better }
+318 |                     lock.lock(); local[i] = toks; free.append(di); lock.unlock()
+    |                                  `- warning: capture of 'local' with non-Sendable type '[[TimedToken]?]' in a '@Sendable' closure [#SendableClosureCaptures]
+319 |                     decSlots.signal(); group.leave()
+320 |                 }
+
+/Users/sergekadjo/Documents/Claude/Projects/next-notes/Vendor/PhononASR/Sources/PhononCoreML/Words.swift:12:15: note: consider making struct 'TimedToken' conform to the 'Sendable' protocol
+10 | public struct Segment: Codable, Equatable { public let id: Int; public let start: Double; public let end: Double; public let text: String }
+11 | 
+12 | public struct TimedToken { public let piece: String; public let start: Double; public let duration: Double }   // seconds, window-relative; piece has "▁" as " "
+   |               `- note: consider making struct 'TimedToken' conform to the 'Sendable' protocol
+13 | 
+14 | enum Words {
+
+/Users/sergekadjo/Documents/Claude/Projects/next-notes/Vendor/PhononASR/Sources/PhononCoreML/Transcriber.swift:318:34: warning: mutation of captured var 'local' in concurrently-executing code [#SendableClosureCaptures]
+316 |                     var toks = decode(d, e)
+317 |                     if options.rescue && longAudio, let better = try? rescue(samples[...], tokens: toks, decoder: d, windowStart: w.start, source: source) { toks = better }
+318 |                     lock.lock(); local[i] = toks; free.append(di); lock.unlock()
+    |                                  `- warning: mutation of captured var 'local' in concurrently-executing code [#SendableClosureCaptures]
+319 |                     decSlots.signal(); group.leave()
+320 |                 }
+
+/Users/sergekadjo/Documents/Claude/Projects/next-notes/Vendor/PhononASR/Sources/PhononCoreML/Transcriber.swift:318:51: warning: mutation of captured var 'free' in concurrently-executing code [#SendableClosureCaptures]
+316 |                     var toks = decode(d, e)
+317 |                     if options.rescue && longAudio, let better = try? rescue(samples[...], tokens: toks, decoder: d, windowStart: w.start, source: source) { toks = better }
+318 |                     lock.lock(); local[i] = toks; free.append(di); lock.unlock()
+    |                                                   `- warning: mutation of captured var 'free' in concurrently-executing code [#SendableClosureCaptures]
+319 |                     decSlots.signal(); group.leave()
+320 |                 }
+
+[#DeprecatedDeclaration]: <https://docs.swift.org/compiler/documentation/diagnostics/deprecated-declaration>
+[#SendableClosureCaptures]: <https://docs.swift.org/compiler/documentation/diagnostics/sendable-closure-captures>
+[86 / 86] PhononCoreML
+Build complete! (43.25 sec)

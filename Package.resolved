@@ -1,6 +1,14 @@
 {
-  "originHash" : "0ed265d907c8a896afb124144be08f88e2e70b3ccbaadda9a652355168328eaf",
+  "originHash" : "9026ea5d1a8d9816b6e507e2f816ab6cd9f141322e592fbbe54fe3b9c754fce8",
   "pins" : [
+    {
+      "identity" : "desert-ant-core",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/Desert-Ant-Labs/desert-ant-core.git",
+      "state" : {
+        "revision" : "86b9b55fe8c61ec1c27c5b6383f545c6df1d6ceb"
+      }
+    },
     {
       "identity" : "eventsource",
       "kind" : "remoteSourceControl",

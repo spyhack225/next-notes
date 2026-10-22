@@ -1,0 +1,24 @@
+Building for production...
+[0/19] Write sources
+[14/19] Copying PrivacyInfo.xcprivacy
+[15/19] Write sources
+[18/19] Write swift-version--58304C5D6DBC2206.txt
+[20/21] Compiling UsagePrivacy UsagePrivacy.swift
+[21/22] Compiling JSHost Empty.swift
+[22/22] Compiling JSON FoundationJSON.swift
+[23/24] Compiling CStrings CStrings.swift
+[24/25] Compiling TextNormalization AndroidNormalization.swift
+[25/26] Compiling FFIBuffer FFIBuffer.swift
+[26/27] Compiling Regex FoundationRegex.swift
+[27/28] Compiling HostBridge JNI.swift
+[28/28] Compiling PlatformSupport Blocking.swift
+[29/30] Compiling AudioIO AppleAudioEncode.swift
+[30/31] Compiling Usage AppIdentity.swift
+[31/31] Compiling ModelStore AndroidBackend.swift
+[32/33] Compiling ModelCatalog LoadedModel.swift
+[33/33] Compiling Inference ByteBuffers.swift
+[34/34] Compiling DesertAnt DesertAnt.swift
+[35/35] Compiling NativeBindings AndroidRuntime.swift
+[36/36] Compiling Voz Assets.swift
+Build of target: 'Voz' complete! (15.68s)
+warning: '--build-system native' has been deprecated and will be removed in a future release; please report an issue at https://github.com/swiftlang/swift-package-manager/issues if you are unable to adopt the default build system.

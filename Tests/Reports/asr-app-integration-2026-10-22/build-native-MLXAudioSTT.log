@@ -1,0 +1,26 @@
+Building for production...
+[0/4] Write sources
+[2/3] Write swift-version--58304C5D6DBC2206.txt
+[4/5] Compiling RealModule AlgebraicField.swift
+[5/6] Compiling InternalCollectionsUtilities BorrowingIteratorProtocol+Equality.swift
+[6/7] Compiling Crypto AES-GCM.swift
+[7/8] Compiling EventSource AsyncEventsSequence.swift
+[8/9] Compiling ComplexModule Complex+AdditiveArithmetic.swift
+[9/10] Compiling OrderedCollections _HashTable+Bucket.swift
+[10/11] Compiling Numerics Numerics.swift
+[11/12] Compiling HuggingFace AccessRequest.swift
+[12/13] Compiling Jinja AST.swift
+[13/14] Compiling Hub BinaryDistinct.swift
+[14/15] Compiling MLX ArrayAt.swift
+[15/16] Compiling MLXRandom Random.swift
+[16/17] Compiling Tokenizers BPETokenizer.swift
+[17/18] Compiling MLXFast MLXFast.swift
+[18/19] Compiling Generation Decoders.swift
+[19/20] Compiling Models LanguageModel.swift
+[20/20] Compiling MLXNN Activations.swift
+[21/21] Compiling MLXAudioCore AudioPlayer.swift
+[22/23] Compiling MLXAudioVAD FSMNVAD.swift
+[23/23] Compiling MLXAudioCodecs AudioCodecModel.swift
+[24/24] Compiling MLXAudioSTT Generation.swift
+Build of target: 'MLXAudioSTT' complete! (70.18s)
+warning: '--build-system native' has been deprecated and will be removed in a future release; please report an issue at https://github.com/swiftlang/swift-package-manager/issues if you are unable to adopt the default build system.

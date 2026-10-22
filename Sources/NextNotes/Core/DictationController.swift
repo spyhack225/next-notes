@@ -62,10 +62,22 @@ private struct SelfTestLogger {
 /// engine picker take effect on the very next hold instead of needing a restart.
 @MainActor
 func engineForCurrentSetting() -> any TranscriptionEngine {
-    switch Settings.shared.engine {
-    case .apple: AppleSpeechEngine()
-    case .parakeet: ParakeetEngine()
+    let settings = Settings.shared
+    let selected = settings.resolvedSpeechEngine
+    let store = ASRModelStore.shared
+    let ready = ASRModelCatalog.readyChoice(settings.engine, language: settings.dictationLanguage,
+                                          readyModel: store.readyModel)
+    if ready != selected, store.preparing == nil, store.failure == nil { store.prepare(selected) }
+    return engineForSetting(ready, language: settings.dictationLanguage)
+}
+
+@MainActor
+func engineForSetting(_ choice: SpeechEngineChoice, language: DictationLanguage) -> any TranscriptionEngine {
+    let resolved = ASRModelCatalog.resolved(choice, language: language)
+    if resolved == .apple {
+        return AppleSpeechEngine(locale: language == .english ? Locale(identifier: "en-US") : .current)
     }
+    return ParakeetEngine(model: resolved, englishOnly: language == .english)
 }
 
 /// Resumes its caller with whichever of two racers arrives first, and drops the other.
@@ -2122,7 +2134,7 @@ final class DictationController {
         // Which speech engine actually ran this hold, for the usage row. Read from the
         // engine rather than from the setting: a test injects its own, and the row should
         // name what ran rather than what the picker says today.
-        let engineChoice: SpeechEngineChoice = engine is AppleSpeechEngine ? .apple : .parakeet
+        let engineChoice: SpeechEngineChoice = (engine as? ParakeetEngine)?.modelChoice ?? .apple
         self.audioContinuation = nil
         self.feedTask = nil
         self.engine = nil
@@ -2573,8 +2585,8 @@ final class DictationController {
     /// names the setting, which is what would have run.
     private var currentEngineChoice: SpeechEngineChoice {
         if engine is AppleSpeechEngine { return .apple }
-        if engine is ParakeetEngine { return .parakeet }
-        return Settings.shared.engine
+        if let engine = engine as? ParakeetEngine { return engine.modelChoice }
+        return Settings.shared.resolvedSpeechEngine
     }
 
     private static func millisecondsBetween(_ from: Date, _ to: Date) -> Int {

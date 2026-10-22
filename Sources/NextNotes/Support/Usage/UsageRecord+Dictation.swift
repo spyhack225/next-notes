@@ -209,10 +209,7 @@ extension UsageRecord {
     }
 
     private static func engineProvider(_ engine: SpeechEngineChoice) -> UsageProvider {
-        switch engine {
-        case .apple: .appleSpeech
-        case .parakeet: .parakeet
-        }
+        engine.usageProvider
     }
 
     /// A `CleanupRecord.fallbackReason` is free text written for the person reading the

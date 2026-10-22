@@ -30,9 +30,9 @@ struct TranscriptionChunk: Sendable {
 
 /// The seam that keeps Next Notes engine-agnostic.
 ///
-/// Apple's `SpeechAnalyzer` ships with macOS 26 and needs no model download, so it is
-/// the default. Parakeet (FluidAudio, CoreML/ANE) scores better on English and is the
-/// intended upgrade — implementing this protocol is the whole cost of switching.
+/// Automatic chooses Phonon for English or Voz for Multi. Apple remains available
+/// without a download. Local models share the existing segmented live-text engine
+/// and differ only at the native recognition boundary.
 protocol TranscriptionEngine: Actor {
     /// Audio format the engine wants buffers delivered in. `AudioCapture` converts to it.
     func preferredInputFormat() async -> AVAudioFormat?

@@ -5,6 +5,8 @@ let package = Package(
     name: "NextNotes",
     platforms: [.macOS(.v26)],
     dependencies: [
+        .package(path: "Vendor/PhononASR"),
+        .package(url: "https://github.com/Desert-Ant-Labs/desert-ant-core.git", revision: "86b9b55fe8c61ec1c27c5b6383f545c6df1d6ceb"),
         // Parakeet TDT as local CoreML through FluidAudio. Optional at runtime — Apple's
         // SpeechTranscriber remains the default and needs no dependency at all.
         .package(url: "https://github.com/FluidInference/FluidAudio.git", from: "0.15.6"),
@@ -49,6 +51,9 @@ let package = Package(
         .executableTarget(
             name: "NextNotes",
             dependencies: [
+                .product(name: "PhononCoreML", package: "PhononASR"),
+                .product(name: "Voz", package: "desert-ant-core"),
+                .product(name: "MLXAudioSTT", package: "mlx-audio-swift"),
                 "NextNotesDictionary",
                 "SherpaOnnxKWS",
                 "SpeexEcho",

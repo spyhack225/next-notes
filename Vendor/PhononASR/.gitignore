@@ -1,0 +1,7 @@
+.build/
+.swiftpm/
+__pycache__/
+*.pyc
+.hf/
+.venv/
+Phonon-2-CoreML/

@@ -1,0 +1,133 @@
+[
+  {
+    "id": "parakeet-v3",
+    "name": "Parakeet v3 (cached FluidAudio)",
+    "bytes": 483257242,
+    "languages": {
+      "en": {
+        "firstMs": 512.9777920083143,
+        "finalMs": 132.57891597459093,
+        "wordAccuracy": 95.58823529411765
+      },
+      "fr": {
+        "firstMs": 511.2272499827668,
+        "finalMs": 159.73837493220344,
+        "wordAccuracy": 90.06622516556291
+      }
+    }
+  },
+  {
+    "id": "whistle",
+    "name": "Whistle",
+    "bytes": 16919407,
+    "languages": {
+      "en": {
+        "firstMs": 427.6140839792788,
+        "finalMs": 85.38891701027751,
+        "wordAccuracy": 94.85294117647058
+      },
+      "fr": {
+        "firstMs": 428.71804197784513,
+        "finalMs": 155.65745899220929,
+        "wordAccuracy": 80.13245033112582
+      }
+    }
+  },
+  {
+    "id": "redux",
+    "name": "Parakeet Redux (CoreML)",
+    "bytes": 220304193,
+    "languages": {
+      "en": {
+        "firstMs": 807.8295410377905,
+        "finalMs": 341.5220419992693,
+        "wordAccuracy": 94.85294117647058
+      },
+      "fr": {
+        "firstMs": 709.900584013667,
+        "finalMs": 418.51350001525134,
+        "wordAccuracy": 87.41721854304636
+      }
+    }
+  },
+  {
+    "id": "ultra",
+    "name": "Parakeet Ultra (CoreML)",
+    "bytes": 632162964,
+    "languages": {
+      "en": {
+        "firstMs": 514.5046249963343,
+        "finalMs": 142.08566601155326,
+        "wordAccuracy": 95.58823529411765
+      },
+      "fr": {
+        "firstMs": 505.54675003513694,
+        "finalMs": 140.66045795334503,
+        "wordAccuracy": 90.06622516556291
+      }
+    }
+  },
+  {
+    "id": "phonon",
+    "name": "Phonon-2 (CoreML)",
+    "bytes": 344990366,
+    "languages": {
+      "en": {
+        "firstMs": 421.1360000190325,
+        "finalMs": 52.29354102630168,
+        "wordAccuracy": 99.26470588235294
+      }
+    }
+  },
+  {
+    "id": "qwen-06b",
+    "name": "Qwen3-ASR 0.6B (4-bit MLX)",
+    "bytes": 712778752,
+    "languages": {
+      "en": {
+        "firstMs": 545.7660839892924,
+        "finalMs": 507.3170840041712,
+        "wordAccuracy": 99.26470588235294
+      },
+      "fr": {
+        "firstMs": 551.5169589780271,
+        "finalMs": 1030.4355419939384,
+        "wordAccuracy": 90.72847682119205
+      }
+    }
+  },
+  {
+    "id": "qwen-17b",
+    "name": "Qwen3-ASR 1.7B (4-bit MLX)",
+    "bytes": 1607630579,
+    "languages": {
+      "en": {
+        "firstMs": 571.9756249454804,
+        "finalMs": 658.8988329749554,
+        "wordAccuracy": 96.32352941176471
+      },
+      "fr": {
+        "firstMs": 600.7816250203177,
+        "finalMs": 1297.4259170005098,
+        "wordAccuracy": 96.02649006622516
+      }
+    }
+  },
+  {
+    "id": "voz",
+    "name": "Voz (CoreML CLI)",
+    "bytes": 336667603,
+    "languages": {
+      "en": {
+        "firstMs": 450.5272499518469,
+        "finalMs": 65.92916598310694,
+        "wordAccuracy": 96.32352941176471
+      },
+      "fr": {
+        "firstMs": 445.64670900581405,
+        "finalMs": 82.8037919709459,
+        "wordAccuracy": 88.07947019867551
+      }
+    }
+  }
+]

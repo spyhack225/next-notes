@@ -8,6 +8,7 @@ import Foundation
 /// failure from overwriting the state of a newer attempt after an actor suspension.
 enum ManagedModel: String, CaseIterable, Sendable, Codable {
     case parakeetASR = "parakeet-asr"
+    case localSpeech = "local-speech"
     case appleSpeech = "apple-speech"
     case wakeKWS = "wake-kws"
     case tts

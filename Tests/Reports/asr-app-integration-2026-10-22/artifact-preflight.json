@@ -1,0 +1,58 @@
+[
+  {
+    "repo": "Cactus-Compute/whistle",
+    "revision": "741118687e1f008f06d1351a402a731274789790",
+    "resolvedRevision": "741118687e1f008f06d1351a402a731274789790",
+    "files": 1,
+    "errors": []
+  },
+  {
+    "repo": "Cactus-Compute/needle3",
+    "revision": "d6c7d6a2e9655505e0f8e23339356dd1705900eb",
+    "resolvedRevision": "d6c7d6a2e9655505e0f8e23339356dd1705900eb",
+    "files": 1,
+    "errors": []
+  },
+  {
+    "repo": "FluidInference/parakeet-redux-coreml",
+    "revision": "8c5ef97a29cd120dc76b354b3f22b7fec3b486f9",
+    "resolvedRevision": "8c5ef97a29cd120dc76b354b3f22b7fec3b486f9",
+    "files": 18,
+    "errors": []
+  },
+  {
+    "repo": "FluidInference/parakeet-ultra-coreml",
+    "revision": "95eaa59a39d4394f047a4dc5cce480388a60d1b6",
+    "resolvedRevision": "95eaa59a39d4394f047a4dc5cce480388a60d1b6",
+    "files": 18,
+    "errors": []
+  },
+  {
+    "repo": "FermionResearch/Phonon-2-CoreML",
+    "revision": "1143812fd4236522232a8c33e3115f0577e3cd7d",
+    "resolvedRevision": "1143812fd4236522232a8c33e3115f0577e3cd7d",
+    "files": 5,
+    "errors": []
+  },
+  {
+    "repo": "mlx-community/Qwen3-ASR-0.6B-4bit",
+    "revision": "313d850181767edf09f00a9c289becca70e58cd0",
+    "resolvedRevision": "313d850181767edf09f00a9c289becca70e58cd0",
+    "files": 9,
+    "errors": []
+  },
+  {
+    "repo": "mlx-community/Qwen3-ASR-1.7B-4bit",
+    "revision": "78a389c776a5483b2d0d4ea5494e11012e0d6159",
+    "resolvedRevision": "78a389c776a5483b2d0d4ea5494e11012e0d6159",
+    "files": 9,
+    "errors": []
+  },
+  {
+    "repo": "desert-ant-labs/voz",
+    "revision": "55b31a7ef412394c787a2766ea4fbe8dcc97c77d",
+    "resolvedRevision": "55b31a7ef412394c787a2766ea4fbe8dcc97c77d",
+    "files": 18,
+    "errors": []
+  }
+]

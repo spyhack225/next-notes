@@ -1,0 +1,36 @@
+warning: 'next-notes': found 1 file(s) which are unhandled; explicitly declare them as resources or exclude from the target
+    /Users/sergekadjo/Documents/Claude/Projects/next-notes/Sources/NextNotes/IMessage/Database/TYPEDSTREAM-NOTES.md
+Building for production...
+[Computing dependencies]
+[Pre-planning 1 / 529]
+[Planning deferred tasks]
+[20 / 231] Usage
+[112 / 231]
+[114 / 236] JSON
+[118 / 239] JSON
+[122 / 240] JSON
+[139 / 241] CStrings
+[153 / 243] Regex
+[165 / 244] JSHost
+[167 / 245] FFIBuffer
+[171 / 247] PlatformSupport
+[186 / 252] Usage
+[194 / 255] Usage
+[197 / 255] ModelStore
+[197 / 260] Usage
+[201 / 260]
+[207 / 260]
+[208 / 260] CStrings
+[218 / 261] HostBridge
+[220 / 262] TextNormalization
+[226 / 263] Usage
+[230 / 269] ModelStore
+[235 / 269] AudioIO
+[241 / 269]
+[242 / 269] Inference
+[249 / 270] DesertAnt
+[258 / 272] NativeBindings
+[260 / 273] NativeBindings
+[267 / 274] Voz
+[269 / 275] Voz
+Build complete! (17.45 sec)

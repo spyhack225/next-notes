@@ -4,17 +4,23 @@ import Observation
 
 /// Which speech engine transcribes an utterance.
 enum SpeechEngineChoice: String, CaseIterable, Sendable {
-    case apple
-    case parakeet
-
+    case automatic, apple, parakeet, phonon, voz, redux, ultra, whistle
+    case qwenSmall = "qwen-06b"
+    case qwenLarge = "qwen-17b"
     var displayName: String {
         switch self {
-        case .apple: "Apple (streaming)"
-        case .parakeet: "Parakeet (live text)"
+        case .automatic: "Automatic"
+        case .apple: "Apple (no download)"
+        case .parakeet: "Parakeet v3"
+        case .phonon: "Phonon 2"
+        case .voz: "Voz"
+        case .redux: "Parakeet Redux"
+        case .ultra: "Parakeet Ultra"
+        case .whistle: "Whistle"
+        case .qwenSmall: "Qwen3-ASR 0.6B"
+        case .qwenLarge: "Qwen3-ASR 1.7B"
         }
     }
-
-    /// Both engines show text while you talk and finish when the key is released.
     var showsLiveText: Bool { true }
 }
 
@@ -362,6 +368,14 @@ final class Settings {
             }
             defaults.set(commandModeKey.rawValue, forKey: Keys.commandModeKey)
         }
+    }
+
+    var dictationLanguage: DictationLanguage {
+        didSet { defaults.set(dictationLanguage.rawValue, forKey: Keys.dictationLanguage) }
+    }
+
+    var resolvedSpeechEngine: SpeechEngineChoice {
+        ASRModelCatalog.resolved(engine, language: dictationLanguage)
     }
 
     var engine: SpeechEngineChoice {
@@ -1206,6 +1220,7 @@ final class Settings {
         static let cleanupEnabled = "cleanupEnabled"
         static let soundEnabled = "soundEnabled"
         static let engine = "engine"
+        static let dictationLanguage = "dictationLanguage"
         static let cleanupEngine = "cleanupEngine"
         static let cleanupFixesGrammar = "cleanupFixesGrammar"
         static let cleanupTone = "cleanupTone"
@@ -1319,6 +1334,13 @@ final class Settings {
         }
     }
 
+    nonisolated static func initialSpeechChoice(from defaults: UserDefaults) -> SpeechEngineChoice {
+        SpeechEngineChoice(rawValue: defaults.string(forKey: Keys.engine) ?? "") ?? .automatic
+    }
+    nonisolated static func initialDictationLanguage(from defaults: UserDefaults) -> DictationLanguage {
+        DictationLanguage(rawValue: defaults.string(forKey: Keys.dictationLanguage) ?? "") ?? .multi
+    }
+
     private init() {
         moduleDictationEnabled = Self.initialModuleEnabled(.dictation, from: defaults)
         moduleMeetingsEnabled = Self.initialModuleEnabled(.meetings, from: defaults)
@@ -1328,12 +1350,9 @@ final class Settings {
         let commandRaw = defaults.string(forKey: Keys.commandModeKey)
             ?? PushToTalkKey.rightCommand.rawValue
         commandModeKey = PushToTalkKey(rawValue: commandRaw) ?? .rightCommand
-        // Apple by default: no download, no dependency, live text while speaking.
-        // MiniCPM joins the picker but is not the fresh default: it needs a
-        // 1.56 GB file no fresh Mac has, and the Models tab does not offer it
-        // yet — a default nobody can fulfil is a picker row that lies. Picking
-        // it without the file simply runs Apple until the file arrives.
-        engine = SpeechEngineChoice(rawValue: defaults.string(forKey: Keys.engine) ?? "") ?? .apple
+        dictationLanguage = Self.initialDictationLanguage(from: defaults)
+        // Preserve deliberate existing choices; new selections use the language default.
+        engine = Self.initialSpeechChoice(from: defaults)
         cleanupEnabled = defaults.object(forKey: Keys.cleanupEnabled) as? Bool ?? true
         cleanupFixesGrammar = defaults.object(forKey: Keys.cleanupFixesGrammar) as? Bool ?? true
         cleanupSkipsModelWhenBusy = defaults.object(forKey: Keys.cleanupSkipsModelWhenBusy) as? Bool ?? false

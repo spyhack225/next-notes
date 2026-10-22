@@ -1,0 +1,490 @@
+{
+  "whistle": [
+    {
+      "path": "whistle.cact",
+      "bytes": 16919407,
+      "sha256": "b6e02f048568ac5d01a2042556c658061e699acbc0aa2a1439f52f3d461dffeb",
+      "url": "https://huggingface.co/Cactus-Compute/whistle/resolve/741118687e1f008f06d1351a402a731274789790/whistle.cact"
+    },
+    {
+      "path": "runtime.whl",
+      "bytes": 544605,
+      "sha256": "c5538e045fb26f0b6f911102516582d4434fbfa38aa28e5c2f3eb990b92aaf8d",
+      "url": "https://huggingface.co/Cactus-Compute/needle3/resolve/d6c7d6a2e9655505e0f8e23339356dd1705900eb/python/cactus_needle-3.3.3-py3-none-macosx_11_0_arm64.whl"
+    }
+  ],
+  "redux": [
+    {
+      "path": "Decoder.mlmodelc/analytics/coremldata.bin",
+      "bytes": 243,
+      "sha256": "7f24e7248d57024c6f1c5a2ea306f4a6a89db45a363218523bb6410c4b1aecf0",
+      "url": "https://huggingface.co/FluidInference/parakeet-redux-coreml/resolve/8c5ef97a29cd120dc76b354b3f22b7fec3b486f9/Decoder.mlmodelc/analytics/coremldata.bin"
+    },
+    {
+      "path": "Decoder.mlmodelc/coremldata.bin",
+      "bytes": 560,
+      "sha256": "422da51d983e93a3e48cd6d46a17d6c32844452414c8e242fb0caaca2b8af5ed",
+      "url": "https://huggingface.co/FluidInference/parakeet-redux-coreml/resolve/8c5ef97a29cd120dc76b354b3f22b7fec3b486f9/Decoder.mlmodelc/coremldata.bin"
+    },
+    {
+      "path": "Decoder.mlmodelc/model.mil",
+      "bytes": 13110,
+      "sha256": "956f600207f88396017ca5c96cfa3acd5bfee60835a5b44b762e033a8fb28955",
+      "url": "https://huggingface.co/FluidInference/parakeet-redux-coreml/resolve/8c5ef97a29cd120dc76b354b3f22b7fec3b486f9/Decoder.mlmodelc/model.mil"
+    },
+    {
+      "path": "Decoder.mlmodelc/weights/weight.bin",
+      "bytes": 23604992,
+      "sha256": "6c6c88c23ee5492a6b229e8cc636ddadb2b01ae0dd559d9cb63123bebf507d77",
+      "url": "https://huggingface.co/FluidInference/parakeet-redux-coreml/resolve/8c5ef97a29cd120dc76b354b3f22b7fec3b486f9/Decoder.mlmodelc/weights/weight.bin"
+    },
+    {
+      "path": "Encoder.mlmodelc/analytics/coremldata.bin",
+      "bytes": 243,
+      "sha256": "7862e972e09315df099d4bfd320743bf106acbf7fe4343317f9de45b0635d7b7",
+      "url": "https://huggingface.co/FluidInference/parakeet-redux-coreml/resolve/8c5ef97a29cd120dc76b354b3f22b7fec3b486f9/Encoder.mlmodelc/analytics/coremldata.bin"
+    },
+    {
+      "path": "Encoder.mlmodelc/coremldata.bin",
+      "bytes": 506,
+      "sha256": "ca0b212fe3c06c3ccd35e508fa61e4dfaad19dd0c55b82e4f5bf8711e7758fd9",
+      "url": "https://huggingface.co/FluidInference/parakeet-redux-coreml/resolve/8c5ef97a29cd120dc76b354b3f22b7fec3b486f9/Encoder.mlmodelc/coremldata.bin"
+    },
+    {
+      "path": "Encoder.mlmodelc/model.mil",
+      "bytes": 965906,
+      "sha256": "165487e314ed93c4a44dfec99d57be4e436e7c3dba6eef49fd3f0daf9de6d0d4",
+      "url": "https://huggingface.co/FluidInference/parakeet-redux-coreml/resolve/8c5ef97a29cd120dc76b354b3f22b7fec3b486f9/Encoder.mlmodelc/model.mil"
+    },
+    {
+      "path": "Encoder.mlmodelc/weights/weight.bin",
+      "bytes": 182389312,
+      "sha256": "adbb5550dc6488717d3a1407b53122fbdb1af5e99c330ee20f8d8cfd9ec49252",
+      "url": "https://huggingface.co/FluidInference/parakeet-redux-coreml/resolve/8c5ef97a29cd120dc76b354b3f22b7fec3b486f9/Encoder.mlmodelc/weights/weight.bin"
+    },
+    {
+      "path": "JointDecisionv3.mlmodelc/analytics/coremldata.bin",
+      "bytes": 243,
+      "sha256": "fc857a756b8c9c9f31aa9e1062766cc0a82ac035ef369d6e1cbe97184921479c",
+      "url": "https://huggingface.co/FluidInference/parakeet-redux-coreml/resolve/8c5ef97a29cd120dc76b354b3f22b7fec3b486f9/JointDecisionv3.mlmodelc/analytics/coremldata.bin"
+    },
+    {
+      "path": "JointDecisionv3.mlmodelc/coremldata.bin",
+      "bytes": 592,
+      "sha256": "611ea653e2adede7cc1cfe70da36296844f97e95e2c7dd961d45230e5599389d",
+      "url": "https://huggingface.co/FluidInference/parakeet-redux-coreml/resolve/8c5ef97a29cd120dc76b354b3f22b7fec3b486f9/JointDecisionv3.mlmodelc/coremldata.bin"
+    },
+    {
+      "path": "JointDecisionv3.mlmodelc/model.mil",
+      "bytes": 11777,
+      "sha256": "791b3c3cf3eb2079c84623fc880f6bba008d1366e5f8b03e9a8ed8bd4d7194a0",
+      "url": "https://huggingface.co/FluidInference/parakeet-redux-coreml/resolve/8c5ef97a29cd120dc76b354b3f22b7fec3b486f9/JointDecisionv3.mlmodelc/model.mil"
+    },
+    {
+      "path": "JointDecisionv3.mlmodelc/weights/weight.bin",
+      "bytes": 12642764,
+      "sha256": "73b0288acd115fc4c36038f66b6cbf49233182488febf5d8c787bea4009535f7",
+      "url": "https://huggingface.co/FluidInference/parakeet-redux-coreml/resolve/8c5ef97a29cd120dc76b354b3f22b7fec3b486f9/JointDecisionv3.mlmodelc/weights/weight.bin"
+    },
+    {
+      "path": "Preprocessor.mlmodelc/analytics/coremldata.bin",
+      "bytes": 243,
+      "sha256": "c9beeb989c8d66f8be11df59bc6df277ec76cee404f6865b46243835ef562f6d",
+      "url": "https://huggingface.co/FluidInference/parakeet-redux-coreml/resolve/8c5ef97a29cd120dc76b354b3f22b7fec3b486f9/Preprocessor.mlmodelc/analytics/coremldata.bin"
+    },
+    {
+      "path": "Preprocessor.mlmodelc/coremldata.bin",
+      "bytes": 486,
+      "sha256": "dbde3f2300842c1fd51ef3ff948a0bcffe65ffd2dca10707f2509f32c1d65b1d",
+      "url": "https://huggingface.co/FluidInference/parakeet-redux-coreml/resolve/8c5ef97a29cd120dc76b354b3f22b7fec3b486f9/Preprocessor.mlmodelc/coremldata.bin"
+    },
+    {
+      "path": "Preprocessor.mlmodelc/metadata.json",
+      "bytes": 2841,
+      "sha256": "2a98699e22d279dd37fa1d238aeb1c6db1df0d6fad687775324157689d8f3acf",
+      "url": "https://huggingface.co/FluidInference/parakeet-redux-coreml/resolve/8c5ef97a29cd120dc76b354b3f22b7fec3b486f9/Preprocessor.mlmodelc/metadata.json"
+    },
+    {
+      "path": "Preprocessor.mlmodelc/model.mil",
+      "bytes": 28181,
+      "sha256": "4b8518a956450fec57f06c2a21bdffc26973f7f1fa6842fb38fe917f896b6b93",
+      "url": "https://huggingface.co/FluidInference/parakeet-redux-coreml/resolve/8c5ef97a29cd120dc76b354b3f22b7fec3b486f9/Preprocessor.mlmodelc/model.mil"
+    },
+    {
+      "path": "Preprocessor.mlmodelc/weights/weight.bin",
+      "bytes": 491072,
+      "sha256": "129b76e3aeafa8afa3ea76d995b964b145fe83700d579f6ff42c4c38fa0968ea",
+      "url": "https://huggingface.co/FluidInference/parakeet-redux-coreml/resolve/8c5ef97a29cd120dc76b354b3f22b7fec3b486f9/Preprocessor.mlmodelc/weights/weight.bin"
+    },
+    {
+      "path": "parakeet_v3_vocab.json",
+      "bytes": 151122,
+      "sha256": "7ec60e05f1b24480736ec0eed40900f4626bce1fa9a60fd700ec7e2a59198735",
+      "url": "https://huggingface.co/FluidInference/parakeet-redux-coreml/resolve/8c5ef97a29cd120dc76b354b3f22b7fec3b486f9/parakeet_v3_vocab.json"
+    }
+  ],
+  "ultra": [
+    {
+      "path": "Decoder.mlmodelc/analytics/coremldata.bin",
+      "bytes": 243,
+      "sha256": "fe92b6cfaa012abd5248c0bc877832f19807015abffc60d87b8ccc8ccb48b3b5",
+      "url": "https://huggingface.co/FluidInference/parakeet-ultra-coreml/resolve/95eaa59a39d4394f047a4dc5cce480388a60d1b6/Decoder.mlmodelc/analytics/coremldata.bin"
+    },
+    {
+      "path": "Decoder.mlmodelc/coremldata.bin",
+      "bytes": 560,
+      "sha256": "3b06e66768f0df7e21795f50e2b29300e33eeb1a2579dc42c695279c2d308497",
+      "url": "https://huggingface.co/FluidInference/parakeet-ultra-coreml/resolve/95eaa59a39d4394f047a4dc5cce480388a60d1b6/Decoder.mlmodelc/coremldata.bin"
+    },
+    {
+      "path": "Decoder.mlmodelc/model.mil",
+      "bytes": 13110,
+      "sha256": "956f600207f88396017ca5c96cfa3acd5bfee60835a5b44b762e033a8fb28955",
+      "url": "https://huggingface.co/FluidInference/parakeet-ultra-coreml/resolve/95eaa59a39d4394f047a4dc5cce480388a60d1b6/Decoder.mlmodelc/model.mil"
+    },
+    {
+      "path": "Decoder.mlmodelc/weights/weight.bin",
+      "bytes": 23604992,
+      "sha256": "02a0d219f281b9665bc10c8768649403b2eebbbf4b44c627041d948e0de11bb4",
+      "url": "https://huggingface.co/FluidInference/parakeet-ultra-coreml/resolve/95eaa59a39d4394f047a4dc5cce480388a60d1b6/Decoder.mlmodelc/weights/weight.bin"
+    },
+    {
+      "path": "Encoder.mlmodelc/analytics/coremldata.bin",
+      "bytes": 243,
+      "sha256": "d87101d824d6723cf95304da33755c3c60e762663b9ef2b0c4bd0aa166a09a0d",
+      "url": "https://huggingface.co/FluidInference/parakeet-ultra-coreml/resolve/95eaa59a39d4394f047a4dc5cce480388a60d1b6/Encoder.mlmodelc/analytics/coremldata.bin"
+    },
+    {
+      "path": "Encoder.mlmodelc/coremldata.bin",
+      "bytes": 514,
+      "sha256": "397a84a4062f563cbc5f56077c674f09a61d85be5090f61d2f1932afb92ac0fe",
+      "url": "https://huggingface.co/FluidInference/parakeet-ultra-coreml/resolve/95eaa59a39d4394f047a4dc5cce480388a60d1b6/Encoder.mlmodelc/coremldata.bin"
+    },
+    {
+      "path": "Encoder.mlmodelc/model.mil",
+      "bytes": 1002653,
+      "sha256": "f5d601568a4171d99a314c0fe3f6bc67715da2623732a3fb566e050ea83e5848",
+      "url": "https://huggingface.co/FluidInference/parakeet-ultra-coreml/resolve/95eaa59a39d4394f047a4dc5cce480388a60d1b6/Encoder.mlmodelc/model.mil"
+    },
+    {
+      "path": "Encoder.mlmodelc/weights/weight.bin",
+      "bytes": 594211328,
+      "sha256": "315ba01f33cadbf601d43ac7f5c86208b7aa75fdaa34705c9869d5abe3521c9b",
+      "url": "https://huggingface.co/FluidInference/parakeet-ultra-coreml/resolve/95eaa59a39d4394f047a4dc5cce480388a60d1b6/Encoder.mlmodelc/weights/weight.bin"
+    },
+    {
+      "path": "JointDecisionv3.mlmodelc/analytics/coremldata.bin",
+      "bytes": 243,
+      "sha256": "68d38ca646aebafa7a9329e2efda50f5767c49e89fdb5f77f212072bb66f97c4",
+      "url": "https://huggingface.co/FluidInference/parakeet-ultra-coreml/resolve/95eaa59a39d4394f047a4dc5cce480388a60d1b6/JointDecisionv3.mlmodelc/analytics/coremldata.bin"
+    },
+    {
+      "path": "JointDecisionv3.mlmodelc/coremldata.bin",
+      "bytes": 592,
+      "sha256": "5e3af5a4ce686f6c237cadbd9284e10d333bc0e1546633cd0e430e6194044bc4",
+      "url": "https://huggingface.co/FluidInference/parakeet-ultra-coreml/resolve/95eaa59a39d4394f047a4dc5cce480388a60d1b6/JointDecisionv3.mlmodelc/coremldata.bin"
+    },
+    {
+      "path": "JointDecisionv3.mlmodelc/model.mil",
+      "bytes": 11777,
+      "sha256": "791b3c3cf3eb2079c84623fc880f6bba008d1366e5f8b03e9a8ed8bd4d7194a0",
+      "url": "https://huggingface.co/FluidInference/parakeet-ultra-coreml/resolve/95eaa59a39d4394f047a4dc5cce480388a60d1b6/JointDecisionv3.mlmodelc/model.mil"
+    },
+    {
+      "path": "JointDecisionv3.mlmodelc/weights/weight.bin",
+      "bytes": 12642764,
+      "sha256": "3f310b85b82341c53ec383025ab094a4e462ee1c592e1ad7c6bfe39cff66ca25",
+      "url": "https://huggingface.co/FluidInference/parakeet-ultra-coreml/resolve/95eaa59a39d4394f047a4dc5cce480388a60d1b6/JointDecisionv3.mlmodelc/weights/weight.bin"
+    },
+    {
+      "path": "Preprocessor.mlmodelc/analytics/coremldata.bin",
+      "bytes": 243,
+      "sha256": "c9beeb989c8d66f8be11df59bc6df277ec76cee404f6865b46243835ef562f6d",
+      "url": "https://huggingface.co/FluidInference/parakeet-ultra-coreml/resolve/95eaa59a39d4394f047a4dc5cce480388a60d1b6/Preprocessor.mlmodelc/analytics/coremldata.bin"
+    },
+    {
+      "path": "Preprocessor.mlmodelc/coremldata.bin",
+      "bytes": 486,
+      "sha256": "dbde3f2300842c1fd51ef3ff948a0bcffe65ffd2dca10707f2509f32c1d65b1d",
+      "url": "https://huggingface.co/FluidInference/parakeet-ultra-coreml/resolve/95eaa59a39d4394f047a4dc5cce480388a60d1b6/Preprocessor.mlmodelc/coremldata.bin"
+    },
+    {
+      "path": "Preprocessor.mlmodelc/metadata.json",
+      "bytes": 2841,
+      "sha256": "2a98699e22d279dd37fa1d238aeb1c6db1df0d6fad687775324157689d8f3acf",
+      "url": "https://huggingface.co/FluidInference/parakeet-ultra-coreml/resolve/95eaa59a39d4394f047a4dc5cce480388a60d1b6/Preprocessor.mlmodelc/metadata.json"
+    },
+    {
+      "path": "Preprocessor.mlmodelc/model.mil",
+      "bytes": 28181,
+      "sha256": "4b8518a956450fec57f06c2a21bdffc26973f7f1fa6842fb38fe917f896b6b93",
+      "url": "https://huggingface.co/FluidInference/parakeet-ultra-coreml/resolve/95eaa59a39d4394f047a4dc5cce480388a60d1b6/Preprocessor.mlmodelc/model.mil"
+    },
+    {
+      "path": "Preprocessor.mlmodelc/weights/weight.bin",
+      "bytes": 491072,
+      "sha256": "129b76e3aeafa8afa3ea76d995b964b145fe83700d579f6ff42c4c38fa0968ea",
+      "url": "https://huggingface.co/FluidInference/parakeet-ultra-coreml/resolve/95eaa59a39d4394f047a4dc5cce480388a60d1b6/Preprocessor.mlmodelc/weights/weight.bin"
+    },
+    {
+      "path": "parakeet_v3_vocab.json",
+      "bytes": 151122,
+      "sha256": "7ec60e05f1b24480736ec0eed40900f4626bce1fa9a60fd700ec7e2a59198735",
+      "url": "https://huggingface.co/FluidInference/parakeet-ultra-coreml/resolve/95eaa59a39d4394f047a4dc5cce480388a60d1b6/parakeet_v3_vocab.json"
+    }
+  ],
+  "phonon": [
+    {
+      "path": "Phonon-2.mlpackage/Data/com.apple.CoreML/model.mlmodel",
+      "bytes": 2500482,
+      "sha256": "4f6790ec94fe4429b10397c013563d0a51119953ff6d3da466bbcb23a25dee2a",
+      "url": "https://huggingface.co/FermionResearch/Phonon-2-CoreML/resolve/1143812fd4236522232a8c33e3115f0577e3cd7d/Phonon-2.mlpackage/Data/com.apple.CoreML/model.mlmodel"
+    },
+    {
+      "path": "Phonon-2.mlpackage/Data/com.apple.CoreML/weights/weight.bin",
+      "bytes": 329186560,
+      "sha256": "93aa991318a00ed492fdbb724e7bca4e6a69c6cf671ab4f14a14ef6101e7648b",
+      "url": "https://huggingface.co/FermionResearch/Phonon-2-CoreML/resolve/1143812fd4236522232a8c33e3115f0577e3cd7d/Phonon-2.mlpackage/Data/com.apple.CoreML/weights/weight.bin"
+    },
+    {
+      "path": "Phonon-2.mlpackage/Manifest.json",
+      "bytes": 617,
+      "sha256": "6ebc9309aea0e16bda9c7558521fef6307fac0afba9a5b4959fea45ed7cd0429",
+      "url": "https://huggingface.co/FermionResearch/Phonon-2-CoreML/resolve/1143812fd4236522232a8c33e3115f0577e3cd7d/Phonon-2.mlpackage/Manifest.json"
+    },
+    {
+      "path": "decoder.bin",
+      "bytes": 13301279,
+      "sha256": "36fa7202dda85c603af60d930ab88d7e9f0d2a619490aff46f5384db924cfa70",
+      "url": "https://huggingface.co/FermionResearch/Phonon-2-CoreML/resolve/1143812fd4236522232a8c33e3115f0577e3cd7d/decoder.bin"
+    },
+    {
+      "path": "manifest.json",
+      "bytes": 1428,
+      "sha256": "ab3fb5dfd3fc07b1d8a24379d04418f458d0443ba6359d3a5ab2f098a7d64089",
+      "url": "https://huggingface.co/FermionResearch/Phonon-2-CoreML/resolve/1143812fd4236522232a8c33e3115f0577e3cd7d/manifest.json"
+    }
+  ],
+  "qwen-06b": [
+    {
+      "path": "chat_template.json",
+      "bytes": 1161,
+      "sha256": "75a8cfca24f00de72d796fbfed6858fc9614ef3dabd8696684cc3bc03a9c58ff",
+      "url": "https://huggingface.co/mlx-community/Qwen3-ASR-0.6B-4bit/resolve/313d850181767edf09f00a9c289becca70e58cd0/chat_template.json"
+    },
+    {
+      "path": "config.json",
+      "bytes": 7187,
+      "sha256": "923618cf5ca452fda0253a6be5c1a17f94a2e4851d3b98beb45848565587bd72",
+      "url": "https://huggingface.co/mlx-community/Qwen3-ASR-0.6B-4bit/resolve/313d850181767edf09f00a9c289becca70e58cd0/config.json"
+    },
+    {
+      "path": "generation_config.json",
+      "bytes": 142,
+      "sha256": "1da527824d81e07118facff437e03f2e24a23311e3bdeb2368973fe77e5f275c",
+      "url": "https://huggingface.co/mlx-community/Qwen3-ASR-0.6B-4bit/resolve/313d850181767edf09f00a9c289becca70e58cd0/generation_config.json"
+    },
+    {
+      "path": "merges.txt",
+      "bytes": 1671853,
+      "sha256": "8831e4f1a044471340f7c0a83d7bd71306a5b867e95fd870f74d0c5308a904d5",
+      "url": "https://huggingface.co/mlx-community/Qwen3-ASR-0.6B-4bit/resolve/313d850181767edf09f00a9c289becca70e58cd0/merges.txt"
+    },
+    {
+      "path": "model.safetensors",
+      "bytes": 708236945,
+      "sha256": "70c7e67e588062adce4f10796e47ad42ead51c6671eda61a0987eae38ca95ddf",
+      "url": "https://huggingface.co/mlx-community/Qwen3-ASR-0.6B-4bit/resolve/313d850181767edf09f00a9c289becca70e58cd0/model.safetensors"
+    },
+    {
+      "path": "model.safetensors.index.json",
+      "bytes": 71814,
+      "sha256": "e3bb80ef0fd42a5be07b04e90c97d60460bbde8af3531e0bfe9100a61404d81a",
+      "url": "https://huggingface.co/mlx-community/Qwen3-ASR-0.6B-4bit/resolve/313d850181767edf09f00a9c289becca70e58cd0/model.safetensors.index.json"
+    },
+    {
+      "path": "preprocessor_config.json",
+      "bytes": 330,
+      "sha256": "45e120a4eda2c20c5d7f2ea9354e63536bf35e27aa573fb7cdf78017b378770d",
+      "url": "https://huggingface.co/mlx-community/Qwen3-ASR-0.6B-4bit/resolve/313d850181767edf09f00a9c289becca70e58cd0/preprocessor_config.json"
+    },
+    {
+      "path": "tokenizer_config.json",
+      "bytes": 12487,
+      "sha256": "4942d005604266809309cabc9f4e9cb89ce855d59b14681fdc0e1cc62ea26c4c",
+      "url": "https://huggingface.co/mlx-community/Qwen3-ASR-0.6B-4bit/resolve/313d850181767edf09f00a9c289becca70e58cd0/tokenizer_config.json"
+    },
+    {
+      "path": "vocab.json",
+      "bytes": 2776833,
+      "sha256": "ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910",
+      "url": "https://huggingface.co/mlx-community/Qwen3-ASR-0.6B-4bit/resolve/313d850181767edf09f00a9c289becca70e58cd0/vocab.json"
+    }
+  ],
+  "qwen-17b": [
+    {
+      "path": "chat_template.json",
+      "bytes": 1161,
+      "sha256": "75a8cfca24f00de72d796fbfed6858fc9614ef3dabd8696684cc3bc03a9c58ff",
+      "url": "https://huggingface.co/mlx-community/Qwen3-ASR-1.7B-4bit/resolve/78a389c776a5483b2d0d4ea5494e11012e0d6159/chat_template.json"
+    },
+    {
+      "path": "config.json",
+      "bytes": 7188,
+      "sha256": "539c6c9d482349066e2e740241e39896f3bf4de0866c245f6539c85dbb19d93c",
+      "url": "https://huggingface.co/mlx-community/Qwen3-ASR-1.7B-4bit/resolve/78a389c776a5483b2d0d4ea5494e11012e0d6159/config.json"
+    },
+    {
+      "path": "generation_config.json",
+      "bytes": 142,
+      "sha256": "1da527824d81e07118facff437e03f2e24a23311e3bdeb2368973fe77e5f275c",
+      "url": "https://huggingface.co/mlx-community/Qwen3-ASR-1.7B-4bit/resolve/78a389c776a5483b2d0d4ea5494e11012e0d6159/generation_config.json"
+    },
+    {
+      "path": "merges.txt",
+      "bytes": 1671853,
+      "sha256": "8831e4f1a044471340f7c0a83d7bd71306a5b867e95fd870f74d0c5308a904d5",
+      "url": "https://huggingface.co/mlx-community/Qwen3-ASR-1.7B-4bit/resolve/78a389c776a5483b2d0d4ea5494e11012e0d6159/merges.txt"
+    },
+    {
+      "path": "model.safetensors",
+      "bytes": 1603081617,
+      "sha256": "9848eaf7a5c1589c671b35035ac27b72e248dd0c604eacae547e7e403d29db45",
+      "url": "https://huggingface.co/mlx-community/Qwen3-ASR-1.7B-4bit/resolve/78a389c776a5483b2d0d4ea5494e11012e0d6159/model.safetensors"
+    },
+    {
+      "path": "model.safetensors.index.json",
+      "bytes": 78968,
+      "sha256": "2612ab715223843b3dec0742737bc85f50914ca1484ade45955f99b4e012f2bb",
+      "url": "https://huggingface.co/mlx-community/Qwen3-ASR-1.7B-4bit/resolve/78a389c776a5483b2d0d4ea5494e11012e0d6159/model.safetensors.index.json"
+    },
+    {
+      "path": "preprocessor_config.json",
+      "bytes": 330,
+      "sha256": "45e120a4eda2c20c5d7f2ea9354e63536bf35e27aa573fb7cdf78017b378770d",
+      "url": "https://huggingface.co/mlx-community/Qwen3-ASR-1.7B-4bit/resolve/78a389c776a5483b2d0d4ea5494e11012e0d6159/preprocessor_config.json"
+    },
+    {
+      "path": "tokenizer_config.json",
+      "bytes": 12487,
+      "sha256": "4942d005604266809309cabc9f4e9cb89ce855d59b14681fdc0e1cc62ea26c4c",
+      "url": "https://huggingface.co/mlx-community/Qwen3-ASR-1.7B-4bit/resolve/78a389c776a5483b2d0d4ea5494e11012e0d6159/tokenizer_config.json"
+    },
+    {
+      "path": "vocab.json",
+      "bytes": 2776833,
+      "sha256": "ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910",
+      "url": "https://huggingface.co/mlx-community/Qwen3-ASR-1.7B-4bit/resolve/78a389c776a5483b2d0d4ea5494e11012e0d6159/vocab.json"
+    }
+  ],
+  "voz": [
+    {
+      "path": "embedding.f16",
+      "bytes": 10487040,
+      "sha256": "07163e5f6f8a68f9ffeed7a8ff770c68098c2db216232321912188bd614b9a72",
+      "url": "https://huggingface.co/desert-ant-labs/voz/resolve/55b31a7ef412394c787a2766ea4fbe8dcc97c77d/embedding.f16"
+    },
+    {
+      "path": "vocab.json",
+      "bytes": 78654,
+      "sha256": "3eb2f73e8853dce5156c2ed97c0b1bb84eb4ebd201eb1761d15977fc1ea31490",
+      "url": "https://huggingface.co/desert-ant-labs/voz/resolve/55b31a7ef412394c787a2766ea4fbe8dcc97c77d/vocab.json"
+    },
+    {
+      "path": "meta.json",
+      "bytes": 584,
+      "sha256": "2b5fa951d70cbbab49fccf31836521be8305d0d9557b9bedf45cc8dcdc61b53b",
+      "url": "https://huggingface.co/desert-ant-labs/voz/resolve/55b31a7ef412394c787a2766ea4fbe8dcc97c77d/meta.json"
+    },
+    {
+      "path": "encoder.mlmodelc/metadata.json",
+      "bytes": 2739,
+      "sha256": "81e00f4d507edf2e6d045a9826362f3c6e314e60ef16a28aef4c99d693876991",
+      "url": "https://huggingface.co/desert-ant-labs/voz/resolve/55b31a7ef412394c787a2766ea4fbe8dcc97c77d/encoder.mlmodelc/metadata.json"
+    },
+    {
+      "path": "encoder.mlmodelc/model.mil",
+      "bytes": 820490,
+      "sha256": "974c88c39c840c21b031f10529943516d1d8469535f0ddc3571cddaab29574e4",
+      "url": "https://huggingface.co/desert-ant-labs/voz/resolve/55b31a7ef412394c787a2766ea4fbe8dcc97c77d/encoder.mlmodelc/model.mil"
+    },
+    {
+      "path": "encoder.mlmodelc/coremldata.bin",
+      "bytes": 430,
+      "sha256": "02327c1dc4dc362dfcb1061f785a24ee3bcb86853ecaa818511ae71ca2e2a0b8",
+      "url": "https://huggingface.co/desert-ant-labs/voz/resolve/55b31a7ef412394c787a2766ea4fbe8dcc97c77d/encoder.mlmodelc/coremldata.bin"
+    },
+    {
+      "path": "decoder.mlmodelc/metadata.json",
+      "bytes": 18528,
+      "sha256": "798639c54e4eb71bcfa5dbc15b62c0a341c37b265d1a9c879c28a40b06549875",
+      "url": "https://huggingface.co/desert-ant-labs/voz/resolve/55b31a7ef412394c787a2766ea4fbe8dcc97c77d/decoder.mlmodelc/metadata.json"
+    },
+    {
+      "path": "decoder.mlmodelc/model.mil",
+      "bytes": 99410,
+      "sha256": "1f331acb4a4bb999c792db0a3725d790c046311ab9941ddbe0ee7e3418ae1e14",
+      "url": "https://huggingface.co/desert-ant-labs/voz/resolve/55b31a7ef412394c787a2766ea4fbe8dcc97c77d/decoder.mlmodelc/model.mil"
+    },
+    {
+      "path": "decoder.mlmodelc/coremldata.bin",
+      "bytes": 1093,
+      "sha256": "2d7a5210e91e4e3b25c547db4b76ea14bf769db9f71e7659c027008041e38d2d",
+      "url": "https://huggingface.co/desert-ant-labs/voz/resolve/55b31a7ef412394c787a2766ea4fbe8dcc97c77d/decoder.mlmodelc/coremldata.bin"
+    },
+    {
+      "path": "mel.mlmodelc/metadata.json",
+      "bytes": 2215,
+      "sha256": "6be5be2c02370c3a218b712046ea50c8486f4e20fd70558458d5980d1c296e53",
+      "url": "https://huggingface.co/desert-ant-labs/voz/resolve/55b31a7ef412394c787a2766ea4fbe8dcc97c77d/mel.mlmodelc/metadata.json"
+    },
+    {
+      "path": "mel.mlmodelc/model.mil",
+      "bytes": 9728,
+      "sha256": "aae23c58b6aa3093063f75a392d9f44deb324804c3fbb58fa3e55bb7f371ece1",
+      "url": "https://huggingface.co/desert-ant-labs/voz/resolve/55b31a7ef412394c787a2766ea4fbe8dcc97c77d/mel.mlmodelc/model.mil"
+    },
+    {
+      "path": "mel.mlmodelc/coremldata.bin",
+      "bytes": 405,
+      "sha256": "e6598e764b01f8ba06fa787f2bc22d7707f97c2954492d77a2736800fd006f5d",
+      "url": "https://huggingface.co/desert-ant-labs/voz/resolve/55b31a7ef412394c787a2766ea4fbe8dcc97c77d/mel.mlmodelc/coremldata.bin"
+    },
+    {
+      "path": "mel.mlmodelc/weights/weight.bin",
+      "bytes": 826688,
+      "sha256": "34f8a1bcf01e6a6ae053efe012cd189e0c38e9dca65660f199740ce9a0958f95",
+      "url": "https://huggingface.co/desert-ant-labs/voz/resolve/55b31a7ef412394c787a2766ea4fbe8dcc97c77d/mel.mlmodelc/weights/weight.bin"
+    },
+    {
+      "path": "mel.mlmodelc/analytics/coremldata.bin",
+      "bytes": 243,
+      "sha256": "d1cabbea932a1be1b53a1adc0d434d5a7a1f097d9679d3d995183238773de472",
+      "url": "https://huggingface.co/desert-ant-labs/voz/resolve/55b31a7ef412394c787a2766ea4fbe8dcc97c77d/mel.mlmodelc/analytics/coremldata.bin"
+    },
+    {
+      "path": "decoder.mlmodelc/weights/weight.bin",
+      "bytes": 12277132,
+      "sha256": "12ab4cbb83155dbaf3d9832f524c23b803e3e266863d9c6f3d58e1d88577e130",
+      "url": "https://huggingface.co/desert-ant-labs/voz/resolve/55b31a7ef412394c787a2766ea4fbe8dcc97c77d/decoder.mlmodelc/weights/weight.bin"
+    },
+    {
+      "path": "decoder.mlmodelc/analytics/coremldata.bin",
+      "bytes": 243,
+      "sha256": "cc2be0dbcd0c7d8d915aa3621869ea074791c432ba7b4bb6e029c483087f7189",
+      "url": "https://huggingface.co/desert-ant-labs/voz/resolve/55b31a7ef412394c787a2766ea4fbe8dcc97c77d/decoder.mlmodelc/analytics/coremldata.bin"
+    },
+    {
+      "path": "encoder.mlmodelc/weights/weight.bin",
+      "bytes": 312039808,
+      "sha256": "72b6e867cb3176cea36fc1410622b7bfd50043e80eafbaab03ae0a53382908c2",
+      "url": "https://huggingface.co/desert-ant-labs/voz/resolve/55b31a7ef412394c787a2766ea4fbe8dcc97c77d/encoder.mlmodelc/weights/weight.bin"
+    },
+    {
+      "path": "encoder.mlmodelc/analytics/coremldata.bin",
+      "bytes": 243,
+      "sha256": "983e1e4e31f6ef386fba8d35202984c6ec11ff688f62cf3fde57dd957d40ff27",
+      "url": "https://huggingface.co/desert-ant-labs/voz/resolve/55b31a7ef412394c787a2766ea4fbe8dcc97c77d/encoder.mlmodelc/analytics/coremldata.bin"
+    }
+  ]
+}

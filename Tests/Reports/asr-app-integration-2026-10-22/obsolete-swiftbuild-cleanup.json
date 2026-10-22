@@ -1,0 +1,49 @@
+{
+  "paths": [
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/out/Intermediates.noindex",
+      "allocatedBytes": 1421746176,
+      "deleted": true
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/out/SDKExplicitPrecompiledModules",
+      "allocatedBytes": 309690368,
+      "deleted": true
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/out/SDKStatCaches.noindex",
+      "allocatedBytes": 15294464,
+      "deleted": true
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/out/ModuleCache.noindex",
+      "allocatedBytes": 116953088,
+      "deleted": true
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/out/v5",
+      "allocatedBytes": 433577984,
+      "deleted": true
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/out/CompilationCache.noindex",
+      "allocatedBytes": 28672,
+      "deleted": true
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/out/PCH",
+      "allocatedBytes": 0,
+      "deleted": true
+    }
+  ],
+  "freeBefore": 3072131072,
+  "freeAfter": 5714489344,
+  "nativeBinarySHA256Before": "6369272fa8fcc9cee16658f2f56288e5200fc8cb5bd17ff81f3f8e27175b513f",
+  "nativeBinaryUnchanged": true,
+  "preserved": [
+    "out/Products",
+    "arm64-apple-macosx/release",
+    "checkouts",
+    "artifacts"
+  ]
+}

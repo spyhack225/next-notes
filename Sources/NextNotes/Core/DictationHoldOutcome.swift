@@ -76,9 +76,7 @@ extension DictationHoldOutcome {
             ts: now,
             feature: UsageFeature.dictationHold.rawValue,
             pass: "hold",
-            provider: engine == .apple
-                ? UsageProvider.appleSpeech.rawValue
-                : UsageProvider.parakeet.rawValue,
+            provider: engine.usageProvider.rawValue,
             modelID: engine.rawValue,
             locality: "local",
             requestedRole: nil,
@@ -132,9 +130,7 @@ extension DictationHoldOutcome {
             ts: now,
             feature: UsageFeature.dictationPressRefused.rawValue,
             pass: "press",
-            provider: engine == .apple
-                ? UsageProvider.appleSpeech.rawValue
-                : UsageProvider.parakeet.rawValue,
+            provider: engine.usageProvider.rawValue,
             modelID: engine.rawValue,
             locality: "local",
             requestedRole: nil,
