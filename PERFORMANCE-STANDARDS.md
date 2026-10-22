@@ -37,6 +37,14 @@ linking, which can remove the manual bundle. An earlier Qwen load was stopped be
 allocating producer is unconfirmed. The unchanged binary later passed with more headroom: no memory/cache
 repair is claimed. About211MB of task-produced app outputs were retired; SDKs/modules/current binary stay.
 
+TTS follow-up prepares separate native render/estimated-presentation/acoustic pickup reporting,
+without a second microphone/AEC path. Its authored original/fixed control proves that a maximum
+presentation estimate must not gate an earlier observed pickup (80 ms pickup versus 300 ms estimate:
+original correlation0.219/refused; repaired correlation1.0/accepted; not physical evidence). Ten serial
+runner controls pass; public generated-PCM records are reviewed. Physical model runs and any fastest
+speaker-default decision remain pending the coordinated candidate build and qualification. See the
+same TTS report and [voice-turn review](roadmap/in-progress/VOICE-TURN-DETECTION/04-TTS-AUDIBLE-ALIGNMENT.md).
+
 The reference is a **16 GB / 256 GB M2–M3 MacBook Air with ASR and voice running**.
 The current observations are from the owner's M3. An M3 result is not an M2 result.
 Record macOS, power/thermal state, app build/signature, exact model artifact and
