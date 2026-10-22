@@ -9134,6 +9134,10 @@
       "category": "other"
     },
     {
+      "path": "Tests/Reports/release-2026-10-22/deployment-complete.json",
+      "category": "other"
+    },
+    {
       "path": "Tests/Reports/release-2026-10-22/dmg-package.log",
       "category": "other"
     },
@@ -9183,6 +9187,10 @@
     },
     {
       "path": "Tests/Reports/release-2026-10-22/installer-check.json",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/live-site.json",
       "category": "other"
     },
     {

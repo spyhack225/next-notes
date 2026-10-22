@@ -1,0 +1,14 @@
+{
+  "installed_build": "0.2.24 (809)",
+  "binary_sha256": "bce5ef99b315110ef535122ded59329eb6bec1d7a53d6e573ac9a07f4af95620",
+  "native_roots_passed": 33,
+  "native_roots_total": 34,
+  "inherited_worker_failure": true,
+  "catalog_ci": "https://github.com/spyhack225/next-notes/actions/runs/39844182049",
+  "catalog_ci_verdict": "success",
+  "website_deployment": "7eb9c670-ccab-49d9-ab7a-4b31e46bf665",
+  "website_verified": true,
+  "release": "https://github.com/spyhack225/next-notes/releases/tag/v0.2.24",
+  "dmgs_verified": true,
+  "private_recovery_retained": true
+}

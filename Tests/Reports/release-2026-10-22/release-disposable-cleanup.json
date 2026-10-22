@@ -1,5 +1,13 @@
 {
   "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/release-20261022-dmg-root",
   "logical_bytes": 207576264,
-  "reason": "DMG completed; exact candidate is now installed and previous app retained as rollback"
+  "reason": "DMG completed; exact candidate is now installed and previous app retained as rollback",
+  "obsolete_dsym": {
+    "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/arm64-apple-macosx/release/NextNotes.dSYM",
+    "allocated_bytes": 424103936,
+    "old_uuid": "7679D958-A82E-34B6-8503-E5C804153BA8",
+    "retained_matching_dsym": "/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/arm64-apple-macosx/release/NextNotes.portable.partial.dSYM",
+    "installed_uuid": "BDBDE601-BABC-32B7-8ECF-4112C90D303B",
+    "open_files": 0
+  }
 }

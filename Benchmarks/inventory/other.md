@@ -163,6 +163,7 @@ Discovery inventory, not a claim that every file is a benchmark or that its chec
 | [Tests/Reports/release-2026-10-22/catalog-public-fixed.log](../../Tests/Reports/release-2026-10-22/catalog-public-fixed.log) |
 | [Tests/Reports/release-2026-10-22/catalog-public-original.log](../../Tests/Reports/release-2026-10-22/catalog-public-original.log) |
 | [Tests/Reports/release-2026-10-22/catalog-tests.log](../../Tests/Reports/release-2026-10-22/catalog-tests.log) |
+| [Tests/Reports/release-2026-10-22/deployment-complete.json](../../Tests/Reports/release-2026-10-22/deployment-complete.json) |
 | [Tests/Reports/release-2026-10-22/dmg-package.log](../../Tests/Reports/release-2026-10-22/dmg-package.log) |
 | [Tests/Reports/release-2026-10-22/final-package.json](../../Tests/Reports/release-2026-10-22/final-package.json) |
 | [Tests/Reports/release-2026-10-22/github-release.json](../../Tests/Reports/release-2026-10-22/github-release.json) |
@@ -176,6 +177,7 @@ Discovery inventory, not a claim that every file is a benchmark or that its chec
 | [Tests/Reports/release-2026-10-22/installed-before.json](../../Tests/Reports/release-2026-10-22/installed-before.json) |
 | [Tests/Reports/release-2026-10-22/installed.json](../../Tests/Reports/release-2026-10-22/installed.json) |
 | [Tests/Reports/release-2026-10-22/installer-check.json](../../Tests/Reports/release-2026-10-22/installer-check.json) |
+| [Tests/Reports/release-2026-10-22/live-site.json](../../Tests/Reports/release-2026-10-22/live-site.json) |
 | [Tests/Reports/release-2026-10-22/owner-admission.json](../../Tests/Reports/release-2026-10-22/owner-admission.json) |
 | [Tests/Reports/release-2026-10-22/owner-after-install.json](../../Tests/Reports/release-2026-10-22/owner-after-install.json) |
 | [Tests/Reports/release-2026-10-22/owner-before.json](../../Tests/Reports/release-2026-10-22/owner-before.json) |

@@ -1,6 +1,6 @@
 # Main release — 22 October 2026
 
-Owner authorizes commit, push, live website deployment and installation of the latest integrated main, with settings, recordings and history preserved. This record is in progress; no installation or deployment is accepted until the receipts below exist.
+Owner authorizes commit, push, live website deployment and installation of the latest integrated main, with settings, recordings and history preserved. Installation and public deployment are verified below.
 
 ## Preservation and publication
 
@@ -32,4 +32,12 @@ Public history also removes host process titles/arguments from report inventorie
 
 ## Deployment receipts
 
-Installed binary/signature, post-install owner witness, public history scan, GitHub release and live website asset receipts are recorded separately when completed.
+[Installed build](installed.json) is 0.2.24 build809 at `/Applications/Next Notes.app`, with the exact tested binary and strict signature. [Post-install witness](owner-after-install.json) passes for all1,185 support files and91 preferences. Previous app retained under `NextNotesBuild/rollback/20261022-154959-78463/`. Normal startup retains all62 taskIDs; visual native UI inspection is unverified because Computer Use capture failed. Only this release-owned idle verification process was stopped before the TTS handoff; unrelated process99601 was preserved.
+
+[GitHub release v0.2.24](https://github.com/spyhack225/next-notes/releases/tag/v0.2.24) publishes the exact tested package. Both DMG assets have SHA-256 `1f0eae718c86f9df8dcf478740089a8c6a93f598eae4a4c005dda0e09cdae0d0`. The automatic tag rebuild was cancelled to preserve these locally tested assets. This is a locally signed development build, without Apple notarization.
+
+[Live benchmark site](https://next-notes.com/?page=benchmarks) serves `assets/index-CMUF80hd.js` byte-identically to the committed build; DigitalOcean deployment `7eb9c670-ccab-49d9-ab7a-4b31e46bf665` is ACTIVE from main `3d154470`. Browser verification confirms51 reviewed public rows, eight English model rows, separate accuracy/latency conditions and retained open gates. [Asset receipt](live-site.json) and [screenshot](live-benchmarks.png).
+
+Catalog CI initially caught one newly indexed cleanup receipt omitted by generation before staging. After staging receipts and regenerating, GitHub run39844182049 passes in a clean Linux checkout. Local catalog/privacy regressions pass20 tests; website build/lint pass. Remote macOS dictionary CI is queued at handoff; focused native evidence above is completed locally. No broader acceptance is inferred.
+
+The current matching dSYM is retained; an obsolete nonmatching424,103,936-byte dSYM was removed after UUID/open-file checks. Original recovery refs and private bundles, current SDK cache, owner data, installed app and rollback are retained. Physical TTS work owns its new uncommitted evidence and is deliberately left untouched.

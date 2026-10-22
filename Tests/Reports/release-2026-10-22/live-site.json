@@ -1,0 +1,9 @@
+{
+  "url": "https://next-notes.com/?page=benchmarks",
+  "expected_asset": "assets/index-CMUF80hd.js",
+  "observed_asset": "assets/index-CMUF80hd.js",
+  "asset_bytes": 530982,
+  "asset_byte_match": true,
+  "registry_rows": 60,
+  "public_rows": 51
+}
