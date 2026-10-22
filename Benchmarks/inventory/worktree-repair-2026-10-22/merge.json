@@ -1,0 +1,7 @@
+{
+  "pre_merge": "ee6ecdc7572b156d88442dc1b1a3999f240b248c",
+  "archive_merge_commit": "90916ba101b96e4d21dbfe5dbab54ae03cdeb406",
+  "application_tree_identical": true,
+  "snapshot_commits": 31,
+  "all_snapshot_and_original_branch_tips_reachable_from_main": true
+}

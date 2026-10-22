@@ -1,5 +1,7 @@
 # Benchmark hub verification — 22 October 2026
 
+Historical hub verification before the owner-authorized Git consolidation. Current committed state and retirement evidence are recorded in [the consolidation report](inventory/worktree-repair-2026-10-22/README.md).
+
 Implemented in the canonical working tree, alongside retained unrelated staged and unstaged work. No commit, push, deployment, owner-store migration, model download, native benchmark or application installation was performed by this task.
 
 ## Coverage and scope

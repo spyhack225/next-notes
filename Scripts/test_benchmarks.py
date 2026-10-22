@@ -6,6 +6,8 @@ from pathlib import Path
 import tempfile
 import sys
 import subprocess
+import io
+import tarfile
 import unittest
 from unittest.mock import patch
 
@@ -115,6 +117,46 @@ class CatalogTests(unittest.TestCase):
         evidence = self.root / 'Tests/Reports/evidence.json'
         evidence.write_text('{"private_transcript":"DO_NOT_PUBLISH_MORE"}')
         self.assertEqual(before, b.outputs())
+
+    def test_retired_snapshot_evidence_remains_discoverable(self):
+        def git(*args):
+            return subprocess.check_output(['git', '-C', str(self.root), '-c', 'user.name=Catalog fixture',
+                '-c', 'user.email=fixture@example.invalid', '-c', 'commit.gpgsign=false', '-c', 'gc.auto=0', *args], stderr=subprocess.DEVNULL).decode().strip()
+        git('init', '-q', '-b', 'main')
+        (self.root / 'README.md').write_text('Synthetic root')
+        git('add', 'README.md')
+        git('commit', '-qm', 'root')
+        initial = git('rev-parse', 'HEAD')
+        legacy = self.root / 'Tests/Reports/legacy.md'
+        legacy.write_text('Synthetic historical measurement')
+        archive = self.root / '.worktree-preservation/ignored.tar.gz'
+        archive.parent.mkdir()
+        with tarfile.open(archive, 'w:gz') as tf:
+            payload = b'Synthetic ignored measurement'
+            member = tarfile.TarInfo('Tests/Reports/ignored.md')
+            member.size = len(payload)
+            tf.addfile(member, io.BytesIO(payload))
+        git('add', str(legacy.relative_to(self.root)), str(archive.relative_to(self.root)))
+        git('commit', '-qm', 'candidate snapshot')
+        snapshot = git('rev-parse', 'HEAD')
+        blob = git('rev-parse', snapshot + ':.worktree-preservation/ignored.tar.gz')
+        git('checkout', '-q', '-B', 'main', initial)
+        git('merge', '--no-ff', '-s', 'ours', '-m', 'retain candidate history', snapshot)
+        self.assertFalse(legacy.exists())
+        for name in ('bench', 'docs', 'roadmap'):
+            (self.root / name).mkdir(exist_ok=True)
+        registry = self.root / 'Benchmarks/inventory/worktree-repair-fixture/snapshots.json'
+        registry.parent.mkdir(parents=True)
+        registry.write_text(json.dumps([dict(name='fixture', snapshot_commit=snapshot,
+            ignored_paths=['Tests/Reports/ignored.md'], ignored_archive_git_blob=blob)]))
+        b.audit()
+        summary = json.loads((self.root / 'Benchmarks/inventory/git-audit-summary.json').read_text())
+        sources = [r for r in summary['refs'] if r['ref'] == 'preserved/fixture']
+        self.assertEqual(len(sources), 1)
+        self.assertEqual(sources[0]['evidence_files'], 2)
+        historical = (self.root / 'Benchmarks/inventory/historical.md').read_text()
+        self.assertIn('git show ' + snapshot + ':Tests/Reports/legacy.md', historical)
+        self.assertIn('| tar -xzOf - Tests/Reports/ignored.md', historical)
 
     def test_evidence_scope_excludes_vendor_references_and_assets(self):
         self.assertTrue(b.evidence_path('roadmap/done/MEETING/README.md'))

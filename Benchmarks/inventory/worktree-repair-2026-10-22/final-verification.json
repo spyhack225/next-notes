@@ -1,0 +1,21 @@
+{
+  "checked_at": "2026-10-22T16:07:04.347327+00:00",
+  "local_branches": 1,
+  "registered_worktrees": 1,
+  "removed_worktrees": 21,
+  "removed_local_branches": 21,
+  "removed_standalone_and_non_git_task_folders": 10,
+  "preserved_snapshots": 31,
+  "additional_reflog_commits_retained": 64,
+  "verified_secondary_paths": 1342,
+  "verified_standalone_files": 60,
+  "all_snapshots_and_original_tips_reachable_from_main": true,
+  "application_source_identical_to_current_work_checkpoint": "8b3d4f8a",
+  "full_git_fsck_exit": 0,
+  "full_git_fsck_has_only_dangling_object_notices": true,
+  "remaining_temporary_preservation_refs": 0,
+  "free_disk_now_bytes": 2097614848,
+  "shared_build_cache_retained": true,
+  "git_hub_unchanged": true,
+  "catalog_boundary_tests_passed": 11
+}

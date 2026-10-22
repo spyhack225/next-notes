@@ -1,5 +1,7 @@
 # Next Notes branches and worktrees — 22 October 2026
 
+**Historical pre-cleanup audit.** All secondary checkouts and local task branches have since been retired with verified recovery history. See [the completed consolidation](worktree-repair-2026-10-22/README.md).
+
 Read-only audit at 2026-10-22T15:30:05.765878+00:00. No branch, Git link, worktree, process or application file was changed or removed. Counts are a snapshot while the main checkout is active.
 
 **22 local branches; 3 live GitHub branches; 22 registered worktrees; 5 extra standalone scratch repositories; 5 non-Git task folders.**

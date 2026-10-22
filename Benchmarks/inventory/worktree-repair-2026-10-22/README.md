@@ -30,3 +30,17 @@ Use `git show <snapshot-commit>:<repository-relative-file>` to read a file. To r
 Ignored content is in that snapshot's `.worktree-preservation/ignored.tar.gz`. List and review the archive, then extract only into the new recovery checkout. It includes local-only material and must not be published blindly. The manifest, original index and staged patch in `.worktree-preservation/` retain the original staging context. Recover one task at a time rather than recreating the whole set of checkouts.
 
 This is local Git retention, not an off-machine backup or a qualified combined application build. Separately tested source integration is still required before activating archived alternative implementations.
+
+## Completed outcome
+
+- **1 local branch and 1 worktree remain: main.** Removed all 21 secondary checkouts and 21 old local branch names, plus 10 obsolete standalone review/task folders.
+- All 31 verified WIP recovery snapshots and 64 additional reflog-only commits are reachable from main. Temporary preservation refs were removed after that reachability check.
+- Retired checkout directories accounted for 1,776,947,200 bytes (1.655 GiB) by du. Available filesystem space rose from 185,380,864 to 2,164,146,176 bytes during retirement; this observed increase includes filesystem/system activity and is not an APFS-exclusive reclamation measurement. Shared build/model caches remain.
+- Full `git fsck --full --no-reflogs` exits 0. Remaining dangling tree/blob notices were not pruned; no missing/corrupt object was reported.
+- Eleven catalog tests pass. An actual temporary Git repository reproduces the old audit losing retired-snapshot evidence (original 1 failure); corrected audit discovers committed and ignored-archive reports after source branch/checkouts are gone. Archived report retrieval uses immutable Git commits, replacing stale local-worktree links.
+- The benchmark index now retains 5 live Git refs, 31 preserved snapshot sources and 1 current worktree. These are evidence sources, not 36 local branches. All 37 registered run manifests validate; private results remain excluded from public projection unless approved.
+- Application source, Package files, Resources and Makefile are byte-for-byte the current shared checkpoint across the archive merges. No historical alternative was activated. No native build or model test, push, install or GitHub branch deletion occurred.
+
+[Final verification](final-verification.json) · [Retirement receipts](retirement.json) · [Archive merge](merge.json) · [Reflog retention](reflog-retention.json) · [Original/fixed catalog regression](catalog-regression.json).
+
+The one-off [preservation procedure](procedure-preserve.py) and [retirement procedure](procedure-retire.py) are retained for audit, not for rerunning against the current checkout. Temporary indexes, duplicate hash snapshots and local execution traces were removed after their relevant evidence was retained here.

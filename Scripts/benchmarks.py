@@ -21,8 +21,8 @@ EVIDENCE_ROOTS = ('Tests/Reports/', 'bench/', 'docs/', 'roadmap/')
 TEXT_TYPES = ('.md', '.json', '.jsonl', '.csv', '.tsv', '.txt', '.log')
 
 
-def git(*args, cwd=ROOT):
-    return subprocess.check_output(['git', '-C', str(cwd), *args], text=True, stderr=subprocess.DEVNULL)
+def git(*args, cwd=None):
+    return subprocess.check_output(['git', '-C', str(cwd or ROOT), *args], text=True, stderr=subprocess.DEVNULL)
 
 
 def atomic(path, text):
@@ -195,14 +195,30 @@ def audit():
     """Retain pins and evidence identities from every local/remote ref and checked-out tree."""
     stamp = dt.datetime.now(dt.timezone.utc).isoformat()
     refs = []
-    for line in git('for-each-ref', '--format=%(refname) %(objectname)', 'refs/heads', 'refs/remotes').splitlines():
-        ref, commit = line.split()
+    def evidence_tree(commit):
         rows = []
         for entry in git('ls-tree', '-r', commit).splitlines():
             meta, path = entry.split('\t', 1)
             if evidence_path(path):
                 rows.append({'path': path, 'git_blob': meta.split()[2], 'category': category(path)})
-        refs.append({'ref': ref, 'commit': commit, 'evidence': rows})
+        return rows
+    for line in git('for-each-ref', '--format=%(refname) %(objectname)', 'refs/heads', 'refs/remotes').splitlines():
+        ref, commit = line.split()
+        refs.append({'ref': ref, 'kind': 'git_ref', 'commit': commit, 'evidence': evidence_tree(commit)})
+    # Retired checkouts remain benchmark sources through immutable, main-reachable snapshots.
+    for manifest in sorted((ROOT / 'Benchmarks/inventory').glob('worktree-repair-*/snapshots.json')):
+        for snapshot in json.loads(manifest.read_text()):
+            commit = snapshot['snapshot_commit']
+            assert re.fullmatch(r'[0-9a-f]{40}', commit), 'invalid recovery commit'
+            git('merge-base', '--is-ancestor', commit, 'HEAD')
+            rows = evidence_tree(commit)
+            container = '.worktree-preservation/ignored.tar.gz'
+            for path in snapshot.get('ignored_paths', []):
+                if evidence_path(path):
+                    rows.append({'path': path, 'git_blob': snapshot['ignored_archive_git_blob'],
+                                 'container': container, 'archive_member': path, 'category': category(path)})
+            refs.append({'ref': 'preserved/' + snapshot['name'], 'kind': 'preserved_snapshot',
+                         'commit': commit, 'evidence': rows})
     trees = []
     for block in git('worktree', 'list', '--porcelain').strip().split('\n\n'):
         fields = dict(line.split(' ', 1) if ' ' in line else (line, True) for line in block.splitlines())
@@ -242,7 +258,7 @@ def audit():
     lines = ['# Branch and worktree evidence audit', '', f'Audited {stamp}. Read-only snapshot; no branch was merged or worktree removed.', '',
              '[Full pinned inventory, compressed JSON](git-audit.json.gz) · [Compact summary](git-audit-summary.json) · [Conversation audit](../CONVERSATIONS.md)', '',
              'Git blobs preserve committed versions. Uncommitted differences are pointers to their owning worktree, not backed-up content; retain those worktrees until their owners integrate the evidence. Counts include historical copies, not independent measurements.', '',
-             '| Ref | Pinned commit | Evidence files |', '|---|---|---:|']
+             '| Git ref or preserved snapshot | Pinned commit | Evidence files |', '|---|---|---:|']
     for r in refs:
         lines.append(f"| {r['ref']} | `{r['commit']}` | {len(r['evidence'])} |")
     lines += ['', '| Worktree | Branch / detached | Evidence files | Different or absent in canonical |', '|---|---|---:|---:|']
@@ -251,13 +267,13 @@ def audit():
         lines.append(f"| [{Path(tree['path']).name}]({quote(tree['path'], safe='/')}) | {tree['branch'] or 'detached'} | {len(tree['evidence'])} | {count} |")
     lines += ['', '## Retrieve a historical result', '',
               'Use the exact commit and path in the JSON with `git show <commit>:<path>`. Do not substitute a branch tip after it moves. A historical result does not qualify the current build.', '',
-              'This scans all current local/remote refs and worktrees, including untracked evidence visible to rg. It does not claim recovery of deleted/unreachable commits, ignored temporary files, inaccessible chats, or external owner recordings.', '']
+              'This scans current local/remote refs and worktrees plus main-reachable recovery snapshots from retired checkouts. Preserved snapshots are evidence sources, not additional branches or worktrees. It does not claim recovery of deleted/unreachable commits, ignored temporary files, inaccessible chats, or external owner recordings.', '']
     current_paths = {r['path'] for r in scan()}
     missing = {}
     for ref in refs:
         for row in ref['evidence']:
             if row['path'] not in current_paths:
-                missing.setdefault(row['path'], (ref['commit'], row['git_blob']))
+                missing.setdefault(row['path'], (ref['commit'], row))
     locations = {}
     for tree in trees:
         for row in tree['evidence']:
@@ -266,14 +282,17 @@ def audit():
                   f'{len(missing)} unique paths retained in the audited refs. These are historical artifacts, not additional independent runs.', '',
                   'The local worktree links open the current file there; it can differ from the pinned version. The exact committed bytes are recoverable with the git command beside each item. No report was moved or worktree deleted.', '',
                   '| Evidence | Available local copy | Exact historical retrieval |', '|---|---|---|']
-    for name, (commit, blob) in sorted(missing.items()):
+    for name, (commit, row) in sorted(missing.items()):
         location = locations.get(name)
         link = f'[Open worktree copy]({quote(location, safe="/")})' if location else 'Retained in Git only'
-        historical.append(f'| {name} | {link} | `git show {commit}:{name}` |')
+        retrieval = f'git show {commit}:{name}'
+        if row.get('container'):
+            retrieval = f"git show {commit}:{row['container']} | tar -xzOf - {name}"
+        historical.append(f'| {name} | {link} | `{retrieval}` |')
     atomic(ROOT / 'Benchmarks/inventory/historical.md', '\n'.join(historical) + '\n')
     lines += ['', '[Browse historical-only evidence](historical.md). Files above 4 MiB are listed without a working-file content hash; committed Git blob identities remain in the archive.', '']
     atomic(ROOT / 'Benchmarks/inventory/README.md', '\n'.join(lines))
-    print(f'BENCHMARK_AUDIT_OK: {len(refs)} refs, {len(trees)} worktrees')
+    print(f"BENCHMARK_AUDIT_OK: {sum(x['kind'] == 'git_ref' for x in refs)} Git refs, {sum(x['kind'] == 'preserved_snapshot' for x in refs)} preserved snapshots, {len(trees)} worktrees")
 
 
 def main():

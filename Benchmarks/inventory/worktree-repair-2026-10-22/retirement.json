@@ -1,0 +1,322 @@
+{
+  "actions": [
+    {
+      "action": "worktree_removed",
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/agent-delivery",
+      "du_bytes_before": 49868800,
+      "recovery_commit": "3651851c2a85fd514c9a66d23c37d9c1626e6baa"
+    },
+    {
+      "action": "worktree_removed",
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/claude-worktrees/dictation-perf",
+      "du_bytes_before": 104361984,
+      "recovery_commit": "2e257dd10b9f366f47ce6a4106b89497f36539d8"
+    },
+    {
+      "action": "worktree_removed",
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/bakeoff2",
+      "du_bytes_before": 122183680,
+      "recovery_commit": "cfadc1d5d63d2728f2ec11b9326bfa8e0e17efa1"
+    },
+    {
+      "action": "worktree_removed",
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/catchup",
+      "du_bytes_before": 48504832,
+      "recovery_commit": "2d41f7930894f30ac4bbae7c74a254d4f3984597"
+    },
+    {
+      "action": "worktree_removed",
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/catchup-audio",
+      "du_bytes_before": 95043584,
+      "recovery_commit": "fb932322883f7ec0da8ee1fcf4c7932e7e5112a9"
+    },
+    {
+      "action": "worktree_removed",
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/catchup-final",
+      "du_bytes_before": 97288192,
+      "recovery_commit": "6b2779376cf719102cf73f59ccc86e064e3c0e0b"
+    },
+    {
+      "action": "worktree_removed",
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/catchup-port",
+      "du_bytes_before": 90693632,
+      "recovery_commit": "772a350f143e8080961b1c51537a133df88fc1c5"
+    },
+    {
+      "action": "worktree_removed",
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/catchup-ui",
+      "du_bytes_before": 48271360,
+      "recovery_commit": "06f00f90d1980d1285b29290d574650a0293873d"
+    },
+    {
+      "action": "worktree_removed",
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/catchup-ui2",
+      "du_bytes_before": 90308608,
+      "recovery_commit": "7b092587661617f089a7f799358f2ff0362b0418"
+    },
+    {
+      "action": "worktree_removed",
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/clockfix",
+      "du_bytes_before": 95408128,
+      "recovery_commit": "4effa7b2dbc9def9a39a6fabd829270621517e97"
+    },
+    {
+      "action": "worktree_removed",
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/google",
+      "du_bytes_before": 48873472,
+      "recovery_commit": "55e856d710d250d0e6ad3b9fd816e90ce0eae6a8"
+    },
+    {
+      "action": "worktree_removed",
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/google-c",
+      "du_bytes_before": 96104448,
+      "recovery_commit": "9634bb996b4f31218d6b0607c55dbac6a90f6217"
+    },
+    {
+      "action": "worktree_removed",
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/listen",
+      "du_bytes_before": 48889856,
+      "recovery_commit": "224ba2d01f3792dcd7cd3a7f4f9e0613633d8ff9"
+    },
+    {
+      "action": "worktree_removed",
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/listen2",
+      "du_bytes_before": 95465472,
+      "recovery_commit": "e2e578776281344a41aca0d31752c963236fd1f6"
+    },
+    {
+      "action": "worktree_removed",
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/no-apple",
+      "du_bytes_before": 100040704,
+      "recovery_commit": "c6d59c4128721e3e7b7a084b1985b56e7c0a5af9"
+    },
+    {
+      "action": "worktree_removed",
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/thinking",
+      "du_bytes_before": 48791552,
+      "recovery_commit": "2d19780a26265a48d3fbf6bacc49ec7f55c29150"
+    },
+    {
+      "action": "worktree_removed",
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/thinking-review",
+      "du_bytes_before": 91467776,
+      "recovery_commit": "a1c850242cb1af0cb1ebd0e9ba9bde56f9fb4928"
+    },
+    {
+      "action": "worktree_removed",
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/tooling",
+      "du_bytes_before": 90460160,
+      "recovery_commit": "90aea6c48471729f83563d3e5a152bedaad8586b"
+    },
+    {
+      "action": "worktree_removed",
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/voice-ack",
+      "du_bytes_before": 110759936,
+      "recovery_commit": "fc8aa2af6e492987a81f1a5672a70af8eb9afa67"
+    },
+    {
+      "action": "worktree_removed",
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/voice-mini",
+      "du_bytes_before": 99487744,
+      "recovery_commit": "b168b67f0535afb3f53c8a669e96dc3a1b881e35"
+    },
+    {
+      "action": "worktree_removed",
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/voice-settings-ui",
+      "du_bytes_before": 104673280,
+      "recovery_commit": "e15fee2ca7076f6298796def5dbe3498097989b5"
+    },
+    {
+      "action": "scratch_task_folder_removed",
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/review-google",
+      "recovery_commit": "9c1d43621fb492f0f1a6d6e7a5d60e79e830b8f9"
+    },
+    {
+      "action": "scratch_task_folder_removed",
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/voice-audit",
+      "recovery_commit": "9afcaccc87fe45a5a4950489b80a03d5ef536181"
+    },
+    {
+      "action": "scratch_task_folder_removed",
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/review-leak",
+      "recovery_commit": "648c8a87d7f22ac9a3dd0b9aacd418a323cac504"
+    },
+    {
+      "action": "scratch_task_folder_removed",
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/review-noapple",
+      "recovery_commit": "45ae74d83d3a58ae383ce91dfcfc071c76b154d2"
+    },
+    {
+      "action": "scratch_task_folder_removed",
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/review-audio",
+      "recovery_commit": "04c3de8d92b453853adaa3c023ba84c8693e82b4"
+    },
+    {
+      "action": "scratch_task_folder_removed",
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/bakeoff",
+      "recovery_commit": "6a757807c03f2bcc9d73383bdbc101da05a0c8c9"
+    },
+    {
+      "action": "scratch_task_folder_removed",
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/review-ack",
+      "recovery_commit": "45360fef3b3af604a9aee4fd86d46eee562632cf"
+    },
+    {
+      "action": "scratch_task_folder_removed",
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/review-catchup",
+      "recovery_commit": "23e728efe9e7dd9e8c4576110d0520e168ab0d4e"
+    },
+    {
+      "action": "scratch_task_folder_removed",
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/review-ui",
+      "recovery_commit": "8337efcc09d485eaf8db489da1863602d3b7748d"
+    },
+    {
+      "action": "scratch_task_folder_removed",
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/roadmap",
+      "recovery_commit": "803be7cb3fbba52aebeca622fc4b94000df3484b"
+    },
+    {
+      "action": "merged_local_branch_deleted",
+      "branch": "claude/catchup",
+      "original_tip": "2ce054cd8d39122f6ef6879e05d781503ec00e91"
+    },
+    {
+      "action": "merged_local_branch_deleted",
+      "branch": "claude/catchup-ui",
+      "original_tip": "aad357dbc5186231ad9c7c29151c7c85da66ee27"
+    },
+    {
+      "action": "merged_local_branch_deleted",
+      "branch": "claude/google",
+      "original_tip": "1261420cf0ac852ecce024934345fafc3f407ab5"
+    },
+    {
+      "action": "merged_local_branch_deleted",
+      "branch": "claude/listen",
+      "original_tip": "3e2eef1a696de4e0287c97d02b67b3a93d65ae7c"
+    },
+    {
+      "action": "merged_local_branch_deleted",
+      "branch": "claude/thinking",
+      "original_tip": "d152964433a8cb7f8073796ab4c494113750078b"
+    },
+    {
+      "action": "merged_local_branch_deleted",
+      "branch": "claude2/bakeoff2",
+      "original_tip": "690a358f6cf6db8a5dd3e19a2f0965b6d1f7fe7a"
+    },
+    {
+      "action": "merged_local_branch_deleted",
+      "branch": "claude2/catchup-audio",
+      "original_tip": "63a7e4718c718b47feb84527d6113ba3266cdd9a"
+    },
+    {
+      "action": "merged_local_branch_deleted",
+      "branch": "claude2/catchup-final",
+      "original_tip": "b42c574e840f6b287754b545f6f0bbb633c6d394"
+    },
+    {
+      "action": "merged_local_branch_deleted",
+      "branch": "claude2/catchup-port",
+      "original_tip": "134f485b00fd31ded3388fc8081ec4d8e53c8600"
+    },
+    {
+      "action": "merged_local_branch_deleted",
+      "branch": "claude2/catchup-ui2",
+      "original_tip": "c0d3746236719dfa994abecd47918754f26d0c08"
+    },
+    {
+      "action": "merged_local_branch_deleted",
+      "branch": "claude2/clockfix",
+      "original_tip": "bac18b68d8ea38f1b4f276b52ba03c2728360d17"
+    },
+    {
+      "action": "merged_local_branch_deleted",
+      "branch": "claude2/google-c",
+      "original_tip": "7ac342cece493248caa947ec716048abc1ac453d"
+    },
+    {
+      "action": "merged_local_branch_deleted",
+      "branch": "claude2/listen2",
+      "original_tip": "73f4dde8b8166608e119e8eb621919899ef09f5c"
+    },
+    {
+      "action": "merged_local_branch_deleted",
+      "branch": "claude2/no-apple",
+      "original_tip": "19a212a888220e665d087fb39023fc20b0710c1d"
+    },
+    {
+      "action": "merged_local_branch_deleted",
+      "branch": "claude2/thinking-review",
+      "original_tip": "6d2c66aa7f7ebd0a0fb655c8a0819276e4db976e"
+    },
+    {
+      "action": "merged_local_branch_deleted",
+      "branch": "claude2/tooling",
+      "original_tip": "dae49e1d1f3e81892aa469a080f0dce207a80cb0"
+    },
+    {
+      "action": "merged_local_branch_deleted",
+      "branch": "claude2/voice-ack",
+      "original_tip": "baf562318b5002ec645852ef6aca5234d7170c44"
+    },
+    {
+      "action": "merged_local_branch_deleted",
+      "branch": "claude2/voice-ack2",
+      "original_tip": "52def96e2f510a0b69046720f38fb4f469fd5826"
+    },
+    {
+      "action": "merged_local_branch_deleted",
+      "branch": "claude2/voice-mini",
+      "original_tip": "52ef3734100df232d2711d59792f8ba88ce5e951"
+    },
+    {
+      "action": "merged_local_branch_deleted",
+      "branch": "claude2/voice-settings-ui",
+      "original_tip": "458aae5a0f8d5929470e1f12955617cdb90cb465"
+    },
+    {
+      "action": "merged_local_branch_deleted",
+      "branch": "personal-agent",
+      "original_tip": "871b699e5e7ffb75cd0978e42ffaf3f25bc5ec40"
+    },
+    {
+      "action": "coordinator_file_retired",
+      "original": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/INTEGRATION.md",
+      "retained": "Benchmarks/inventory/worktree-repair-2026-10-22/retained-coordination/INTEGRATION.md"
+    },
+    {
+      "action": "coordinator_file_retired",
+      "original": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/MAIN-DIRTY-SOURCES.txt",
+      "retained": "Benchmarks/inventory/worktree-repair-2026-10-22/retained-coordination/MAIN-DIRTY-SOURCES.txt"
+    },
+    {
+      "action": "coordinator_file_retired",
+      "original": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/RULES-2.md",
+      "retained": "Benchmarks/inventory/worktree-repair-2026-10-22/retained-coordination/RULES-2.md"
+    },
+    {
+      "action": "coordinator_file_retired",
+      "original": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/RULES.md",
+      "retained": "Benchmarks/inventory/worktree-repair-2026-10-22/retained-coordination/RULES.md"
+    },
+    {
+      "action": "coordinator_file_retired",
+      "original": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/gate.sh",
+      "retained": "Benchmarks/inventory/worktree-repair-2026-10-22/retained-coordination/gate.sh"
+    },
+    {
+      "action": "coordinator_file_retired",
+      "original": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/heavy.sh",
+      "retained": "Benchmarks/inventory/worktree-repair-2026-10-22/retained-coordination/heavy.sh"
+    },
+    {
+      "action": "coordinator_file_retired",
+      "original": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/heavy.sh.v2-backup",
+      "retained": "Benchmarks/inventory/worktree-repair-2026-10-22/retained-coordination/heavy.sh.v2-backup"
+    }
+  ],
+  "free_before_bytes": 185380864,
+  "free_now_bytes": 2164146176
+}

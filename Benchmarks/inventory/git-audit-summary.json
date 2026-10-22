@@ -1,311 +1,229 @@
 {
-  "audited_at": "2026-10-22T15:14:34.346787+00:00",
+  "audited_at": "2026-10-22T16:05:05.575572+00:00",
   "refs": [
     {
-      "ref": "refs/heads/claude/catchup",
-      "commit": "2ce054cd8d39122f6ef6879e05d781503ec00e91",
-      "evidence_files": 815
-    },
-    {
-      "ref": "refs/heads/claude/catchup-ui",
-      "commit": "aad357dbc5186231ad9c7c29151c7c85da66ee27",
-      "evidence_files": 815
-    },
-    {
-      "ref": "refs/heads/claude/google",
-      "commit": "1261420cf0ac852ecce024934345fafc3f407ab5",
-      "evidence_files": 818
-    },
-    {
-      "ref": "refs/heads/claude/listen",
-      "commit": "3e2eef1a696de4e0287c97d02b67b3a93d65ae7c",
-      "evidence_files": 815
-    },
-    {
-      "ref": "refs/heads/claude/thinking",
-      "commit": "d152964433a8cb7f8073796ab4c494113750078b",
-      "evidence_files": 815
-    },
-    {
-      "ref": "refs/heads/claude2/bakeoff2",
-      "commit": "690a358f6cf6db8a5dd3e19a2f0965b6d1f7fe7a",
-      "evidence_files": 2288
-    },
-    {
-      "ref": "refs/heads/claude2/catchup-audio",
-      "commit": "63a7e4718c718b47feb84527d6113ba3266cdd9a",
-      "evidence_files": 2361
-    },
-    {
-      "ref": "refs/heads/claude2/catchup-final",
-      "commit": "b42c574e840f6b287754b545f6f0bbb633c6d394",
-      "evidence_files": 2450
-    },
-    {
-      "ref": "refs/heads/claude2/catchup-port",
-      "commit": "134f485b00fd31ded3388fc8081ec4d8e53c8600",
-      "evidence_files": 2288
-    },
-    {
-      "ref": "refs/heads/claude2/catchup-ui2",
-      "commit": "c0d3746236719dfa994abecd47918754f26d0c08",
-      "evidence_files": 2288
-    },
-    {
-      "ref": "refs/heads/claude2/clockfix",
-      "commit": "bac18b68d8ea38f1b4f276b52ba03c2728360d17",
-      "evidence_files": 2346
-    },
-    {
-      "ref": "refs/heads/claude2/google-c",
-      "commit": "7ac342cece493248caa947ec716048abc1ac453d",
-      "evidence_files": 2731
-    },
-    {
-      "ref": "refs/heads/claude2/listen2",
-      "commit": "73f4dde8b8166608e119e8eb621919899ef09f5c",
-      "evidence_files": 2415
-    },
-    {
-      "ref": "refs/heads/claude2/no-apple",
-      "commit": "19a212a888220e665d087fb39023fc20b0710c1d",
-      "evidence_files": 2567
-    },
-    {
-      "ref": "refs/heads/claude2/thinking-review",
-      "commit": "6d2c66aa7f7ebd0a0fb655c8a0819276e4db976e",
-      "evidence_files": 2321
-    },
-    {
-      "ref": "refs/heads/claude2/tooling",
-      "commit": "dae49e1d1f3e81892aa469a080f0dce207a80cb0",
-      "evidence_files": 2292
-    },
-    {
-      "ref": "refs/heads/claude2/voice-ack",
-      "commit": "baf562318b5002ec645852ef6aca5234d7170c44",
-      "evidence_files": 2528
-    },
-    {
-      "ref": "refs/heads/claude2/voice-ack2",
-      "commit": "52def96e2f510a0b69046720f38fb4f469fd5826",
-      "evidence_files": 2592
-    },
-    {
-      "ref": "refs/heads/claude2/voice-mini",
-      "commit": "52ef3734100df232d2711d59792f8ba88ce5e951",
-      "evidence_files": 2484
-    },
-    {
-      "ref": "refs/heads/claude2/voice-settings-ui",
-      "commit": "458aae5a0f8d5929470e1f12955617cdb90cb465",
-      "evidence_files": 2652
-    },
-    {
       "ref": "refs/heads/main",
-      "commit": "6cf744cc4a27ed4a57bd3fea2c233ea999506fc0",
-      "evidence_files": 2378
-    },
-    {
-      "ref": "refs/heads/personal-agent",
-      "commit": "871b699e5e7ffb75cd0978e42ffaf3f25bc5ec40",
-      "evidence_files": 107
+      "kind": "git_ref",
+      "commit": "5558f381eb41c039a2a1c36bb0edee1396658857",
+      "evidence_files": 3219
     },
     {
       "ref": "refs/remotes/origin/HEAD",
+      "kind": "git_ref",
       "commit": "f2f5b6067e6283026d417edf007420113681941b",
       "evidence_files": 830
     },
     {
       "ref": "refs/remotes/origin/claude/open-source-license-setup-d0l8u9",
+      "kind": "git_ref",
       "commit": "7290fd2086c397d11b898b954d0e6329096e258d",
       "evidence_files": 107
     },
     {
       "ref": "refs/remotes/origin/main",
+      "kind": "git_ref",
       "commit": "f2f5b6067e6283026d417edf007420113681941b",
       "evidence_files": 830
     },
     {
       "ref": "refs/remotes/origin/personal-agent",
+      "kind": "git_ref",
       "commit": "871b699e5e7ffb75cd0978e42ffaf3f25bc5ec40",
       "evidence_files": 107
+    },
+    {
+      "ref": "preserved/agent-delivery",
+      "kind": "preserved_snapshot",
+      "commit": "3651851c2a85fd514c9a66d23c37d9c1626e6baa",
+      "evidence_files": 947
+    },
+    {
+      "ref": "preserved/dictation-perf",
+      "kind": "preserved_snapshot",
+      "commit": "2e257dd10b9f366f47ce6a4106b89497f36539d8",
+      "evidence_files": 2299
+    },
+    {
+      "ref": "preserved/bakeoff2",
+      "kind": "preserved_snapshot",
+      "commit": "cfadc1d5d63d2728f2ec11b9326bfa8e0e17efa1",
+      "evidence_files": 2288
+    },
+    {
+      "ref": "preserved/catchup",
+      "kind": "preserved_snapshot",
+      "commit": "2d41f7930894f30ac4bbae7c74a254d4f3984597",
+      "evidence_files": 815
+    },
+    {
+      "ref": "preserved/catchup-audio",
+      "kind": "preserved_snapshot",
+      "commit": "fb932322883f7ec0da8ee1fcf4c7932e7e5112a9",
+      "evidence_files": 2361
+    },
+    {
+      "ref": "preserved/catchup-final",
+      "kind": "preserved_snapshot",
+      "commit": "6b2779376cf719102cf73f59ccc86e064e3c0e0b",
+      "evidence_files": 2450
+    },
+    {
+      "ref": "preserved/catchup-port",
+      "kind": "preserved_snapshot",
+      "commit": "772a350f143e8080961b1c51537a133df88fc1c5",
+      "evidence_files": 2288
+    },
+    {
+      "ref": "preserved/catchup-ui",
+      "kind": "preserved_snapshot",
+      "commit": "06f00f90d1980d1285b29290d574650a0293873d",
+      "evidence_files": 815
+    },
+    {
+      "ref": "preserved/catchup-ui2",
+      "kind": "preserved_snapshot",
+      "commit": "7b092587661617f089a7f799358f2ff0362b0418",
+      "evidence_files": 2288
+    },
+    {
+      "ref": "preserved/clockfix",
+      "kind": "preserved_snapshot",
+      "commit": "4effa7b2dbc9def9a39a6fabd829270621517e97",
+      "evidence_files": 2346
+    },
+    {
+      "ref": "preserved/google",
+      "kind": "preserved_snapshot",
+      "commit": "55e856d710d250d0e6ad3b9fd816e90ce0eae6a8",
+      "evidence_files": 818
+    },
+    {
+      "ref": "preserved/google-c",
+      "kind": "preserved_snapshot",
+      "commit": "9634bb996b4f31218d6b0607c55dbac6a90f6217",
+      "evidence_files": 2731
+    },
+    {
+      "ref": "preserved/listen",
+      "kind": "preserved_snapshot",
+      "commit": "224ba2d01f3792dcd7cd3a7f4f9e0613633d8ff9",
+      "evidence_files": 815
+    },
+    {
+      "ref": "preserved/listen2",
+      "kind": "preserved_snapshot",
+      "commit": "e2e578776281344a41aca0d31752c963236fd1f6",
+      "evidence_files": 2415
+    },
+    {
+      "ref": "preserved/no-apple",
+      "kind": "preserved_snapshot",
+      "commit": "c6d59c4128721e3e7b7a084b1985b56e7c0a5af9",
+      "evidence_files": 2567
+    },
+    {
+      "ref": "preserved/thinking",
+      "kind": "preserved_snapshot",
+      "commit": "2d19780a26265a48d3fbf6bacc49ec7f55c29150",
+      "evidence_files": 815
+    },
+    {
+      "ref": "preserved/thinking-review",
+      "kind": "preserved_snapshot",
+      "commit": "a1c850242cb1af0cb1ebd0e9ba9bde56f9fb4928",
+      "evidence_files": 2321
+    },
+    {
+      "ref": "preserved/tooling",
+      "kind": "preserved_snapshot",
+      "commit": "90aea6c48471729f83563d3e5a152bedaad8586b",
+      "evidence_files": 2292
+    },
+    {
+      "ref": "preserved/voice-ack",
+      "kind": "preserved_snapshot",
+      "commit": "fc8aa2af6e492987a81f1a5672a70af8eb9afa67",
+      "evidence_files": 2658
+    },
+    {
+      "ref": "preserved/voice-mini",
+      "kind": "preserved_snapshot",
+      "commit": "b168b67f0535afb3f53c8a669e96dc3a1b881e35",
+      "evidence_files": 2484
+    },
+    {
+      "ref": "preserved/voice-settings-ui",
+      "kind": "preserved_snapshot",
+      "commit": "e15fee2ca7076f6298796def5dbe3498097989b5",
+      "evidence_files": 2652
+    },
+    {
+      "ref": "preserved/scratch-review-google",
+      "kind": "preserved_snapshot",
+      "commit": "9c1d43621fb492f0f1a6d6e7a5d60e79e830b8f9",
+      "evidence_files": 0
+    },
+    {
+      "ref": "preserved/scratch-voice-audit",
+      "kind": "preserved_snapshot",
+      "commit": "9afcaccc87fe45a5a4950489b80a03d5ef536181",
+      "evidence_files": 0
+    },
+    {
+      "ref": "preserved/scratch-review-leak",
+      "kind": "preserved_snapshot",
+      "commit": "648c8a87d7f22ac9a3dd0b9aacd418a323cac504",
+      "evidence_files": 0
+    },
+    {
+      "ref": "preserved/scratch-review-noapple",
+      "kind": "preserved_snapshot",
+      "commit": "45ae74d83d3a58ae383ce91dfcfc071c76b154d2",
+      "evidence_files": 0
+    },
+    {
+      "ref": "preserved/scratch-review-audio",
+      "kind": "preserved_snapshot",
+      "commit": "04c3de8d92b453853adaa3c023ba84c8693e82b4",
+      "evidence_files": 0
+    },
+    {
+      "ref": "preserved/task-bakeoff",
+      "kind": "preserved_snapshot",
+      "commit": "6a757807c03f2bcc9d73383bdbc101da05a0c8c9",
+      "evidence_files": 0
+    },
+    {
+      "ref": "preserved/task-review-ack",
+      "kind": "preserved_snapshot",
+      "commit": "45360fef3b3af604a9aee4fd86d46eee562632cf",
+      "evidence_files": 0
+    },
+    {
+      "ref": "preserved/task-review-catchup",
+      "kind": "preserved_snapshot",
+      "commit": "23e728efe9e7dd9e8c4576110d0520e168ab0d4e",
+      "evidence_files": 0
+    },
+    {
+      "ref": "preserved/task-review-ui",
+      "kind": "preserved_snapshot",
+      "commit": "8337efcc09d485eaf8db489da1863602d3b7748d",
+      "evidence_files": 0
+    },
+    {
+      "ref": "preserved/task-roadmap",
+      "kind": "preserved_snapshot",
+      "commit": "803be7cb3fbba52aebeca622fc4b94000df3484b",
+      "evidence_files": 0
     }
   ],
   "worktrees": [
     {
       "path": "/Users/sergekadjo/Documents/Claude/Projects/next-notes",
-      "commit": "6cf744cc4a27ed4a57bd3fea2c233ea999506fc0",
+      "commit": "5558f381eb41c039a2a1c36bb0edee1396658857",
       "branch": "refs/heads/main",
-      "evidence_files": 3097,
-      "different_files": 0
-    },
-    {
-      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/agent-delivery",
-      "commit": "61fadf0a206cf460d301a58a75e5238bd9483a2a",
-      "branch": null,
-      "error": "Command '['git', '-C', '/Users/sergekadjo/Library/Caches/NextNotesBuild/agent-delivery', 'ls-files', '--cached']' returned non-zero exit status 128.",
-      "evidence_files": 0,
-      "different_files": 0
-    },
-    {
-      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/claude-worktrees/dictation-perf",
-      "commit": "c6d850c696747ac1097208b6abc01edd7c7355ae",
-      "branch": null,
-      "error": "Command '['git', '-C', '/Users/sergekadjo/Library/Caches/NextNotesBuild/claude-worktrees/dictation-perf', 'ls-files', '--cached']' returned non-zero exit status 128.",
-      "evidence_files": 0,
-      "different_files": 0
-    },
-    {
-      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/bakeoff2",
-      "commit": "690a358f6cf6db8a5dd3e19a2f0965b6d1f7fe7a",
-      "branch": "refs/heads/claude2/bakeoff2",
-      "error": "Command '['git', '-C', '/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/bakeoff2', 'ls-files', '--cached']' returned non-zero exit status 128.",
-      "evidence_files": 0,
-      "different_files": 0
-    },
-    {
-      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/catchup",
-      "commit": "2ce054cd8d39122f6ef6879e05d781503ec00e91",
-      "branch": "refs/heads/claude/catchup",
-      "error": "Command '['git', '-C', '/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/catchup', 'ls-files', '--cached']' returned non-zero exit status 128.",
-      "evidence_files": 0,
-      "different_files": 0
-    },
-    {
-      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/catchup-audio",
-      "commit": "63a7e4718c718b47feb84527d6113ba3266cdd9a",
-      "branch": "refs/heads/claude2/catchup-audio",
-      "error": "Command '['git', '-C', '/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/catchup-audio', 'ls-files', '--cached']' returned non-zero exit status 128.",
-      "evidence_files": 0,
-      "different_files": 0
-    },
-    {
-      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/catchup-final",
-      "commit": "b42c574e840f6b287754b545f6f0bbb633c6d394",
-      "branch": "refs/heads/claude2/catchup-final",
-      "error": "Command '['git', '-C', '/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/catchup-final', 'ls-files', '--cached']' returned non-zero exit status 128.",
-      "evidence_files": 0,
-      "different_files": 0
-    },
-    {
-      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/catchup-port",
-      "commit": "134f485b00fd31ded3388fc8081ec4d8e53c8600",
-      "branch": "refs/heads/claude2/catchup-port",
-      "error": "Command '['git', '-C', '/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/catchup-port', 'ls-files', '--cached']' returned non-zero exit status 128.",
-      "evidence_files": 0,
-      "different_files": 0
-    },
-    {
-      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/catchup-ui",
-      "commit": "aad357dbc5186231ad9c7c29151c7c85da66ee27",
-      "branch": "refs/heads/claude/catchup-ui",
-      "error": "Command '['git', '-C', '/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/catchup-ui', 'ls-files', '--cached']' returned non-zero exit status 128.",
-      "evidence_files": 0,
-      "different_files": 0
-    },
-    {
-      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/catchup-ui2",
-      "commit": "c0d3746236719dfa994abecd47918754f26d0c08",
-      "branch": "refs/heads/claude2/catchup-ui2",
-      "error": "Command '['git', '-C', '/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/catchup-ui2', 'ls-files', '--cached']' returned non-zero exit status 128.",
-      "evidence_files": 0,
-      "different_files": 0
-    },
-    {
-      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/clockfix",
-      "commit": "bac18b68d8ea38f1b4f276b52ba03c2728360d17",
-      "branch": "refs/heads/claude2/clockfix",
-      "error": "Command '['git', '-C', '/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/clockfix', 'ls-files', '--cached']' returned non-zero exit status 128.",
-      "evidence_files": 0,
-      "different_files": 0
-    },
-    {
-      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/google",
-      "commit": "1261420cf0ac852ecce024934345fafc3f407ab5",
-      "branch": "refs/heads/claude/google",
-      "error": "Command '['git', '-C', '/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/google', 'ls-files', '--cached']' returned non-zero exit status 128.",
-      "evidence_files": 0,
-      "different_files": 0
-    },
-    {
-      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/google-c",
-      "commit": "7ac342cece493248caa947ec716048abc1ac453d",
-      "branch": "refs/heads/claude2/google-c",
-      "error": "Command '['git', '-C', '/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/google-c', 'ls-files', '--cached']' returned non-zero exit status 128.",
-      "evidence_files": 0,
-      "different_files": 0
-    },
-    {
-      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/listen",
-      "commit": "3e2eef1a696de4e0287c97d02b67b3a93d65ae7c",
-      "branch": "refs/heads/claude/listen",
-      "error": "Command '['git', '-C', '/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/listen', 'ls-files', '--cached']' returned non-zero exit status 128.",
-      "evidence_files": 0,
-      "different_files": 0
-    },
-    {
-      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/listen2",
-      "commit": "73f4dde8b8166608e119e8eb621919899ef09f5c",
-      "branch": "refs/heads/claude2/listen2",
-      "error": "Command '['git', '-C', '/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/listen2', 'ls-files', '--cached']' returned non-zero exit status 128.",
-      "evidence_files": 0,
-      "different_files": 0
-    },
-    {
-      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/no-apple",
-      "commit": "19a212a888220e665d087fb39023fc20b0710c1d",
-      "branch": "refs/heads/claude2/no-apple",
-      "error": "Command '['git', '-C', '/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/no-apple', 'ls-files', '--cached']' returned non-zero exit status 128.",
-      "evidence_files": 0,
-      "different_files": 0
-    },
-    {
-      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/thinking",
-      "commit": "d152964433a8cb7f8073796ab4c494113750078b",
-      "branch": "refs/heads/claude/thinking",
-      "error": "Command '['git', '-C', '/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/thinking', 'ls-files', '--cached']' returned non-zero exit status 128.",
-      "evidence_files": 0,
-      "different_files": 0
-    },
-    {
-      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/thinking-review",
-      "commit": "6d2c66aa7f7ebd0a0fb655c8a0819276e4db976e",
-      "branch": "refs/heads/claude2/thinking-review",
-      "error": "Command '['git', '-C', '/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/thinking-review', 'ls-files', '--cached']' returned non-zero exit status 128.",
-      "evidence_files": 0,
-      "different_files": 0
-    },
-    {
-      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/tooling",
-      "commit": "dae49e1d1f3e81892aa469a080f0dce207a80cb0",
-      "branch": "refs/heads/claude2/tooling",
-      "error": "Command '['git', '-C', '/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/tooling', 'ls-files', '--cached']' returned non-zero exit status 128.",
-      "evidence_files": 0,
-      "different_files": 0
-    },
-    {
-      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/voice-ack",
-      "commit": "52def96e2f510a0b69046720f38fb4f469fd5826",
-      "branch": "refs/heads/claude2/voice-ack2",
-      "error": "Command '['git', '-C', '/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/voice-ack', 'ls-files', '--cached']' returned non-zero exit status 128.",
-      "evidence_files": 0,
-      "different_files": 0
-    },
-    {
-      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/voice-mini",
-      "commit": "52ef3734100df232d2711d59792f8ba88ce5e951",
-      "branch": "refs/heads/claude2/voice-mini",
-      "error": "Command '['git', '-C', '/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/voice-mini', 'ls-files', '--cached']' returned non-zero exit status 128.",
-      "evidence_files": 0,
-      "different_files": 0
-    },
-    {
-      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/voice-settings-ui",
-      "commit": "458aae5a0f8d5929470e1f12955617cdb90cb465",
-      "branch": "refs/heads/claude2/voice-settings-ui",
-      "error": "Command '['git', '-C', '/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/voice-settings-ui', 'ls-files', '--cached']' returned non-zero exit status 128.",
-      "evidence_files": 0,
+      "evidence_files": 3219,
       "different_files": 0
     }
   ]

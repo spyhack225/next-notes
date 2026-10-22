@@ -1,0 +1,8 @@
+{
+  "original_source": "5558f381:Scripts/benchmarks.py",
+  "original_failed": 1,
+  "original_errors": 0,
+  "fixed_suite_passed": 11,
+  "test": "test_retired_snapshot_evidence_remains_discoverable",
+  "isolation": "Only original Git helper default cwd is bound to test temporary repo; actual original audit and actual Git snapshots/merge used."
+}
