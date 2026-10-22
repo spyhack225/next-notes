@@ -165,6 +165,8 @@ Discovery inventory, not a claim that every file is a benchmark or that its chec
 | [Tests/Reports/release-2026-10-22/catalog-tests.log](../../Tests/Reports/release-2026-10-22/catalog-tests.log) |
 | [Tests/Reports/release-2026-10-22/dmg-package.log](../../Tests/Reports/release-2026-10-22/dmg-package.log) |
 | [Tests/Reports/release-2026-10-22/final-package.json](../../Tests/Reports/release-2026-10-22/final-package.json) |
+| [Tests/Reports/release-2026-10-22/github-release.json](../../Tests/Reports/release-2026-10-22/github-release.json) |
+| [Tests/Reports/release-2026-10-22/github-release.log](../../Tests/Reports/release-2026-10-22/github-release.log) |
 | [Tests/Reports/release-2026-10-22/harness-history-restoration.json](../../Tests/Reports/release-2026-10-22/harness-history-restoration.json) |
 | [Tests/Reports/release-2026-10-22/harness-isolation-repair-compile.log](../../Tests/Reports/release-2026-10-22/harness-isolation-repair-compile.log) |
 | [Tests/Reports/release-2026-10-22/harness-isolation-repair-progress.log](../../Tests/Reports/release-2026-10-22/harness-isolation-repair-progress.log) |

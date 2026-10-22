@@ -9142,6 +9142,14 @@
       "category": "other"
     },
     {
+      "path": "Tests/Reports/release-2026-10-22/github-release.json",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/github-release.log",
+      "category": "other"
+    },
+    {
       "path": "Tests/Reports/release-2026-10-22/harness-history-restoration.json",
       "category": "other"
     },
@@ -9264,6 +9272,10 @@
     {
       "path": "Tests/Reports/release-2026-10-22/publication-scan.log",
       "category": "other"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/release-disposable-cleanup.json",
+      "category": "dictation"
     },
     {
       "path": "Tests/Reports/release-2026-10-22/release-notes.md",

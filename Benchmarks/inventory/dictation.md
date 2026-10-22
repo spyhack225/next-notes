@@ -535,6 +535,7 @@ Discovery inventory, not a claim that every file is a benchmark or that its chec
 | [Tests/Reports/release-2026-10-22/candidate-original-usage-failure/dictation-segments.log](../../Tests/Reports/release-2026-10-22/candidate-original-usage-failure/dictation-segments.log) |
 | [Tests/Reports/release-2026-10-22/candidate/dictation-segments.log](../../Tests/Reports/release-2026-10-22/candidate/dictation-segments.log) |
 | [Tests/Reports/release-2026-10-22/obsolete-cache-cleanup.json](../../Tests/Reports/release-2026-10-22/obsolete-cache-cleanup.json) |
+| [Tests/Reports/release-2026-10-22/release-disposable-cleanup.json](../../Tests/Reports/release-2026-10-22/release-disposable-cleanup.json) |
 | [Tests/Reports/release-2026-10-22/signature-refused/dictation-segments.log](../../Tests/Reports/release-2026-10-22/signature-refused/dictation-segments.log) |
 | [Tests/Reports/toolloop-live/2026-09-30-p1-31c/final-production-after-cache-cleanup.txt](../../Tests/Reports/toolloop-live/2026-09-30-p1-31c/final-production-after-cache-cleanup.txt) |
 | [Tests/Reports/toolloop-live/2026-09-30-p1-31c/integrated-cleanup-router.txt](../../Tests/Reports/toolloop-live/2026-09-30-p1-31c/integrated-cleanup-router.txt) |

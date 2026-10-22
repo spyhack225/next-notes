@@ -1,6 +1,6 @@
 # Evidence discovery
 
-3635 current evidence files discovered under Tests/Reports, bench, docs and roadmaps.
+3638 current evidence files discovered under Tests/Reports, bench, docs and roadmaps.
 
 Imported third-party reference trees and website assets are excluded. Files are catalogued without moving them or extracting private payloads. Legacy files remain unclassified until a reviewed run manifest records their scope and verdict.
 
