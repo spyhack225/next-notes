@@ -187,6 +187,9 @@ app: build
 	@$(MAKE) --no-print-directory google-oauth-plist STAGE_RUN="$(STAGE_RUN)" GOOGLE_OAUTH_PLIST="$(CONTENTS)/Info.plist"
 	@# Belt and braces: the staging dir isn't synced, but the copied binary can still carry
 	@# xattrs inherited from the synced .build directory.
+	# SwiftPM may copy dependency resources read-only. Normalize only our staged
+	# copy so metadata removal and signing never need to mutate shared caches.
+	@chmod -R u+w "$(BUNDLE)"
 	@xattr -cr "$(BUNDLE)"
 	@install_name_tool -add_rpath "@executable_path/../Frameworks" "$(CONTENTS)/MacOS/$(EXEC)"
 	@if [ "$(STAMP_VERSION)" = "1" ]; then \
