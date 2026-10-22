@@ -2586,7 +2586,7 @@ final class DictationController {
     private var currentEngineChoice: SpeechEngineChoice {
         if engine is AppleSpeechEngine { return .apple }
         if let engine = engine as? ParakeetEngine { return engine.modelChoice }
-        return .parakeet
+        return engine == nil ? Settings.shared.resolvedSpeechEngine : .parakeet
     }
 
     private static func millisecondsBetween(_ from: Date, _ to: Date) -> Int {
