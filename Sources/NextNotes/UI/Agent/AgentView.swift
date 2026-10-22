@@ -445,6 +445,7 @@ struct AgentView: View {
         ToolReviewCard(
             review: gate.pendingReview ?? ToolCallReviewStore.shared.review(for: request),
             isCompact: true,
+            request: request,
             approve: {
                 PermissionGate.shared.respond(
                     id: request.id,

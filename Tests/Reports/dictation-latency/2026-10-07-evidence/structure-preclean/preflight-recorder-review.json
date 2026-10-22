@@ -1,9 +1,0 @@
-{
-  "utc": "2026-10-08T09:03:51.298245+00:00",
-  "beforeSHA256": "198720d69d88d518ffbede57e480e027bdec7cb0e1906422e71923217ff4a704",
-  "afterSHA256": "4639a2153bf23b85470a3563fd1ac299b8999cf816a1b6300642567fe5149e5e",
-  "scope": "cache-only diagnostic producer; persist gate and exact machine observation before assertion and before Popen",
-  "guardsChanged": false,
-  "nativeRun": false,
-  "previousFailedObservationUnavailable": true
-}

@@ -561,7 +561,8 @@ Sources/NextNotes/
 │   │   └── Durable/                SQLite authority, event journal, strict migration and held restart tests;
 │   │                               JSON export retained; worker recovery is upcoming.
 │   │                               VerifiedMailEvidenceSelfTest checks mail metadata -> approval/receipt;
-│   │                               public Based on and normal nested recovery remain upcoming.
+│   │                               BasedOnEvidenceSelfTest checks cached source rows into actual card callers;
+│   │                               visible native rendering, unloaded restart and nested recovery remain open.
 │   ├── Goals/                      AgentGoal + GoalStore — an outcome with a state, not a
 │   │                               job on a clock; its nudges are ordinary reminders
 │   ├── Schedules/                  reminders, routines and triggers; the morning digest

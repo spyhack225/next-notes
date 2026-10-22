@@ -78,6 +78,10 @@ struct AgentWorkingCard: View {
         return gate.pendingReview ?? reviewStore.review(for: pending)
     }
 
+    static func basedOnResultRows(taskID: String, manager: AgentTaskManager) -> [AgentBasedOnRow] {
+        AgentActivityProjector.basedOnRows(manager.basedOnReferences(taskID: taskID))
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: DS.Space.s) {
             pill
@@ -88,6 +92,8 @@ struct AgentWorkingCard: View {
                     ToolReviewCard(
                         review: inlineReview,
                         isCompact: true,
+                        request: gate.pending?.taskID == task.id ? gate.pending : nil,
+                        expectedTaskID: task.id,
                         approve: {
                             gate.respond(
                                 id: inlineReview.id,
@@ -301,6 +307,9 @@ struct AgentWorkingCard: View {
                     }
                     .padding(.top, DS.Space.xxs)
                 }
+            }
+            if let taskManager {
+                AgentBasedOnSection(rows: Self.basedOnResultRows(taskID: task.id, manager: taskManager), retained: true)
             }
             if !task.artifactRecords.isEmpty {
                 VStack(alignment: .leading, spacing: DS.Space.xxs) {
