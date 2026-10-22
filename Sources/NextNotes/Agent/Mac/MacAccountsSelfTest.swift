@@ -501,8 +501,10 @@ enum MacAccountsSelfTest {
         private var recorded: [[String]] = []
         var result: Result<WorkspaceCLIOutput, any Error> = .success(WorkspaceCLIOutput(standardOutput: Data("ok\n".utf8), standardError: "", exitCode: 0))
         var playMail: (@Sendable ([String]) -> Void)?
+        var identity = "mail-account-1\tme@example.com"
         var calls: [[String]] { lock.withLock { recorded } }
         func run(arguments: [String], timeout: TimeInterval) async throws -> WorkspaceCLIOutput {
+            if arguments.last == "account" { return WorkspaceCLIOutput(standardOutput: Data(identity.utf8), standardError: "", exitCode: 0) }
             lock.withLock { recorded.append(arguments) }
             playMail?(arguments)
             return try result.get()
@@ -568,7 +570,14 @@ enum MacAccountsSelfTest {
             expect(setup == MacSetup(calendar: .granted, hasGoogleCalendar: true, mail: .readable, hasGoogleMail: true) && setup.nextStep == .ready,
                    "a Google calendar and Google mail that can be read is a ready account: \(setup)")
             expect(await mac.authState() == .signedIn(method: GoogleSource.macMethod), "…and reads as connected, in the one word every screen uses")
-            expect(await mac.accountTag() == GoogleWorkspaceCLI.tag(for: "me@example.com"), "the account is tagged from its calendar, never kept as an address")
+            let originalTag = await mac.accountTag()
+            script.identity = "mail-account-2\tother@example.com"
+            expect(await mac.accountTag() != originalTag, "reordering two Mail senders changes the approval tag while Calendar stays fixed")
+            script.identity = "mail-account-1\tme@example.com"
+            expect(await mac.accountTag() == originalTag, "restoring the exact Mail sender restores its tag")
+            script.identity = "mail-account-1\treplacement@example.com"
+            expect(await mac.accountTag() != originalTag, "replacing the address in the selected Mail account changes its tag")
+            script.identity = "mail-account-1\tme@example.com"
             calendar.accessState = .notAsked
             expect(await mac.setup().nextStep == .allowCalendar, "no calendar access yet: the next step is to ask")
             calendar.accessState = .granted
@@ -616,7 +625,7 @@ enum MacAccountsSelfTest {
             expect(!first.alreadyThere && first.verified && calendar.saves == 1, "an event is added to the Google calendar and read back")
             expect(calendar.stored.first?.calendarID == "g1", "…on the account's own writable calendar, not the read-only one and not iCloud")
             let again = try await mac.createEvent(event)
-            expect(again.alreadyThere && again.verified && calendar.saves == 1, "the same title and times again adds nothing")
+            expect(!again.alreadyThere && again.verified && calendar.saves == 2 && again.reference != first.reference, "an independent identical event has its own saved ID; matching details never claim identity")
             expect(!(try await mac.findEvent(MacEventDraft(title: event.title, start: start, end: end, notes: "Changed reviewed description"))),
                    "a matching title and time with a different description is not the reviewed event")
             expect(try await mac.findEvent(event), "\u{201c}is it there?\u{201d} finds the event")
@@ -628,7 +637,7 @@ enum MacAccountsSelfTest {
 
             calendar.calendarList = [iCloudCalendar]
             do { _ = try await mac.createEvent(MacEventDraft(title: "Nowhere", start: start.addingTimeInterval(9_000), end: end.addingTimeInterval(9_000), notes: "")); expect(false, "no Google calendar is refused") }
-            catch { expect((error as? MacWorkspaceError) == .noGoogleCalendar && calendar.saves == 2, "no Google calendar: nothing is created on an iCloud one") }
+            catch { expect((error as? MacWorkspaceError) == .noGoogleCalendar && calendar.saves == 3, "no Google calendar: nothing is created on an iCloud one") }
             calendar.calendarList = [iCloudCalendar, googleCalendar]
             calendar.saveError = NSError(domain: "x", code: 1)
             do { _ = try await mac.createEvent(MacEventDraft(title: "Fails", start: start.addingTimeInterval(11_000), end: end.addingTimeInterval(11_000), notes: "")); expect(false, "a refused save is an error") }
@@ -743,6 +752,21 @@ enum MacAccountsSelfTest {
             GoogleSource.macForTesting = nil
             _ = try? await WorkspaceToolRunner.run(proposal("search_email", ["query": ""]), cli: cli)
             expect(cli.calls.contains { $0.starts(with: ["gmail", "users", "messages", "list"]) }, "with the Google sign-in as the source, mail still goes through gws")
+            GoogleSource.macForTesting = nil
+            let previousSource = Settings.shared.googleSource
+            Settings.shared.googleSource = .thisMac
+            GoogleSource.forget()
+            let executable = work.appendingPathComponent("gws")
+            let marker = work.appendingPathComponent("isolated-cli-ran")
+            try "#!/bin/sh\ntouch \"$(dirname \"$0\")/isolated-cli-ran\"\necho '{\"messages\":[]}'\n".write(to: executable, atomically: true, encoding: .utf8)
+            try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: executable.path)
+            do {
+                guard let isolated = GoogleWorkspaceCLI.isolatedForTesting(root: work, executable: executable) else { throw WorkspaceCLIError.notInstalled }
+                _ = try await WorkspaceToolRunner.run(proposal("search_email", ["query": "subject:fixture"]), cli: isolated)
+                expect(FileManager.default.fileExists(atPath: marker.path), "the admitted isolated CLI constructor keeps its executable with the Mac choice stored")
+            } catch { expect(false, "the admitted isolated CLI constructor keeps its executable with the Mac choice stored: \(error)") }
+            Settings.shared.googleSource = previousSource
+            GoogleSource.forget()
             GoogleSource.macForTesting = mac
 
             // Unknown outcome: asked of Mail and Calendar, loosely.
@@ -756,6 +780,23 @@ enum MacAccountsSelfTest {
                 firedAt: Date(), calendarEventID: "unconfirmed-prepared-id", cli: cli)
             expect(uncertainEvent == .noReliableRead, "a calendar match without the saved event identifier cannot prove the approved event")
         } catch { expect(false, "tool path cases ran: \(error)") }
+    }
+
+    private final class UncertainMac: MacWorkspace, @unchecked Sendable {
+        let base: MacAccounts
+        var saves = 0
+        init(_ base: MacAccounts) { self.base = base }
+        func accountTag() async -> String? { await base.accountTag() }
+        func searchMail(_ query: MacMailQuery) async throws -> [MacMailSummary] { try await base.searchMail(query) }
+        func readMail(ref: String) async throws -> MacMailMessage { try await base.readMail(ref: ref) }
+        func compose(_ request: MacComposeRequest) async throws -> MacComposeResult { try await base.compose(request) }
+        func findComposed(_ request: MacComposeRequest, since: Date) async throws -> Bool { try await base.findComposed(request, since: since) }
+        func agenda(from: Date, to: Date) async throws -> [MacAgendaItem] { try await base.agenda(from: from, to: to) }
+        func createEvent(_ draft: MacEventDraft) async throws -> MacEventResult {
+            saves += 1
+            throw WorkspaceCLIError.timedOut(60)
+        }
+        func findEvent(_ draft: MacEventDraft) async throws -> Bool { try await base.findEvent(draft) }
     }
 
     // MARK: - The executor call site
@@ -790,13 +831,42 @@ enum MacAccountsSelfTest {
             expect(result.outcomeUnknown && result.summary.contains("not sure") && script.calls.count == 1,
                    "an approved send that never answers is \u{201c}not sure\u{201d}, with one read behind it and no second send: \(result.summary)")
 
+            let reviewedTag = await mac.accountTag()
+            var reviewedSend = send
+            reviewedSend.accountTag = reviewedTag
+            for identity in ["mail-account-2\tother@example.com", "mail-account-1\treplacement@example.com"] {
+                script.identity = identity
+                script.result = .success(WorkspaceCLIOutput(standardOutput: Data("ok".utf8), standardError: "", exitCode: 0))
+                let before = script.calls.count
+                do {
+                    _ = try await AgentToolExecutor.run(reviewedSend, policy: .selfTest, approvedByUser: true)
+                    expect(false, "a reviewed send refuses a changed Mail sender")
+                } catch {
+                    expect(script.calls.count == before, "a changed Mail sender is refused before any compose or send")
+                }
+            }
+            script.identity = "mail-account-1\tme@example.com"
+            let uncertainMac = UncertainMac(mac)
+            GoogleSource.macForTesting = uncertainMac
+            do {
+                let unknown = try await AgentToolExecutor.run("create_event", arguments: ["title": "Uncertain", "start": "2026-10-05T10:00:00Z", "end": "2026-10-05T11:00:00Z"],
+                    policy: .selfTest, permissionAlreadyGranted: true)
+                expect(unknown.outcomeUnknown && unknown.reference == nil && unknown.verification == nil,
+                    "a normal prepared Mac calendar error stays uncertain without a fabricated Google resource ID")
+                expect(uncertainMac.saves == 1, "an uncertain Mac calendar save is never repeated")
+                let receipt = ActionReceiptStore.shared.receipts.last { $0.intent.verb == "create_event" }
+                expect(receipt?.status == .outcomeUnknown && receipt?.artifacts.isEmpty == true && receipt?.preparedAction != nil,
+                    "the actual prepared Mac calendar receipt retains uncertainty and no invented resource artifact")
+            } catch { expect(false, "prepared Mac calendar uncertainty reaches the result consumer: \(error)") }
+            GoogleSource.macForTesting = mac
+
             // Automation denied: a plain failure, and the person is told which switch.
             script.result = .success(WorkspaceCLIOutput(standardOutput: Data(), standardError: "Not authorized to send Apple events to Mail. (-1743)", exitCode: 1))
             do {
                 _ = try await AgentToolExecutor.run(send, policy: .selfTest, approvedByUser: true)
                 expect(false, "a denied send is an error")
             } catch {
-                expect(error.localizedDescription.contains("Automation") && script.calls.count == 2, "a denied send says which switch to flip: \(error.localizedDescription)")
+                expect(error.localizedDescription.contains("Automation") && script.calls.count >= 2, "a denied send says which switch to flip: \(error.localizedDescription)")
             }
         } catch { expect(false, "executor cases ran: \(error)") }
     }

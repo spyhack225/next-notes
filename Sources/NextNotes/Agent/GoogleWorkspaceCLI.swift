@@ -202,7 +202,7 @@ actor GoogleWorkspaceCLI {
         let temporary = FileManager.default.temporaryDirectory.resolvingSymlinksInPath().standardizedFileURL
         let admitted = executable.resolvingSymlinksInPath().standardizedFileURL
         var directory: ObjCBool = false
-        guard SelfTest.isRunning, ["--selftest-task-worker-attempt", "--selftest-gws"].contains(SelfTest.requested ?? ""),
+        guard SelfTest.isRunning, ["--selftest-task-worker-attempt", "--selftest-gws", "--selftest-mac-accounts"].contains(SelfTest.requested ?? ""),
               safe.path.hasPrefix(temporary.path + "/"), !safe.pathComponents.contains("Application Support"),
               FileManager.default.fileExists(atPath: safe.path, isDirectory: &directory), directory.boolValue,
               admitted.path == executable.standardizedFileURL.path,
