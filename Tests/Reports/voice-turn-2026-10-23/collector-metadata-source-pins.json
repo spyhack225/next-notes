@@ -1,0 +1,9 @@
+{
+  "timestamp": 1792737177.380416,
+  "base_native_cohort_source_pins": "final-source-pins.json",
+  "changes": "Only fresh-capture phase/limitation literals and Python prelaunch bundle validation; production capture/ASR/model/endpoint implementation unchanged.",
+  "source_sha256": {
+    "Sources/NextNotes/Activation/SmartTurn/VoiceTurnBenchmark.swift": "e58c00a8da3953e1b6ff518bc63a89d5a7f9030615251f14d9b18ced447249ba",
+    "Tools/voice_turn_benchmark.py": "8e6d05baf805cadbbc972e0767f86a204e1443c5d05be503af70bfd25d39d5c6"
+  }
+}

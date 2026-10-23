@@ -1,0 +1,6 @@
+{
+  "valid_signed_bundle": "pass",
+  "unbundled_candidate": "rejected-before-launch",
+  "native_child_spawned_for_negative_control": false,
+  "scope": "Actual retained candidate Mach-O inspected with otool; copied malformed placement never executed."
+}

@@ -120,6 +120,14 @@ def models(args):
                       'verification': 'native loader additionally verifies every compiled file against checked-in SHA256 pins'}))
 
 
+def validate_probe_bundle(binary):
+    """Reject the observed dyld packaging failure before launching a child."""
+    framework = binary.parent.parent / 'Frameworks/llama.framework/Versions/Current/llama'
+    commands = subprocess.check_output(['/usr/bin/otool', '-l', str(binary)], text=True)
+    if not framework.is_file() or '@executable_path/../Frameworks' not in commands:
+        raise ValueError('Missing bundled llama framework or Frameworks rpath; assemble and sign the dedicated probe bundle before collection')
+
+
 def collect(args):
     from tts_asr_workload import compiler_cache_entries, remove_owned_compiler_cache
     from tts_compare import stop_process_group
@@ -127,6 +135,7 @@ def collect(args):
     binary = Path(args.binary).resolve()
     if not binary.name.startswith('VoiceTurn'):
         raise ValueError('use a dedicated VoiceTurn executable basename to isolate its compiler cache')
+    validate_probe_bundle(binary)
     if not 1 <= args.repetitions <= 100:
         raise ValueError('repetitions must be1...100')
     output = Path(args.output).resolve()

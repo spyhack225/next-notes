@@ -82,3 +82,10 @@ scorer deliberately exits1 and keeps qualification red. Preservation verifies
 25 store/settings files and143 meeting files unchanged across native runs.
 No installation or normal-default promotion. See the linked report for exact
 source/binary pins, latency/word boundaries, cleanup and remaining physical gates.
+
+Collector-only follow-up: a full optimized rebuild passes763.43s, policy controls
+pass again, and two real fresh captures both carry correct `cold_capture` labels.
+The original21-trial nominal labels stay preserved/disclosed. Framework/rpath
+preflight rejects the observed malformed probe before launch; the signed fixed
+probe completes native runs. The final repeated25-store/143-meeting preservation
+check passes. These functional controls do not change speech-quality acceptance.

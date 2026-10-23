@@ -1,0 +1,13 @@
+{
+  "exit": 0,
+  "joined": true,
+  "seconds": 763.43,
+  "binary_sha256": "c81ff1714fe41e95b3f3b950c4e6e4dc6040272cd877eebf248bd578f59ac9c0",
+  "previous_measured_binary_sha256": "c1c5f43d26714b98416912e998614d600b932ce5158e938d05c7f55e21248d04",
+  "source_pins": "collector-metadata-source-pins.json",
+  "source_base": "fa5be2e80bbb90bc17ae8aaafd244eff3bb79380",
+  "policy_exit": 0,
+  "packaging_preflight": "pass",
+  "installed": false,
+  "timestamp": 1792737669.155925
+}

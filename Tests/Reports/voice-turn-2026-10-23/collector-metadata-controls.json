@@ -1,0 +1,70 @@
+{
+  "clock" : "monotonic",
+  "evidence" : "native_replay",
+  "limitations" : [
+    "Synthesized fixture boundaries; no physical microphone, audible response, tools or LLM.",
+    "Real Apple\/Parakeet\/Silero\/Smart Turn production capture and endpoint consumer.",
+    "Every trial opens a fresh capture session; residency is not independently measured. Warm\/cold-process\/pressure\/routes are separate gates.",
+    "Commit timestamps come from the existing producer probe at actual commit selection; no held checkpoint.",
+    "A missing first_audible stage stays missing in the full roadmap scorer."
+  ],
+  "macOS" : "Version 27.2 (Build 26B5091g)",
+  "run_id" : "550C8B70-669F-4B67-83F5-ABBB4A01B531",
+  "schema" : "nextnotes.turn-trace.v1",
+  "trials" : [
+    {
+      "asr" : "Apple+Parakeet-EOU-160ms",
+      "audio_sha256" : "32515a9a660f9f9cc8604202bf306c3395d9cf108f754d10ac8ca2bb5696b62a",
+      "case_id" : "complete-question",
+      "condition" : "paced-file-production-capture",
+      "endpoint_source" : "smartTurn",
+      "events" : [
+        {
+          "at_ms" : 2572.417709,
+          "name" : "commit"
+        }
+      ],
+      "ground_truth" : {
+        "protected_intervals_ms" : [
+
+        ],
+        "speech_end_ms" : 2229.625
+      },
+      "language" : "en",
+      "pacing_p95_error_ms" : 2.400666,
+      "phase" : "cold_capture",
+      "recognized" : "what time is it in totio riding now",
+      "status" : "measured",
+      "tail_retained" : false,
+      "trial_id" : "complete-question-0",
+      "tts" : "not-run-endpoint-only"
+    },
+    {
+      "asr" : "Apple+Parakeet-EOU-160ms",
+      "audio_sha256" : "32515a9a660f9f9cc8604202bf306c3395d9cf108f754d10ac8ca2bb5696b62a",
+      "case_id" : "complete-question",
+      "condition" : "paced-file-production-capture",
+      "endpoint_source" : "smartTurn",
+      "events" : [
+        {
+          "at_ms" : 2530.142834,
+          "name" : "commit"
+        }
+      ],
+      "ground_truth" : {
+        "protected_intervals_ms" : [
+
+        ],
+        "speech_end_ms" : 2229.625
+      },
+      "language" : "en",
+      "pacing_p95_error_ms" : 2.502083,
+      "phase" : "cold_capture",
+      "recognized" : "what time is it in totio riding now",
+      "status" : "measured",
+      "tail_retained" : false,
+      "trial_id" : "complete-question-1",
+      "tts" : "not-run-endpoint-only"
+    }
+  ]
+}

@@ -54,7 +54,9 @@ application replays are cache-only for owner ASR assets.
 The first isolated test-bundle launch omitted the standard framework rpath and
 failed in dyld. Adding `@executable_path/../Frameworks` and re-signing the dedicated
 bundle repaired packaging. The original failure is retained; no source change
-or installed-bundle modification was needed.
+or installed-bundle modification was needed. The collector now inspects the
+bundled framework and Mach-O rpath before spawning a child; an actual malformed
+placement is rejected without execution. [Packaging controls](bundle-preflight-controls.json).
 
 ## Latency and mid-sentence pauses
 
@@ -90,10 +92,13 @@ The full scorer exits 1, as expected: premature/duplicate turns, nine unverified
 final tails, missing audible stages, insufficient samples and absent required
 cases/phases remain red. Raw `warm` labels are repetition ordinals; residency was
 not independently sampled, so this run does not qualify warm/cold behavior.
+After retaining this original trace, the collector metadata was corrected to label
+every fresh session `cold_capture`; no capture, model or endpoint policy changed.
 
 ## Evidence and reproduction
 
-- [Final source pins](final-source-pins.json), [final build receipt](final-app-build.json),
+- [Main native source pins](final-source-pins.json), [verified source commit](source-commit-verification.json),
+  [main build receipt](final-app-build.json),
   [compressed build log](app-build-final.log.gz), [policy log](final-policy.log).
 - [Native endpoint trace](native-endpoints.json), [summary](native-endpoints-summary.json),
   [full score](native-endpoints-score.json), [joined-child receipt](native-endpoints.json.receipt.json).
@@ -137,3 +142,25 @@ complete speech-end→audible response and held native replay/lock-wait regressi
 The 32-recipe suite includes the new 600 ms regression without dropping the
 original 700 ms recipe. Seven materialized synthetic cases do not complete it.
 Parent roadmap acceptance and default rollout remain held.
+
+
+## Collector reporting and packaging follow-up
+
+The metadata-only follow-up also passed a full optimized app build (763.43 s) and
+`TURN_POLICY_OK`. Two actual fresh capture runs both now report `cold_capture`;
+the child exits 0 and joins. These are functional regression controls, not an
+additional latency/quality acceptance cohort. The original 21-trial trace, labels,
+source pins and failing verdict remain unchanged. The known malformed bundle is
+rejected before execution; the current signed candidate passes preflight and
+launches without the prior missing-framework error.
+
+[Source delta pins](collector-metadata-source-pins.json),
+[build receipt](collector-metadata-build.json),
+[compressed log](collector-metadata-build.log.gz),
+[functional verdict](collector-metadata-verdict.json),
+[raw controls](collector-metadata-controls.json),
+[child receipt](collector-metadata-controls.json.receipt.json),
+[packaging negative control](bundle-preflight-controls.json).
+The repeated [owner preservation check](preservation-metadata-verdict.json) also
+passes: the same 25 stores/settings and 143 meeting files are unchanged. The
+joined control fixture root was retired; the useful corrected candidate remains.

@@ -16,5 +16,11 @@
       "bytes": 32411198,
       "sha256": "ab8dc64b88713f90b571c15b714bd1330e6c883cad8763dacf65c9376dc539be"
     }
-  ]
+  ],
+  "metadata_followup": {
+    "child_joined": true,
+    "retired_fixture_root": "/Users/sergekadjo/Library/Caches/NextNotesBuild/voice-turn-20261023/metadata-controls",
+    "logical_bytes": 17784624,
+    "retained_candidate": "VoiceTurnAppProbe.app with corrected metadata, signed/rpath-verified; main native cohort source/binary pins retained separately."
+  }
 }

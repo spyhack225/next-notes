@@ -1,0 +1,98 @@
+VOICE_INPUT_FORMAT=canonical Float32/16000/mono; Apple 3/16000.0/1
+VOICE_EOU_PREPARE=4.113412976264954s
+VOICE_EOU_STARTUP_BUFFERED=0 chunks / 0 frames
+VOICE_FILE_FEED_CADENCE=10ms
+VOICE_EOU_FIRST_PROCESS=2.8014183044433594e-05s lag=1.800060272216797e-05s
+VOICE_MODEL_PARTIAL=voice+0.457s text=what apple=false
+VOICE_MODEL_PARTIAL_FILTERED=what
+VOICE_MODEL_PARTIAL=voice+0.538s text=what time apple=false
+VOICE_MODEL_PARTIAL_FILTERED=what time
+VOICE_MODEL_PARTIAL=voice+0.708s text=what time is apple=false
+VOICE_MODEL_PARTIAL_FILTERED=what time is
+VOICE_MODEL_PARTIAL=voice+0.777s text=what time is it apple=false
+VOICE_MODEL_PARTIAL_FILTERED=what time is it
+VOICE_APPLE_FIRST_RESULT=voice+0.857s text=What
+VOICE_MODEL_PARTIAL=voice+0.936s text=what time is it in apple=true
+VOICE_MODEL_PARTIAL_FILTERED=what time is it in
+VOICE_MODEL_PARTIAL=voice+1.107s text=what time is it in tot apple=true
+VOICE_MODEL_PARTIAL_FILTERED=what time is it in tot
+VOICE_MODEL_PARTIAL=voice+1.426s text=what time is it in totio apple=true
+VOICE_MODEL_PARTIAL_FILTERED=what time is it in totio
+VOICE_MODEL_PARTIAL=voice+1.823s text=what time is it in totio rid apple=true
+VOICE_MODEL_PARTIAL_FILTERED=what time is it in totio rid
+VOICE_MODEL_PARTIAL=voice+1.902s text=what time is it in totio riding now apple=true
+VOICE_MODEL_PARTIAL_FILTERED=what time is it in totio riding now
+VOICE_FILE_MAX_PACING_LAG=0.02484675 seconds
+VOICE_INPUT_FORMAT=canonical Float32/16000/mono; Apple 3/16000.0/1
+VOICE_EOU_PREPARE=0.00012099742889404297s
+VOICE_EOU_STARTUP_BUFFERED=0 chunks / 0 frames
+VOICE_FILE_FEED_CADENCE=10ms
+VOICE_EOU_FIRST_PROCESS=1.4066696166992188e-05s lag=1.704692840576172e-05s
+VOICE_MODEL_PARTIAL=voice+0.461s text=what apple=false
+VOICE_MODEL_PARTIAL_FILTERED=what
+VOICE_MODEL_PARTIAL=voice+0.546s text=what time apple=false
+VOICE_MODEL_PARTIAL_FILTERED=what time
+VOICE_MODEL_PARTIAL=voice+0.694s text=what time is apple=false
+VOICE_MODEL_PARTIAL_FILTERED=what time is
+VOICE_MODEL_PARTIAL=voice+0.774s text=what time is it apple=false
+VOICE_MODEL_PARTIAL_FILTERED=what time is it
+VOICE_APPLE_FIRST_RESULT=voice+0.883s text=What
+VOICE_MODEL_PARTIAL=voice+0.933s text=what time is it in apple=true
+VOICE_MODEL_PARTIAL_FILTERED=what time is it in
+VOICE_MODEL_PARTIAL=voice+1.094s text=what time is it in tot apple=true
+VOICE_MODEL_PARTIAL_FILTERED=what time is it in tot
+VOICE_MODEL_PARTIAL=voice+1.424s text=what time is it in totio apple=true
+VOICE_MODEL_PARTIAL_FILTERED=what time is it in totio
+VOICE_MODEL_PARTIAL=voice+1.814s text=what time is it in totio rid apple=true
+VOICE_MODEL_PARTIAL_FILTERED=what time is it in totio rid
+VOICE_MODEL_PARTIAL=voice+1.891s text=what time is it in totio riding now apple=true
+VOICE_MODEL_PARTIAL_FILTERED=what time is it in totio riding now
+VOICE_FILE_MAX_PACING_LAG=0.002672291 seconds
+VOICE_SESSION_DIVERGENCE: field=turnPending event=timer reducer=Optional(turn#1) legacy=nil
+VOICE_SESSION_DIVERGENCE: field=turnPending event=timer reducer=Optional(turn#1) legacy=nil
+VOICE_SESSION_DIVERGENCE: field=turnPending event=timer reducer=Optional(turn#1) legacy=nil
+VOICE_SESSION_DIVERGENCE: field=turnPending event=timer reducer=Optional(turn#1) legacy=nil
+VOICE_SESSION_DIVERGENCE: field=turnPending event=timer reducer=Optional(turn#1) legacy=nil
+VOICE_SESSION_DIVERGENCE: field=turnPending event=timer reducer=Optional(turn#1) legacy=nil
+VOICE_SESSION_DIVERGENCE: field=turnPending event=timer reducer=Optional(turn#1) legacy=nil
+VOICE_SESSION_DIVERGENCE: field=turnPending event=timer reducer=Optional(turn#1) legacy=nil
+VOICE_SESSION_DIVERGENCE: field=turnPending event=timer reducer=Optional(turn#1) legacy=nil
+VOICE_SESSION_DIVERGENCE: field=turnPending event=timer reducer=Optional(turn#1) legacy=nil
+VOICE_SESSION_DIVERGENCE: field=turnPending event=timer reducer=Optional(turn#1) legacy=nil
+VOICE_SESSION_DIVERGENCE: field=turnPending event=timer reducer=Optional(turn#1) legacy=nil
+VOICE_SESSION_DIVERGENCE: field=turnPending event=timer reducer=Optional(turn#1) legacy=nil
+VOICE_SESSION_DIVERGENCE: field=turnPending event=timer reducer=Optional(turn#1) legacy=nil
+VOICE_SESSION_DIVERGENCE: field=turnPending event=timer reducer=Optional(turn#1) legacy=nil
+VOICE_SESSION_DIVERGENCE: field=turnPending event=timer reducer=Optional(turn#1) legacy=nil
+VOICE_SESSION_DIVERGENCE: field=turnPending event=timer reducer=Optional(turn#1) legacy=nil
+VOICE_SESSION_DIVERGENCE: field=turnPending event=timer reducer=Optional(turn#1) legacy=nil
+VOICE_SESSION_DIVERGENCE: field=turnPending event=timer reducer=Optional(turn#1) legacy=nil
+VOICE_SESSION_DIVERGENCE: field=turnPending event=timer reducer=Optional(turn#1) legacy=nil
+VOICE_SESSION_DIVERGENCE: field=turnPending event=timer reducer=Optional(turn#1) legacy=nil
+VOICE_SESSION_DIVERGENCE: field=turnPending event=inputWithdrawn reducer=Optional(turn#1) legacy=nil
+TURN_TRIAL complete-question 0 commits=1 source=smartTurn
+VOICE_SESSION_DIVERGENCE: field=turnPending event=timer reducer=Optional(turn#2) legacy=nil
+VOICE_SESSION_DIVERGENCE: field=turnPending event=timer reducer=Optional(turn#2) legacy=nil
+VOICE_SESSION_DIVERGENCE: field=turnPending event=timer reducer=Optional(turn#2) legacy=nil
+VOICE_SESSION_DIVERGENCE: field=turnPending event=timer reducer=Optional(turn#2) legacy=nil
+VOICE_SESSION_DIVERGENCE: field=turnPending event=timer reducer=Optional(turn#2) legacy=nil
+VOICE_SESSION_DIVERGENCE: field=turnPending event=timer reducer=Optional(turn#2) legacy=nil
+VOICE_SESSION_DIVERGENCE: field=turnPending event=timer reducer=Optional(turn#2) legacy=nil
+VOICE_SESSION_DIVERGENCE: field=turnPending event=timer reducer=Optional(turn#2) legacy=nil
+VOICE_SESSION_DIVERGENCE: field=turnPending event=timer reducer=Optional(turn#2) legacy=nil
+VOICE_SESSION_DIVERGENCE: field=turnPending event=timer reducer=Optional(turn#2) legacy=nil
+VOICE_SESSION_DIVERGENCE: field=turnPending event=timer reducer=Optional(turn#2) legacy=nil
+VOICE_SESSION_DIVERGENCE: field=turnPending event=timer reducer=Optional(turn#2) legacy=nil
+VOICE_SESSION_DIVERGENCE: field=turnPending event=timer reducer=Optional(turn#2) legacy=nil
+VOICE_SESSION_DIVERGENCE: field=turnPending event=timer reducer=Optional(turn#2) legacy=nil
+VOICE_SESSION_DIVERGENCE: field=turnPending event=timer reducer=Optional(turn#2) legacy=nil
+VOICE_SESSION_DIVERGENCE: field=turnPending event=timer reducer=Optional(turn#2) legacy=nil
+VOICE_SESSION_DIVERGENCE: field=turnPending event=timer reducer=Optional(turn#2) legacy=nil
+VOICE_SESSION_DIVERGENCE: field=turnPending event=timer reducer=Optional(turn#2) legacy=nil
+VOICE_SESSION_DIVERGENCE: field=turnPending event=timer reducer=Optional(turn#2) legacy=nil
+VOICE_SESSION_DIVERGENCE: field=turnPending event=timer reducer=Optional(turn#2) legacy=nil
+VOICE_SESSION_DIVERGENCE: field=turnPending event=timer reducer=Optional(turn#2) legacy=nil
+VOICE_SESSION_DIVERGENCE: field=turnPending event=timer reducer=Optional(turn#2) legacy=nil
+VOICE_SESSION_DIVERGENCE: field=turnPending event=inputWithdrawn reducer=Optional(turn#2) legacy=nil
+TURN_TRIAL complete-question 1 commits=1 source=smartTurn
+TURN_BENCHMARK_COLLECTED

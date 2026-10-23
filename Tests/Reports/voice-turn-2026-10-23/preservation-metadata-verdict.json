@@ -1,0 +1,7 @@
+{
+  "unchanged": true,
+  "watched_stores": 25,
+  "watched_meeting_files": 143,
+  "baseline": "preservation-native-before.json",
+  "after": "preservation-metadata-after.json"
+}

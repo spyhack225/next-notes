@@ -101,7 +101,7 @@ enum VoiceTurnBenchmark {
                 let tailRetained = tail.isEmpty || words.suffix(tail.count).elementsEqual(tail)
                 let events = observation.commits.map { Event(name: "commit", at_ms: $0) }
                 trials.append(Trial(trial_id: "\(fixture.id)-\(iteration)", case_id: fixture.id,
-                    phase: iteration == 0 ? "cold_capture" : "warm", asr: "Apple+Parakeet-EOU-160ms",
+                    phase: "cold_capture", asr: "Apple+Parakeet-EOU-160ms",
                     tts: "not-run-endpoint-only", condition: "paced-file-production-capture",
                     language: fixture.language, status: observation.failure == nil ? "measured" : "failed",
                     tail_retained: tailRetained, pacing_p95_error_ms: observation.pacingMS,
@@ -119,7 +119,7 @@ enum VoiceTurnBenchmark {
         let trace = Trace(run_id: runID, trials: trials, limitations: [
             "Synthesized fixture boundaries; no physical microphone, audible response, tools or LLM.",
             "Real Apple/Parakeet/Silero/Smart Turn production capture and endpoint consumer.",
-            "Cold capture is a fresh session in this process; cold process/pressure/routes are separate gates.",
+            "Every trial opens a fresh capture session; residency is not independently measured. Warm/cold-process/pressure/routes are separate gates.",
             "Commit timestamps come from the existing producer probe at actual commit selection; no held checkpoint.",
             "A missing first_audible stage stays missing in the full roadmap scorer."])
         let encoder = JSONEncoder(); encoder.outputFormatting = [.prettyPrinted, .sortedKeys]

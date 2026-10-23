@@ -1,0 +1,10 @@
+{
+  "fresh_capture_labels": [
+    "cold_capture",
+    "cold_capture"
+  ],
+  "native_exit": 0,
+  "native_joined": true,
+  "policy": "TURN_POLICY_OK",
+  "purpose": "Functional metadata and packaging regression only; not another latency or speech-quality acceptance cohort."
+}
