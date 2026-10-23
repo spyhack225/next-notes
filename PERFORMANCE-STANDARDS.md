@@ -11,6 +11,20 @@ The [benchmark hub](Benchmarks/README.md) indexes model and workflow evidence ac
 
 ## Reference machine and acceptance
 
+23 October resumed TTS work: [cleanup and external compiler lifetime](Tests/Reports/tts-2026-10-23/README.md).
+Owner-authorized obsolete installer/module cleanup and verified old-symbol compression recover an
+observed1.43GiB; current/rollback/runtime builds stay. New60% physical cohort completes Phonon30/30
+264.393/322.068ms and Pocket30/30 293.466/369.349ms median/p95 under paced v3 decoding. Disk stops
+remaining engines. Root-only cleanup missed external CoreML compiler bundles (1.783GB in diagnostic
+runtime-probe cache, including a PID98720 bundle created during the failed reference window) and pinned Phonon compiler temporary outputs.
+Boundary mitigation now deletes only new compiler artifacts after durable save/native join, preserving
+existing caches. Native interruption at an actual new compiler bundle passes join/deletion and original
+ASR-file preservation;18 model-free controls pass. This fixes the diagnostic artifact-lifetime gap,
+not external compiler behavior or the whole VM/Qwen pressure cause. Default route then changed to
+AirPods; continuing the common built-in-route comparison awaits owner permission. No route, installed
+app or Pocket/Alba default changed; full comparison/winner/quality/EOU contracts remain open.
+
+
 23 October 2026 TTS calibrated follow-up: [serial speaker evidence](Tests/Reports/tts-2026-10-22/README.md#23-october-calibrated-serial-cohort--incomplete-no-default-promotion).
 Apple completes30/30 warm threshold-qualified microphone pickups under progressing cached-v3
 reference decoding:159.863ms median,186.975ms p95. Qwen completes synthesis but qualifies27/30;

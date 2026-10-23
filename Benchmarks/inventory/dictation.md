@@ -541,6 +541,8 @@ Discovery inventory, not a claim that every file is a benchmark or that its chec
 | [Tests/Reports/toolloop-live/2026-09-30-p1-31c/integrated-cleanup-router.txt](../../Tests/Reports/toolloop-live/2026-09-30-p1-31c/integrated-cleanup-router.txt) |
 | [Tests/Reports/tts-2026-10-22/final-controls/controlled-symbol-cleanup.json](../../Tests/Reports/tts-2026-10-22/final-controls/controlled-symbol-cleanup.json) |
 | [Tests/Reports/tts-2026-10-22/final-model-cleanup.json](../../Tests/Reports/tts-2026-10-22/final-model-cleanup.json) |
+| [Tests/Reports/tts-2026-10-23/cleanup-obsolete.json](../../Tests/Reports/tts-2026-10-23/cleanup-obsolete.json) |
+| [Tests/Reports/tts-2026-10-23/compiler-artifact-cleanup.json](../../Tests/Reports/tts-2026-10-23/compiler-artifact-cleanup.json) |
 | [Tests/Reports/voice-production/2026-10-01-p3-01/core/selftest-dictation.log](../../Tests/Reports/voice-production/2026-10-01-p3-01/core/selftest-dictation.log) |
 | [Tests/Reports/voice-production/2026-10-01-p3-06a/core/selftest-dictation.log](../../Tests/Reports/voice-production/2026-10-01-p3-06a/core/selftest-dictation.log) |
 | [Tests/Reports/voice-production/2026-10-01-p3-06a/wake-isolated-core/selftest-dictation.log](../../Tests/Reports/voice-production/2026-10-01-p3-06a/wake-isolated-core/selftest-dictation.log) |

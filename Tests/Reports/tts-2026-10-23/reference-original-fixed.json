@@ -1,0 +1,14 @@
+{
+  "original": {
+    "tests": 1,
+    "failures": 1,
+    "errors": 0,
+    "output": "test_planned_stop_joins_native_worker_before_snapshot_cleanup (reference_tests.WorkloadLifecycle.test_planned_stop_joins_native_worker_before_snapshot_cleanup) ... FAIL\n\n======================================================================\nFAIL: test_planned_stop_joins_native_worker_before_snapshot_cleanup (reference_tests.WorkloadLifecycle.test_planned_stop_joins_native_worker_before_snapshot_cleanup)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/Users/sergekadjo/Documents/Claude/Projects/next-notes/Tools/test_tts_asr_workload.py\", line 55, in test_planned_stop_joins_native_worker_before_snapshot_cleanup\n    self.assertFalse((root/'Library/Caches/fake-rpc/com.apple.e5rt.e5bundlecache/os/key/native.tmp.bundle').exists(),\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n                     'compiled model survived its joined native worker')\n                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: True is not false : compiled model survived its joined native worker\n\n----------------------------------------------------------------------\nRan 1 test in 0.335s\n\nFAILED (failures=1)\n"
+  },
+  "fixed": {
+    "tests": 1,
+    "failures": 0,
+    "errors": 0,
+    "output": "test_planned_stop_joins_native_worker_before_snapshot_cleanup (reference_tests.WorkloadLifecycle.test_planned_stop_joins_native_worker_before_snapshot_cleanup) ... ok\n\n----------------------------------------------------------------------\nRan 1 test in 0.240s\n\nOK\n"
+  }
+}

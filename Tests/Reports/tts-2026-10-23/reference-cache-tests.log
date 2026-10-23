@@ -1,0 +1,8 @@
+test_actual_external_layout_is_removed_after_owned_child (test_tts_asr_workload.CompilerCacheTests.test_actual_external_layout_is_removed_after_owned_child) ... ok
+test_existing_compiled_artifacts_are_preserved (test_tts_asr_workload.CompilerCacheTests.test_existing_compiled_artifacts_are_preserved) ... ok
+test_redirected_cache_is_refused (test_tts_asr_workload.CompilerCacheTests.test_redirected_cache_is_refused) ... ok
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.012s
+
+OK

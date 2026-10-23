@@ -1,0 +1,16 @@
+{
+  "cleanupVerified": true,
+  "elapsedSeconds": 18.230998040991835,
+  "engine": "apple",
+  "exitCode": -15,
+  "freeBytesAfterCleanup": 1520689152,
+  "freeBytesBefore": 2203414528,
+  "reason": "Disk guard stopped the owned process group before cleanup.",
+  "referenceASRAfter": {
+    "active": false
+  },
+  "referenceASRBefore": null,
+  "referenceCleanupVerified": true,
+  "status": "failed",
+  "temporaryLogicalBytesBeforeCleanup": 13
+}

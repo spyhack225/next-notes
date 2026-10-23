@@ -1,0 +1,24 @@
+{
+  "observedRoute": [
+    {
+      "device": 90,
+      "muted": 0,
+      "scope": "input",
+      "volume0": 0.5098039507865906
+    },
+    {
+      "device": 83,
+      "muted": 0,
+      "scope": "output",
+      "volume0": 0.1250000149011612
+    }
+  ],
+  "previousRoute": {
+    "inputDevice": 90,
+    "outputDevice": 83,
+    "speakerLevel": 0.6
+  },
+  "currentDeviceClass": "AirPods",
+  "permissionToTemporarilyRestoreBuiltInRoute": "pending at time of observation",
+  "reason": "Continue common-route physical speaker comparison; no route/gain write performed on AirPods"
+}

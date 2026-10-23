@@ -11858,6 +11858,174 @@
       "category": "tts"
     },
     {
+      "path": "Tests/Reports/tts-2026-10-23/README.md",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-23/cleanup-obsolete.json",
+      "category": "dictation"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-23/compiler-artifact-cleanup.json",
+      "category": "dictation"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-23/preferences-before.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-23/preservation.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-23/reference-cache-native/result.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-23/reference-cache-native/workload/ready.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-23/reference-cache-native/workload/receipt.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-23/reference-cache-native/workload/rpc.json.diagnostic.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-23/reference-cache-native/wrapper.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-23/reference-cache-tests.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-23/reference-original-fixed.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-23/route-blocker.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-23/runner-tests.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-23/serial-command.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-23/serial-source-pins.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-23/serial-speaker/apple-reference.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-23/serial-speaker/apple.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-23/serial-speaker/apple.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-23/serial-speaker/kokoro.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-23/serial-speaker/phonon-reference.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-23/serial-speaker/phonon.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-23/serial-speaker/phonon.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-23/serial-speaker/pocket-reference.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-23/serial-speaker/pocket.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-23/serial-speaker/pocket.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-23/serial-speaker/preflight.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-23/serial-speaker/qwen.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-23/serial-speaker/reference-apple/ready.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-23/serial-speaker/reference-apple/receipt.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-23/serial-speaker/reference-apple/rpc.json.diagnostic.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-23/serial-speaker/reference-phonon/ready.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-23/serial-speaker/reference-phonon/receipt.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-23/serial-speaker/reference-phonon/rpc.json.diagnostic.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-23/serial-speaker/reference-pocket/ready.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-23/serial-speaker/reference-pocket/receipt.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-23/serial-speaker/reference-pocket/rpc.json.diagnostic.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-23/serial-speaker/reference-progress-audit.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-23/serial-speaker/summary.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-23/serial-volume-after.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-23/serial-volume-before.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-23/serial-volume-during.json",
+      "category": "tts"
+    },
+    {
       "path": "Tests/Reports/tts-benchmark-2026-09-13.md",
       "category": "tts"
     },

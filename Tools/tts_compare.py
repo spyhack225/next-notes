@@ -72,6 +72,13 @@ def reference_workload(path):
         return {"active": False}
 
 
+def phonon_compiler_temporaries():
+    # The pinned native Core ML compiler leaves these outside the supplied
+    # TMPDIR. Only paths newly created during our one child belong to this run.
+    return {p for p in Path(tempfile.gettempdir()).glob('flow-c414-t48*.mlmodelc')
+            if p.is_dir() and not p.is_symlink()}
+
+
 def run_one(app, engine, output, trials, text, timeout, speaker_output=False, workload_ready=None, reference_probe=None):
     """Return only after result persistence, process exit and verified cleanup."""
     root = Path(tempfile.mkdtemp(prefix="nextnotes-tts-"))
@@ -79,6 +86,7 @@ def run_one(app, engine, output, trials, text, timeout, speaker_output=False, wo
     result_path = output / (engine + ".json")
     child_path = root / "result.json"
     process = None
+    compiler_before = phonon_compiler_temporaries() if engine == "phonon" else set()
     reference = None
     reference_log = None
     reference_active = False
@@ -92,7 +100,7 @@ def run_one(app, engine, output, trials, text, timeout, speaker_output=False, wo
             reference.send_signal(signal.SIGINT)
         reference.wait(timeout=20)
         receipt = json.loads((reference_output/'receipt.json').read_text())
-        if not all(receipt.get(key) for key in ('childJoined','temporaryAssetsDeleted','ownerArtifactsUnchanged')):
+        if not all(receipt.get(key) for key in ('childJoined','temporaryAssetsDeleted','ownerArtifactsUnchanged','compilerCacheDeleted')):
             raise RuntimeError('Reference cleanup not verified; refusing another model')
         result['referenceCleanupVerified'] = True
         reference = None
@@ -203,6 +211,14 @@ def run_one(app, engine, output, trials, text, timeout, speaker_output=False, wo
     if process is not None:
         stop_process_group(process)
     finish_reference()
+    if engine == 'phonon':
+        result['compilerTemporaryModelsRemoved'] = []
+        for path in sorted(phonon_compiler_temporaries() - compiler_before):
+            result['compilerTemporaryModelsRemoved'].append({'path':str(path),
+                'logicalBytes':sum(p.stat().st_size for p in path.rglob('*') if p.is_file())})
+            shutil.rmtree(path)
+        if phonon_compiler_temporaries() - compiler_before:
+            raise RuntimeError('Temporary compiler model cleanup failed; refusing another model')
     shutil.rmtree(root)
     if root.exists():
         raise RuntimeError(f"Cleanup failed: {root}; refusing to start the next engine")

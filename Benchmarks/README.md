@@ -8,10 +8,15 @@ Status describes the stated scope only. A measured component is not production a
 
 | Date | Area | Benchmark | Status | Result and limits |
 |---|---|---|---|---|
+| 2026-10-23 | tts | [Qwen3-TTS0.6B4bit: serial speaker continuation](runs/2026-10-23-tts-qwen-speaker-serial.json) | blocked | No completed trial: Insufficient disk headroom for this one model. No warm acoustic median accepted. |
 | 2026-10-23 | tts | [Qwen3-TTS0.6B4bit: volume-bound serial speaker attempt](runs/2026-10-23-tts-qwen-speaker-calibrated.json) | partial | 27/30 warm pickups qualified. No warm acoustic median accepted. |
+| 2026-10-23 | tts | [Pocket: serial speaker continuation](runs/2026-10-23-tts-pocket-speaker-serial.json) | measured | 30/30 warm pickups qualified. Accepted median and p95 for this route and workload. |
 | 2026-10-23 | tts | [Pocket: volume-bound serial speaker attempt](runs/2026-10-23-tts-pocket-speaker-calibrated.json) | blocked | No completed trial: Insufficient disk headroom for this one model. No warm acoustic median accepted. |
+| 2026-10-23 | tts | [Phonon31m: serial speaker continuation](runs/2026-10-23-tts-phonon-speaker-serial.json) | measured | 30/30 warm pickups qualified. Accepted median and p95 for this route and workload. |
 | 2026-10-23 | tts | [Phonon31m: volume-bound serial speaker attempt](runs/2026-10-23-tts-phonon-speaker-calibrated.json) | failed | No completed trial: Disk guard stopped the owned process group before cleanup. No warm acoustic median accepted. |
+| 2026-10-23 | tts | [Kokoro: serial speaker continuation](runs/2026-10-23-tts-kokoro-speaker-serial.json) | blocked | No completed trial: Insufficient disk headroom for this one model. No warm acoustic median accepted. |
 | 2026-10-23 | tts | [Kokoro: volume-bound serial speaker attempt](runs/2026-10-23-tts-kokoro-speaker-calibrated.json) | blocked | No completed trial: Insufficient disk headroom for this one model. No warm acoustic median accepted. |
+| 2026-10-23 | tts | [macOS: serial speaker continuation](runs/2026-10-23-tts-apple-speaker-serial.json) | failed | No completed trial: Disk guard stopped the owned process group before cleanup. No warm acoustic median accepted. |
 | 2026-10-23 | tts | [macOS: volume-bound serial speaker attempt](runs/2026-10-23-tts-apple-speaker-calibrated.json) | measured | 30/30 warm pickups qualified. Accepted median and p95 for this route and workload. |
 | 2026-10-22 | tts | [Qwen3-TTS0.6B4bit: quiet-room speaker-output attempt](runs/2026-10-22-tts-qwen-speaker-quiet.json) | failed | No completed native-format trial: Disk guard stopped the owned process group before cleanup. No acoustic median or fastest-default decision accepted; all attempts and refusals remain retained. |
 | 2026-10-22 | tts | [Qwen3-TTS0.6B4bit: native speaker-output experiment](runs/2026-10-22-tts-qwen-speaker-output.json) | partial | 1/3 warm pickups qualified. No acoustic median or fastest-default decision accepted. Background audio was present; all attempts and refusals remain retained. |
@@ -87,11 +92,11 @@ Status describes the stated scope only. A measured component is not production a
 ## Evidence by area
 
 - [Asr](inventory/asr.md): 160 evidence files.
-- [Dictation](inventory/dictation.md): 561 evidence files.
+- [Dictation](inventory/dictation.md): 563 evidence files.
 - [Meetings](inventory/meetings.md): 1143 evidence files.
 - [Agent](inventory/agent.md): 477 evidence files.
 - [Voice](inventory/voice.md): 321 evidence files.
-- [Tts](inventory/tts.md): 291 evidence files.
+- [Tts](inventory/tts.md): 331 evidence files.
 - [Workflows](inventory/workflows.md): 176 evidence files.
 - [Models](inventory/models.md): 20 evidence files.
 - [Other](inventory/other.md): 744 evidence files.

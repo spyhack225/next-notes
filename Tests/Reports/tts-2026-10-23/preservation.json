@@ -1,0 +1,9 @@
+{
+  "all92OwnerPreferencesUnchanged": true,
+  "changedKeys": [],
+  "installedSHA256": "bce5ef99b315110ef535122ded59329eb6bec1d7a53d6e573ac9a07f4af95620",
+  "freeBytes": 4499902464,
+  "ownerVoiceEngine": "pocket",
+  "noTTSModelLoaded": true,
+  "scope": "TTS and reference processes exited and snapshot roots removed; external artifact lifetime gap separately inventoried/cleaned; AirPods selection preserved."
+}

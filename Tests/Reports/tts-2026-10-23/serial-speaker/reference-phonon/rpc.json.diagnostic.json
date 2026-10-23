@@ -1,0 +1,1164 @@
+{
+  "error": "",
+  "runtime_ready": {
+    "load_ms": 20315.241932868958,
+    "native_peak_rss_bytes": 491470848,
+    "ready": true
+  },
+  "requests": [
+    {
+      "language": "en",
+      "samples": 6400,
+      "sent_at": 556595.949903666,
+      "received_at": 556596.064671333,
+      "text": "Okay.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 116000,
+      "sent_at": 556596.064697833,
+      "received_at": 556596.158066833,
+      "text": "Okay so the plan is to ship the installer on Friday. Right, and then we write the release note together.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 6400,
+      "sent_at": 556596.162299291,
+      "received_at": 556596.225486291,
+      "text": "Okay.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 22400,
+      "sent_at": 556596.227037416,
+      "received_at": 556596.289157583,
+      "text": "Okay so the plan is to sh",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 38400,
+      "sent_at": 556596.289595708,
+      "received_at": 556596.357637875,
+      "text": "Okay so the plan is to ship the installer on",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 54400,
+      "sent_at": 556596.358154125,
+      "received_at": 556596.437132875,
+      "text": "Okay so the plan is to ship the installer on Friday.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 70400,
+      "sent_at": 556596.437989416,
+      "received_at": 556596.517000583,
+      "text": "Okay so the plan is to ship the installer on Friday. Right.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 86400,
+      "sent_at": 556596.517926083,
+      "received_at": 556596.601039166,
+      "text": "Okay so the plan is to ship the installer on Friday. Right, and then we write.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 102400,
+      "sent_at": 556596.601661833,
+      "received_at": 556596.693792375,
+      "text": "Okay, so the plan is to ship the installer on Friday. Right, and then we write the release note again.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 116000,
+      "sent_at": 556596.694322625,
+      "received_at": 556596.792062708,
+      "text": "Okay so the plan is to ship the installer on Friday. Right, and then we write the release note together.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 6476,
+      "sent_at": 556597.198879291,
+      "received_at": 556597.301050416,
+      "text": "Okay.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 22457,
+      "sent_at": 556598.196323708,
+      "received_at": 556598.304853291,
+      "text": "Okay so the plan is to sh",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 38415,
+      "sent_at": 556599.193666666,
+      "received_at": 556599.268626666,
+      "text": "Okay so the plan is to ship the installer on.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 54480,
+      "sent_at": 556600.198297625,
+      "received_at": 556600.3120315,
+      "text": "Okay so the plan is to ship the installer on Friday.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 70480,
+      "sent_at": 556601.198262791,
+      "received_at": 556601.320262541,
+      "text": "Okay so the plan is to ship the installer on Friday. Right.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 86477,
+      "sent_at": 556602.197901166,
+      "received_at": 556602.286338916,
+      "text": "Okay so the plan is to ship the installer on Friday. Right, and then we write.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 102415,
+      "sent_at": 556603.193765041,
+      "received_at": 556603.285555458,
+      "text": "Okay so the plan is to ship the installer on Friday. Right, and then we write the release note again.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 116000,
+      "sent_at": 556604.047610416,
+      "received_at": 556604.162561208,
+      "text": "Okay so the plan is to ship the installer on Friday. Right, and then we write the release note together.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 6408,
+      "sent_at": 556604.564029916,
+      "received_at": 556604.654889125,
+      "text": "Okay.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 22482,
+      "sent_at": 556605.568677041,
+      "received_at": 556605.6795935,
+      "text": "Okay so the plan is to sh",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 38480,
+      "sent_at": 556606.56876,
+      "received_at": 556606.684066791,
+      "text": "Okay so the plan is to ship the installer on.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 54480,
+      "sent_at": 556607.569000166,
+      "received_at": 556607.668465166,
+      "text": "Okay so the plan is to ship the installer on Friday.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 70480,
+      "sent_at": 556608.569000583,
+      "received_at": 556608.684290458,
+      "text": "Okay so the plan is to ship the installer on Friday. Right.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 86481,
+      "sent_at": 556609.569486583,
+      "received_at": 556609.694173208,
+      "text": "Okay so the plan is to ship the installer on Friday. Right, and then we write.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 102480,
+      "sent_at": 556610.568898125,
+      "received_at": 556610.721431458,
+      "text": "Okay so the plan is to ship the installer on Friday. Right, and then we write the release note again.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 116000,
+      "sent_at": 556611.418513375,
+      "received_at": 556611.532758,
+      "text": "Okay so the plan is to ship the installer on Friday. Right, and then we write the release note together.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 6481,
+      "sent_at": 556611.938745375,
+      "received_at": 556612.034037375,
+      "text": "Okay.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 22480,
+      "sent_at": 556612.938533875,
+      "received_at": 556613.013661833,
+      "text": "Okay so the plan is to sh",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 38453,
+      "sent_at": 556613.936848041,
+      "received_at": 556614.020334083,
+      "text": "Okay so the plan is to ship the installer on.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 54480,
+      "sent_at": 556614.938635833,
+      "received_at": 556615.055774541,
+      "text": "Okay so the plan is to ship the installer on Friday.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 70480,
+      "sent_at": 556615.938742833,
+      "received_at": 556616.03036875,
+      "text": "Okay so the plan is to ship the installer on Friday. Right.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 86480,
+      "sent_at": 556616.939370708,
+      "received_at": 556617.057285625,
+      "text": "Okay so the plan is to ship the installer on Friday. Right, and then we write.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 102477,
+      "sent_at": 556617.938939083,
+      "received_at": 556618.053664125,
+      "text": "Okay so the plan is to ship the installer on Friday. Right, and then we write the release note again.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 116000,
+      "sent_at": 556618.7857175,
+      "received_at": 556618.915098083,
+      "text": "Okay so the plan is to ship the installer on Friday. Right, and then we write the release note together.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 6480,
+      "sent_at": 556619.320991333,
+      "received_at": 556619.427134625,
+      "text": "Okay.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 22480,
+      "sent_at": 556620.320995625,
+      "received_at": 556620.429685708,
+      "text": "Okay so the plan is to sh",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 38468,
+      "sent_at": 556621.320661541,
+      "received_at": 556621.420237583,
+      "text": "Okay so the plan is to ship the installer on.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 54480,
+      "sent_at": 556622.321242083,
+      "received_at": 556622.433465583,
+      "text": "Okay so the plan is to ship the installer on Friday.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 70480,
+      "sent_at": 556623.321341291,
+      "received_at": 556623.4421145,
+      "text": "Okay so the plan is to ship the installer on Friday. Right.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 86480,
+      "sent_at": 556624.32187,
+      "received_at": 556624.447846375,
+      "text": "Okay so the plan is to ship the installer on Friday. Right, and then we write.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 102480,
+      "sent_at": 556625.321374958,
+      "received_at": 556625.435021333,
+      "text": "Okay so the plan is to ship the installer on Friday. Right, and then we write the release note again.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 116000,
+      "sent_at": 556626.170924166,
+      "received_at": 556626.290546708,
+      "text": "Okay so the plan is to ship the installer on Friday. Right, and then we write the release note together.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 6480,
+      "sent_at": 556626.696342833,
+      "received_at": 556626.769357458,
+      "text": "Okay.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 22428,
+      "sent_at": 556627.693266416,
+      "received_at": 556627.792491708,
+      "text": "Okay so the plan is to sh",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 38480,
+      "sent_at": 556628.696603916,
+      "received_at": 556628.804534916,
+      "text": "Okay so the plan is to ship the installer on.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 54421,
+      "sent_at": 556629.692893833,
+      "received_at": 556629.798708166,
+      "text": "Okay so the plan is to ship the installer on Friday.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 70428,
+      "sent_at": 556630.693478166,
+      "received_at": 556630.797441916,
+      "text": "Okay so the plan is to ship the installer on Friday. Right.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 86480,
+      "sent_at": 556631.6967465,
+      "received_at": 556631.805681208,
+      "text": "Okay so the plan is to ship the installer on Friday. Right, and then we write.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 102480,
+      "sent_at": 556632.6970705,
+      "received_at": 556632.825450708,
+      "text": "Okay so the plan is to ship the installer on Friday. Right, and then we write the release note again.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 116000,
+      "sent_at": 556633.541484125,
+      "received_at": 556633.643944291,
+      "text": "Okay so the plan is to ship the installer on Friday. Right, and then we write the release note together.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 6480,
+      "sent_at": 556634.049779375,
+      "received_at": 556634.151227541,
+      "text": "Okay.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 22453,
+      "sent_at": 556635.048081375,
+      "received_at": 556635.128767458,
+      "text": "Okay so the plan is to sh",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 38480,
+      "sent_at": 556636.049765125,
+      "received_at": 556636.160949041,
+      "text": "Okay so the plan is to ship the installer on.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 54480,
+      "sent_at": 556637.049839916,
+      "received_at": 556637.1501795,
+      "text": "Okay so the plan is to ship the installer on Friday.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 70480,
+      "sent_at": 556638.0499435,
+      "received_at": 556638.147576916,
+      "text": "Okay so the plan is to ship the installer on Friday. Right.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 86480,
+      "sent_at": 556639.050252541,
+      "received_at": 556639.176953166,
+      "text": "Okay so the plan is to ship the installer on Friday. Right, and then we write.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 102480,
+      "sent_at": 556640.050235916,
+      "received_at": 556640.183938416,
+      "text": "Okay so the plan is to ship the installer on Friday. Right, and then we write the release note again.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 116000,
+      "sent_at": 556640.8970165,
+      "received_at": 556641.000412541,
+      "text": "Okay so the plan is to ship the installer on Friday. Right, and then we write the release note together.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 6480,
+      "sent_at": 556641.406116,
+      "received_at": 556641.502646625,
+      "text": "Okay.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 22480,
+      "sent_at": 556642.40620025,
+      "received_at": 556642.515611,
+      "text": "Okay so the plan is to sh",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 38419,
+      "sent_at": 556643.402566791,
+      "received_at": 556643.521284375,
+      "text": "Okay so the plan is to ship the installer on.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 54480,
+      "sent_at": 556644.406353,
+      "received_at": 556644.500846,
+      "text": "Okay so the plan is to ship the installer on Friday.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 70480,
+      "sent_at": 556645.406601625,
+      "received_at": 556645.517052916,
+      "text": "Okay so the plan is to ship the installer on Friday. Right.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 86439,
+      "sent_at": 556646.403709083,
+      "received_at": 556646.488035,
+      "text": "Okay so the plan is to ship the installer on Friday. Right, and then we write.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 102480,
+      "sent_at": 556647.406409416,
+      "received_at": 556647.511572333,
+      "text": "Okay so the plan is to ship the installer on Friday. Right, and then we write the release note again.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 116000,
+      "sent_at": 556648.252514875,
+      "received_at": 556648.383782083,
+      "text": "Okay so the plan is to ship the installer on Friday. Right, and then we write the release note together.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 6503,
+      "sent_at": 556648.791060041,
+      "received_at": 556648.876351541,
+      "text": "Okay.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 22480,
+      "sent_at": 556649.789787375,
+      "received_at": 556649.895530833,
+      "text": "Okay so the plan is to sh",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 38480,
+      "sent_at": 556650.7899115,
+      "received_at": 556650.89424975,
+      "text": "Okay so the plan is to ship the installer on.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 54480,
+      "sent_at": 556651.790125083,
+      "received_at": 556651.90756125,
+      "text": "Okay so the plan is to ship the installer on Friday.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 70420,
+      "sent_at": 556652.786376208,
+      "received_at": 556652.902273916,
+      "text": "Okay so the plan is to ship the installer on Friday. Right.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 86480,
+      "sent_at": 556653.7898725,
+      "received_at": 556653.881528791,
+      "text": "Okay so the plan is to ship the installer on Friday. Right, and then we write.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 102480,
+      "sent_at": 556654.790164458,
+      "received_at": 556654.898982791,
+      "text": "Okay so the plan is to ship the installer on Friday. Right, and then we write the release note again.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 116000,
+      "sent_at": 556655.639583416,
+      "received_at": 556655.748867833,
+      "text": "Okay so the plan is to ship the installer on Friday. Right, and then we write the release note together.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 6481,
+      "sent_at": 556656.15476525,
+      "received_at": 556656.262393333,
+      "text": "Okay.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 22443,
+      "sent_at": 556657.15241875,
+      "received_at": 556657.230440916,
+      "text": "Okay so the plan is to sh",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 38480,
+      "sent_at": 556658.15472075,
+      "received_at": 556658.2585925,
+      "text": "Okay so the plan is to ship the installer on.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 54481,
+      "sent_at": 556659.15503625,
+      "received_at": 556659.269193583,
+      "text": "Okay so the plan is to ship the installer on Friday.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 70480,
+      "sent_at": 556660.155127458,
+      "received_at": 556660.2769845,
+      "text": "Okay so the plan is to ship the installer on Friday. Right.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 86439,
+      "sent_at": 556661.152408375,
+      "received_at": 556661.2654615,
+      "text": "Okay so the plan is to ship the installer on Friday. Right, and then we write.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 102480,
+      "sent_at": 556662.155396458,
+      "received_at": 556662.27838375,
+      "text": "Okay so the plan is to ship the installer on Friday. Right, and then we write the release note again.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 116000,
+      "sent_at": 556663.004809416,
+      "received_at": 556663.130387333,
+      "text": "Okay so the plan is to ship the installer on Friday. Right, and then we write the release note together.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 6480,
+      "sent_at": 556663.536785041,
+      "received_at": 556663.645316666,
+      "text": "Okay.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 22480,
+      "sent_at": 556664.53696125,
+      "received_at": 556664.638159541,
+      "text": "Okay so the plan is to sh",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 38480,
+      "sent_at": 556665.537182958,
+      "received_at": 556665.643272958,
+      "text": "Okay so the plan is to ship the installer on.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 54480,
+      "sent_at": 556666.536991083,
+      "received_at": 556666.655907708,
+      "text": "Okay so the plan is to ship the installer on Friday.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 70480,
+      "sent_at": 556667.536993166,
+      "received_at": 556667.659971333,
+      "text": "Okay so the plan is to ship the installer on Friday. Right.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 86452,
+      "sent_at": 556668.535125666,
+      "received_at": 556668.65427775,
+      "text": "Okay so the plan is to ship the installer on Friday. Right, and then we write.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 102480,
+      "sent_at": 556669.537377708,
+      "received_at": 556669.6458235,
+      "text": "Okay so the plan is to ship the installer on Friday. Right, and then we write the release note again.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 116000,
+      "sent_at": 556670.386734041,
+      "received_at": 556670.517361625,
+      "text": "Okay so the plan is to ship the installer on Friday. Right, and then we write the release note together.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 6484,
+      "sent_at": 556670.9234875,
+      "received_at": 556671.013559416,
+      "text": "Okay.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 22434,
+      "sent_at": 556671.920339791,
+      "received_at": 556671.993676125,
+      "text": "Okay so the plan is to sh",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 38480,
+      "sent_at": 556672.923174333,
+      "received_at": 556673.007857458,
+      "text": "Okay so the plan is to ship the installer on.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 54481,
+      "sent_at": 556673.923325416,
+      "received_at": 556674.01778475,
+      "text": "Okay so the plan is to ship the installer on Friday.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 70481,
+      "sent_at": 556674.923706916,
+      "received_at": 556675.037737,
+      "text": "Okay so the plan is to ship the installer on Friday. Right.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 86480,
+      "sent_at": 556675.923599208,
+      "received_at": 556676.043420541,
+      "text": "Okay so the plan is to ship the installer on Friday. Right, and then we write.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 102455,
+      "sent_at": 556676.921805041,
+      "received_at": 556677.026976166,
+      "text": "Okay so the plan is to ship the installer on Friday. Right, and then we write the release note again.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 116000,
+      "sent_at": 556677.76965075,
+      "received_at": 556677.863724416,
+      "text": "Okay so the plan is to ship the installer on Friday. Right, and then we write the release note together.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 6480,
+      "sent_at": 556678.269547125,
+      "received_at": 556678.371024375,
+      "text": "Okay.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 22480,
+      "sent_at": 556679.269743125,
+      "received_at": 556679.36928275,
+      "text": "Okay so the plan is to sh",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 38480,
+      "sent_at": 556680.269633458,
+      "received_at": 556680.383881583,
+      "text": "Okay so the plan is to ship the installer on.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 54415,
+      "sent_at": 556681.265944166,
+      "received_at": 556681.386003625,
+      "text": "Okay so the plan is to ship the installer on Friday.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 71651,
+      "sent_at": 556682.342858875,
+      "received_at": 556682.519038458,
+      "text": "Okay so the plan is to ship the installer on Friday. Right.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 86480,
+      "sent_at": 556683.269767208,
+      "received_at": 556683.352768416,
+      "text": "Okay so the plan is to ship the installer on Friday. Right, and then we write.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 102481,
+      "sent_at": 556684.270963458,
+      "received_at": 556684.402904458,
+      "text": "Okay so the plan is to ship the installer on Friday. Right, and then we write the release note again.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 116000,
+      "sent_at": 556685.119607083,
+      "received_at": 556685.253115208,
+      "text": "Okay so the plan is to ship the installer on Friday. Right, and then we write the release note together.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 6480,
+      "sent_at": 556685.659021708,
+      "received_at": 556685.752087125,
+      "text": "Okay.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 22480,
+      "sent_at": 556686.659152666,
+      "received_at": 556686.750849916,
+      "text": "Okay so the plan is to sh",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 38480,
+      "sent_at": 556687.659515458,
+      "received_at": 556687.76211625,
+      "text": "Okay so the plan is to ship the installer on.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 54427,
+      "sent_at": 556688.655762291,
+      "received_at": 556688.759751208,
+      "text": "Okay so the plan is to ship the installer on Friday.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 70480,
+      "sent_at": 556689.659178083,
+      "received_at": 556689.769289458,
+      "text": "Okay so the plan is to ship the installer on Friday. Right.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 86480,
+      "sent_at": 556690.659350291,
+      "received_at": 556690.758566583,
+      "text": "Okay so the plan is to ship the installer on Friday. Right, and then we write.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 102425,
+      "sent_at": 556691.655919083,
+      "received_at": 556691.753461333,
+      "text": "Okay so the plan is to ship the installer on Friday. Right, and then we write the release note again.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 116000,
+      "sent_at": 556692.508964875,
+      "received_at": 556692.631756416,
+      "text": "Okay so the plan is to ship the installer on Friday. Right, and then we write the release note together.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 6480,
+      "sent_at": 556693.03794675,
+      "received_at": 556693.13754075,
+      "text": "Okay.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 22480,
+      "sent_at": 556694.038144,
+      "received_at": 556694.149724916,
+      "text": "Okay so the plan is to sh",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 38480,
+      "sent_at": 556695.038156916,
+      "received_at": 556695.160066666,
+      "text": "Okay so the plan is to ship the installer on.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 54480,
+      "sent_at": 556696.038250958,
+      "received_at": 556696.157845208,
+      "text": "Okay so the plan is to ship the installer on Friday.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 70484,
+      "sent_at": 556697.03890275,
+      "received_at": 556697.155794166,
+      "text": "Okay so the plan is to ship the installer on Friday. Right.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 86480,
+      "sent_at": 556698.038526291,
+      "received_at": 556698.14565575,
+      "text": "Okay so the plan is to ship the installer on Friday. Right, and then we write.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 102480,
+      "sent_at": 556699.038264083,
+      "received_at": 556699.172780333,
+      "text": "Okay so the plan is to ship the installer on Friday. Right, and then we write the release note again.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 116000,
+      "sent_at": 556699.887902291,
+      "received_at": 556699.991154833,
+      "text": "Okay so the plan is to ship the installer on Friday. Right, and then we write the release note together.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 6480,
+      "sent_at": 556700.396863,
+      "received_at": 556700.46276225,
+      "text": "Okay.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 22480,
+      "sent_at": 556701.397033833,
+      "received_at": 556701.507029875,
+      "text": "Okay so the plan is to sh",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 38481,
+      "sent_at": 556702.397160458,
+      "received_at": 556702.509320333,
+      "text": "Okay so the plan is to ship the installer on.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 54477,
+      "sent_at": 556703.397135583,
+      "received_at": 556703.520838208,
+      "text": "Okay so the plan is to ship the installer on Friday.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 70447,
+      "sent_at": 556704.3950715,
+      "received_at": 556704.50566175,
+      "text": "Okay so the plan is to ship the installer on Friday. Right.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 86480,
+      "sent_at": 556705.397637333,
+      "received_at": 556705.517328875,
+      "text": "Okay so the plan is to ship the installer on Friday. Right, and then we write.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 102480,
+      "sent_at": 556706.397672041,
+      "received_at": 556706.529692083,
+      "text": "Okay so the plan is to ship the installer on Friday. Right, and then we write the release note again.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 116000,
+      "sent_at": 556707.24685925,
+      "received_at": 556707.388812166,
+      "text": "Okay so the plan is to ship the installer on Friday. Right, and then we write the release note together.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 6480,
+      "sent_at": 556707.794644583,
+      "received_at": 556707.892879583,
+      "text": "Okay.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 22480,
+      "sent_at": 556708.794796,
+      "received_at": 556708.901160583,
+      "text": "Okay so the plan is to sh",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 38480,
+      "sent_at": 556709.795127208,
+      "received_at": 556709.894449625,
+      "text": "Okay so the plan is to ship the installer on.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 54480,
+      "sent_at": 556710.794970583,
+      "received_at": 556710.898817833,
+      "text": "Okay so the plan is to ship the installer on Friday.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 70480,
+      "sent_at": 556711.795300541,
+      "received_at": 556711.913895875,
+      "text": "Okay so the plan is to ship the installer on Friday. Right.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 86421,
+      "sent_at": 556712.791349708,
+      "received_at": 556712.912544583,
+      "text": "Okay so the plan is to ship the installer on Friday. Right, and then we write.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 102480,
+      "sent_at": 556713.79523775,
+      "received_at": 556713.922488,
+      "text": "Okay so the plan is to ship the installer on Friday. Right, and then we write the release note again.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 116000,
+      "sent_at": 556714.644601708,
+      "received_at": 556714.756783208,
+      "text": "Okay so the plan is to ship the installer on Friday. Right, and then we write the release note together.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 6480,
+      "sent_at": 556715.162778958,
+      "received_at": 556715.271194375,
+      "text": "Okay.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 22480,
+      "sent_at": 556716.162541375,
+      "received_at": 556716.247256958,
+      "text": "Okay so the plan is to sh",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 38480,
+      "sent_at": 556717.162696708,
+      "received_at": 556717.24338925,
+      "text": "Okay so the plan is to ship the installer on.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 54480,
+      "sent_at": 556718.162824458,
+      "received_at": 556718.279305,
+      "text": "Okay so the plan is to ship the installer on Friday.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 70480,
+      "sent_at": 556719.162911625,
+      "received_at": 556719.278551041,
+      "text": "Okay so the plan is to ship the installer on Friday. Right.",
+      "native_peak_rss_bytes": 491470848
+    },
+    {
+      "language": "en",
+      "samples": 86484,
+      "sent_at": 556720.163418791,
+      "received_at": 556720.299307125,
+      "text": "Okay so the plan is to ship the installer on Friday. Right, and then we write.",
+      "native_peak_rss_bytes": 491470848
+    }
+  ],
+  "runtime_stdout_diagnostics": [],
+  "native_stderr_tail": ""
+}

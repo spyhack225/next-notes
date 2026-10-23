@@ -26,6 +26,28 @@ def hashes(root):
             for p in root.rglob('*') if p.is_file()}
 
 
+def compiler_cache_entries(cache):
+    """Core ML stores this per-executable compiler cache outside TMPDIR."""
+    if not cache.exists(): return set()
+    if cache.is_symlink(): raise RuntimeError('Refusing a redirected compiler cache')
+    return {p for version in cache.iterdir() if version.is_dir() and not version.is_symlink()
+            for key in version.iterdir() if key.is_dir() and not key.is_symlink()
+            for p in key.iterdir() if p.is_dir() and not p.is_symlink()}
+
+
+def remove_owned_compiler_cache(cache, before):
+    created = compiler_cache_entries(cache) - before
+    rows = []
+    for p in sorted(created):
+        if p.is_symlink() or not p.is_relative_to(cache):
+            raise RuntimeError('Compiler cache ownership changed')
+        rows.append({'path':str(p),'logicalBytes':sum(f.stat().st_size for f in p.rglob('*') if f.is_file())})
+        shutil.rmtree(p)
+    if compiler_cache_entries(cache) - before:
+        raise RuntimeError('Owned compiler cache cleanup failed')
+    return rows
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--probe', type=Path, required=True)
@@ -52,6 +74,8 @@ def main():
     lockpath.parent.mkdir(parents=True, exist_ok=True)
     with lockpath.open('a') as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        compiler_cache = Path.home()/'Library/Caches'/args.probe.name/'com.apple.e5rt.e5bundlecache'
+        compiler_before = compiler_cache_entries(compiler_cache)
         root = Path(tempfile.mkdtemp(prefix="nextnotes-tts-asr-load-"))
         clone = root/'reference-model'
         command = [str(args.probe.resolve()),str(clone),str(clone/'parakeet_v3_vocab.json'),str(root/'unused.json'),'unused.wav']
@@ -60,6 +84,7 @@ def main():
             subprocess.run(['/bin/cp','-cRL',str(owner),str(clone)],check=True)
             child = subprocess.Popen(command, env={**os.environ,'ASR_LIVE':'1','TMPDIR':str(root)+'/'},
                 stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, start_new_session=True)
+            receipt['nativeWorkerPID'] = child.pid
             original_measure = asr_live.measure
             def workload(infer, languages):
                 audio, _, _ = asr_live.fixture('en')
@@ -98,6 +123,9 @@ def main():
             save(args.output/'receipt.json',receipt)
         # A failed save retains this one owned snapshot instead of deleting
         # the only recoverable evidence; no subsequent TTS model may start.
+        receipt['removedCompilerCache'] = remove_owned_compiler_cache(compiler_cache, compiler_before)
+        receipt['compilerCacheDeleted'] = True
+        save(args.output/'receipt.json',receipt)
         shutil.rmtree(root)
     receipt['temporaryAssetsDeleted'] = not root.exists()
     save(args.output/'receipt.json',receipt)

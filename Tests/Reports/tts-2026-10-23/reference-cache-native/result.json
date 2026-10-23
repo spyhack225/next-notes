@@ -1,0 +1,14 @@
+{
+  "compilerCacheDeleted": true,
+  "externalBundlesObserved": [
+    "/Users/sergekadjo/Library/Caches/runtime-probe/com.apple.e5rt.e5bundlecache/26B5091g/35C849E58C4E91B07B651AB810C979CC5165E8009DB9207C9DE194A0883C2895/BA70BA0DD59961D1558096274EE49E4398456EF5EC01B5FB69FCDDE6B1531CD9.tmp.8141_4332394256.bundle"
+  ],
+  "nativeJoined": true,
+  "ownerArtifactsUnchanged": true,
+  "pass": true,
+  "reason": "interrupt while external compiler bundle exists",
+  "remainingNewBundles": [],
+  "scope": "Native cancellation while compiler bundle exists, not timing/voice quality acceptance",
+  "temporaryAssetsDeleted": true,
+  "wrapperExit": 0
+}

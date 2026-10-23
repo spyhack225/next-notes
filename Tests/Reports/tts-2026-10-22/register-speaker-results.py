@@ -9,8 +9,9 @@ import argparse
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("--quiet", action="store_true", help="Register the owner-confirmed quiet attempt, preserving the earlier noisy records")
 parser.add_argument("--calibrated", action="store_true", help="Register the 23 October volume-bound cohort without replacing historical attempts")
+parser.add_argument("--serial", action="store_true", help="Register23October continuation after obsolete-build cleanup")
 args = parser.parse_args()
-quiet, calibrated = args.quiet, args.calibrated
+quiet, calibrated = args.quiet, args.calibrated or args.serial
 assert not (quiet and calibrated)
 
 repo = Path(__file__).resolve().parents[3]
@@ -27,6 +28,8 @@ if quiet:
     if final_phonon.exists(): selected['phonon'] = final_phonon
 if calibrated:
     selected = {engine: report/'calibrated-speaker'/f'{engine}.json' for engine in selected}
+if args.serial:
+    selected = {engine: report.parent/'tts-2026-10-23/serial-speaker'/f'{engine}.json' for engine in selected}
 names = dict(apple='macOS',pocket='Pocket',kokoro='Kokoro',phonon='Phonon31m',qwen='Qwen3-TTS0.6B4bit')
 for engine,path in selected.items():
     raw = json.loads(path.read_text())
@@ -100,4 +103,12 @@ for engine,path in selected.items():
                     item.update(samples=len(trials), boundary='Process-lifetime MLX counter across the completed31-request cohort; unified GPU allocation, not additive to RSS.')
             record['limitations'] = [x for x in record['limitations'] if not x.startswith('Only three warm')]
             record['limitations'].append('Smaller decoder batches completed synthesis but boundary continuity/intelligibility and the total disk-pressure allocating producer remain unproved; lower peak is a scoped observation, not a complete disk repair.')
+    if args.serial:
+        prefix = 'Tests/Reports/tts-2026-10-23/'
+        record.update(id=f'2026-10-23-tts-{engine}-speaker-serial', title=f'{names[engine]}: serial speaker continuation')
+        record['environment']['audio_route'] = 'Built-in speakers/microphone; native48000Hz mono float32; source gain0.75. Hardware output60%,input51%,unmuted checked at trial start/end. Original output12.5% restored after cohort. AirPods selected later, so further speaker tests paused pending owner permission.'
+        record['environment']['workload'] = 'Model prepares before its own paced cached native Parakeet-v3 reference decoder warms. Actual retained RPC responses overlap every completed timed request. Decoder load, not selected dictation-ASR/AEC/EOU/full-turn acceptance.'
+        record['limitations'][0] = 'Only Phonon and Pocket completed this60% cohort. Disk pressure refused Kokoro/Qwen and stopped Apple. Different-volume prior cohorts are retained separately; no fastest-five default promotion. AirPods route permission pending.'
+        record['provenance']['command'] = 'See serial-command.json. Same f8a214a3 diagnostic binary and30-varied-warm method; each result saved, both children joined and model snapshots deleted before next. External compiler artifact gap was discovered and cleaned afterward; native fixed cleanup proof is separate.'
+        record['sources'] = [str(path.relative_to(repo)),str((path.parent/'summary.json').relative_to(repo)),prefix+'README.md',prefix+'serial-source-pins.json',prefix+'serial-command.json',prefix+'serial-speaker/reference-progress-audit.json']
     (repo/'Benchmarks/runs'/f"{record['id']}.json").write_text(json.dumps(record,indent=2)+'\n')

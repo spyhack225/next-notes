@@ -19,13 +19,15 @@ class SerialModelsTest(unittest.TestCase):
         self.output.mkdir()
         self.app = self.root / "fake-app"
         self.app.write_text('''#!/usr/bin/env python3
-import json, pathlib, sys, time, tempfile
+import json, os, pathlib, sys, time, tempfile
 a = sys.argv
 def arg(k): return a[a.index(k) + 1]
 root = pathlib.Path(arg("--tts-model-root"))
 assert pathlib.Path(tempfile.gettempdir()).resolve() == root.resolve()
 (root / "fake-weight").write_bytes(b"test-only")
 engine = arg("--tts-engine")
+if os.environ.get('TTS_TEST_EXTERNAL_MODEL'):
+ external=pathlib.Path(os.environ['TTS_TEST_EXTERNAL_MODEL']);external.mkdir();(external/'model').write_bytes(b'compiled')
 if "--tts-reference-ready" in a:
  ready = pathlib.Path(arg("--tts-reference-ready"))
  assert not ready.exists(), "Reference must start after model preparation"
@@ -75,6 +77,17 @@ pathlib.Path(arg("--tts-report")).write_text(json.dumps({
             self.assertTrue((self.output / (engine + ".json")).exists())
         self.assertEqual(len(self.created), 2)
 
+    def test_external_phonon_compiler_model_removed_after_result_saved(self):
+        old = self.root/'flow-c414-t48-old.mlmodelc';old.mkdir()
+        new = self.root/'flow-c414-t48-new.mlmodelc'
+        with patch.object(bench,'phonon_compiler_temporaries',side_effect=lambda:set(self.root.glob('flow-c414-t48*.mlmodelc'))), patch.dict(os.environ,{'TTS_TEST_EXTERNAL_MODEL':str(new)}):
+            result=self.run_engine()
+        self.assertTrue(old.exists())
+        self.assertFalse(new.exists())
+        self.assertTrue(result['cleanupVerified'])
+        self.assertEqual(result['compilerTemporaryModelsRemoved'][0]['logicalBytes'],8)
+        self.assertTrue((self.output/'phonon.json').exists())
+
     def test_owned_reference_starts_after_prepare_and_joins_before_next_model(self):
         reference = self.root/'fake-reference.py'
         reference.write_text('''import os,sys,json,pathlib,signal,time
@@ -87,7 +100,7 @@ signal.signal(signal.SIGINT,end)
 (p/'ready.json').write_text(json.dumps({'active':True,'workerPID':os.getpid()}))
 while not stop:time.sleep(.01)
 (p/'ready.json').write_text(json.dumps({'active':False}))
-(p/'receipt.json').write_text(json.dumps(dict(childJoined=True,temporaryAssetsDeleted=True,ownerArtifactsUnchanged=True)))
+(p/'receipt.json').write_text(json.dumps(dict(childJoined=True,temporaryAssetsDeleted=True,ownerArtifactsUnchanged=True,compilerCacheDeleted=True)))
 ''')
         original = subprocess.Popen
         references = []

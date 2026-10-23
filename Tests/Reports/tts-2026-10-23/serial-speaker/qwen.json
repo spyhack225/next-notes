@@ -1,0 +1,14 @@
+{
+  "cleanupVerified": true,
+  "elapsedSeconds": 4.8832967877388e-05,
+  "engine": "qwen",
+  "freeBytesAfterCleanup": 1520230400,
+  "freeBytesBefore": 1520230400,
+  "reason": "Insufficient disk headroom for this one model.",
+  "referenceASRAfter": {
+    "active": false
+  },
+  "referenceASRBefore": null,
+  "status": "not-run",
+  "temporaryLogicalBytesBeforeCleanup": 4
+}

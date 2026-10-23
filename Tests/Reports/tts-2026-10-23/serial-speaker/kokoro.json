@@ -1,0 +1,14 @@
+{
+  "cleanupVerified": true,
+  "elapsedSeconds": 4.5332941226661205e-05,
+  "engine": "kokoro",
+  "freeBytesAfterCleanup": 2203430912,
+  "freeBytesBefore": 2203430912,
+  "reason": "Insufficient disk headroom for this one model.",
+  "referenceASRAfter": {
+    "active": false
+  },
+  "referenceASRBefore": null,
+  "status": "not-run",
+  "temporaryLogicalBytesBeforeCleanup": 6
+}
