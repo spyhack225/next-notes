@@ -5,8 +5,9 @@
   "private_voice_turn_records_excluded": 2,
   "catalog_tests": 15,
   "comparison_tests": 8,
-  "browser_checks": 34,
+  "browser_checks": 36,
   "build": "passed",
   "lint": "passed",
-  "app_or_owner_data_modified_by_this_task": false
+  "app_or_owner_data_modified_by_this_task": false,
+  "production_verified": true
 }

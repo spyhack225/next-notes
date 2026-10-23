@@ -1,5 +1,5 @@
 {
-  "checks": 34,
+  "checks": 36,
   "passed": [
     "French cohort keeps English-only gap",
     "Scatter plots seven accepted French values",
@@ -34,7 +34,9 @@
     "No-metric report does not invent a zero",
     "Reviewed report export excludes raw provenance",
     "Report loads its own-site detail chunk without fetching GitHub or Markdown",
-    "Report navigation puts keyboard focus on its heading"
+    "Report navigation puts keyboard focus on its heading",
+    "Production comparison and report catalog render",
+    "Production report loads findings, conditions and source links on-site"
   ],
   "viewports": [
     390,
@@ -43,5 +45,6 @@
   ],
   "network_overrides_restored": true,
   "viewport_restored": true,
-  "original_import_retry": "Actual blocked detail import stayed rejected after unblock/in-document retry. Fixed reload recovers the same report and preserves measurements during failure."
+  "original_import_retry": "Actual blocked detail import stayed rejected after unblock/in-document retry. Fixed reload recovers the same report and preserves measurements during failure.",
+  "production_verified": true
 }

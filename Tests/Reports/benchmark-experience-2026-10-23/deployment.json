@@ -1,0 +1,28 @@
+{
+  "site": "https://next-notes.com/?page=benchmarks",
+  "source_commit": "084291c4a5c280bc662a5b0dd6c81cbb46d8186d",
+  "deployment": "e672ca64-82fd-497b-8755-980fc0c83532",
+  "deployment_phase": "ACTIVE",
+  "assets": [
+    {
+      "asset": "index-DwXkG8n4.js",
+      "bytes": 531974,
+      "sha256": "a8d5e6d75b368af2af31e25af34df51ecc68d715abda90c25ca460e3e9076294",
+      "matches": true
+    },
+    {
+      "asset": "Benchmarks-CKtED_FZ.js",
+      "bytes": 197995,
+      "sha256": "528cf36a2cd7d0b5260ee38dc2de8da5e85c5e7d215311090cee7d8c8ef3dd9a",
+      "matches": true
+    },
+    {
+      "asset": "2026-10-22-asr-signed-app-voz-DSuc0wU0.js",
+      "bytes": 1566,
+      "sha256": "90200b13c1cc7cffc062e531f13028f9fc1c953bb840c31731ce6357fa73e34c",
+      "matches": true
+    }
+  ],
+  "catalog_ci": "https://github.com/spyhack225/next-notes/actions/runs/39912762651",
+  "catalog_ci_status": "success"
+}

@@ -65,6 +65,7 @@ Discovery inventory, not a claim that every file is a benchmark or that its chec
 | [Tests/Reports/benchmark-experience-2026-10-23/browser-checks.json](../../Tests/Reports/benchmark-experience-2026-10-23/browser-checks.json) |
 | [Tests/Reports/benchmark-experience-2026-10-23/build.log](../../Tests/Reports/benchmark-experience-2026-10-23/build.log) |
 | [Tests/Reports/benchmark-experience-2026-10-23/comparison-tests.log](../../Tests/Reports/benchmark-experience-2026-10-23/comparison-tests.log) |
+| [Tests/Reports/benchmark-experience-2026-10-23/deployment.json](../../Tests/Reports/benchmark-experience-2026-10-23/deployment.json) |
 | [Tests/Reports/benchmark-experience-2026-10-23/fixed-report-boundary.log](../../Tests/Reports/benchmark-experience-2026-10-23/fixed-report-boundary.log) |
 | [Tests/Reports/benchmark-experience-2026-10-23/format.log](../../Tests/Reports/benchmark-experience-2026-10-23/format.log) |
 | [Tests/Reports/benchmark-experience-2026-10-23/lint.log](../../Tests/Reports/benchmark-experience-2026-10-23/lint.log) |

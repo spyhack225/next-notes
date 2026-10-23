@@ -25,3 +25,11 @@ Shareable query URLs preserve cohort, language, measurement, chart, model exclus
 ## Storage
 
 Initial available disk space was approximately 106 MiB. Removed only this release owner's redundant `NextNotes-0.2.24.dmg` after SHA equality with the retained stable twin; both public release assets also remain available. Approximately 63 MB logical bytes unlinked. No unrelated cache/model cleanup was performed. Peer-owned cleanup subsequently restored the shared build window. Current native/rollback builds and owner data remain intact.
+
+## Production receipt
+
+Published main `084291c4`; [CI39912762651](https://github.com/spyhack225/next-notes/actions/runs/39912762651) passes the catalog, comparison tests, lint and production build. DigitalOcean deployment `e672ca64-82fd-497b-8755-980fc0c83532` is ACTIVE. [Live benchmark page](https://next-notes.com/?page=benchmarks) and the [live Voz report](https://next-notes.com/?page=benchmarks&run=2026-10-22-asr-signed-app-voz) were verified in the browser.
+
+The live entry bundle, benchmark bundle and an actual detail bundle match committed build bytes exactly ([receipt](deployment.json)). There are82 registry records and71 reviewed public reports; the two newly committed voice-turn records remain private to the catalog and have no public detail chunks. Thirty-nine expanded narratives retain every original metric, scope, summary, status, date and environment. Final verification:15 catalog tests,8 cohort/comparison tests,36 browser checks, production build/typecheck and lint pass. No new model or broader application acceptance is implied.
+
+[Live comparison](live-comparison.png), [live report](live-report.png), [mobile](mobile.png), and the reproduced [original failed import](original-import-retry.png). Browser viewport/network/motion overrides are restored; temporary tabs and the owned preview server are closed at handoff. Concurrent native follow-up files remain untouched. The installed app and owner data were not replaced or read by this website task.
