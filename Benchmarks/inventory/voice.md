@@ -315,7 +315,16 @@ Discovery inventory, not a claim that every file is a benchmark or that its chec
 | [Tests/Reports/voice-production/2026-10-01-p3-06a/wake-isolated-voice-turns.txt](../../Tests/Reports/voice-production/2026-10-01-p3-06a/wake-isolated-voice-turns.txt) |
 | [Tests/Reports/voice-production/2026-10-01-p3-06a/wake-isolated-voice-work-lifecycle.txt](../../Tests/Reports/voice-production/2026-10-01-p3-06a/wake-isolated-voice-work-lifecycle.txt) |
 | [Tests/Reports/voice-turn-2026-10-23/README.md](../../Tests/Reports/voice-turn-2026-10-23/README.md) |
+| [Tests/Reports/voice-turn-2026-10-23/bundle-preflight-controls.json](../../Tests/Reports/voice-turn-2026-10-23/bundle-preflight-controls.json) |
 | [Tests/Reports/voice-turn-2026-10-23/candidate-signing.log](../../Tests/Reports/voice-turn-2026-10-23/candidate-signing.log) |
+| [Tests/Reports/voice-turn-2026-10-23/collector-metadata-build.json](../../Tests/Reports/voice-turn-2026-10-23/collector-metadata-build.json) |
+| [Tests/Reports/voice-turn-2026-10-23/collector-metadata-controls.json](../../Tests/Reports/voice-turn-2026-10-23/collector-metadata-controls.json) |
+| [Tests/Reports/voice-turn-2026-10-23/collector-metadata-controls.json.log](../../Tests/Reports/voice-turn-2026-10-23/collector-metadata-controls.json.log) |
+| [Tests/Reports/voice-turn-2026-10-23/collector-metadata-controls.json.receipt.json](../../Tests/Reports/voice-turn-2026-10-23/collector-metadata-controls.json.receipt.json) |
+| [Tests/Reports/voice-turn-2026-10-23/collector-metadata-packaging.log](../../Tests/Reports/voice-turn-2026-10-23/collector-metadata-packaging.log) |
+| [Tests/Reports/voice-turn-2026-10-23/collector-metadata-policy.log](../../Tests/Reports/voice-turn-2026-10-23/collector-metadata-policy.log) |
+| [Tests/Reports/voice-turn-2026-10-23/collector-metadata-source-pins.json](../../Tests/Reports/voice-turn-2026-10-23/collector-metadata-source-pins.json) |
+| [Tests/Reports/voice-turn-2026-10-23/collector-metadata-verdict.json](../../Tests/Reports/voice-turn-2026-10-23/collector-metadata-verdict.json) |
 | [Tests/Reports/voice-turn-2026-10-23/environment.json](../../Tests/Reports/voice-turn-2026-10-23/environment.json) |
 | [Tests/Reports/voice-turn-2026-10-23/export-differential-summary.json](../../Tests/Reports/voice-turn-2026-10-23/export-differential-summary.json) |
 | [Tests/Reports/voice-turn-2026-10-23/final-app-build.json](../../Tests/Reports/voice-turn-2026-10-23/final-app-build.json) |
@@ -340,6 +349,8 @@ Discovery inventory, not a claim that every file is a benchmark or that its chec
 | [Tests/Reports/voice-turn-2026-10-23/policy-original-bundle-rpath-failure.log](../../Tests/Reports/voice-turn-2026-10-23/policy-original-bundle-rpath-failure.log) |
 | [Tests/Reports/voice-turn-2026-10-23/policy.log](../../Tests/Reports/voice-turn-2026-10-23/policy.log) |
 | [Tests/Reports/voice-turn-2026-10-23/preservation-before.json](../../Tests/Reports/voice-turn-2026-10-23/preservation-before.json) |
+| [Tests/Reports/voice-turn-2026-10-23/preservation-metadata-after.json](../../Tests/Reports/voice-turn-2026-10-23/preservation-metadata-after.json) |
+| [Tests/Reports/voice-turn-2026-10-23/preservation-metadata-verdict.json](../../Tests/Reports/voice-turn-2026-10-23/preservation-metadata-verdict.json) |
 | [Tests/Reports/voice-turn-2026-10-23/preservation-native-after.json](../../Tests/Reports/voice-turn-2026-10-23/preservation-native-after.json) |
 | [Tests/Reports/voice-turn-2026-10-23/preservation-native-before.json](../../Tests/Reports/voice-turn-2026-10-23/preservation-native-before.json) |
 | [Tests/Reports/voice-turn-2026-10-23/preservation-pre-app.json](../../Tests/Reports/voice-turn-2026-10-23/preservation-pre-app.json) |
@@ -350,6 +361,7 @@ Discovery inventory, not a claim that every file is a benchmark or that its chec
 | [Tests/Reports/voice-turn-2026-10-23/reference-receipt.json](../../Tests/Reports/voice-turn-2026-10-23/reference-receipt.json) |
 | [Tests/Reports/voice-turn-2026-10-23/reference-resumed-receipt.json](../../Tests/Reports/voice-turn-2026-10-23/reference-resumed-receipt.json) |
 | [Tests/Reports/voice-turn-2026-10-23/review-repairs-parse.log](../../Tests/Reports/voice-turn-2026-10-23/review-repairs-parse.log) |
+| [Tests/Reports/voice-turn-2026-10-23/source-commit-verification.json](../../Tests/Reports/voice-turn-2026-10-23/source-commit-verification.json) |
 | [Tests/Reports/website-to-mac/reliability-quit-preparation-2026-10-03/voice-current/README.md](../../Tests/Reports/website-to-mac/reliability-quit-preparation-2026-10-03/voice-current/README.md) |
 | [Tests/Reports/website-to-mac/reliability-quit-preparation-2026-10-03/voice-current/manifest.json](../../Tests/Reports/website-to-mac/reliability-quit-preparation-2026-10-03/voice-current/manifest.json) |
 | [Tests/Reports/website-to-mac/reliability-quit-preparation-2026-10-03/voice-current/prepare-candidates.py.txt](../../Tests/Reports/website-to-mac/reliability-quit-preparation-2026-10-03/voice-current/prepare-candidates.py.txt) |

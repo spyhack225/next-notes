@@ -97,7 +97,7 @@ Status describes the stated scope only. A measured component is not production a
 - [Dictation](inventory/dictation.md): 565 evidence files.
 - [Meetings](inventory/meetings.md): 1143 evidence files.
 - [Agent](inventory/agent.md): 477 evidence files.
-- [Voice](inventory/voice.md): 357 evidence files.
+- [Voice](inventory/voice.md): 369 evidence files.
 - [Tts](inventory/tts.md): 362 evidence files.
 - [Workflows](inventory/workflows.md): 176 evidence files.
 - [Models](inventory/models.md): 20 evidence files.

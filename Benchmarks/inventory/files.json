@@ -13302,7 +13302,43 @@
       "category": "voice"
     },
     {
+      "path": "Tests/Reports/voice-turn-2026-10-23/bundle-preflight-controls.json",
+      "category": "voice"
+    },
+    {
       "path": "Tests/Reports/voice-turn-2026-10-23/candidate-signing.log",
+      "category": "voice"
+    },
+    {
+      "path": "Tests/Reports/voice-turn-2026-10-23/collector-metadata-build.json",
+      "category": "voice"
+    },
+    {
+      "path": "Tests/Reports/voice-turn-2026-10-23/collector-metadata-controls.json",
+      "category": "voice"
+    },
+    {
+      "path": "Tests/Reports/voice-turn-2026-10-23/collector-metadata-controls.json.log",
+      "category": "voice"
+    },
+    {
+      "path": "Tests/Reports/voice-turn-2026-10-23/collector-metadata-controls.json.receipt.json",
+      "category": "voice"
+    },
+    {
+      "path": "Tests/Reports/voice-turn-2026-10-23/collector-metadata-packaging.log",
+      "category": "voice"
+    },
+    {
+      "path": "Tests/Reports/voice-turn-2026-10-23/collector-metadata-policy.log",
+      "category": "voice"
+    },
+    {
+      "path": "Tests/Reports/voice-turn-2026-10-23/collector-metadata-source-pins.json",
+      "category": "voice"
+    },
+    {
+      "path": "Tests/Reports/voice-turn-2026-10-23/collector-metadata-verdict.json",
       "category": "voice"
     },
     {
@@ -13406,6 +13442,14 @@
       "category": "voice"
     },
     {
+      "path": "Tests/Reports/voice-turn-2026-10-23/preservation-metadata-after.json",
+      "category": "voice"
+    },
+    {
+      "path": "Tests/Reports/voice-turn-2026-10-23/preservation-metadata-verdict.json",
+      "category": "voice"
+    },
+    {
       "path": "Tests/Reports/voice-turn-2026-10-23/preservation-native-after.json",
       "category": "voice"
     },
@@ -13447,6 +13491,10 @@
     },
     {
       "path": "Tests/Reports/voice-turn-2026-10-23/review-repairs-parse.log",
+      "category": "voice"
+    },
+    {
+      "path": "Tests/Reports/voice-turn-2026-10-23/source-commit-verification.json",
       "category": "voice"
     },
     {
