@@ -85,7 +85,7 @@ function render(run?: (typeof runs)[number]) {
     run ? reportPath(run.id).slice(1) : benchmarkPath.slice(1),
   );
   mkdirSync(directory, { recursive: true });
-  writeFileSync(resolve(directory, "index.html"), html);
+  writeFileSync(resolve(directory, "index.html"), html.replace(/[ \t]+$/gm, ""));
 }
 // This directory is exclusively generated. Revoked publications must disappear.
 rmSync(resolve(output, "benchmarks"), { recursive: true, force: true });

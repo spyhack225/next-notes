@@ -1,1 +1,24 @@
-{"state":"pending production verification"}
+{
+  "verified_at_utc": "2026-10-23T07:29:00Z",
+  "source_commit": "8886eb8e55f75476a8570593d9600b78c5c35ba4",
+  "public_html_documents_verified": 72,
+  "sitemap_urls_verified": 73,
+  "checks": [
+    "HTTP success for every canonical benchmark URL",
+    "initial title, canonical and parsed JSON-LD match local build",
+    "complete HTML matches after removing trailing line whitespace",
+    "live XML sitemap exactly matches build"
+  ],
+  "response_hashes_sha256": "61203e881ece243ff72b225bac5d0d76c5e2ace2878885cd5d23d8d196d74d13",
+  "schema_org": {
+    "index_errors": 0,
+    "index_warnings": 0,
+    "sample_report_errors": 0,
+    "sample_report_warnings": 0
+  },
+  "google_rich_results": {
+    "sample_report_valid_breadcrumb_items": 1,
+    "result_url": "https://search.google.com/test/rich-results/result?id=wDcPQ9Yb8PIZsyBaatLOJA"
+  },
+  "search_console_submission": "not performed"
+}

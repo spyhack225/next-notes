@@ -18,6 +18,7 @@ Build generation replaces only its owned `docs/benchmarks/` directory, so revoke
 - Build-time validator checks all 72 HTML documents: unique canonical and description, exact parsed JSON-LD, fallback content, real asset paths, sitemap membership and generated directory membership. Tests include legacy/path routing, unavailable reports and script-termination escaping.
 - Schema.org Validator code-snippet tests on generated index and representative Apple report: zero errors, zero warnings. Screenshots retained alongside this report.
 - Browser checks: nested report loads original UI, back navigation updates metadata/schema to the index, legacy query opens the correct report and canonical, missing report is excluded from indexing.
-- Production verification recorded separately after deployment.
+- Production: all 72 canonical HTML documents match the local build (allowing trailing-line whitespace cleanup); live 73-URL XML sitemap matches exactly. See production.json. Deployment 4ee59e8f-6e25-450b-890c-963998c1ac74 serves implementation commit 8886eb8e; GitHub benchmark CI39917830460 passes.
+- Google Rich Results Test on the representative report detects one valid Breadcrumbs item. Report is descriptive Schema.org vocabulary, not a separate promised Google rich-result feature. See google-rich-results.png and the result URL in production.json.
 
 References: [Google structured-data policies](https://developers.google.com/search/docs/appearance/structured-data/sd-policies), [Google breadcrumbs](https://developers.google.com/search/docs/appearance/structured-data/breadcrumb), [Schema.org Report](https://schema.org/Report). Valid markup does not guarantee indexing or rich-result appearance. Search Console submission/account inspection was not performed.
