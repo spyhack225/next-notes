@@ -11,6 +11,12 @@ The [benchmark hub](Benchmarks/README.md) indexes model and workflow evidence ac
 
 ## Reference machine and acceptance
 
+Subsequent explicit owner choice: Phonon is now the saved temporary TTS preference
+(`phonon-owner-selection.json` in the23October TTS report). This is not a fastest-five
+qualification. Current process/model readiness/playback remain unverified: UI access
+fails and disk space prevents ordinary guarded Phonon installation. All five Settings
+choices remain. Earlier unchanged-default statements below describe their run times.
+
 23 October resumed TTS work: [cleanup and external compiler lifetime](Tests/Reports/tts-2026-10-23/README.md).
 Owner-authorized obsolete installer/module cleanup and verified old-symbol compression recover an
 observed1.43GiB; current/rollback/runtime builds stay. New60% physical cohort completes Phonon30/30

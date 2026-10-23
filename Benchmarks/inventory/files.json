@@ -11986,6 +11986,10 @@
       "category": "tts"
     },
     {
+      "path": "Tests/Reports/tts-2026-10-23/phonon-owner-selection.json",
+      "category": "tts"
+    },
+    {
       "path": "Tests/Reports/tts-2026-10-23/preferences-before.json",
       "category": "tts"
     },

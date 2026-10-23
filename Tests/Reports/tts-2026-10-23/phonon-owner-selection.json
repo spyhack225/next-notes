@@ -1,0 +1,16 @@
+{
+  "timeUTC": "2026-10-23T05:41:08.718903+00:00",
+  "reason": "Explicit owner request: temporary Phonon default, retain all five choices, disclose benchmark limitations",
+  "previousEngine": "pocket",
+  "savedEngine": "phonon",
+  "scope": "Owner saved preference; current process reload and Phonon playback not verified. No global fallback or other owner choice changed.",
+  "activationBlocker": "Native UI unavailable; production Phonon assets were not retained from temporary benchmarks. Insufficient stable disk headroom for normal guarded download.",
+  "freeBytes": 208142336,
+  "choicesRetained": [
+    "apple",
+    "pocket",
+    "kokoro",
+    "qwen",
+    "phonon"
+  ]
+}

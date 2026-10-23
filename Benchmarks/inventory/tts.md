@@ -323,6 +323,7 @@ Discovery inventory, not a claim that every file is a benchmark or that its chec
 | [Tests/Reports/tts-2026-10-23/light-volume-before.json](../../Tests/Reports/tts-2026-10-23/light-volume-before.json) |
 | [Tests/Reports/tts-2026-10-23/light-volume-during.json](../../Tests/Reports/tts-2026-10-23/light-volume-during.json) |
 | [Tests/Reports/tts-2026-10-23/obsolete-diagnostic-sdk-downloads.json](../../Tests/Reports/tts-2026-10-23/obsolete-diagnostic-sdk-downloads.json) |
+| [Tests/Reports/tts-2026-10-23/phonon-owner-selection.json](../../Tests/Reports/tts-2026-10-23/phonon-owner-selection.json) |
 | [Tests/Reports/tts-2026-10-23/preferences-before.json](../../Tests/Reports/tts-2026-10-23/preferences-before.json) |
 | [Tests/Reports/tts-2026-10-23/preservation.json](../../Tests/Reports/tts-2026-10-23/preservation.json) |
 | [Tests/Reports/tts-2026-10-23/reference-cache-native/result.json](../../Tests/Reports/tts-2026-10-23/reference-cache-native/result.json) |

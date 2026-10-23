@@ -153,3 +153,17 @@ AirPods reconnection remains incomplete, not silently claimed successful. No app
 was changed: Pocket/Alba stays selected, installed809 remains unchanged. The machine heavy
 claim was released and the voice-turn agent received the partial evidence/resource blocker;
 its bounded upstream differential/build may proceed subject to its own resource checks.
+
+## Subsequent owner-selected temporary default
+
+The owner explicitly requested Phonon as the temporary default, preserving all five
+Settings choices and the benchmark limitations. `phonon-owner-selection.json` records
+the saved preference changing from pocket to phonon, independently read back. This is
+an owner choice, not performance promotion: Phonon264ms beat Pocket293ms in the completed
+60% cohort; Apple160ms belongs to a different38% cohort, while Qwen/Kokoro remain incomplete.
+The installed running process was not restarted or rebuilt. Native UI observation remains
+unavailable. Phonon benchmark assets were deleted as requested, and ordinary guarded
+production download requires more stable headroom than is available. Therefore effective
+running selection/model readiness/playback are unverified; saved preference alone is not
+a Phonon playback receipt. No download reserve, global new-user fallback or other preference
+was changed; existing all-five Settings selector/preparation serialization remain intact.
