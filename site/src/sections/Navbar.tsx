@@ -6,6 +6,7 @@ const links = [
   { label: "Who it's for", href: "#who" },
   { label: "How it works", href: "#how-it-works" },
   { label: "Privacy", href: "#privacy" },
+  { label: "Benchmarks", href: "?page=benchmarks" },
 ];
 
 export default function Navbar() {

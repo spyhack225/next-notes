@@ -1358,6 +1358,46 @@
       "category": "asr"
     },
     {
+      "path": "Tests/Reports/benchmark-experience-2026-10-23/README.md",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/benchmark-experience-2026-10-23/browser-checks.json",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/benchmark-experience-2026-10-23/build.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/benchmark-experience-2026-10-23/comparison-tests.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/benchmark-experience-2026-10-23/fixed-report-boundary.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/benchmark-experience-2026-10-23/format.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/benchmark-experience-2026-10-23/lint.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/benchmark-experience-2026-10-23/original-report-boundary.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/benchmark-experience-2026-10-23/typecheck.log",
+      "category": "other"
+    },
+    {
+      "path": "Tests/Reports/benchmark-experience-2026-10-23/verification.json",
+      "category": "other"
+    },
+    {
       "path": "Tests/Reports/computer-use/2026-10-01-cu02/baseline-compile.txt",
       "category": "workflows"
     },
@@ -13251,6 +13291,158 @@
     },
     {
       "path": "Tests/Reports/voice-production/2026-10-01-p3-06a/wake-isolated-voice-work-lifecycle.txt",
+      "category": "voice"
+    },
+    {
+      "path": "Tests/Reports/voice-turn-2026-10-23/README.md",
+      "category": "voice"
+    },
+    {
+      "path": "Tests/Reports/voice-turn-2026-10-23/candidate-signing.log",
+      "category": "voice"
+    },
+    {
+      "path": "Tests/Reports/voice-turn-2026-10-23/environment.json",
+      "category": "voice"
+    },
+    {
+      "path": "Tests/Reports/voice-turn-2026-10-23/export-differential-summary.json",
+      "category": "voice"
+    },
+    {
+      "path": "Tests/Reports/voice-turn-2026-10-23/final-app-build.json",
+      "category": "voice"
+    },
+    {
+      "path": "Tests/Reports/voice-turn-2026-10-23/final-cleanup.json",
+      "category": "dictation"
+    },
+    {
+      "path": "Tests/Reports/voice-turn-2026-10-23/final-policy.log",
+      "category": "voice"
+    },
+    {
+      "path": "Tests/Reports/voice-turn-2026-10-23/final-source-pins.json",
+      "category": "voice"
+    },
+    {
+      "path": "Tests/Reports/voice-turn-2026-10-23/first-app-build.json",
+      "category": "voice"
+    },
+    {
+      "path": "Tests/Reports/voice-turn-2026-10-23/fixtures/fixtures.json",
+      "category": "voice"
+    },
+    {
+      "path": "Tests/Reports/voice-turn-2026-10-23/model-source-pins.json",
+      "category": "voice"
+    },
+    {
+      "path": "Tests/Reports/voice-turn-2026-10-23/native-endpoints-score.json",
+      "category": "voice"
+    },
+    {
+      "path": "Tests/Reports/voice-turn-2026-10-23/native-endpoints-score.log",
+      "category": "voice"
+    },
+    {
+      "path": "Tests/Reports/voice-turn-2026-10-23/native-endpoints-summary.json",
+      "category": "voice"
+    },
+    {
+      "path": "Tests/Reports/voice-turn-2026-10-23/native-endpoints.json",
+      "category": "voice"
+    },
+    {
+      "path": "Tests/Reports/voice-turn-2026-10-23/native-endpoints.json.log",
+      "category": "voice"
+    },
+    {
+      "path": "Tests/Reports/voice-turn-2026-10-23/native-endpoints.json.receipt.json",
+      "category": "voice"
+    },
+    {
+      "path": "Tests/Reports/voice-turn-2026-10-23/native-models-receipt.json",
+      "category": "voice"
+    },
+    {
+      "path": "Tests/Reports/voice-turn-2026-10-23/native-models-summary.json",
+      "category": "voice"
+    },
+    {
+      "path": "Tests/Reports/voice-turn-2026-10-23/native-models.json",
+      "category": "voice"
+    },
+    {
+      "path": "Tests/Reports/voice-turn-2026-10-23/native-models.log",
+      "category": "voice"
+    },
+    {
+      "path": "Tests/Reports/voice-turn-2026-10-23/offline-scorer.log",
+      "category": "voice"
+    },
+    {
+      "path": "Tests/Reports/voice-turn-2026-10-23/onnx-reference-artifact.json",
+      "category": "voice"
+    },
+    {
+      "path": "Tests/Reports/voice-turn-2026-10-23/parse.log",
+      "category": "voice"
+    },
+    {
+      "path": "Tests/Reports/voice-turn-2026-10-23/policy-original-bundle-rpath-failure.log",
+      "category": "voice"
+    },
+    {
+      "path": "Tests/Reports/voice-turn-2026-10-23/policy.log",
+      "category": "voice"
+    },
+    {
+      "path": "Tests/Reports/voice-turn-2026-10-23/preservation-before.json",
+      "category": "voice"
+    },
+    {
+      "path": "Tests/Reports/voice-turn-2026-10-23/preservation-native-after.json",
+      "category": "voice"
+    },
+    {
+      "path": "Tests/Reports/voice-turn-2026-10-23/preservation-native-before.json",
+      "category": "voice"
+    },
+    {
+      "path": "Tests/Reports/voice-turn-2026-10-23/preservation-pre-app.json",
+      "category": "voice"
+    },
+    {
+      "path": "Tests/Reports/voice-turn-2026-10-23/preservation-verdict.json",
+      "category": "voice"
+    },
+    {
+      "path": "Tests/Reports/voice-turn-2026-10-23/probe-build.log",
+      "category": "voice"
+    },
+    {
+      "path": "Tests/Reports/voice-turn-2026-10-23/probe-module-cache-cleanup.json",
+      "category": "dictation"
+    },
+    {
+      "path": "Tests/Reports/voice-turn-2026-10-23/reference-model.json",
+      "category": "voice"
+    },
+    {
+      "path": "Tests/Reports/voice-turn-2026-10-23/reference-model.log",
+      "category": "voice"
+    },
+    {
+      "path": "Tests/Reports/voice-turn-2026-10-23/reference-receipt.json",
+      "category": "voice"
+    },
+    {
+      "path": "Tests/Reports/voice-turn-2026-10-23/reference-resumed-receipt.json",
+      "category": "voice"
+    },
+    {
+      "path": "Tests/Reports/voice-turn-2026-10-23/review-repairs-parse.log",
       "category": "voice"
     },
     {

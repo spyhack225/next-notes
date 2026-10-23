@@ -45,7 +45,22 @@
   ],
   "publication": {
     "approved": true,
-    "reviewed_by": "benchmark-hub-20261022",
-    "reviewed_on": "2026-10-22"
+    "reviewed_by": "benchmark-experience-20261023",
+    "reviewed_on": "2026-10-23"
+  },
+  "report": {
+    "method": [
+      "Historical offline decision-classification harness"
+    ],
+    "findings": [
+      "69.6% exact-tool accuracy; 89.3 ms median decision latency on 112 fixtures."
+    ],
+    "source_links": [
+      {
+        "label": "Original method and results",
+        "path": "bench/decision-gate/report.md"
+      }
+    ],
+    "reproduction": []
   }
 }

@@ -1,0 +1,1 @@
+var e={id:`2026-09-13-tts-apple`,purpose:`Understand the wait for a voice response. Generating audio and hearing it are separate measurements.`,method:[`Generated PCM callback`],findings:[`201.8 ms warm median first generated PCM; 450.3 ms first trial.`],next_steps:[],source_links:[],reproduction:[]};export{e as default};

@@ -1,0 +1,13 @@
+{
+  "id": "2026-10-22-tts-apple-speaker-calibration",
+  "purpose": "Understand the wait for a voice response. Generating audio and hearing it are separate measurements.",
+  "method": [
+    "Historical two-request collector calibration using converted16k microphone buffers; superseded by native-format microphone observation."
+  ],
+  "findings": [
+    "Original collector returned1247ms then299ms microphone pickup. Later loaded tests exposed converted-buffer host-window regressions; these historical values are not current qualified speaker timing or default evidence."
+  ],
+  "next_steps": [],
+  "source_links": [],
+  "reproduction": []
+}

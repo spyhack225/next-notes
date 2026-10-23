@@ -43,7 +43,25 @@
   ],
   "publication": {
     "approved": true,
-    "reviewed_by": "benchmark-hub-20261022",
-    "reviewed_on": "2026-10-22"
+    "reviewed_by": "benchmark-experience-20261023",
+    "reviewed_on": "2026-10-23"
+  },
+  "report": {
+    "method": [
+      "A historical cleanup comparison uses a matching 42-assertion evaluation. The failed-assertion count and median cleanup time describe different dimensions.",
+      "Retained Gemma configurations vary; no single median or quality score is assigned to that result. These configurations do not establish current whole-app delivery performance."
+    ],
+    "findings": [
+      "11/42 failed assertions; 8.58 s median cleanup. Historical tested configuration.",
+      "Apple passed all 42 assertions in the retained suite. MiniCPM was faster but failed 3, Qwen3 failed 8 and Qwen3.5 failed 11. Speed and quality must be read together; these are historical observations."
+    ],
+    "source_links": [
+      {
+        "label": "Original method and results",
+        "path": "Tests/Reports/MODEL-COMPARE-CLEANUP-2026-09-30.md"
+      }
+    ],
+    "reproduction": [],
+    "purpose": "How much waiting does text cleanup add, and does the configuration preserve the meaning and formatting the fixture requires?"
   }
 }

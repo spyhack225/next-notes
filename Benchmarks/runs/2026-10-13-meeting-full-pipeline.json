@@ -37,7 +37,22 @@
   ],
   "publication": {
     "approved": true,
-    "reviewed_by": "benchmark-hub-20261022",
-    "reviewed_on": "2026-10-22"
+    "reviewed_by": "benchmark-experience-20261023",
+    "reviewed_on": "2026-10-23"
+  },
+  "report": {
+    "method": [
+      "Scoped installed native checks and retained long-call audit"
+    ],
+    "findings": [
+      "21 scoped checks pass; saved audio coverage, hardware routes and semantic acceptance remain open."
+    ],
+    "source_links": [
+      {
+        "label": "Original method and results",
+        "path": "Tests/Reports/meeting-reliability/2026-10-13-full-pipeline/ROADMAP.md"
+      }
+    ],
+    "reproduction": []
   }
 }

@@ -1,0 +1,18 @@
+{
+  "id": "2026-09-23-decision-laya-typed-decisions",
+  "purpose": "Understand the model trade-off measured here, under its stated fixture and workload.",
+  "method": [
+    "Historical offline decision-classification harness"
+  ],
+  "findings": [
+    "74.1% exact-tool accuracy; 462.3 ms median decision latency on 112 fixtures."
+  ],
+  "next_steps": [],
+  "source_links": [
+    {
+      "label": "Original method and results",
+      "path": "bench/decision-gate/report.md"
+    }
+  ],
+  "reproduction": []
+}

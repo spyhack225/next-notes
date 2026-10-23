@@ -1,0 +1,20 @@
+
+> nextnotes-site@0.0.0 test
+> node --test tests/benchmarks.test.ts
+
+✔ speech comparison uses all eight actual app results and preserves English-only gaps (0.797792ms)
+✔ physical speaker cohorts do not silently combine accepted values across volume/route (0.733333ms)
+✔ failure and survivor-only medians cannot enter a ranked comparison (0.070709ms)
+✔ real zero is retained, and variable historical configurations remain unranked (0.100041ms)
+✔ index filters combine and keep stable ordering and whitespace handling (6.7165ms)
+✔ unit mismatches and incomplete acoustic sample counts cannot be ranked (0.105041ms)
+✔ earlier word-error charts use their own runtime records rather than app latency (0.129ms)
+✔ historical tool-selection latency has four matching fixture records (0.0835ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 114.735292

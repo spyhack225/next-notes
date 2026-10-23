@@ -11,7 +11,8 @@
     "typecheck": "tsc -b --noEmit",
     "lint": "oxlint",
     "deploy": "bash scripts/deploy.sh",
-    "prebuild": "python3 ../Scripts/benchmarks.py render"
+    "prebuild": "python3 ../Scripts/benchmarks.py render",
+    "test": "node --test tests/benchmarks.test.ts"
   },
   "dependencies": {
     "@fontsource/instrument-serif": "^5.3.0",

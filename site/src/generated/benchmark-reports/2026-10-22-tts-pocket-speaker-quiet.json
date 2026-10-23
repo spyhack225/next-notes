@@ -1,0 +1,13 @@
+{
+  "id": "2026-10-22-tts-pocket-speaker-quiet",
+  "purpose": "Understand the wait for a voice response. Generating audio and hearing it are separate measurements.",
+  "method": [
+    "Actual production playback backing with native48k mono microphone observation under paced native Parakeet-v3 decoder load. Threshold-qualified arrival, not human perception or full-turn latency."
+  ],
+  "findings": [
+    "30/30 warm pickups qualified. Complete threshold-qualified microphone median accepted for this route/workload; default promotion remains a separate contract."
+  ],
+  "next_steps": [],
+  "source_links": [],
+  "reproduction": []
+}

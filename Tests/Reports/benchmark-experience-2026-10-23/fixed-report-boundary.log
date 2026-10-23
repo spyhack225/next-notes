@@ -1,0 +1,10 @@
+...............
+----------------------------------------------------------------------
+Ran 15 tests in 0.368s
+
+OK
+BENCHMARK_CATALOG_OK: 1 runs, 13 generated files
+BENCHMARK_CATALOG_OK: 1 runs, 13 generated files
+BENCHMARK_AUDIT_OK: 1 Git refs, 1 preserved snapshots, 1 worktrees
+BENCHMARK_CATALOG_OK: 1 runs, 14 generated files
+BENCHMARK_CATALOG_OK: 1 runs, 13 generated files

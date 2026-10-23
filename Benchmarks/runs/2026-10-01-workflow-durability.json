@@ -25,7 +25,22 @@
   ],
   "publication": {
     "approved": true,
-    "reviewed_by": "benchmark-hub-20261022",
-    "reviewed_on": "2026-10-22"
+    "reviewed_by": "benchmark-experience-20261023",
+    "reviewed_on": "2026-10-23"
+  },
+  "report": {
+    "method": [
+      "Task storage, authority, continuation and worker evidence"
+    ],
+    "findings": [
+      "Bounded regression evidence exists; broad recovery, retry and remote authority remain separate contracts."
+    ],
+    "source_links": [
+      {
+        "label": "Original method and results",
+        "path": "Tests/Reports/durable-tasks/2026-10-01-p6-04a-authority-migration.md"
+      }
+    ],
+    "reproduction": []
   }
 }

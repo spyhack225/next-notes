@@ -25,11 +25,34 @@
     "Tests/Reports/tts-2026-10-22/README.md",
     "Tests/Reports/tts-2026-10-22/accepted-results.json",
     "Tests/Reports/tts-2026-10-22/output-maximum-latency-original.json",
-    "Tests/Reports/tts-2026-10-22/output-maximum-latency-fixed.json"
+    "Tests/Reports/tts-2026-10-22/output-maximum-latency-fixed.json",
+    "Tools/tts_compare.py"
   ],
   "publication": {
     "approved": true,
-    "reviewed_by": "Codex TTS: public fields reviewed for privacy and precise boundaries",
-    "reviewed_on": "2026-10-22"
+    "reviewed_by": "benchmark-experience-20261023",
+    "reviewed_on": "2026-10-23"
+  },
+  "report": {
+    "method": [
+      "Known English text is sent through the actual native voice adapter after preparation. Five back-to-back warm same-text requests are summarized separately from the first synthesis after preparation.",
+      "The clock stops at the first nonempty generated PCM buffer. It does not stop at a speaker, a microphone, or the end of a conversational turn."
+    ],
+    "findings": [
+      "All five generation results are saved individually. Speaker output and ASR-plus-voice qualification remain pending; no fastest-audible default has been selected.",
+      "Generated audio can be ready before playback starts. Use the separate physical speaker reports before drawing a conclusion about how quickly someone hears this voice."
+    ],
+    "source_links": [
+      {
+        "label": "Original method and results",
+        "path": "Tests/Reports/tts-2026-10-22/README.md"
+      },
+      {
+        "label": "Benchmark runner code",
+        "path": "Tools/tts_compare.py"
+      }
+    ],
+    "reproduction": [],
+    "purpose": "How quickly can this voice produce its first usable audio buffer? This isolates generation from the separate wait for playback and sound."
   }
 }

@@ -1,0 +1,13 @@
+{
+  "id": "2026-10-07-dictation-latency",
+  "purpose": "Understand how a dictated turn reaches its final text, including the quality and waiting time of cleanup.",
+  "method": [
+    "Retained production-path latency evidence"
+  ],
+  "findings": [
+    "Cleanup dominates retained slow turns; final polished delivery target remains open."
+  ],
+  "next_steps": [],
+  "source_links": [],
+  "reproduction": []
+}

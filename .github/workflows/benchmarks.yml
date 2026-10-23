@@ -17,3 +17,12 @@ jobs:
           python-version: '3.12'
       - run: python3 -m unittest discover -s Scripts -p test_benchmarks.py
       - run: python3 Scripts/benchmarks.py check
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+      - run: npm --prefix site test
+      - run: npm --prefix site ci
+      - run: npm --prefix site run lint
+      - run: npm --prefix site run build

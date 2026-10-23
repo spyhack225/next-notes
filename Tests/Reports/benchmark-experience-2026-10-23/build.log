@@ -1,0 +1,160 @@
+
+> nextnotes-site@0.0.0 prebuild
+> python3 ../Scripts/benchmarks.py render
+
+BENCHMARK_CATALOG_OK: 82 runs, 84 generated files
+
+> nextnotes-site@0.0.0 build
+> tsc -b && rm -rf ../docs/assets && vite build
+
+vite v8.2.2 building client environment for production...
+transforming...
+✓ 2065 modules transformed.
+rendering chunks...
+computing gzip size...
+../docs/assets/inter-vietnamese-400-normal-DMkecbls.woff2              4.97 kB
+../docs/assets/inter-vietnamese-600-normal-Cc8MFFhd.woff2              5.10 kB
+../docs/assets/inter-vietnamese-700-normal-DlLaEgI2.woff2              5.10 kB
+../docs/assets/inter-vietnamese-500-normal-DOriooB6.woff2              5.11 kB
+../docs/assets/inter-greek-ext-400-normal-DGGRlc-M.woff2               5.26 kB
+../docs/assets/inter-greek-ext-500-normal-C4iEst2y.woff2               5.42 kB
+../docs/assets/inter-greek-ext-600-normal-DRtmH8MT.woff2               5.43 kB
+../docs/assets/inter-greek-ext-700-normal-qfdV9bQt.woff2               5.44 kB
+../docs/assets/inter-vietnamese-400-normal-Bbgyi5SW.woff               6.50 kB
+../docs/assets/inter-vietnamese-500-normal-mJboJaSs.woff               6.59 kB
+../docs/assets/inter-vietnamese-700-normal-BZaoP0fm.woff               6.63 kB
+../docs/assets/inter-vietnamese-600-normal-BuLX-rYi.woff               6.64 kB
+../docs/assets/inter-greek-ext-400-normal-KugGGMne.woff                7.06 kB
+../docs/assets/inter-greek-ext-500-normal-2j5mBUwD.woff                7.19 kB
+../docs/assets/inter-greek-ext-600-normal-B8X0CLgF.woff                7.21 kB
+../docs/assets/inter-greek-ext-700-normal-BoQ6DsYi.woff                7.21 kB
+../docs/assets/inter-cyrillic-400-normal-obahsSVq.woff2                7.71 kB
+../docs/assets/inter-greek-400-normal-B4URO6DV.woff2                   7.77 kB
+../docs/assets/inter-cyrillic-500-normal-BasfLYem.woff2                7.90 kB
+../docs/assets/inter-cyrillic-700-normal-CjBOestx.woff2                7.90 kB
+../docs/assets/inter-greek-500-normal-BIZE56-Y.woff2                   7.92 kB
+../docs/assets/inter-greek-700-normal-C3JjAnD8.woff2                   7.92 kB
+../docs/assets/inter-greek-600-normal-plRanbMR.woff2                   7.94 kB
+../docs/assets/inter-cyrillic-600-normal-CWCymEST.woff2                7.97 kB
+../docs/index.html                                                     8.77 kB │ gzip:   3.09 kB
+../docs/assets/inter-cyrillic-400-normal-HOLc17fK.woff                 9.78 kB
+../docs/assets/instrument-serif-latin-ext-400-normal-CFCUzsTy.woff     9.86 kB
+../docs/assets/inter-cyrillic-700-normal-DrXBdSj3.woff                 9.91 kB
+../docs/assets/inter-greek-400-normal-q2sYcFCs.woff                    9.92 kB
+../docs/assets/inter-cyrillic-600-normal-4D_pXhcN.woff                 9.93 kB
+../docs/assets/inter-cyrillic-500-normal-CxZf_p3X.woff                 9.94 kB
+../docs/assets/inter-greek-500-normal-Xzm54t5V.woff                    9.98 kB
+../docs/assets/inter-greek-700-normal-BUv2fZ6O.woff                    9.98 kB
+../docs/assets/inter-greek-600-normal-BZpKdvQh.woff                   10.03 kB
+../docs/assets/inter-cyrillic-ext-400-normal-BQZuk6qB.woff2           10.23 kB
+../docs/assets/inter-cyrillic-ext-500-normal-B0yAr1jD.woff2           10.43 kB
+../docs/assets/inter-cyrillic-ext-600-normal-Dfes3d0z.woff2           10.48 kB
+../docs/assets/inter-cyrillic-ext-700-normal-BjwYoWNd.woff2           10.49 kB
+../docs/assets/instrument-serif-latin-ext-400-italic-D7-lnxEk.woff    10.50 kB
+../docs/assets/instrument-serif-latin-ext-400-normal-C2je3j2s.woff2   11.60 kB
+../docs/assets/instrument-serif-latin-ext-400-italic-C9HzH3YL.woff2   12.38 kB
+../docs/assets/inter-cyrillic-ext-400-normal-DQukG94-.woff            13.33 kB
+../docs/assets/inter-cyrillic-ext-700-normal-LO58E6JB.woff            13.40 kB
+../docs/assets/inter-cyrillic-ext-500-normal-BmqWE9Dz.woff            13.45 kB
+../docs/assets/inter-cyrillic-ext-600-normal-Bcila6Z-.woff            13.46 kB
+../docs/assets/instrument-serif-latin-400-normal-BVbkICAY.woff        18.33 kB
+../docs/assets/instrument-serif-latin-400-italic-u__WvvIK.woff        19.26 kB
+../docs/assets/instrument-serif-latin-400-normal-DnYpCC2O.woff2       21.03 kB
+../docs/assets/instrument-serif-latin-400-italic-DKMiL14s.woff2       22.12 kB
+../docs/assets/inter-latin-400-normal-C38fXH4l.woff2                  23.66 kB
+../docs/assets/inter-latin-500-normal-Cerq10X2.woff2                  24.27 kB
+../docs/assets/inter-latin-700-normal-Yt3aPRUw.woff2                  24.35 kB
+../docs/assets/inter-latin-600-normal-LgqL8muc.woff2                  24.45 kB
+../docs/assets/inter-latin-400-normal-CyCys3Eg.woff                   30.69 kB
+../docs/assets/inter-latin-600-normal-CiBQ2DWP.woff                   31.26 kB
+../docs/assets/inter-latin-500-normal-BL9OpVg8.woff                   31.28 kB
+../docs/assets/inter-latin-700-normal-BLAVimhd.woff                   31.32 kB
+../docs/assets/inter-latin-ext-400-normal-C1nco2VV.woff2              35.00 kB
+../docs/assets/inter-latin-ext-500-normal-CV4jyFjo.woff2              36.02 kB
+../docs/assets/inter-latin-ext-700-normal-Ca8adRJv.woff2              36.24 kB
+../docs/assets/inter-latin-ext-600-normal-D2bJ5OIk.woff2              36.26 kB
+../docs/assets/inter-latin-ext-400-normal-77YHD8bZ.woff               47.56 kB
+../docs/assets/inter-latin-ext-500-normal-BxGbmqWO.woff               48.49 kB
+../docs/assets/inter-latin-ext-700-normal-TidjK2hL.woff               48.63 kB
+../docs/assets/inter-latin-ext-600-normal-CIVaiw4L.woff               48.66 kB
+../docs/assets/index-yKHicKHi.css                                     62.26 kB │ gzip:  11.87 kB
+../docs/assets/2026-09-13-tts-apple-COo_Wy1b.js                        0.32 kB │ gzip:   0.25 kB
+../docs/assets/2026-09-13-tts-piper-BZHLmr0j.js                        0.34 kB │ gzip:   0.27 kB
+../docs/assets/2026-09-13-tts-kokoro-COD9JJi7.js                       0.34 kB │ gzip:   0.27 kB
+../docs/assets/2026-10-22-asr-voz-C8cEgjxQ.js                          0.34 kB │ gzip:   0.28 kB
+../docs/assets/2026-10-22-asr-redux-DeNaE0KZ.js                        0.34 kB │ gzip:   0.28 kB
+../docs/assets/2026-10-22-asr-ultra-CySQTlwN.js                        0.34 kB │ gzip:   0.28 kB
+../docs/assets/2026-10-22-asr-phonon-BmTGhXZi.js                       0.35 kB │ gzip:   0.28 kB
+../docs/assets/2026-10-22-asr-qwen-06b-CMxyZyR_.js                     0.35 kB │ gzip:   0.28 kB
+../docs/assets/2026-10-22-asr-qwen-17b-VKEoca-o.js                     0.35 kB │ gzip:   0.28 kB
+../docs/assets/2026-10-22-asr-whistle-Do1y7Yo-.js                      0.35 kB │ gzip:   0.28 kB
+../docs/assets/2026-10-22-asr-parakeet-v3-runtime-Dgn7x0nL.js          0.36 kB │ gzip:   0.29 kB
+../docs/assets/2026-10-07-dictation-latency-CCUhV6Vz.js                0.37 kB │ gzip:   0.27 kB
+../docs/assets/2026-09-23-decision-needle-CwMmwubg.js                  0.42 kB │ gzip:   0.31 kB
+../docs/assets/2026-10-22-asr-live-pending-CrXG2ZLK.js                 0.43 kB │ gzip:   0.31 kB
+../docs/assets/2026-09-23-decision-needle-serve-CrdSGMub.js            0.43 kB │ gzip:   0.31 kB
+../docs/assets/2026-09-23-decision-laya-multilingual-CP_Ma_Ma.js       0.43 kB │ gzip:   0.32 kB
+../docs/assets/2026-10-08-voice-latency-BTkGylCr.js                    0.43 kB │ gzip:   0.32 kB
+../docs/assets/2026-09-23-decision-laya-typed-decisions-DpmfAJ5T.js    0.44 kB │ gzip:   0.32 kB
+../docs/assets/2026-09-23-decision-gate-GWwcByUs.js                    0.44 kB │ gzip:   0.30 kB
+../docs/assets/2026-10-22-asr-paced-resumed-voz-CkvtOfj_.js            0.45 kB │ gzip:   0.32 kB
+../docs/assets/2026-10-22-asr-paced-resumed-redux-Brfc9S2G.js          0.46 kB │ gzip:   0.32 kB
+../docs/assets/2026-10-22-asr-paced-resumed-ultra-cwQ-BNO4.js          0.46 kB │ gzip:   0.32 kB
+../docs/assets/2026-10-22-asr-paced-resumed-phonon-CszXeLAB.js         0.46 kB │ gzip:   0.33 kB
+../docs/assets/2026-10-22-asr-paced-resumed-whistle-C9Mwr4W8.js        0.46 kB │ gzip:   0.32 kB
+../docs/assets/2026-10-22-asr-paced-resumed-qwen-06b-BU0xAhjo.js       0.46 kB │ gzip:   0.33 kB
+../docs/assets/2026-10-22-asr-paced-resumed-qwen-17b-CQjeWZNc.js       0.46 kB │ gzip:   0.33 kB
+../docs/assets/2026-10-22-asr-paced-resumed-parakeet-v3-C1hNyaaZ.js    0.46 kB │ gzip:   0.33 kB
+../docs/assets/2026-10-08-agent-acceptance-0yhQr8_F.js                 0.49 kB │ gzip:   0.36 kB
+../docs/assets/2026-10-13-meeting-full-pipeline-Bd-uRLcq.js            0.52 kB │ gzip:   0.36 kB
+../docs/assets/2026-10-01-workflow-durability-BbOdqFDF.js              0.53 kB │ gzip:   0.35 kB
+../docs/assets/2026-10-22-tts-apple-speaker-quiet-C2R6lv7e.js          0.57 kB │ gzip:   0.39 kB
+../docs/assets/2026-10-22-tts-kokoro-speaker-quiet-DF-tJSd5.js         0.57 kB │ gzip:   0.39 kB
+../docs/assets/2026-10-22-tts-phonon-speaker-quiet-CQeolPZB.js         0.57 kB │ gzip:   0.39 kB
+../docs/assets/2026-10-22-tts-qwen-speaker-output-DcrbCXPW.js          0.60 kB │ gzip:   0.41 kB
+../docs/assets/2026-10-22-tts-pocket-speaker-quiet-FA_fQwQK.js         0.60 kB │ gzip:   0.39 kB
+../docs/assets/2026-10-22-tts-apple-speaker-output-bJdChEkA.js         0.60 kB │ gzip:   0.41 kB
+../docs/assets/2026-10-22-tts-kokoro-speaker-output-C3G0_qki.js        0.60 kB │ gzip:   0.41 kB
+../docs/assets/2026-10-22-tts-pocket-speaker-output-BK5YiYxz.js        0.60 kB │ gzip:   0.41 kB
+../docs/assets/2026-10-06-minicpm-asr-overlap-decode-Qm4loy9X.js       0.60 kB │ gzip:   0.44 kB
+../docs/assets/2026-10-22-tts-apple-speaker-calibration-Csi9f5q8.js    0.61 kB │ gzip:   0.39 kB
+../docs/assets/2026-10-22-tts-phonon-speaker-output-BFfZmNyx.js        0.63 kB │ gzip:   0.42 kB
+../docs/assets/2026-10-22-tts-qwen-speaker-quiet-CKkS7865.js           0.63 kB │ gzip:   0.43 kB
+../docs/assets/2026-09-30-cleanup-apple-DKzAA3Dl.js                    0.97 kB │ gzip:   0.58 kB
+../docs/assets/2026-09-30-cleanup-qwen3-C0n9OQc-.js                    0.97 kB │ gzip:   0.58 kB
+../docs/assets/2026-09-30-cleanup-qwen35-CrwUNcUD.js                   0.97 kB │ gzip:   0.58 kB
+../docs/assets/2026-09-30-cleanup-minicpm5-Ko50YVPT.js                 0.97 kB │ gzip:   0.58 kB
+../docs/assets/2026-09-30-cleanup-gemma-w1lQBnPp.js                    0.98 kB │ gzip:   0.60 kB
+../docs/assets/2026-10-22-tts-native-BSFNhPHG.js                       1.09 kB │ gzip:   0.64 kB
+../docs/assets/2026-10-22-tts-phonon-native-gEp3q4nN.js                1.29 kB │ gzip:   0.77 kB
+../docs/assets/2026-10-22-tts-apple-native-CP-HhbTi.js                 1.29 kB │ gzip:   0.77 kB
+../docs/assets/2026-10-22-tts-kokoro-native-D_KUoat1.js                1.29 kB │ gzip:   0.78 kB
+../docs/assets/2026-10-22-tts-pocket-native-F3FVZWB5.js                1.29 kB │ gzip:   0.78 kB
+../docs/assets/2026-10-22-tts-qwen-native-Dq4eNLoU.js                  1.29 kB │ gzip:   0.78 kB
+../docs/assets/2026-10-23-tts-qwen-speaker-calibrated-BDwfo1Uo.js      1.48 kB │ gzip:   0.86 kB
+../docs/assets/2026-10-23-tts-phonon-speaker-serial-DrCFwto7.js        1.49 kB │ gzip:   0.86 kB
+../docs/assets/2026-10-23-tts-pocket-speaker-serial-CGjAJshc.js        1.49 kB │ gzip:   0.86 kB
+../docs/assets/2026-10-23-tts-apple-speaker-calibrated-puoM6kM9.js     1.50 kB │ gzip:   0.86 kB
+../docs/assets/2026-10-23-tts-qwen-speaker-serial-ShDEAqqk.js          1.51 kB │ gzip:   0.89 kB
+../docs/assets/2026-10-23-tts-kokoro-speaker-serial-C7EUNbYc.js        1.51 kB │ gzip:   0.89 kB
+../docs/assets/2026-10-23-tts-kokoro-speaker-calibrated-D1TfqTLj.js    1.51 kB │ gzip:   0.89 kB
+../docs/assets/2026-10-23-tts-pocket-speaker-calibrated-CvfvEErp.js    1.51 kB │ gzip:   0.89 kB
+../docs/assets/2026-10-23-tts-apple-speaker-serial-BWH9kKz0.js         1.52 kB │ gzip:   0.90 kB
+../docs/assets/2026-10-23-tts-phonon-speaker-calibrated-Duhdq_z-.js    1.53 kB │ gzip:   0.90 kB
+../docs/assets/2026-10-22-asr-signed-app-voz-DSuc0wU0.js               1.56 kB │ gzip:   0.88 kB
+../docs/assets/2026-10-22-asr-signed-app-redux-C9MkGwoJ.js             1.56 kB │ gzip:   0.88 kB
+../docs/assets/2026-10-22-asr-signed-app-ultra-DeBxjN57.js             1.56 kB │ gzip:   0.88 kB
+../docs/assets/2026-10-22-asr-signed-app-phonon-CMF2BKYH.js            1.56 kB │ gzip:   0.88 kB
+../docs/assets/2026-10-22-asr-signed-app-whistle-ZCR-iXYH.js           1.57 kB │ gzip:   0.88 kB
+../docs/assets/2026-10-22-asr-signed-app-parakeet-DdoYjHwT.js          1.57 kB │ gzip:   0.88 kB
+../docs/assets/2026-10-22-asr-signed-app-qwen-06b-BlCW_1SA.js          1.57 kB │ gzip:   0.88 kB
+../docs/assets/2026-10-22-asr-signed-app-qwen-17b-BuTtpvcn.js          1.57 kB │ gzip:   0.89 kB
+../docs/assets/Benchmarks-CKtED_FZ.js                                197.99 kB │ gzip:  27.74 kB
+../docs/assets/index-DwXkG8n4.js                                     531.97 kB │ gzip: 154.90 kB
+
+✓ built in 360ms
+[plugin builtin:vite-reporter] 
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.

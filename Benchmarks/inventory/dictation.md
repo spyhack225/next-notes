@@ -546,6 +546,8 @@ Discovery inventory, not a claim that every file is a benchmark or that its chec
 | [Tests/Reports/voice-production/2026-10-01-p3-01/core/selftest-dictation.log](../../Tests/Reports/voice-production/2026-10-01-p3-01/core/selftest-dictation.log) |
 | [Tests/Reports/voice-production/2026-10-01-p3-06a/core/selftest-dictation.log](../../Tests/Reports/voice-production/2026-10-01-p3-06a/core/selftest-dictation.log) |
 | [Tests/Reports/voice-production/2026-10-01-p3-06a/wake-isolated-core/selftest-dictation.log](../../Tests/Reports/voice-production/2026-10-01-p3-06a/wake-isolated-core/selftest-dictation.log) |
+| [Tests/Reports/voice-turn-2026-10-23/final-cleanup.json](../../Tests/Reports/voice-turn-2026-10-23/final-cleanup.json) |
+| [Tests/Reports/voice-turn-2026-10-23/probe-module-cache-cleanup.json](../../Tests/Reports/voice-turn-2026-10-23/probe-module-cache-cleanup.json) |
 | [Tests/Reports/website-to-mac/app12/dictation-direct-launch-failed.log](../../Tests/Reports/website-to-mac/app12/dictation-direct-launch-failed.log) |
 | [Tests/Reports/website-to-mac/app12/dictation-via-open.log](../../Tests/Reports/website-to-mac/app12/dictation-via-open.log) |
 | [Tests/Reports/website-to-mac/app14-original/dictation-original-14.log](../../Tests/Reports/website-to-mac/app14-original/dictation-original-14.log) |

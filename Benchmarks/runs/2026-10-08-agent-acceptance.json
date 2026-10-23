@@ -6,7 +6,7 @@
   "category": "agent",
   "status": "partial",
   "scope": "Retained production-path reports, not a fresh run",
-  "summary": "Quick 9\u201310/10; full 25/30 and 23/30; owner 8/9. Full acceptance remains open.",
+  "summary": "Quick 9–10/10; full 25/30 and 23/30; owner 8/9. Full acceptance remains open.",
   "environment": {
     "hardware": "Not fully recorded; consult original evidence"
   },
@@ -49,7 +49,22 @@
   ],
   "publication": {
     "approved": true,
-    "reviewed_by": "benchmark-hub-20261022",
-    "reviewed_on": "2026-10-22"
+    "reviewed_by": "benchmark-experience-20261023",
+    "reviewed_on": "2026-10-23"
+  },
+  "report": {
+    "method": [
+      "Retained production-path reports, not a fresh run"
+    ],
+    "findings": [
+      "Quick 9–10/10; full 25/30 and 23/30; owner 8/9. Full acceptance remains open."
+    ],
+    "source_links": [
+      {
+        "label": "Original method and results",
+        "path": "Tests/Reports/agent-overhaul-progress/2026-10-08-status-audit.md"
+      }
+    ],
+    "reproduction": []
   }
 }

@@ -1,12 +1,35 @@
 # Evidence discovery
 
-3966 current evidence files discovered under Tests/Reports, bench, docs and roadmaps.
+4014 current evidence files discovered under Tests/Reports, bench, docs and roadmaps.
 
 Imported third-party reference trees and website assets are excluded. Files are catalogued without moving them or extracting private payloads. Legacy files remain unclassified until a reviewed run manifest records their scope and verdict.
 
 [Machine-readable inventory](inventory/files.json) · [Git/worktree audit](inventory/README.md)
 
 ## Reviewed run sources
+
+### Silero and Smart Turn production endpoint replay
+
+Real cleaned file capture, Apple+Parakeet ASR, Silero, Smart Turn, endpoint tick and commit; synthetic input and reply test sink. **failed**
+
+- [Tests/Reports/voice-turn-2026-10-23/README.md](../Tests/Reports/voice-turn-2026-10-23/README.md)
+- [Tests/Reports/voice-turn-2026-10-23/native-endpoints.json](../Tests/Reports/voice-turn-2026-10-23/native-endpoints.json)
+- [Tests/Reports/voice-turn-2026-10-23/native-endpoints-summary.json](../Tests/Reports/voice-turn-2026-10-23/native-endpoints-summary.json)
+- [Tests/Reports/voice-turn-2026-10-23/native-endpoints-score.json](../Tests/Reports/voice-turn-2026-10-23/native-endpoints-score.json)
+- [Tests/Reports/voice-turn-2026-10-23/native-endpoints.json.receipt.json](../Tests/Reports/voice-turn-2026-10-23/native-endpoints.json.receipt.json)
+- [Tests/Reports/voice-turn-2026-10-23/final-source-pins.json](../Tests/Reports/voice-turn-2026-10-23/final-source-pins.json)
+- [Tests/Reports/voice-turn-2026-10-23/preservation-verdict.json](../Tests/Reports/voice-turn-2026-10-23/preservation-verdict.json)
+
+### Silero32ms and Smart Turn v3.2 native components
+
+Actual optimized production CoreML wrappers on synthesized16k mono PCM; model inference and paced onset only. **failed**
+
+- [Tests/Reports/voice-turn-2026-10-23/README.md](../Tests/Reports/voice-turn-2026-10-23/README.md)
+- [Tests/Reports/voice-turn-2026-10-23/native-models.json](../Tests/Reports/voice-turn-2026-10-23/native-models.json)
+- [Tests/Reports/voice-turn-2026-10-23/native-models-summary.json](../Tests/Reports/voice-turn-2026-10-23/native-models-summary.json)
+- [Tests/Reports/voice-turn-2026-10-23/native-models-receipt.json](../Tests/Reports/voice-turn-2026-10-23/native-models-receipt.json)
+- [Tests/Reports/voice-turn-2026-10-23/model-source-pins.json](../Tests/Reports/voice-turn-2026-10-23/model-source-pins.json)
+- [Tests/Reports/voice-turn-2026-10-23/export-differential-summary.json](../Tests/Reports/voice-turn-2026-10-23/export-differential-summary.json)
 
 ### Qwen3-TTS0.6B4bit: serial speaker continuation
 
@@ -18,6 +41,7 @@ Actual production playback backing with native48k mono microphone observation un
 - [Tests/Reports/tts-2026-10-23/serial-source-pins.json](../Tests/Reports/tts-2026-10-23/serial-source-pins.json)
 - [Tests/Reports/tts-2026-10-23/serial-command.json](../Tests/Reports/tts-2026-10-23/serial-command.json)
 - [Tests/Reports/tts-2026-10-23/serial-speaker/reference-progress-audit.json](../Tests/Reports/tts-2026-10-23/serial-speaker/reference-progress-audit.json)
+- [Tools/tts_compare.py](../Tools/tts_compare.py)
 
 ### Qwen3-TTS0.6B4bit: volume-bound serial speaker attempt
 
@@ -29,6 +53,7 @@ Actual production playback backing with native48k mono microphone observation un
 - [Tests/Reports/tts-2026-10-22/calibrated-source-pins.json](../Tests/Reports/tts-2026-10-22/calibrated-source-pins.json)
 - [Tests/Reports/tts-2026-10-22/calibrated-command.json](../Tests/Reports/tts-2026-10-22/calibrated-command.json)
 - [Tests/Reports/tts-2026-10-22/calibrated-speaker/reference-progress-audit.json](../Tests/Reports/tts-2026-10-22/calibrated-speaker/reference-progress-audit.json)
+- [Tools/tts_compare.py](../Tools/tts_compare.py)
 
 ### Pocket: serial speaker continuation
 
@@ -40,6 +65,7 @@ Actual production playback backing with native48k mono microphone observation un
 - [Tests/Reports/tts-2026-10-23/serial-source-pins.json](../Tests/Reports/tts-2026-10-23/serial-source-pins.json)
 - [Tests/Reports/tts-2026-10-23/serial-command.json](../Tests/Reports/tts-2026-10-23/serial-command.json)
 - [Tests/Reports/tts-2026-10-23/serial-speaker/reference-progress-audit.json](../Tests/Reports/tts-2026-10-23/serial-speaker/reference-progress-audit.json)
+- [Tools/tts_compare.py](../Tools/tts_compare.py)
 
 ### Pocket: volume-bound serial speaker attempt
 
@@ -51,6 +77,7 @@ Actual production playback backing with native48k mono microphone observation un
 - [Tests/Reports/tts-2026-10-22/calibrated-source-pins.json](../Tests/Reports/tts-2026-10-22/calibrated-source-pins.json)
 - [Tests/Reports/tts-2026-10-22/calibrated-command.json](../Tests/Reports/tts-2026-10-22/calibrated-command.json)
 - [Tests/Reports/tts-2026-10-22/calibrated-speaker/reference-progress-audit.json](../Tests/Reports/tts-2026-10-22/calibrated-speaker/reference-progress-audit.json)
+- [Tools/tts_compare.py](../Tools/tts_compare.py)
 
 ### Phonon31m: serial speaker continuation
 
@@ -62,6 +89,7 @@ Actual production playback backing with native48k mono microphone observation un
 - [Tests/Reports/tts-2026-10-23/serial-source-pins.json](../Tests/Reports/tts-2026-10-23/serial-source-pins.json)
 - [Tests/Reports/tts-2026-10-23/serial-command.json](../Tests/Reports/tts-2026-10-23/serial-command.json)
 - [Tests/Reports/tts-2026-10-23/serial-speaker/reference-progress-audit.json](../Tests/Reports/tts-2026-10-23/serial-speaker/reference-progress-audit.json)
+- [Tools/tts_compare.py](../Tools/tts_compare.py)
 
 ### Phonon31m: volume-bound serial speaker attempt
 
@@ -73,6 +101,7 @@ Actual production playback backing with native48k mono microphone observation un
 - [Tests/Reports/tts-2026-10-22/calibrated-source-pins.json](../Tests/Reports/tts-2026-10-22/calibrated-source-pins.json)
 - [Tests/Reports/tts-2026-10-22/calibrated-command.json](../Tests/Reports/tts-2026-10-22/calibrated-command.json)
 - [Tests/Reports/tts-2026-10-22/calibrated-speaker/reference-progress-audit.json](../Tests/Reports/tts-2026-10-22/calibrated-speaker/reference-progress-audit.json)
+- [Tools/tts_compare.py](../Tools/tts_compare.py)
 
 ### Kokoro: serial speaker continuation
 
@@ -84,6 +113,7 @@ Actual production playback backing with native48k mono microphone observation un
 - [Tests/Reports/tts-2026-10-23/serial-source-pins.json](../Tests/Reports/tts-2026-10-23/serial-source-pins.json)
 - [Tests/Reports/tts-2026-10-23/serial-command.json](../Tests/Reports/tts-2026-10-23/serial-command.json)
 - [Tests/Reports/tts-2026-10-23/serial-speaker/reference-progress-audit.json](../Tests/Reports/tts-2026-10-23/serial-speaker/reference-progress-audit.json)
+- [Tools/tts_compare.py](../Tools/tts_compare.py)
 
 ### Kokoro: volume-bound serial speaker attempt
 
@@ -95,6 +125,7 @@ Actual production playback backing with native48k mono microphone observation un
 - [Tests/Reports/tts-2026-10-22/calibrated-source-pins.json](../Tests/Reports/tts-2026-10-22/calibrated-source-pins.json)
 - [Tests/Reports/tts-2026-10-22/calibrated-command.json](../Tests/Reports/tts-2026-10-22/calibrated-command.json)
 - [Tests/Reports/tts-2026-10-22/calibrated-speaker/reference-progress-audit.json](../Tests/Reports/tts-2026-10-22/calibrated-speaker/reference-progress-audit.json)
+- [Tools/tts_compare.py](../Tools/tts_compare.py)
 
 ### macOS: serial speaker continuation
 
@@ -106,6 +137,7 @@ Actual production playback backing with native48k mono microphone observation un
 - [Tests/Reports/tts-2026-10-23/serial-source-pins.json](../Tests/Reports/tts-2026-10-23/serial-source-pins.json)
 - [Tests/Reports/tts-2026-10-23/serial-command.json](../Tests/Reports/tts-2026-10-23/serial-command.json)
 - [Tests/Reports/tts-2026-10-23/serial-speaker/reference-progress-audit.json](../Tests/Reports/tts-2026-10-23/serial-speaker/reference-progress-audit.json)
+- [Tools/tts_compare.py](../Tools/tts_compare.py)
 
 ### macOS: volume-bound serial speaker attempt
 
@@ -117,6 +149,7 @@ Actual production playback backing with native48k mono microphone observation un
 - [Tests/Reports/tts-2026-10-22/calibrated-source-pins.json](../Tests/Reports/tts-2026-10-22/calibrated-source-pins.json)
 - [Tests/Reports/tts-2026-10-22/calibrated-command.json](../Tests/Reports/tts-2026-10-22/calibrated-command.json)
 - [Tests/Reports/tts-2026-10-22/calibrated-speaker/reference-progress-audit.json](../Tests/Reports/tts-2026-10-22/calibrated-speaker/reference-progress-audit.json)
+- [Tools/tts_compare.py](../Tools/tts_compare.py)
 
 ### Qwen3-TTS0.6B4bit: quiet-room speaker-output attempt
 
@@ -150,6 +183,7 @@ Known English text request to first non-empty generated PCM through the actual n
 - [Tests/Reports/tts-2026-10-22/verification.json](../Tests/Reports/tts-2026-10-22/verification.json)
 - [Tests/Reports/tts-2026-10-22/final-model-cleanup.json](../Tests/Reports/tts-2026-10-22/final-model-cleanup.json)
 - [Tests/Reports/tts-2026-10-22/owner-cache-preservation.json](../Tests/Reports/tts-2026-10-22/owner-cache-preservation.json)
+- [Tools/tts_compare.py](../Tools/tts_compare.py)
 
 ### Pocket: quiet-room speaker-output attempt
 
@@ -181,6 +215,7 @@ Known English text request to first non-empty generated PCM through the actual n
 - [Tests/Reports/tts-2026-10-22/verification.json](../Tests/Reports/tts-2026-10-22/verification.json)
 - [Tests/Reports/tts-2026-10-22/final-model-cleanup.json](../Tests/Reports/tts-2026-10-22/final-model-cleanup.json)
 - [Tests/Reports/tts-2026-10-22/owner-cache-preservation.json](../Tests/Reports/tts-2026-10-22/owner-cache-preservation.json)
+- [Tools/tts_compare.py](../Tools/tts_compare.py)
 
 ### Phonon31m: quiet-room speaker-output attempt
 
@@ -212,6 +247,7 @@ Known English text request to first non-empty generated PCM through the actual n
 - [Tests/Reports/tts-2026-10-22/verification.json](../Tests/Reports/tts-2026-10-22/verification.json)
 - [Tests/Reports/tts-2026-10-22/final-model-cleanup.json](../Tests/Reports/tts-2026-10-22/final-model-cleanup.json)
 - [Tests/Reports/tts-2026-10-22/owner-cache-preservation.json](../Tests/Reports/tts-2026-10-22/owner-cache-preservation.json)
+- [Tools/tts_compare.py](../Tools/tts_compare.py)
 
 ### Five native TTS generation results; speaker timing pending
 
@@ -221,6 +257,7 @@ Five completed native generated-PCM comparisons plus a prepared separate physica
 - [Tests/Reports/tts-2026-10-22/accepted-results.json](../Tests/Reports/tts-2026-10-22/accepted-results.json)
 - [Tests/Reports/tts-2026-10-22/output-maximum-latency-original.json](../Tests/Reports/tts-2026-10-22/output-maximum-latency-original.json)
 - [Tests/Reports/tts-2026-10-22/output-maximum-latency-fixed.json](../Tests/Reports/tts-2026-10-22/output-maximum-latency-fixed.json)
+- [Tools/tts_compare.py](../Tools/tts_compare.py)
 
 ### Kokoro: quiet-room speaker-output attempt
 
@@ -252,6 +289,7 @@ Known English text request to first non-empty generated PCM through the actual n
 - [Tests/Reports/tts-2026-10-22/verification.json](../Tests/Reports/tts-2026-10-22/verification.json)
 - [Tests/Reports/tts-2026-10-22/final-model-cleanup.json](../Tests/Reports/tts-2026-10-22/final-model-cleanup.json)
 - [Tests/Reports/tts-2026-10-22/owner-cache-preservation.json](../Tests/Reports/tts-2026-10-22/owner-cache-preservation.json)
+- [Tools/tts_compare.py](../Tools/tts_compare.py)
 
 ### macOS: quiet-room speaker-output attempt
 
@@ -292,6 +330,7 @@ Known English text request to first non-empty generated PCM through the actual n
 - [Tests/Reports/tts-2026-10-22/verification.json](../Tests/Reports/tts-2026-10-22/verification.json)
 - [Tests/Reports/tts-2026-10-22/final-model-cleanup.json](../Tests/Reports/tts-2026-10-22/final-model-cleanup.json)
 - [Tests/Reports/tts-2026-10-22/owner-cache-preservation.json](../Tests/Reports/tts-2026-10-22/owner-cache-preservation.json)
+- [Tools/tts_compare.py](../Tools/tts_compare.py)
 
 ### Whistle
 
@@ -326,6 +365,8 @@ Signed optimized application factory, segmented engine, scheduler and transcript
 - [Tests/Reports/asr-app-integration-2026-10-22/native/whistle-quality.json](../Tests/Reports/asr-app-integration-2026-10-22/native/whistle-quality.json)
 - [Tests/Reports/asr-app-integration-2026-10-22/native/whistle-context.json](../Tests/Reports/asr-app-integration-2026-10-22/native/whistle-context.json)
 - [Tests/Reports/asr-app-integration-2026-10-22/native/runner.json](../Tests/Reports/asr-app-integration-2026-10-22/native/runner.json)
+- [Tools/asr_app_compare.py](../Tools/asr_app_compare.py)
+- [shared/asr-artifacts.json](../shared/asr-artifacts.json)
 
 ### Voz signed-app live ASR
 
@@ -336,6 +377,8 @@ Signed optimized application factory, segmented engine, scheduler and transcript
 - [Tests/Reports/asr-app-integration-2026-10-22/native/voz-quality.json](../Tests/Reports/asr-app-integration-2026-10-22/native/voz-quality.json)
 - [Tests/Reports/asr-app-integration-2026-10-22/native/voz-context.json](../Tests/Reports/asr-app-integration-2026-10-22/native/voz-context.json)
 - [Tests/Reports/asr-app-integration-2026-10-22/native/runner.json](../Tests/Reports/asr-app-integration-2026-10-22/native/runner.json)
+- [Tools/asr_app_compare.py](../Tools/asr_app_compare.py)
+- [shared/asr-artifacts.json](../shared/asr-artifacts.json)
 
 ### Parakeet Ultra signed-app live ASR
 
@@ -346,6 +389,8 @@ Signed optimized application factory, segmented engine, scheduler and transcript
 - [Tests/Reports/asr-app-integration-2026-10-22/native/ultra-quality.json](../Tests/Reports/asr-app-integration-2026-10-22/native/ultra-quality.json)
 - [Tests/Reports/asr-app-integration-2026-10-22/native/ultra-context.json](../Tests/Reports/asr-app-integration-2026-10-22/native/ultra-context.json)
 - [Tests/Reports/asr-app-integration-2026-10-22/native/runner.json](../Tests/Reports/asr-app-integration-2026-10-22/native/runner.json)
+- [Tools/asr_app_compare.py](../Tools/asr_app_compare.py)
+- [shared/asr-artifacts.json](../shared/asr-artifacts.json)
 
 ### Parakeet Redux signed-app live ASR
 
@@ -356,6 +401,8 @@ Signed optimized application factory, segmented engine, scheduler and transcript
 - [Tests/Reports/asr-app-integration-2026-10-22/native/redux-quality.json](../Tests/Reports/asr-app-integration-2026-10-22/native/redux-quality.json)
 - [Tests/Reports/asr-app-integration-2026-10-22/native/redux-context.json](../Tests/Reports/asr-app-integration-2026-10-22/native/redux-context.json)
 - [Tests/Reports/asr-app-integration-2026-10-22/native/runner.json](../Tests/Reports/asr-app-integration-2026-10-22/native/runner.json)
+- [Tools/asr_app_compare.py](../Tools/asr_app_compare.py)
+- [shared/asr-artifacts.json](../shared/asr-artifacts.json)
 
 ### Qwen3-ASR 1.7B signed-app live ASR
 
@@ -366,6 +413,8 @@ Signed optimized application factory, segmented engine, scheduler and transcript
 - [Tests/Reports/asr-app-integration-2026-10-22/native/qwen-17b-quality.json](../Tests/Reports/asr-app-integration-2026-10-22/native/qwen-17b-quality.json)
 - [Tests/Reports/asr-app-integration-2026-10-22/native/qwen-17b-context.json](../Tests/Reports/asr-app-integration-2026-10-22/native/qwen-17b-context.json)
 - [Tests/Reports/asr-app-integration-2026-10-22/native/runner.json](../Tests/Reports/asr-app-integration-2026-10-22/native/runner.json)
+- [Tools/asr_app_compare.py](../Tools/asr_app_compare.py)
+- [shared/asr-artifacts.json](../shared/asr-artifacts.json)
 
 ### Qwen3-ASR 0.6B signed-app live ASR
 
@@ -376,6 +425,8 @@ Signed optimized application factory, segmented engine, scheduler and transcript
 - [Tests/Reports/asr-app-integration-2026-10-22/native/qwen-06b-quality.json](../Tests/Reports/asr-app-integration-2026-10-22/native/qwen-06b-quality.json)
 - [Tests/Reports/asr-app-integration-2026-10-22/native/qwen-06b-context.json](../Tests/Reports/asr-app-integration-2026-10-22/native/qwen-06b-context.json)
 - [Tests/Reports/asr-app-integration-2026-10-22/native/runner.json](../Tests/Reports/asr-app-integration-2026-10-22/native/runner.json)
+- [Tools/asr_app_compare.py](../Tools/asr_app_compare.py)
+- [shared/asr-artifacts.json](../shared/asr-artifacts.json)
 
 ### Phonon-2 signed-app live ASR
 
@@ -386,6 +437,8 @@ Signed optimized application factory, segmented engine, scheduler and transcript
 - [Tests/Reports/asr-app-integration-2026-10-22/native/phonon-quality.json](../Tests/Reports/asr-app-integration-2026-10-22/native/phonon-quality.json)
 - [Tests/Reports/asr-app-integration-2026-10-22/native/phonon-context.json](../Tests/Reports/asr-app-integration-2026-10-22/native/phonon-context.json)
 - [Tests/Reports/asr-app-integration-2026-10-22/native/runner.json](../Tests/Reports/asr-app-integration-2026-10-22/native/runner.json)
+- [Tools/asr_app_compare.py](../Tools/asr_app_compare.py)
+- [shared/asr-artifacts.json](../shared/asr-artifacts.json)
 
 ### Parakeet v3 signed-app live ASR
 
@@ -396,6 +449,8 @@ Signed optimized application factory, segmented engine, scheduler and transcript
 - [Tests/Reports/asr-app-integration-2026-10-22/native/parakeet-quality.json](../Tests/Reports/asr-app-integration-2026-10-22/native/parakeet-quality.json)
 - [Tests/Reports/asr-app-integration-2026-10-22/native/parakeet-context.json](../Tests/Reports/asr-app-integration-2026-10-22/native/parakeet-context.json)
 - [Tests/Reports/asr-app-integration-2026-10-22/native/runner.json](../Tests/Reports/asr-app-integration-2026-10-22/native/runner.json)
+- [Tools/asr_app_compare.py](../Tools/asr_app_compare.py)
+- [shared/asr-artifacts.json](../shared/asr-artifacts.json)
 
 ### Parakeet Redux (CoreML)
 

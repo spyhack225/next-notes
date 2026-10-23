@@ -1,0 +1,30 @@
+{
+  "id": "2026-10-23-tts-phonon-speaker-serial",
+  "purpose": "How long does a voice response take to reach the microphone from the laptop speakers while speech decoding is active? This tests a physical output path under a declared workload.",
+  "method": [
+    "Actual production playback backing with native48k mono microphone observation under paced native Parakeet-v3 decoder load. Threshold-qualified arrival, not human perception or full-turn latency.",
+    "Warm requests vary across five authored English phrases. Accepted microphone timing requires matching rendered audio, valid host clocks, stable route/gain and the required room-threshold windows. A cohort with missing qualified pickups is not assigned a survivor-only median.",
+    "Compare only the same volume, route, decoder workload and measurement rules. The serial 60% speaker test and the calibrated 38% test are separate cohorts."
+  ],
+  "findings": [
+    "30/30 warm pickups qualified. Accepted median and p95 for this route and workload.",
+    "The result applies to this exact route and workload. Reference Parakeet-v3 decoder progress is not acceptance of selected dictation ASR, echo cancellation, turn detection or a full voice conversation."
+  ],
+  "next_steps": [],
+  "source_links": [
+    {
+      "label": "Original method and results",
+      "path": "Tests/Reports/tts-2026-10-23/README.md"
+    },
+    {
+      "label": "Benchmark runner code",
+      "path": "Tools/tts_compare.py"
+    }
+  ],
+  "reproduction": [
+    {
+      "label": "Tested executable SHA-256",
+      "value": "f8a214a315b7133710e3dd7ddd08ff2d665fcd358b30ce068d702f6118460b72"
+    }
+  ]
+}

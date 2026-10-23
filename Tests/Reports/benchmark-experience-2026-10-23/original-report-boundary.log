@@ -1,0 +1,51 @@
+EFFFF
+======================================================================
+ERROR: test_approved_report_is_readable_without_raw_source_payload (Scripts.test_benchmarks.CatalogTests.test_approved_report_is_readable_without_raw_source_payload)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/sergekadjo/Documents/Claude/Projects/next-notes/Scripts/test_benchmarks.py", line 77, in test_approved_report_is_readable_without_raw_source_payload
+    report = json.loads(generated[self.root / f"site/src/generated/benchmark-reports/{self.run['id']}.json"])
+                        ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+KeyError: PosixPath('/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/tmp3d75lczz/site/src/generated/benchmark-reports/2026-10-22-test.json')
+
+======================================================================
+FAIL: test_report_rejects_unknown_fields_and_unregistered_evidence (Scripts.test_benchmarks.CatalogTests.test_report_rejects_unknown_fields_and_unregistered_evidence) (report={'purpose': 'x', 'raw_transcript': 'private'})
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/sergekadjo/Documents/Claude/Projects/next-notes/Scripts/test_benchmarks.py", line 86, in test_report_rejects_unknown_fields_and_unregistered_evidence
+    with self.subTest(report=report), self.assertRaises(AssertionError):
+                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_report_rejects_unknown_fields_and_unregistered_evidence (Scripts.test_benchmarks.CatalogTests.test_report_rejects_unknown_fields_and_unregistered_evidence) (report={'source_links': [{'label': 'External', 'path': 'https://example.com'}]})
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/sergekadjo/Documents/Claude/Projects/next-notes/Scripts/test_benchmarks.py", line 86, in test_report_rejects_unknown_fields_and_unregistered_evidence
+    with self.subTest(report=report), self.assertRaises(AssertionError):
+                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_report_rejects_unknown_fields_and_unregistered_evidence (Scripts.test_benchmarks.CatalogTests.test_report_rejects_unknown_fields_and_unregistered_evidence) (report={'method': 'not a paragraph list'})
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/sergekadjo/Documents/Claude/Projects/next-notes/Scripts/test_benchmarks.py", line 86, in test_report_rejects_unknown_fields_and_unregistered_evidence
+    with self.subTest(report=report), self.assertRaises(AssertionError):
+                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+======================================================================
+FAIL: test_revoked_report_is_removed_from_generated_output (Scripts.test_benchmarks.CatalogTests.test_revoked_report_is_removed_from_generated_output)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/sergekadjo/Documents/Claude/Projects/next-notes/Scripts/test_benchmarks.py", line 95, in test_revoked_report_is_removed_from_generated_output
+    self.assertTrue(path.exists())
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+AssertionError: False is not true
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.009s
+
+FAILED (failures=4, errors=1)
+BENCHMARK_CATALOG_OK: 1 runs, 13 generated files

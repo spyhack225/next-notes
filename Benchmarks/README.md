@@ -8,6 +8,8 @@ Status describes the stated scope only. A measured component is not production a
 
 | Date | Area | Benchmark | Status | Result and limits |
 |---|---|---|---|---|
+| 2026-10-23 | voice | [Silero and Smart Turn production endpoint replay](runs/2026-10-23-voice-turn-production-endpoint-replay.json) | failed | 21 native trials:15 premature duplicate splits at400–1500ms protected pauses; nine unverified final tails. Candidate remains opt-in; no installation. |
+| 2026-10-23 | voice | [Silero32ms and Smart Turn v3.2 native components](runs/2026-10-23-voice-turn-native-coreml-components.json) | failed | Completed question inference median2.50ms; all six protected split-synthesized pause snapshots misclassified complete. Candidate rollout held. |
 | 2026-10-23 | tts | [Qwen3-TTS0.6B4bit: serial speaker continuation](runs/2026-10-23-tts-qwen-speaker-serial.json) | blocked | No completed trial: Insufficient disk headroom for this one model. No warm acoustic median accepted. |
 | 2026-10-23 | tts | [Qwen3-TTS0.6B4bit: volume-bound serial speaker attempt](runs/2026-10-23-tts-qwen-speaker-calibrated.json) | partial | 27/30 warm pickups qualified. No warm acoustic median accepted. |
 | 2026-10-23 | tts | [Pocket: serial speaker continuation](runs/2026-10-23-tts-pocket-speaker-serial.json) | measured | 30/30 warm pickups qualified. Accepted median and p95 for this route and workload. |
@@ -92,14 +94,14 @@ Status describes the stated scope only. A measured component is not production a
 ## Evidence by area
 
 - [Asr](inventory/asr.md): 160 evidence files.
-- [Dictation](inventory/dictation.md): 563 evidence files.
+- [Dictation](inventory/dictation.md): 565 evidence files.
 - [Meetings](inventory/meetings.md): 1143 evidence files.
 - [Agent](inventory/agent.md): 477 evidence files.
-- [Voice](inventory/voice.md): 321 evidence files.
+- [Voice](inventory/voice.md): 357 evidence files.
 - [Tts](inventory/tts.md): 362 evidence files.
 - [Workflows](inventory/workflows.md): 176 evidence files.
 - [Models](inventory/models.md): 20 evidence files.
-- [Other](inventory/other.md): 744 evidence files.
+- [Other](inventory/other.md): 754 evidence files.
 
 ## Operating rules
 

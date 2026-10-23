@@ -42,7 +42,22 @@
   ],
   "publication": {
     "approved": true,
-    "reviewed_by": "benchmark-hub-20261022",
-    "reviewed_on": "2026-10-22"
+    "reviewed_by": "benchmark-experience-20261023",
+    "reviewed_on": "2026-10-23"
+  },
+  "report": {
+    "method": [
+      "Historical matched first-audio comparison"
+    ],
+    "findings": [
+      "First-audio median improved from 3.78 s to 2.65 s; 0.9 s target remains unmet."
+    ],
+    "source_links": [
+      {
+        "label": "Original method and results",
+        "path": "Tests/Reports/agent-overhaul-progress/2026-10-08-status-audit.md"
+      }
+    ],
+    "reproduction": []
   }
 }

@@ -48,8 +48,9 @@ class CatalogTests(unittest.TestCase):
         self.run['extra_private_field'] = 'DO_NOT_PUBLISH'
         self.save()
         with patch.object(b, 'scan', return_value=[]):
-            public = b.outputs()[self.root / 'site/src/generated/benchmarks.json']
-        self.assertNotIn('DO_NOT_PUBLISH', public)
+            generated = b.outputs()
+            public = generated[self.root / 'site/src/generated/benchmarks.json']
+        self.assertNotIn('DO_NOT_PUBLISH', ''.join(generated.values()))
         self.assertNotIn('sources', public)
         self.assertEqual(len(json.loads(public)['runs']), 1)
 
@@ -65,6 +66,41 @@ class CatalogTests(unittest.TestCase):
         self.run['publication']['approved'] = True
         with self.assertRaises(AssertionError):
             b.validate(self.run)
+
+    def test_approved_report_is_readable_without_raw_source_payload(self):
+        self.run['publication'] = dict(approved=True, reviewed_by='reviewer', reviewed_on='2026-10-23')
+        self.run['report'] = dict(purpose='Compare delivery time.', method=['Same authored input.'],
+                                  findings=['One measured configuration.'], next_steps=['Test the physical path.'],
+                                  source_links=[dict(label='Original fixture', path=self.run['sources'][0])])
+        self.save()
+        with patch.object(b, 'scan', return_value=[]):
+            generated = b.outputs()
+        report = json.loads(generated[self.root / f"site/src/generated/benchmark-reports/{self.run['id']}.json"])
+        self.assertEqual(report['purpose'], 'Compare delivery time.')
+        self.assertEqual(report['source_links'][0]['label'], 'Original fixture')
+        self.assertNotIn('DO_NOT_PUBLISH', json.dumps(report))
+
+    def test_report_rejects_unknown_fields_and_unregistered_evidence(self):
+        for report in [dict(purpose='x', raw_transcript='private'),
+                       dict(source_links=[dict(label='External', path='https://example.com')]),
+                       dict(method='not a paragraph list')]:
+            with self.subTest(report=report), self.assertRaises(AssertionError):
+                b.validate(dict(self.run, report=report))
+
+    def test_revoked_report_is_removed_from_generated_output(self):
+        self.run['publication'] = dict(approved=True, reviewed_by='reviewer', reviewed_on='2026-10-23')
+        self.save()
+        with patch.object(b, 'scan', return_value=[]):
+            b.render()
+        path = self.root / f"site/src/generated/benchmark-reports/{self.run['id']}.json"
+        self.assertTrue(path.exists())
+        self.run['publication']['approved'] = False
+        self.save()
+        with patch.object(b, 'scan', return_value=[]):
+            with self.assertRaises(AssertionError):
+                b.render(check=True)
+            b.render()
+        self.assertFalse(path.exists())
 
     def test_unrun_rejects_measurement_and_nan(self):
         metric = dict(name='first PCM', value=10, unit='ms', boundary='request to generated PCM', samples=1, aggregation='single observation')

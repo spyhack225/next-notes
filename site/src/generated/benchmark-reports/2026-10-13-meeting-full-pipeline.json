@@ -1,0 +1,18 @@
+{
+  "id": "2026-10-13-meeting-full-pipeline",
+  "purpose": "Check whether meeting capture and notes preserve what happened, with incomplete coverage made visible.",
+  "method": [
+    "Scoped installed native checks and retained long-call audit"
+  ],
+  "findings": [
+    "21 scoped checks pass; saved audio coverage, hardware routes and semantic acceptance remain open."
+  ],
+  "next_steps": [],
+  "source_links": [
+    {
+      "label": "Original method and results",
+      "path": "Tests/Reports/meeting-reliability/2026-10-13-full-pipeline/ROADMAP.md"
+    }
+  ],
+  "reproduction": []
+}

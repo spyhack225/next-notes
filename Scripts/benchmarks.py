@@ -93,6 +93,23 @@ def validate(run):
     if pub['approved']:
         assert isinstance(pub['reviewed_by'], str) and pub['reviewed_by'].strip() and isinstance(pub['reviewed_on'], str) and pub['reviewed_on'], 'publication requires explicit review'
         dt.date.fromisoformat(pub['reviewed_on'])
+    if 'report' in run:
+        report = run['report']
+        assert isinstance(report, dict) and set(report) <= {'purpose', 'method', 'findings', 'next_steps', 'source_links', 'reproduction'}, 'unknown public report field'
+        if 'purpose' in report:
+            assert isinstance(report['purpose'], str) and report['purpose'].strip(), 'report purpose'
+        for key in ('method', 'findings', 'next_steps'):
+            if key in report:
+                assert isinstance(report[key], list) and all(isinstance(x, str) and x.strip() for x in report[key]), key
+        for key, field in [('source_links', 'path'), ('reproduction', 'value')]:
+            if key in report:
+                assert isinstance(report[key], list), key
+                for item in report[key]:
+                    assert isinstance(item, dict) and set(item) == {'label', field}, key
+                    assert all(isinstance(x, str) and x.strip() for x in item.values()), key
+                    if key == 'source_links':
+                        assert item['path'] in run['sources'], 'report evidence must be a registered source'
+                        relative_source(item['path'])
     return run
 
 
@@ -126,6 +143,23 @@ def md_link(path, prefix='../'):
     return f'[{path}]({prefix}{quote(path, safe="/")})'
 
 
+def public_report(run):
+    # Read only reviewed manifest text, never the source report or provenance.
+    purpose = {
+        'asr': 'Understand how quickly speech becomes text, and what this particular test can establish about recognition.',
+        'tts': 'Understand the wait for a voice response. Generating audio and hearing it are separate measurements.',
+        'dictation': 'Understand how a dictated turn reaches its final text, including the quality and waiting time of cleanup.',
+        'meetings': 'Check whether meeting capture and notes preserve what happened, with incomplete coverage made visible.',
+        'agent': 'Check whether the agent completes the stated work correctly, within the tested permission and delivery boundaries.',
+        'voice': 'Understand response time and continuity during a voice conversation.',
+        'workflows': 'Check the stated workflow contract, including what survives interruption and what still needs verification.',
+        'models': 'Understand the model trade-off measured here, under its stated fixture and workload.',
+    }.get(run['category'], 'Understand the behavior and limits of this particular evaluation.')
+    return {'id': run['id'], 'purpose': purpose, 'method': [run['scope']],
+            'findings': [run['summary']], 'next_steps': [], 'source_links': [],
+            'reproduction': [], **run.get('report', {})}
+
+
 def outputs():
     runs = load_runs()
     inventory = scan()
@@ -137,6 +171,9 @@ def outputs():
         ROOT / 'Benchmarks/inventory/files.json': dump({'schema_version': 1, 'files': inventory}),
         ROOT / 'site/src/generated/benchmarks.json': dump(public),
     }
+    for run in runs:
+        if run['publication']['approved']:
+            result[ROOT / f"site/src/generated/benchmark-reports/{run['id']}.json"] = dump(public_report(run))
     lines = ['# Benchmark results', '',
              'One catalog for model comparisons and complete workflows. Original evidence stays at its linked path.', '',
              '[How to save a result](FORMAT.md) · [All evidence](EVIDENCE.md) · [Branch/worktree audit](inventory/README.md) · [Website](https://next-notes.com/?page=benchmarks)', '',
@@ -178,6 +215,12 @@ def outputs():
 def render(check=False):
     generated = outputs()
     stale = []
+    for path in (ROOT / 'site/src/generated/benchmark-reports').glob('*.json'):
+        if path not in generated:
+            if check:
+                stale.append(str(path.relative_to(ROOT)))
+            else:
+                path.unlink()  # This directory is generated only; revocation must remove public text.
     for path, value in generated.items():
         if check:
             if not path.exists() or path.read_text() != value:

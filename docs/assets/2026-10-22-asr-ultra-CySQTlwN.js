@@ -1,0 +1,1 @@
+var e={id:`2026-10-22-asr-ultra`,purpose:`Understand how quickly speech becomes text, and what this particular test can establish about recognition.`,method:[`Isolated runtime probe`],findings:[`English 256.1× throughput, 4.41% word error. App provider acceptance remains open.`],next_steps:[],source_links:[],reproduction:[]};export{e as default};

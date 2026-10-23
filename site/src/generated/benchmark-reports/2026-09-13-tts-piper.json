@@ -1,0 +1,13 @@
+{
+  "id": "2026-09-13-tts-piper",
+  "purpose": "Understand the wait for a voice response. Generating audio and hearing it are separate measurements.",
+  "method": [
+    "Generated PCM callback"
+  ],
+  "findings": [
+    "Historical warm first generated PCM range 98–109 ms; actual playback unmeasured."
+  ],
+  "next_steps": [],
+  "source_links": [],
+  "reproduction": []
+}

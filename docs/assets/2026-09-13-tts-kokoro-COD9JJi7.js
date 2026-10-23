@@ -1,0 +1,1 @@
+var e={id:`2026-09-13-tts-kokoro`,purpose:`Understand the wait for a voice response. Generating audio and hearing it are separate measurements.`,method:[`Generated PCM callback`],findings:[`Historical warm first generated PCM range 3200–3400 ms; actual playback unmeasured.`],next_steps:[],source_links:[],reproduction:[]};export{e as default};

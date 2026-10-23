@@ -1,0 +1,12 @@
+{
+  "reviewed_narratives": 39,
+  "original_metrics_scope_status_environment_unchanged": true,
+  "public_reports": 71,
+  "private_voice_turn_records_excluded": 2,
+  "catalog_tests": 15,
+  "comparison_tests": 8,
+  "browser_checks": 34,
+  "build": "passed",
+  "lint": "passed",
+  "app_or_owner_data_modified_by_this_task": false
+}

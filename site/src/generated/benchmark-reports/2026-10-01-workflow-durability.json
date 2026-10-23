@@ -1,0 +1,18 @@
+{
+  "id": "2026-10-01-workflow-durability",
+  "purpose": "Check the stated workflow contract, including what survives interruption and what still needs verification.",
+  "method": [
+    "Task storage, authority, continuation and worker evidence"
+  ],
+  "findings": [
+    "Bounded regression evidence exists; broad recovery, retry and remote authority remain separate contracts."
+  ],
+  "next_steps": [],
+  "source_links": [
+    {
+      "label": "Original method and results",
+      "path": "Tests/Reports/durable-tasks/2026-10-01-p6-04a-authority-migration.md"
+    }
+  ],
+  "reproduction": []
+}

@@ -27,7 +27,7 @@
       "name": "Warm first generated PCM",
       "value": 224.113584,
       "unit": "ms",
-      "boundary": "Known text request \u2192 first non-empty generated PCM; not speaker output.",
+      "boundary": "Known text request → first non-empty generated PCM; not speaker output.",
       "samples": 5,
       "aggregation": "median"
     },
@@ -35,7 +35,7 @@
       "name": "First synthesis after preparation",
       "value": 904.192583,
       "unit": "ms",
-      "boundary": "Known text request \u2192 first non-empty generated PCM on first synthesis after load; not hardware-cold.",
+      "boundary": "Known text request → first non-empty generated PCM on first synthesis after load; not hardware-cold.",
       "samples": 1,
       "aggregation": "single observation"
     },
@@ -43,7 +43,7 @@
       "name": "Preparation",
       "value": 8549.639042,
       "unit": "ms",
-      "boundary": "Start preparation \u2192 runtime ready; includes download/load or APFS cache adoption.",
+      "boundary": "Start preparation → runtime ready; includes download/load or APFS cache adoption.",
       "samples": 1,
       "aggregation": "single observation"
     }
@@ -62,11 +62,43 @@
     "Tests/Reports/tts-2026-10-22/source-pins.json",
     "Tests/Reports/tts-2026-10-22/verification.json",
     "Tests/Reports/tts-2026-10-22/final-model-cleanup.json",
-    "Tests/Reports/tts-2026-10-22/owner-cache-preservation.json"
+    "Tests/Reports/tts-2026-10-22/owner-cache-preservation.json",
+    "Tools/tts_compare.py"
   ],
   "publication": {
     "approved": true,
-    "reviewed_by": "Codex TTS: public fields reviewed for privacy and generated-PCM scope",
-    "reviewed_on": "2026-10-22"
+    "reviewed_by": "benchmark-experience-20261023",
+    "reviewed_on": "2026-10-23"
+  },
+  "report": {
+    "method": [
+      "Known English text is sent through the actual native voice adapter after preparation. Five back-to-back warm same-text requests are summarized separately from the first synthesis after preparation.",
+      "The clock stops at the first nonempty generated PCM buffer. It does not stop at a speaker, a microphone, or the end of a conversational turn."
+    ],
+    "findings": [
+      "Warm median 224.11 ms across 5 back-to-back runs; first synthesis after preparation 904.19 ms. Result saved, child joined and owned model removed.",
+      "Generated audio can be ready before playback starts. Use the separate physical speaker reports before drawing a conclusion about how quickly someone hears this voice."
+    ],
+    "source_links": [
+      {
+        "label": "Original method and results",
+        "path": "Tests/Reports/tts-2026-10-22/README.md"
+      },
+      {
+        "label": "Benchmark runner code",
+        "path": "Tools/tts_compare.py"
+      }
+    ],
+    "reproduction": [
+      {
+        "label": "Tested executable SHA-256",
+        "value": "6369272fa8fcc9cee16658f2f56288e5200fc8cb5bd17ff81f3f8e27175b513f"
+      },
+      {
+        "label": "Authored fixture SHA-256",
+        "value": "24c43847fca95ff1f3f83b3129bf7d82b67321d0dc62d1f096e96d7e21273c7b"
+      }
+    ],
+    "purpose": "How quickly can this voice produce its first usable audio buffer? This isolates generation from the separate wait for playback and sound."
   }
 }

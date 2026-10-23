@@ -1,0 +1,23 @@
+{
+  "id": "2026-10-06-minicpm-asr-overlap-decode",
+  "purpose": "Understand the model trade-off measured here, under its stated fixture and workload.",
+  "method": [
+    "Installed native C1 sustained decode workload"
+  ],
+  "findings": [
+    "42.20 tokens/s median over 96 rounds and 604.28 s with ASR overlap. Combined voice remains unqualified."
+  ],
+  "next_steps": [],
+  "source_links": [
+    {
+      "label": "Original method and results",
+      "path": "Tests/Reports/agent-overhaul-progress/c1-mini-decode/verification.md"
+    }
+  ],
+  "reproduction": [
+    {
+      "label": "Tested executable SHA-256",
+      "value": "0321ba4fe5b3358d587f8eb1fca7b6ac5b1482e1e0c4ee484a7a97c2554e215c"
+    }
+  ]
+}
