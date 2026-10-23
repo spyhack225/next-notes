@@ -1,0 +1,29 @@
+{
+  "binarySHA256": "f8a214a315b7133710e3dd7ddd08ff2d665fcd358b30ce068d702f6118460b72",
+  "sourceSHA256": {
+    "Sources/NextNotes/Agent/Speech/TTSOutputProbe.swift": "391d9ac34814e6dbaba7997ce809aa4d801b92fe05e649360ac07eafbea0641f",
+    "Sources/NextNotes/Agent/Speech/TTSFirstAudioBenchmark.swift": "a577f9403523e4823de73674bc546cab6cff01eb366508eaba1eba068fbbc2fa",
+    "Tests/Reports/tts-2026-10-22/final-controls/package-resource-accessors-candidate.py": "0579a2e8ab44370da44d6678212fbc9510f6227d284f0568589dc61123b3b5a8",
+    "Tools/tts_compare.py": "f366a11ec6e80fd2c7916daee4ccf45f1c7a9a2354da0f08356d10ab07b923ed",
+    "Tools/tts_asr_workload.py": "a4e6908ade2f9a198a13837a1d8b129c25ce0500b948084f19c9d145f4191613"
+  },
+  "hardwareLevels": {
+    "input": {
+      "device": 90,
+      "volumes": {
+        "0": 0.5098039507865906
+      },
+      "mute": 0
+    },
+    "output": {
+      "device": 83,
+      "volumes": {
+        "0": 0.6000000238418579
+      },
+      "mute": 0
+    }
+  },
+  "freeBytesBefore": 4053540864,
+  "admissionNote": "Existing swap rose to12.3GiB during the joined peer909-source build; this explicitly recorded diagnostic admission allows14GiB existing swap, with unchanged2GiB download reserve, per-model budgets and live1.5GiB stop. No compiler/inference competes. Not a low-pressure or cold-system result.",
+  "method": "Continuation only uncompleted Kokoro,Apple,Qwen; same f8 binary,60% built-in route,gain.75,30 varied warm+separate first-after-prepare. Same paced reference v3 after TTS preparation. Compiler artifact cleanup after join now verified. Phonon/Pocket completed earlier serial-speaker cohort retained without replacement."
+}

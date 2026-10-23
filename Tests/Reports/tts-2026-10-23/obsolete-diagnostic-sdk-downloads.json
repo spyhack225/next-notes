@@ -1,0 +1,75 @@
+{
+  "scope": "Completed Phonon ASR diagnostic probe compiler cache (Tools/asr_phonon_compare.py, retained phonon.json command pins) and three already-extracted immutable SDK download archives only. Existing source repositories, extracted SDKs, production caches/models and current builds unchanged.",
+  "freeBytesBefore": 497405952,
+  "removed": [
+    {
+      "path": "/Users/sergekadjo/Library/Caches/probe/com.apple.e5rt.e5bundlecache",
+      "inventory": {
+        "26B5091g/2178CFD7EB1B805185A180CC9632311045C3A934A343EA326FDA31C381F855B6/model.milhash": {
+          "size": 64,
+          "sha256": "708bd23792e630c30bb2b30e3cee4287768f394bd4f267cdd387978c676981a8"
+        },
+        "26B5091g/8ABA3BE94AAD504BAE992AEF89677A46C046D5A4283D061A2C054BA11F77139F/model.milhash": {
+          "size": 64,
+          "sha256": "80b25fabd7a28fe41121c1a140c90eaec3fd7a66a49f695bc4bd6f62eea5f249"
+        },
+        "26B5091g/0A0E8020FF2A654E03E0D48AC66A6D11D23610033771CE106CC4761629081707/model.milhash": {
+          "size": 64,
+          "sha256": "ddb4483cc1908fb3ee6cecd0b93f3f6c39ea8b5a61ea06e69dc686e5b7583020"
+        },
+        "26B5091g/C5770662FF5DD9DA23FB5CBE974B9662EEEC81E390DA0A577CFC39C151F7B36B/model.milhash": {
+          "size": 64,
+          "sha256": "1870ff31aed69e23a7258cacdb32e33788146d87963da467ced6512c65c2b601"
+        },
+        "26B5091g/6141D69A60DB8EB39697D0C74DFB5AD7705E375D4CE113B06EFB591A00B3346E/E44003B5A1E12DEA049FD7C4DFB700C6158635EF5EF0B0497EF266DC7B115E35.tmp.9933_4311944560.bundle/H15G.bundle/enc_15s/enc_15s_ane/ane_mil_model/weights1.bin": {
+          "size": 317584576,
+          "sha256": "bda8abe3e7205168cd850ce5be9196af1860c1396c56a3840455ad7b48c61950"
+        },
+        "26B5091g/6141D69A60DB8EB39697D0C74DFB5AD7705E375D4CE113B06EFB591A00B3346E/E44003B5A1E12DEA049FD7C4DFB700C6158635EF5EF0B0497EF266DC7B115E35.tmp.9933_4311944560.bundle/H15G.bundle/enc_15s/enc_15s_ane/ane_mil_model/model.mil": {
+          "size": 602586,
+          "sha256": "6cd600257a048ee466d98fe5646f05711e8668ed3119d8136898c5a22662b9bd"
+        },
+        "26B5091g/6141D69A60DB8EB39697D0C74DFB5AD7705E375D4CE113B06EFB591A00B3346E/E44003B5A1E12DEA049FD7C4DFB700C6158635EF5EF0B0497EF266DC7B115E35.tmp.9933_4311944560.bundle/H15G.bundle/enc_15s/enc_15s_ane/ane_mil_model/options.plist": {
+          "size": 273,
+          "sha256": "30cc3d70a7a94ef92b605729ed755cdaa1a78ba1f1239eb7ff80e2117b889a53"
+        }
+      },
+      "openFiles": 0,
+      "removed": true
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/org.swift.swiftpm/artifacts/https___github_com_FluidInference_text_processing_rs_releases_download_v0_3_0_NemoTextProcessing_xcframework_zip",
+      "inventory": {
+        "https___github_com_FluidInference_text_processing_rs_releases_download_v0_3_0_NemoTextProcessing_xcframework_zip": {
+          "size": 49419751,
+          "sha256": "76d0ee9a32b1ee2193231299180ca9bc4fc7e98794e771b3d55d66498352d85f"
+        }
+      },
+      "openFiles": 0,
+      "removed": true
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/org.swift.swiftpm/artifacts/https___github_com_ggml_org_llama_cpp_releases_download_b10621_llama_b10621_xcframework_zip",
+      "inventory": {
+        "https___github_com_ggml_org_llama_cpp_releases_download_b10621_llama_b10621_xcframework_zip": {
+          "size": 80871640,
+          "sha256": "ea50671b3dfe86136be16448763f94642c53443df96964777b4e1c3d51f06e20"
+        }
+      },
+      "openFiles": 0,
+      "removed": true
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/org.swift.swiftpm/artifacts/https___github_com_gradium_ai_xn_ptts_releases_download_v0_4_0_PhononCore_xcframework_zip",
+      "inventory": {
+        "https___github_com_gradium_ai_xn_ptts_releases_download_v0_4_0_PhononCore_xcframework_zip": {
+          "size": 39007317,
+          "sha256": "a10382948448087bc9f63231de3c2970d606979fd69bef7acb95d2dfa3a41cef"
+        }
+      },
+      "openFiles": 0,
+      "removed": true
+    }
+  ],
+  "freeBytesAfter": 841658368
+}

@@ -1,0 +1,16 @@
+{
+  "cleanupVerified": true,
+  "elapsedSeconds": 40.948837083997205,
+  "engine": "kokoro",
+  "exitCode": -15,
+  "freeBytesAfterCleanup": 1337729024,
+  "freeBytesBefore": 2932338688,
+  "reason": "Disk guard stopped the owned process group before cleanup.",
+  "referenceASRAfter": {
+    "active": false
+  },
+  "referenceASRBefore": null,
+  "referenceCleanupVerified": true,
+  "status": "failed",
+  "temporaryLogicalBytesBeforeCleanup": 82743816
+}

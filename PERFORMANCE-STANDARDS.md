@@ -21,8 +21,13 @@ Boundary mitigation now deletes only new compiler artifacts after durable save/n
 existing caches. Native interruption at an actual new compiler bundle passes join/deletion and original
 ASR-file preservation;18 model-free controls pass. This fixes the diagnostic artifact-lifetime gap,
 not external compiler behavior or the whole VM/Qwen pressure cause. Default route then changed to
-AirPods; continuing the common built-in-route comparison awaits owner permission. No route, installed
-app or Pocket/Alba default changed; full comparison/winner/quality/EOU contracts remain open.
+AirPods; the owner then authorized built-in-route continuation and restoration. Further verified
+artifact archiving/transparent compression briefly reached4.3GB free. Qwen prepared then hit the
+live disk guard before timed synthesis; Kokoro stopped during reference warmup, its newly created
+compiler cache was removed after join, and macOS was refused. Last light preflight refused below1GiB
+with owned models unloaded/deleted. Underlying VM/swap pressure remains open; no disk guard was
+relaxed. Built-in levels restored; disconnected AirPods reconnection is blocked by failed macOS UI
+access. Installed app and Pocket/Alba default unchanged; full comparison/winner/quality/EOU open.
 
 
 23 October 2026 TTS calibrated follow-up: [serial speaker evidence](Tests/Reports/tts-2026-10-22/README.md#23-october-calibrated-serial-cohort--incomplete-no-default-promotion).

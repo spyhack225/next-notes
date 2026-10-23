@@ -1,0 +1,52 @@
+{
+  "appSHA256": "f8a214a315b7133710e3dd7ddd08ff2d665fcd358b30ce068d702f6118460b72",
+  "machine": "macOS-27.2-arm64-arm-64bit-Mach-O",
+  "results": [
+    {
+      "cleanupVerified": true,
+      "elapsedSeconds": 24.17375366599299,
+      "engine": "qwen",
+      "exitCode": -15,
+      "freeBytesAfterCleanup": 2933317632,
+      "freeBytesBefore": 4053037056,
+      "reason": "Disk guard stopped the owned process group before cleanup.",
+      "referenceASRAfter": {
+        "active": false
+      },
+      "referenceASRBefore": null,
+      "status": "failed",
+      "temporaryLogicalBytesBeforeCleanup": 1698364895
+    },
+    {
+      "cleanupVerified": true,
+      "elapsedSeconds": 40.948837083997205,
+      "engine": "kokoro",
+      "exitCode": -15,
+      "freeBytesAfterCleanup": 1337729024,
+      "freeBytesBefore": 2932338688,
+      "reason": "Disk guard stopped the owned process group before cleanup.",
+      "referenceASRAfter": {
+        "active": false
+      },
+      "referenceASRBefore": null,
+      "referenceCleanupVerified": true,
+      "status": "failed",
+      "temporaryLogicalBytesBeforeCleanup": 82743816
+    },
+    {
+      "cleanupVerified": true,
+      "elapsedSeconds": 3.504205960780382e-05,
+      "engine": "apple",
+      "freeBytesAfterCleanup": 1337602048,
+      "freeBytesBefore": 1337663488,
+      "reason": "Insufficient disk headroom for this one model.",
+      "referenceASRAfter": {
+        "active": false
+      },
+      "referenceASRBefore": null,
+      "status": "not-run",
+      "temporaryLogicalBytesBeforeCleanup": 5
+    }
+  ],
+  "workload": "Continuation only uncompleted Kokoro,Apple,Qwen; same f8 binary,60% built-in route,gain.75,30 varied warm+separate first-after-prepare. Same paced reference v3 after TTS preparation. Compiler artifact cleanup after join now verified. Phonon/Pocket completed earlier serial-speaker cohort retained without replacement."
+}

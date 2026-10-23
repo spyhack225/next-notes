@@ -1,0 +1,14 @@
+{
+  "cleanupVerified": true,
+  "elapsedSeconds": 3.504205960780382e-05,
+  "engine": "apple",
+  "freeBytesAfterCleanup": 1337602048,
+  "freeBytesBefore": 1337663488,
+  "reason": "Insufficient disk headroom for this one model.",
+  "referenceASRAfter": {
+    "active": false
+  },
+  "referenceASRBefore": null,
+  "status": "not-run",
+  "temporaryLogicalBytesBeforeCleanup": 5
+}

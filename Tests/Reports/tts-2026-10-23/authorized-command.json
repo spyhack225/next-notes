@@ -1,0 +1,23 @@
+[
+  "python3",
+  "/Users/sergekadjo/Documents/Claude/Projects/next-notes/Tools/tts_compare.py",
+  "--app",
+  "/Users/sergekadjo/Library/Caches/NextNotesBuild/tts-output-diagnostic/Next Notes.app/Contents/MacOS/NextNotes",
+  "--output",
+  "/Users/sergekadjo/Documents/Claude/Projects/next-notes/Tests/Reports/tts-2026-10-23/authorized-speaker",
+  "--engines",
+  "qwen,kokoro,apple",
+  "--trials",
+  "30",
+  "--speaker-output",
+  "--timeout",
+  "900",
+  "--relay-owner",
+  "codex-tts-20261022",
+  "--max-swap-gb",
+  "14",
+  "--reference-asr-probe",
+  "/Users/sergekadjo/Library/Caches/NextNotesASRBench/tts-reference-probe-fy9lx77h/runtime-probe",
+  "--workload",
+  "Continuation only uncompleted Kokoro,Apple,Qwen; same f8 binary,60% built-in route,gain.75,30 varied warm+separate first-after-prepare. Same paced reference v3 after TTS preparation. Compiler artifact cleanup after join now verified. Phonon/Pocket completed earlier serial-speaker cohort retained without replacement."
+]

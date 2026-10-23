@@ -1,0 +1,15 @@
+{
+  "scope": "Exact-content APFS cloning of one idle identical FluidAudio dependency Git pack into the removed-worktree cache; no repository, reference, model, user file or app executable removed. Original paths, bytes, timestamps, modes and ordinary attributes retained; macOS assigns per-inode provenance for clones. Available-space change may also include OS pressure recovery.",
+  "freeBytesBefore": 2374598656,
+  "freeBytesAfter": 2386628608,
+  "files": [
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt-scratch/voice-ack/repositories/FluidAudio-08d244c7/objects/pack/pack-9812aaab96ae66285aa541a501b1683b675fef57.pack",
+      "canonical": "/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/repositories/FluidAudio-08d244c7/objects/pack/pack-9812aaab96ae66285aa541a501b1683b675fef57.pack",
+      "sha256": "7b2f239d69810f4b61eba02c1f9d0a9ae8910a0b17ddc0c39f98430e73a40450",
+      "bytes": 371381421,
+      "bytesTimesModesAndOrdinaryAttributesPreserved": true,
+      "availableBytesDelta": -4096
+    }
+  ]
+}

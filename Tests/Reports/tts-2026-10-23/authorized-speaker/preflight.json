@@ -1,0 +1,43 @@
+{
+  "activeMachineClaims": [],
+  "assessed": "pass",
+  "coverage": {
+    "disk": "measured",
+    "load": "measured",
+    "swap": "measured"
+  },
+  "freeGb": 3.7749862670898438,
+  "kind": "preflight",
+  "load": 8.32,
+  "measurements": {
+    "freeGb": {
+      "error": null,
+      "source": "df -Pk /Users/sergekadjo/Documents/Claude/Projects/next-notes/Tests/Reports/tts-2026-10-23/authorized-speaker",
+      "timestamp": "2026-10-23T05:18:28.450Z",
+      "value": 3.7749862670898438
+    },
+    "load": {
+      "error": null,
+      "source": "sysctl vm.loadavg",
+      "timestamp": "2026-10-23T05:18:28.401Z",
+      "value": 8.32
+    },
+    "swapGb": {
+      "error": null,
+      "source": "sysctl vm.swapusage",
+      "timestamp": "2026-10-23T05:18:28.389Z",
+      "value": 12.197265625
+    }
+  },
+  "mode": "permissive",
+  "ok": true,
+  "path": "/Users/sergekadjo/Documents/Claude/Projects/next-notes/Tests/Reports/tts-2026-10-23/authorized-speaker",
+  "reasons": [],
+  "require": [
+    "swap",
+    "load",
+    "disk"
+  ],
+  "swapGb": 12.197265625,
+  "unknown": []
+}

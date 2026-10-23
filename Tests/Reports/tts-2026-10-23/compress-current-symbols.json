@@ -1,0 +1,26 @@
+{
+  "freeBytesBefore": 3602079744,
+  "scope": "Transparent compression only; current matching debug symbols remain at exact paths with identical logical hashes/mode/mtime/UUID. Runtime binary unchanged.",
+  "files": [
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/arm64-apple-macosx/release/NextNotes.dSYM/Contents/Resources/DWARF/NextNotes",
+      "sha256": "dda5aa17797a64a28152f1864c86f08ca80e3bc1fe85da2256569d28179bdc90",
+      "logicalBytes": 397148992,
+      "allocatedBefore": 397152256,
+      "allocatedAfter": 100745216,
+      "mtimeUnchanged": true,
+      "modeUnchanged": true
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/arm64-apple-macosx/release/NextNotes.dSYM/Contents/Resources/Relocations/aarch64/NextNotes.yml",
+      "sha256": "b22db51732fdd768a55a21316e6ec5bfb83477bd175a4100aa5ccf08488fb27a",
+      "logicalBytes": 27414054,
+      "allocatedBefore": 27414528,
+      "allocatedAfter": 2633728,
+      "mtimeUnchanged": true,
+      "modeUnchanged": true
+    }
+  ],
+  "freeBytesAfter": 3957825536,
+  "uuidAfter": "UUID: 7C98E652-B91C-3C96-98A6-7C2437E9896D (arm64) /Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/arm64-apple-macosx/release/NextNotes.dSYM/Contents/Resources/DWARF/NextNotes"
+}

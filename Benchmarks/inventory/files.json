@@ -11862,12 +11862,128 @@
       "category": "tts"
     },
     {
+      "path": "Tests/Reports/tts-2026-10-23/archive-legacy-executables.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-23/authorized-command.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-23/authorized-source-pins.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-23/authorized-speaker/apple.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-23/authorized-speaker/kokoro-reference.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-23/authorized-speaker/kokoro.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-23/authorized-speaker/kokoro.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-23/authorized-speaker/preflight.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-23/authorized-speaker/qwen.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-23/authorized-speaker/qwen.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-23/authorized-speaker/reference-kokoro/ready.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-23/authorized-speaker/reference-kokoro/receipt.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-23/authorized-speaker/reference-kokoro/rpc.json.diagnostic.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-23/authorized-speaker/summary.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-23/authorized-volume-after.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-23/authorized-volume-before.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-23/authorized-volume-during.json",
+      "category": "tts"
+    },
+    {
       "path": "Tests/Reports/tts-2026-10-23/cleanup-obsolete.json",
       "category": "dictation"
     },
     {
       "path": "Tests/Reports/tts-2026-10-23/compiler-artifact-cleanup.json",
       "category": "dictation"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-23/compress-compiler-artifacts.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-23/compress-current-symbols.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-23/compress-idle-header-artifacts.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-23/deduplicate-dependency-pack.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-23/handoff-status.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-23/light-command.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-23/light-source-pins.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-23/light-speaker/preflight.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-23/light-volume-after.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-23/light-volume-before.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-23/light-volume-during.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-23/obsolete-diagnostic-sdk-downloads.json",
+      "category": "tts"
     },
     {
       "path": "Tests/Reports/tts-2026-10-23/preferences-before.json",
@@ -12023,6 +12139,10 @@
     },
     {
       "path": "Tests/Reports/tts-2026-10-23/serial-volume-during.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-23/transparent-compression-control.json",
       "category": "tts"
     },
     {

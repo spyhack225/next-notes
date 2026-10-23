@@ -1,0 +1,62 @@
+{
+  "scope": "Old Xcode Products executables only. Runtime resources stay at original paths; exact executables remain recoverable from individual verified archives. Current SwiftPM output, installed app, rollback and current TTS diagnostic untouched. No unique source/repository/model/owner file deleted.",
+  "freeBytesBefore": 2388406272,
+  "files": [
+    {
+      "originalPath": "/Users/sergekadjo/Library/Caches/NextNotesBuild/claude-scratch/out/Products/Debug/NextNotes",
+      "originalSHA256": "3a4a1d04027c85308780dd176f04cf42cbcf916ec5b646761dfdcb2091dd6275",
+      "originalBytes": 213323184,
+      "originalMode": 493,
+      "archive": "/Users/sergekadjo/Library/Caches/NextNotesBuild/retired-executables/claude-scratch-out-Products-Debug-NextNotes.zip",
+      "archiveBytes": 60690911,
+      "archiveSHA256": "18f5843f08a03cf10962ac194e6d933a2611ef1572bfb76cd9b5d130f4ca7037",
+      "verifiedRecoverable": true,
+      "uncompressedRetired": true
+    },
+    {
+      "originalPath": "/Users/sergekadjo/Library/Caches/NextNotesBuild/claude-scratch/out/Products/Release/NextNotes",
+      "originalSHA256": "f0cfb6bc3c6b322d410ce28e5f7456cc2c719aa586354d286dbc8f47f6e17958",
+      "originalBytes": 107018152,
+      "originalMode": 493,
+      "archive": "/Users/sergekadjo/Library/Caches/NextNotesBuild/retired-executables/claude-scratch-out-Products-Release-NextNotes.zip",
+      "archiveBytes": 38075279,
+      "archiveSHA256": "98dd610d564a9a31ffce4bc6b0577c519b025f3690937bcbf76c4cb4e298602e",
+      "verifiedRecoverable": true,
+      "uncompressedRetired": true
+    },
+    {
+      "originalPath": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt-scratch/voice-ack/out/Products/Release/NextNotes",
+      "originalSHA256": "90b9b1eea4b114f1a50e63737b46418edca216c71e93d49a906f2b0fc318fda6",
+      "originalBytes": 99757320,
+      "originalMode": 493,
+      "archive": "/Users/sergekadjo/Library/Caches/NextNotesBuild/retired-executables/wt-scratch-voice-ack-out-Products-Release-NextNotes.zip",
+      "archiveBytes": 35521538,
+      "archiveSHA256": "3cac4a558b311ea262c256e3ddab0e7685d9c0d078cffe2023e49c89ba58bf18",
+      "verifiedRecoverable": true,
+      "uncompressedRetired": true
+    },
+    {
+      "originalPath": "/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/out/Products/Debug/NextNotes",
+      "originalSHA256": "fffb04e441bc2d29f36a5af73983e95a6423cd9617cb0af65321bfd29feed792",
+      "originalBytes": 217354000,
+      "originalMode": 493,
+      "archive": "/Users/sergekadjo/Library/Caches/NextNotesBuild/retired-executables/scratch-out-Products-Debug-NextNotes.zip",
+      "archiveBytes": 61917408,
+      "archiveSHA256": "0b0ffc30982ec4db31bd34a143d1a2fc399143c50d392e51ec93038739700aff",
+      "verifiedRecoverable": true,
+      "uncompressedRetired": true
+    },
+    {
+      "originalPath": "/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/out/Products/Release/NextNotes",
+      "originalSHA256": "5f371aa7ef1924cd029af08f56f2da6bf97ca405d1b356781cbee009e40bcb8f",
+      "originalBytes": 108073736,
+      "originalMode": 493,
+      "archive": "/Users/sergekadjo/Library/Caches/NextNotesBuild/retired-executables/scratch-out-Products-Release-NextNotes.zip",
+      "archiveBytes": 38470487,
+      "archiveSHA256": "eea68cb00953ecbfe22550ea464d9ba3feb4855df3e8105ba762a72f9b6ee3f1",
+      "verifiedRecoverable": true,
+      "uncompressedRetired": true
+    }
+  ],
+  "freeBytesAfter": 2901278720
+}

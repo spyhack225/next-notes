@@ -45,8 +45,8 @@ Before continuation, the default route changed to AirPods input101/output95. The
 built-in comparison cannot be continued on that different route. A fresh attempt
 refused before model download because that output exposes stereo channel controls
 rather than the built-in master-volume property. No device/volume change was made.
-Permission to temporarily restore built-in input/output, then return AirPods/levels,
-is pending; hardware testing/default promotion are paused at that boundary.
+The owner subsequently authorized built-in input/output and AirPods restoration.
+The authorized continuation and restoration blocker are recorded below.
 
 ## External compiler artifact producer and mitigation
 
@@ -101,3 +101,55 @@ bounded TTS decision. A completed common-route five-voice cohort and focused win
 consumer/suspend/cancel/quality smoke remain required before choosing the default.
 The original owner92-key preference hash witness is `preferences-before.json`;
 Pocket/Alba remains selected. No additional TTS model is currently loaded.
+
+## Authorized continuation and final resource blocker
+
+Owner explicitly approved “Use the MacBook speakers, then restore AirPods.” After the
+peer native build joined, the same f8 candidate/built-in60% setup retried Qwen, Kokoro,
+then macOS (`authorized-command.json`, source pins and per-engine receipts). Existing
+swap had risen after the670s/909-source peer build; the diagnostic admission explicitly
+allowed14GiB existing swap instead of12. The2GiB download reserve, model budgets and
+1.5GiB live disk stop remained unchanged. This is high-pressure evidence.
+
+Qwen downloaded/prepared (MLX peak1.714GB), then the live disk guard stopped it before
+reference ASR or any timed synthesis. Its1,698,364,895-byte temporary root was deleted.
+Kokoro stopped during reference warmup; its child joined and its owned root and newly
+created445,942,996-byte external compiler bundle were deleted, with existing ASR-file
+hashes unchanged. macOS was refused before starting. A subsequent Kokoro/macOS-only
+continuation refused at preflight before downloading any model (`light-speaker/preflight.json`).
+No new accepted acoustic timings resulted, and the completed Phonon/Pocket cohort was
+retained without replacement. The full-five comparison and winner acceptance remain open.
+
+Additional cleanup receipts retain exact paths and integrity evidence:
+
+- `deduplicate-dependency-pack.json`: byte-identical old dependency pack reused via APFS clone;
+  only about12MB observed free-space gain, not371MB exclusive physical reclamation.
+- `archive-legacy-executables.json`: five idle obsolete Xcode executables compressed into
+  verified recoverable ZIPs before retiring originals; observed512,872,448-byte gain.
+- `compress-compiler-artifacts.json`:1,900 idle compiler objects/modules transparently
+  compressed at their existing paths; allocated-block reduction959,963,136bytes.
+- `compress-current-symbols.json`: useful current debug symbols retained byte-for-byte,
+  including matching UUID; observed free-space increase355,745,792bytes.
+- `compress-idle-header-artifacts.json`: idle clang header modules retained byte-for-byte;
+  allocated-block reduction584,351,744bytes.
+- `obsolete-diagnostic-sdk-downloads.json`: completed Phonon-ASR diagnostic compiler cache
+  and three already-extracted SDK archives removed; no production model cache swept.
+
+Transparent compression uses the official Homebrew afsctool1.7.3 bottle pinned by SHA in
+the scripts/receipts, extracted task-locally. Every production compressed file preserves
+logical SHA, path, mode and nanosecond mtime; physical compression metadata changes.
+The initial control in `transparent-compression-control.json` predates explicit mtime
+restoration; the actual production scripts restore/verify it. No future incremental-build
+cache-hit behavior is claimed. Current app, rollback and useful diagnostic remain.
+Observed disk deltas include unrelated OS activity and must not be summed as exclusive
+reclaimed space. Despite briefly reaching4.3GB free, space fell below1GiB with every owned
+TTS/reference child exited and model removed; final observation is `handoff-status.json`.
+Underlying VM/swap pressure remains unresolved. No apps were closed or swap/user files deleted.
+
+Both wrappers restored the original built-in output12.5% and input levels. AirPods had
+become disconnected and their previous device IDs no longer resolved. Restoration through
+Control Center timed out; System Settings observation failed with an OS capture error.
+AirPods reconnection remains incomplete, not silently claimed successful. No app default
+was changed: Pocket/Alba stays selected, installed809 remains unchanged. The machine heavy
+claim was released and the voice-turn agent received the partial evidence/resource blocker;
+its bounded upstream differential/build may proceed subject to its own resource checks.

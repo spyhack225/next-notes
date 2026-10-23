@@ -1,0 +1,28 @@
+{
+  "timeUTC": "2026-10-23T05:32:03.370240+00:00",
+  "freeBytes": 2308579328,
+  "audio": {
+    "input": {
+      "device": 90,
+      "volumes": {
+        "0": 0.5098039507865906
+      },
+      "mute": 0
+    },
+    "output": {
+      "device": 83,
+      "volumes": {
+        "0": 0.1250000149011612
+      },
+      "mute": 0
+    }
+  },
+  "formerAirPodsAvailable": {
+    "101": false,
+    "95": false
+  },
+  "restoration": "Built-in levels restored; AirPods disconnected. Control Center timed out; System Settings UI observation failed with OS capture error. AirPods restoration remains blocked; no successful reconnection claimed.",
+  "installedExecutableSHA256": "bce5ef99b315110ef535122ded59329eb6bec1d7a53d6e573ac9a07f4af95620",
+  "defaultEngine": "pocket",
+  "defaultVoice": "alba"
+}

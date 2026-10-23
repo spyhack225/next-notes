@@ -1,0 +1,45 @@
+{
+  "activeMachineClaims": [],
+  "assessed": "refusal",
+  "coverage": {
+    "disk": "measured",
+    "load": "measured",
+    "swap": "measured"
+  },
+  "freeGb": 0.6474037170410156,
+  "kind": "preflight",
+  "load": 4.3,
+  "measurements": {
+    "freeGb": {
+      "error": null,
+      "source": "df -Pk /Users/sergekadjo/Documents/Claude/Projects/next-notes/Tests/Reports/tts-2026-10-23/light-speaker",
+      "timestamp": "2026-10-23T05:24:41.175Z",
+      "value": 0.6474037170410156
+    },
+    "load": {
+      "error": null,
+      "source": "sysctl vm.loadavg",
+      "timestamp": "2026-10-23T05:24:41.168Z",
+      "value": 4.3
+    },
+    "swapGb": {
+      "error": null,
+      "source": "sysctl vm.swapusage",
+      "timestamp": "2026-10-23T05:24:41.167Z",
+      "value": 13.571591796875
+    }
+  },
+  "mode": "permissive",
+  "ok": false,
+  "path": "/Users/sergekadjo/Documents/Claude/Projects/next-notes/Tests/Reports/tts-2026-10-23/light-speaker",
+  "reasons": [
+    "Free disk 0.65 GB is below 2 GB"
+  ],
+  "require": [
+    "swap",
+    "load",
+    "disk"
+  ],
+  "swapGb": 13.571591796875,
+  "unknown": []
+}
