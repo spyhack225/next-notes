@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en" class="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>MiniCPM5-2B decode with ASR overlapping | Next Notes Benchmarks</title>
+    
+    
+
+    <!-- Absolute, not relative, and not negotiable. Open Graph consumers resolve these
+         server-side with no page context to resolve a relative path against, so "./icon.png"
+         is simply dropped — which is why every link to this site was previewing bare. -->
+    
+    <meta property="og:site_name" content="Next Notes" />
+    
+    
+    
+    <!-- TODO: og-image.png is the old dictation card (dark, "free and open source"). It needs
+         regenerating to match the current positioning; the alt text below describes what it
+         shows today and should change with it. -->
+    <meta property="og:image" content="https://next-notes.com/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Next Notes on a dark background: a spoken sentence with filler words and a change of mind is turned into the clean sentence &quot;So I need to send the report by Thursday.&quot;" />
+    <meta property="og:locale" content="en_US" />
+
+    <!-- summary_large_image needs an image at least 300px wide; the 256px app icon this
+         used to point at failed that minimum, so the card fell back to no image at all. -->
+    <meta name="twitter:card" content="summary_large_image" />
+    
+    
+    <meta name="twitter:image" content="https://next-notes.com/og-image.png" />
+    <meta name="twitter:image:alt" content="Next Notes on a dark background: a spoken sentence with filler words and a change of mind is turned into the clean sentence &quot;So I need to send the report by Thursday.&quot;" />
+
+    <meta name="theme-color" content="#ffffff" />
+    <link rel="icon" href="/favicon.ico" sizes="32x32" />
+    <link rel="icon" type="image/png" href="/icon.png" sizes="256x256" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <style>
+      /* The initial document stays useful until React replaces this matching summary. */
+      body { background: #fff; }
+      #root > .static-fallback { max-width: 72rem; margin: 0 auto; padding: 8rem 2rem 5rem; font: 1.1rem/1.65 system-ui, sans-serif; }
+      #root > .static-fallback h1 { max-width: 13ch; font-size: clamp(3rem, 7vw, 6rem); font-weight: 500; line-height: 1.05; letter-spacing: -.055em; }
+      #root > .static-fallback h2 { margin-top: 3rem; font-size: clamp(1.75rem, 4vw, 2.75rem); font-weight: 500; line-height: 1.15; }
+      #root > .static-fallback p, #root > .static-fallback ul { max-width: 43rem; }
+      #root > .static-fallback li { margin-block: .6rem; }
+      #root > .static-fallback a { color: inherit; text-underline-offset: .2em; }
+      #root > .static-fallback { color: #161616; background: #fff; }
+    </style>
+
+    <!-- Static structured data matches the product and its current Mac-first scope. -->
+    
+    <script type="module" crossorigin src="/assets/index-Bqat3-VV.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-NdPb55ZX.css">
+  <link rel="canonical" href="https://next-notes.com/benchmarks/2026-10-06-minicpm-asr-overlap-decode/" />
+<meta name="description" content="Measured. 42.20 tokens/s median over 96 rounds and 604.28 s with ASR overlap. Combined voice remains unqualified." />
+<meta name="robots" content="index, follow" />
+<meta property="og:title" content="MiniCPM5-2B decode with ASR overlapping | Next Notes Benchmarks" />
+<meta property="og:description" content="Measured. 42.20 tokens/s median over 96 rounds and 604.28 s with ASR overlap. Combined voice remains unqualified." />
+<meta property="og:url" content="https://next-notes.com/benchmarks/2026-10-06-minicpm-asr-overlap-decode/" />
+<meta property="og:type" content="article" />
+<meta name="twitter:title" content="MiniCPM5-2B decode with ASR overlapping | Next Notes Benchmarks" />
+<meta name="twitter:description" content="Measured. 42.20 tokens/s median over 96 rounds and 604.28 s with ASR overlap. Combined voice remains unqualified." />
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"WebSite","@id":"https://next-notes.com/#website","name":"Next Notes","url":"https://next-notes.com/","inLanguage":"en"},{"@type":"Organization","@id":"https://next-notes.com/#organization","name":"Next Notes","url":"https://next-notes.com/"},{"@type":"BreadcrumbList","@id":"https://next-notes.com/benchmarks/2026-10-06-minicpm-asr-overlap-decode/#breadcrumbs","itemListElement":[{"@type":"ListItem","position":1,"name":"Next Notes","item":"https://next-notes.com/"},{"@type":"ListItem","position":2,"name":"Benchmarks","item":"https://next-notes.com/benchmarks/"},{"@type":"ListItem","position":3,"name":"MiniCPM5-2B decode with ASR overlapping","item":"https://next-notes.com/benchmarks/2026-10-06-minicpm-asr-overlap-decode/"}]},{"@type":"WebPage","@id":"https://next-notes.com/benchmarks/2026-10-06-minicpm-asr-overlap-decode/#page","url":"https://next-notes.com/benchmarks/2026-10-06-minicpm-asr-overlap-decode/","name":"MiniCPM5-2B decode with ASR overlapping | Next Notes Benchmarks","description":"Measured. 42.20 tokens/s median over 96 rounds and 604.28 s with ASR overlap. Combined voice remains unqualified.","inLanguage":"en","isPartOf":{"@id":"https://next-notes.com/#website"},"breadcrumb":{"@id":"https://next-notes.com/benchmarks/2026-10-06-minicpm-asr-overlap-decode/#breadcrumbs"},"mainEntity":{"@id":"https://next-notes.com/benchmarks/2026-10-06-minicpm-asr-overlap-decode/#report"}},{"@type":"Report","@id":"https://next-notes.com/benchmarks/2026-10-06-minicpm-asr-overlap-decode/#report","url":"https://next-notes.com/benchmarks/2026-10-06-minicpm-asr-overlap-decode/","headline":"MiniCPM5-2B decode with ASR overlapping","name":"MiniCPM5-2B decode with ASR overlapping","description":"42.20 tokens/s median over 96 rounds and 604.28 s with ASR overlap. Combined voice remains unqualified.","abstract":"Installed native C1 sustained decode workload","reportNumber":"2026-10-06-minicpm-asr-overlap-decode","inLanguage":"en","articleSection":"Benchmarks","publisher":{"@id":"https://next-notes.com/#organization"},"mainEntityOfPage":{"@id":"https://next-notes.com/benchmarks/2026-10-06-minicpm-asr-overlap-decode/#page"},"about":{"@type":"Thing","name":"models benchmarks"}}]}</script></head>
+  <body>
+    <div id="root"><main class="static-fallback"><nav><a href="/">Next Notes</a> / <a href="/benchmarks/">Benchmarks</a></nav><h1>MiniCPM5-2B decode with ASR overlapping</h1><p>2026-10-06 · Measured</p><p>42.20 tokens/s median over 96 rounds and 604.28 s with ASR overlap. Combined voice remains unqualified.</p><h2>Findings</h2><p>42.20 tokens/s median over 96 rounds and 604.28 s with ASR overlap. Combined voice remains unqualified.</p><h2>Measurements</h2><ul><li>Decode throughput median: 42.2 tokens/s. Native completion decode, 256 tokens per round; samples: 96; median.</li><li>Decode throughput p10: 36.14 tokens/s. Native completion decode, 256 tokens per round; samples: 96; 10th percentile.</li><li>Run duration: 604.28 s. Sustained C1 workload; samples: 1; reported observation.</li></ul><h2>Why and how we tested</h2><p>Understand the model trade-off measured here, under its stated fixture and workload.</p><p>Installed native C1 sustained decode workload</p><p>Installed native C1 sustained decode workload</p><ul><li>hardware: Apple M3 / Mac15,12, 16 GB RAM</li><li>power: AC, low-power mode off</li><li>thermal: Nominal initially, fair after 340 s</li><li>workload: 96 rounds of 256 completion tokens; 122 successful Parakeet returns; all decode rounds overlap ASR</li></ul><p>Tested executable SHA-256: 0321ba4fe5b3358d587f8eb1fca7b6ac5b1482e1e0c4ee484a7a97c2554e215c</p><h2>Limitations</h2><p>C1 decode acceptance only; combined voice workload C2 remains open.</p><p>Nominal temperature for the whole run is not claimed.</p><p>No current default promotion, cleanup/notes quality or whole-app readiness claim.</p><h2>Original evidence</h2><ul><li><a href="https://github.com/spyhack225/next-notes/blob/main/Tests/Reports/agent-overhaul-progress/c1-mini-decode/verification.md">Original method and results</a></li></ul></main></div>
+</body>
+</html>

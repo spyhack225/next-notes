@@ -281,7 +281,7 @@ export default function Report({ run, back }: { run: Run; back: string }) {
           )}
           <h2>Reading this result</h2>
           <p>{run.scope}</p>
-          <a href="?page=benchmarks#methodology" data-bench="">
+          <a href="/benchmarks/#methodology" data-bench="">
             How we interpret benchmarks <ArrowUpRight size={14} />
           </a>
           {related.length > 0 && (

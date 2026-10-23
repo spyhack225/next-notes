@@ -1,3 +1,4 @@
+import { applyMetadata, reportId } from "./benchmarks/seo";
 import { useEffect, useState, type MouseEvent } from "react";
 import {
   ArrowDown,
@@ -73,10 +74,7 @@ export default function Benchmarks() {
     "newest",
   );
   const query = (params.get("q") ?? "").slice(0, 200);
-  const legacyId = location.hash.slice(1);
-  const runId =
-    params.get("run") ??
-    (runs.some((r) => r.id === legacyId) ? legacyId : null);
+  const runId = reportId(location);
   const run = runs.find((r) => r.id === runId);
   const filtered = filterRuns(runs, area, status, query, order);
   const pages = Math.max(1, Math.ceil(filtered.length / 12));
@@ -85,6 +83,8 @@ export default function Benchmarks() {
     Math.max(1, Number.parseInt(params.get("p") ?? "1", 10) || 1),
   );
   const back = new URL(location);
+  back.pathname = "/benchmarks/";
+  back.searchParams.delete("page");
   back.searchParams.delete("run");
   back.hash = "";
   function update(values: Record<string, string>) {
@@ -117,9 +117,7 @@ export default function Benchmarks() {
     setLocation(next);
   }
   useEffect(() => {
-    document.title = run
-      ? `${run.title} | Next Notes Benchmarks`
-      : "Benchmarks | Next Notes";
+    applyMetadata(run, Boolean(runId && !run));
     if (location.hash && location.hash.slice(1) !== runId) {
       document.getElementById(location.hash.slice(1))?.scrollIntoView();
     } else {
@@ -143,10 +141,10 @@ export default function Benchmarks() {
               <span>Next Notes</span>
             </a>
             <div>
-              <a href="?page=benchmarks" data-bench="" aria-current="page">
+              <a href="/benchmarks/" data-bench="" aria-current="page">
                 Benchmarks
               </a>
-              <a href="?page=benchmarks#methodology" data-bench="">
+              <a href="/benchmarks/#methodology" data-bench="">
                 Our method
               </a>
               <a href={DOWNLOAD_URL}>
@@ -172,7 +170,7 @@ export default function Benchmarks() {
                   The link may be out of date, or the result has not been
                   approved for publication.
                 </p>
-                <a href="?page=benchmarks" data-bench="">
+                <a href="/benchmarks/" data-bench="">
                   <ArrowLeft size={16} /> Browse published benchmarks
                 </a>
               </section>
@@ -455,7 +453,7 @@ export default function Benchmarks() {
         </main>
         <footer className="bench-footer">
           <span>Next Notes · Measured with care.</span>
-          <a href="?page=benchmarks#methodology" data-bench="">
+          <a href="/benchmarks/#methodology" data-bench="">
             How we measure
           </a>
           <a

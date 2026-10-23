@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en" class="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>Qwen3-ASR 1.7B (4-bit MLX) | Next Notes Benchmarks</title>
+    
+    
+
+    <!-- Absolute, not relative, and not negotiable. Open Graph consumers resolve these
+         server-side with no page context to resolve a relative path against, so "./icon.png"
+         is simply dropped — which is why every link to this site was previewing bare. -->
+    
+    <meta property="og:site_name" content="Next Notes" />
+    
+    
+    
+    <!-- TODO: og-image.png is the old dictation card (dark, "free and open source"). It needs
+         regenerating to match the current positioning; the alt text below describes what it
+         shows today and should change with it. -->
+    <meta property="og:image" content="https://next-notes.com/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Next Notes on a dark background: a spoken sentence with filler words and a change of mind is turned into the clean sentence &quot;So I need to send the report by Thursday.&quot;" />
+    <meta property="og:locale" content="en_US" />
+
+    <!-- summary_large_image needs an image at least 300px wide; the 256px app icon this
+         used to point at failed that minimum, so the card fell back to no image at all. -->
+    <meta name="twitter:card" content="summary_large_image" />
+    
+    
+    <meta name="twitter:image" content="https://next-notes.com/og-image.png" />
+    <meta name="twitter:image:alt" content="Next Notes on a dark background: a spoken sentence with filler words and a change of mind is turned into the clean sentence &quot;So I need to send the report by Thursday.&quot;" />
+
+    <meta name="theme-color" content="#ffffff" />
+    <link rel="icon" href="/favicon.ico" sizes="32x32" />
+    <link rel="icon" type="image/png" href="/icon.png" sizes="256x256" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <style>
+      /* The initial document stays useful until React replaces this matching summary. */
+      body { background: #fff; }
+      #root > .static-fallback { max-width: 72rem; margin: 0 auto; padding: 8rem 2rem 5rem; font: 1.1rem/1.65 system-ui, sans-serif; }
+      #root > .static-fallback h1 { max-width: 13ch; font-size: clamp(3rem, 7vw, 6rem); font-weight: 500; line-height: 1.05; letter-spacing: -.055em; }
+      #root > .static-fallback h2 { margin-top: 3rem; font-size: clamp(1.75rem, 4vw, 2.75rem); font-weight: 500; line-height: 1.15; }
+      #root > .static-fallback p, #root > .static-fallback ul { max-width: 43rem; }
+      #root > .static-fallback li { margin-block: .6rem; }
+      #root > .static-fallback a { color: inherit; text-underline-offset: .2em; }
+      #root > .static-fallback { color: #161616; background: #fff; }
+    </style>
+
+    <!-- Static structured data matches the product and its current Mac-first scope. -->
+    
+    <script type="module" crossorigin src="/assets/index-Bqat3-VV.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-NdPb55ZX.css">
+  <link rel="canonical" href="https://next-notes.com/benchmarks/2026-10-22-asr-qwen-17b/" />
+<meta name="description" content="Measured. English 14.3× throughput, 3.68% word error. App provider acceptance remains open." />
+<meta name="robots" content="index, follow" />
+<meta property="og:title" content="Qwen3-ASR 1.7B (4-bit MLX) | Next Notes Benchmarks" />
+<meta property="og:description" content="Measured. English 14.3× throughput, 3.68% word error. App provider acceptance remains open." />
+<meta property="og:url" content="https://next-notes.com/benchmarks/2026-10-22-asr-qwen-17b/" />
+<meta property="og:type" content="article" />
+<meta name="twitter:title" content="Qwen3-ASR 1.7B (4-bit MLX) | Next Notes Benchmarks" />
+<meta name="twitter:description" content="Measured. English 14.3× throughput, 3.68% word error. App provider acceptance remains open." />
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"WebSite","@id":"https://next-notes.com/#website","name":"Next Notes","url":"https://next-notes.com/","inLanguage":"en"},{"@type":"Organization","@id":"https://next-notes.com/#organization","name":"Next Notes","url":"https://next-notes.com/"},{"@type":"BreadcrumbList","@id":"https://next-notes.com/benchmarks/2026-10-22-asr-qwen-17b/#breadcrumbs","itemListElement":[{"@type":"ListItem","position":1,"name":"Next Notes","item":"https://next-notes.com/"},{"@type":"ListItem","position":2,"name":"Benchmarks","item":"https://next-notes.com/benchmarks/"},{"@type":"ListItem","position":3,"name":"Qwen3-ASR 1.7B (4-bit MLX)","item":"https://next-notes.com/benchmarks/2026-10-22-asr-qwen-17b/"}]},{"@type":"WebPage","@id":"https://next-notes.com/benchmarks/2026-10-22-asr-qwen-17b/#page","url":"https://next-notes.com/benchmarks/2026-10-22-asr-qwen-17b/","name":"Qwen3-ASR 1.7B (4-bit MLX) | Next Notes Benchmarks","description":"Measured. English 14.3× throughput, 3.68% word error. App provider acceptance remains open.","inLanguage":"en","isPartOf":{"@id":"https://next-notes.com/#website"},"breadcrumb":{"@id":"https://next-notes.com/benchmarks/2026-10-22-asr-qwen-17b/#breadcrumbs"},"mainEntity":{"@id":"https://next-notes.com/benchmarks/2026-10-22-asr-qwen-17b/#report"}},{"@type":"Report","@id":"https://next-notes.com/benchmarks/2026-10-22-asr-qwen-17b/#report","url":"https://next-notes.com/benchmarks/2026-10-22-asr-qwen-17b/","headline":"Qwen3-ASR 1.7B (4-bit MLX)","name":"Qwen3-ASR 1.7B (4-bit MLX)","description":"English 14.3× throughput, 3.68% word error. App provider acceptance remains open.","abstract":"Isolated runtime probe","reportNumber":"2026-10-22-asr-qwen-17b","inLanguage":"en","articleSection":"Benchmarks","publisher":{"@id":"https://next-notes.com/#organization"},"mainEntityOfPage":{"@id":"https://next-notes.com/benchmarks/2026-10-22-asr-qwen-17b/#page"},"about":{"@type":"Thing","name":"asr benchmarks"}}]}</script></head>
+  <body>
+    <div id="root"><main class="static-fallback"><nav><a href="/">Next Notes</a> / <a href="/benchmarks/">Benchmarks</a></nav><h1>Qwen3-ASR 1.7B (4-bit MLX)</h1><p>2026-10-22 · Measured</p><p>English 14.3× throughput, 3.68% word error. App provider acceptance remains open.</p><h2>Findings</h2><p>English 14.3× throughput, 3.68% word error. App provider acceptance remains open.</p><h2>Measurements</h2><ul><li>Runtime artifact size: 1607630579 bytes. Actual tested model files; samples: 1; reported observation.</li><li>EN warm throughput: 14.293155591781431 audio seconds / processing second. Isolated file transcription; excludes cleanup, insertion and paced capture; samples: 2; median of warm passes 2 and 3.</li><li>EN word error rate: 3.6764705882352944 percent. Normalized authored reference, repeated same audio; samples: 1; fixture score.</li><li>FR warm throughput: 11.946305681873334 audio seconds / processing second. Isolated file transcription; excludes cleanup, insertion and paced capture; samples: 2; median of warm passes 2 and 3.</li><li>FR word error rate: 3.9735099337748347 percent. Normalized authored reference, repeated same audio; samples: 1; fixture score.</li><li>Load time: 2146.3162080035545 ms. Runtime-specific preparation; not comparable hardware-cold startup; samples: 1; reported observation.</li><li>Peak RSS: 1035288576 bytes. Lifetime process RSS, including preparation; not Mach footprint; samples: 1; reported observation.</li></ul><h2>Why and how we tested</h2><p>Understand how quickly speech becomes text, and what this particular test can establish about recognition.</p><p>Isolated runtime probe</p><p>Isolated runtime probe</p><ul><li>hardware: Apple M3, 16 GB RAM</li><li>os: macOS 27.2</li><li>workload: Serial isolated runtimes; ASR plus voice not qualified</li><li>power_thermal: Per-run state not recorded</li></ul><h2>Limitations</h2><p>Two authored fixtures: English 136 words / 60.585375 s; French 151 words / 58.406875 s. Phonon is English only.</p><p>Two warm timing trials repeat one fixture; they are not independent quality samples.</p><p>Runtime and timing boundaries differ; see source report. No default promotion or end-to-end latency claim.</p><p>Raw transcripts and model/source hashes remain in original evidence; website publishes summary only.</p><h2>Original evidence</h2><ul></ul></main></div>
+</body>
+</html>

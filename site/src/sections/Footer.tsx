@@ -8,7 +8,7 @@ export default function Footer() {
           &copy; 2026 Next Notes. Your assistant, on your Mac.
         </p>
         <div className="flex items-center gap-5 text-sm text-muted-foreground">
-          <a href="?page=benchmarks" className="hover:text-foreground transition-colors">
+          <a href="/benchmarks/" className="hover:text-foreground transition-colors">
             Benchmarks
           </a>
           <a href={DOWNLOAD_URL} className="hidden md:inline hover:text-foreground transition-colors">

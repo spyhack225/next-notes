@@ -98,8 +98,9 @@ export function date(value: string) {
 }
 export function runHref(id: string) {
   const url = new URL(window.location.href);
-  url.searchParams.set("page", "benchmarks");
-  url.searchParams.set("run", id);
+  url.pathname = `/benchmarks/${encodeURIComponent(id)}/`;
+  url.searchParams.delete("page");
+  url.searchParams.delete("run");
   url.hash = "";
   return `${url.pathname}${url.search}`;
 }
@@ -370,24 +371,24 @@ export function filterRuns(
 
 export function comparisonHref(run: Run) {
   if (run.id.includes("asr-signed-app-"))
-    return "?page=benchmarks&compare=speech&measure=final#compare";
+    return "/benchmarks/?compare=speech&measure=final#compare";
   if (
     /^2026-10-22-asr-(phonon|voz|whistle|redux|ultra|qwen-06b|qwen-17b|parakeet-v3-runtime)$/.test(
       run.id,
     )
   )
-    return "?page=benchmarks&compare=speech&measure=errors#compare";
+    return "/benchmarks/?compare=speech&measure=errors#compare";
   if (/^2026-10-22-tts-.*-native$/.test(run.id))
-    return "?page=benchmarks&compare=voice&measure=generated#compare";
+    return "/benchmarks/?compare=voice&measure=generated#compare";
   if (/^2026-10-23-tts-.*-speaker-(serial|calibrated)$/.test(run.id))
-    return `?page=benchmarks&compare=voice&measure=${run.id.endsWith("serial") ? "serial" : "calibrated"}#compare`;
+    return `/benchmarks/?compare=voice&measure=${run.id.endsWith("serial") ? "serial" : "calibrated"}#compare`;
   if (run.id.startsWith("2026-09-30-cleanup-"))
-    return "?page=benchmarks&compare=cleanup#compare";
+    return "/benchmarks/?compare=cleanup#compare";
   if (
     /^2026-09-23-decision-(needle|needle-serve|laya-multilingual|laya-typed-decisions)$/.test(
       run.id,
     )
   )
-    return "?page=benchmarks&compare=decisions#compare";
+    return "/benchmarks/?compare=decisions#compare";
   return null;
 }

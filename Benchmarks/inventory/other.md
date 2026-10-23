@@ -72,6 +72,8 @@ Discovery inventory, not a claim that every file is a benchmark or that its chec
 | [Tests/Reports/benchmark-experience-2026-10-23/original-report-boundary.log](../../Tests/Reports/benchmark-experience-2026-10-23/original-report-boundary.log) |
 | [Tests/Reports/benchmark-experience-2026-10-23/typecheck.log](../../Tests/Reports/benchmark-experience-2026-10-23/typecheck.log) |
 | [Tests/Reports/benchmark-experience-2026-10-23/verification.json](../../Tests/Reports/benchmark-experience-2026-10-23/verification.json) |
+| [Tests/Reports/benchmark-seo-2026-10-23/README.md](../../Tests/Reports/benchmark-seo-2026-10-23/README.md) |
+| [Tests/Reports/benchmark-seo-2026-10-23/production.json](../../Tests/Reports/benchmark-seo-2026-10-23/production.json) |
 | [Tests/Reports/floor/README.md](../../Tests/Reports/floor/README.md) |
 | [Tests/Reports/live-freeze-2026-10-06/calendar-errors/verification.md](../../Tests/Reports/live-freeze-2026-10-06/calendar-errors/verification.md) |
 | [Tests/Reports/live-freeze-2026-10-06/message-send/verification.md](../../Tests/Reports/live-freeze-2026-10-06/message-send/verification.md) |

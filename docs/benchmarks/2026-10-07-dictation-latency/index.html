@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en" class="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>Dictation release-to-delivery investigation | Next Notes Benchmarks</title>
+    
+    
+
+    <!-- Absolute, not relative, and not negotiable. Open Graph consumers resolve these
+         server-side with no page context to resolve a relative path against, so "./icon.png"
+         is simply dropped — which is why every link to this site was previewing bare. -->
+    
+    <meta property="og:site_name" content="Next Notes" />
+    
+    
+    
+    <!-- TODO: og-image.png is the old dictation card (dark, "free and open source"). It needs
+         regenerating to match the current positioning; the alt text below describes what it
+         shows today and should change with it. -->
+    <meta property="og:image" content="https://next-notes.com/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Next Notes on a dark background: a spoken sentence with filler words and a change of mind is turned into the clean sentence &quot;So I need to send the report by Thursday.&quot;" />
+    <meta property="og:locale" content="en_US" />
+
+    <!-- summary_large_image needs an image at least 300px wide; the 256px app icon this
+         used to point at failed that minimum, so the card fell back to no image at all. -->
+    <meta name="twitter:card" content="summary_large_image" />
+    
+    
+    <meta name="twitter:image" content="https://next-notes.com/og-image.png" />
+    <meta name="twitter:image:alt" content="Next Notes on a dark background: a spoken sentence with filler words and a change of mind is turned into the clean sentence &quot;So I need to send the report by Thursday.&quot;" />
+
+    <meta name="theme-color" content="#ffffff" />
+    <link rel="icon" href="/favicon.ico" sizes="32x32" />
+    <link rel="icon" type="image/png" href="/icon.png" sizes="256x256" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <style>
+      /* The initial document stays useful until React replaces this matching summary. */
+      body { background: #fff; }
+      #root > .static-fallback { max-width: 72rem; margin: 0 auto; padding: 8rem 2rem 5rem; font: 1.1rem/1.65 system-ui, sans-serif; }
+      #root > .static-fallback h1 { max-width: 13ch; font-size: clamp(3rem, 7vw, 6rem); font-weight: 500; line-height: 1.05; letter-spacing: -.055em; }
+      #root > .static-fallback h2 { margin-top: 3rem; font-size: clamp(1.75rem, 4vw, 2.75rem); font-weight: 500; line-height: 1.15; }
+      #root > .static-fallback p, #root > .static-fallback ul { max-width: 43rem; }
+      #root > .static-fallback li { margin-block: .6rem; }
+      #root > .static-fallback a { color: inherit; text-underline-offset: .2em; }
+      #root > .static-fallback { color: #161616; background: #fff; }
+    </style>
+
+    <!-- Static structured data matches the product and its current Mac-first scope. -->
+    
+    <script type="module" crossorigin src="/assets/index-Bqat3-VV.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-NdPb55ZX.css">
+  <link rel="canonical" href="https://next-notes.com/benchmarks/2026-10-07-dictation-latency/" />
+<meta name="description" content="Partial. Cleanup dominates retained slow turns; final polished delivery target remains open." />
+<meta name="robots" content="index, follow" />
+<meta property="og:title" content="Dictation release-to-delivery investigation | Next Notes Benchmarks" />
+<meta property="og:description" content="Partial. Cleanup dominates retained slow turns; final polished delivery target remains open." />
+<meta property="og:url" content="https://next-notes.com/benchmarks/2026-10-07-dictation-latency/" />
+<meta property="og:type" content="article" />
+<meta name="twitter:title" content="Dictation release-to-delivery investigation | Next Notes Benchmarks" />
+<meta name="twitter:description" content="Partial. Cleanup dominates retained slow turns; final polished delivery target remains open." />
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"WebSite","@id":"https://next-notes.com/#website","name":"Next Notes","url":"https://next-notes.com/","inLanguage":"en"},{"@type":"Organization","@id":"https://next-notes.com/#organization","name":"Next Notes","url":"https://next-notes.com/"},{"@type":"BreadcrumbList","@id":"https://next-notes.com/benchmarks/2026-10-07-dictation-latency/#breadcrumbs","itemListElement":[{"@type":"ListItem","position":1,"name":"Next Notes","item":"https://next-notes.com/"},{"@type":"ListItem","position":2,"name":"Benchmarks","item":"https://next-notes.com/benchmarks/"},{"@type":"ListItem","position":3,"name":"Dictation release-to-delivery investigation","item":"https://next-notes.com/benchmarks/2026-10-07-dictation-latency/"}]},{"@type":"WebPage","@id":"https://next-notes.com/benchmarks/2026-10-07-dictation-latency/#page","url":"https://next-notes.com/benchmarks/2026-10-07-dictation-latency/","name":"Dictation release-to-delivery investigation | Next Notes Benchmarks","description":"Partial. Cleanup dominates retained slow turns; final polished delivery target remains open.","inLanguage":"en","isPartOf":{"@id":"https://next-notes.com/#website"},"breadcrumb":{"@id":"https://next-notes.com/benchmarks/2026-10-07-dictation-latency/#breadcrumbs"},"mainEntity":{"@id":"https://next-notes.com/benchmarks/2026-10-07-dictation-latency/#report"}},{"@type":"Report","@id":"https://next-notes.com/benchmarks/2026-10-07-dictation-latency/#report","url":"https://next-notes.com/benchmarks/2026-10-07-dictation-latency/","headline":"Dictation release-to-delivery investigation","name":"Dictation release-to-delivery investigation","description":"Cleanup dominates retained slow turns; final polished delivery target remains open.","abstract":"Retained production-path latency evidence","reportNumber":"2026-10-07-dictation-latency","inLanguage":"en","articleSection":"Benchmarks","publisher":{"@id":"https://next-notes.com/#organization"},"mainEntityOfPage":{"@id":"https://next-notes.com/benchmarks/2026-10-07-dictation-latency/#page"},"about":{"@type":"Thing","name":"dictation benchmarks"}}]}</script></head>
+  <body>
+    <div id="root"><main class="static-fallback"><nav><a href="/">Next Notes</a> / <a href="/benchmarks/">Benchmarks</a></nav><h1>Dictation release-to-delivery investigation</h1><p>2026-10-07 · Partial</p><p>Cleanup dominates retained slow turns; final polished delivery target remains open.</p><h2>Findings</h2><p>Cleanup dominates retained slow turns; final polished delivery target remains open.</p><h2>Measurements</h2><ul></ul><h2>Why and how we tested</h2><p>Understand how a dictated turn reaches its final text, including the quality and waiting time of cleanup.</p><p>Retained production-path latency evidence</p><p>Retained production-path latency evidence</p><ul><li>hardware: Not fully recorded; consult original evidence</li></ul><h2>Limitations</h2><p>Source index includes private-context diagnostics; do not publish raw logs.</p><p>Live text, ASR completion and final inserted polished text have separate boundaries.</p><h2>Original evidence</h2><ul></ul></main></div>
+</body>
+</html>

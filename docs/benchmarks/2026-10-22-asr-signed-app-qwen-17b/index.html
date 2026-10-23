@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en" class="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>Qwen3-ASR 1.7B signed-app live ASR | Next Notes Benchmarks</title>
+    
+    
+
+    <!-- Absolute, not relative, and not negotiable. Open Graph consumers resolve these
+         server-side with no page context to resolve a relative path against, so "./icon.png"
+         is simply dropped — which is why every link to this site was previewing bare. -->
+    
+    <meta property="og:site_name" content="Next Notes" />
+    
+    
+    
+    <!-- TODO: og-image.png is the old dictation card (dark, "free and open source"). It needs
+         regenerating to match the current positioning; the alt text below describes what it
+         shows today and should change with it. -->
+    <meta property="og:image" content="https://next-notes.com/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Next Notes on a dark background: a spoken sentence with filler words and a change of mind is turned into the clean sentence &quot;So I need to send the report by Thursday.&quot;" />
+    <meta property="og:locale" content="en_US" />
+
+    <!-- summary_large_image needs an image at least 300px wide; the 256px app icon this
+         used to point at failed that minimum, so the card fell back to no image at all. -->
+    <meta name="twitter:card" content="summary_large_image" />
+    
+    
+    <meta name="twitter:image" content="https://next-notes.com/og-image.png" />
+    <meta name="twitter:image:alt" content="Next Notes on a dark background: a spoken sentence with filler words and a change of mind is turned into the clean sentence &quot;So I need to send the report by Thursday.&quot;" />
+
+    <meta name="theme-color" content="#ffffff" />
+    <link rel="icon" href="/favicon.ico" sizes="32x32" />
+    <link rel="icon" type="image/png" href="/icon.png" sizes="256x256" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <style>
+      /* The initial document stays useful until React replaces this matching summary. */
+      body { background: #fff; }
+      #root > .static-fallback { max-width: 72rem; margin: 0 auto; padding: 8rem 2rem 5rem; font: 1.1rem/1.65 system-ui, sans-serif; }
+      #root > .static-fallback h1 { max-width: 13ch; font-size: clamp(3rem, 7vw, 6rem); font-weight: 500; line-height: 1.05; letter-spacing: -.055em; }
+      #root > .static-fallback h2 { margin-top: 3rem; font-size: clamp(1.75rem, 4vw, 2.75rem); font-weight: 500; line-height: 1.15; }
+      #root > .static-fallback p, #root > .static-fallback ul { max-width: 43rem; }
+      #root > .static-fallback li { margin-block: .6rem; }
+      #root > .static-fallback a { color: inherit; text-underline-offset: .2em; }
+      #root > .static-fallback { color: #161616; background: #fff; }
+    </style>
+
+    <!-- Static structured data matches the product and its current Mac-first scope. -->
+    
+    <script type="module" crossorigin src="/assets/index-Bqat3-VV.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-NdPb55ZX.css">
+  <link rel="canonical" href="https://next-notes.com/benchmarks/2026-10-22-asr-signed-app-qwen-17b/" />
+<meta name="description" content="Measured. Three warmed holds per supported language; each model downloaded, tested, unloaded and removed before the next. English-only Phonon; English and French for the others." />
+<meta name="robots" content="index, follow" />
+<meta property="og:title" content="Qwen3-ASR 1.7B signed-app live ASR | Next Notes Benchmarks" />
+<meta property="og:description" content="Measured. Three warmed holds per supported language; each model downloaded, tested, unloaded and removed before the next. English-only Phonon; English and French for the others." />
+<meta property="og:url" content="https://next-notes.com/benchmarks/2026-10-22-asr-signed-app-qwen-17b/" />
+<meta property="og:type" content="article" />
+<meta name="twitter:title" content="Qwen3-ASR 1.7B signed-app live ASR | Next Notes Benchmarks" />
+<meta name="twitter:description" content="Measured. Three warmed holds per supported language; each model downloaded, tested, unloaded and removed before the next. English-only Phonon; English and French for the others." />
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"WebSite","@id":"https://next-notes.com/#website","name":"Next Notes","url":"https://next-notes.com/","inLanguage":"en"},{"@type":"Organization","@id":"https://next-notes.com/#organization","name":"Next Notes","url":"https://next-notes.com/"},{"@type":"BreadcrumbList","@id":"https://next-notes.com/benchmarks/2026-10-22-asr-signed-app-qwen-17b/#breadcrumbs","itemListElement":[{"@type":"ListItem","position":1,"name":"Next Notes","item":"https://next-notes.com/"},{"@type":"ListItem","position":2,"name":"Benchmarks","item":"https://next-notes.com/benchmarks/"},{"@type":"ListItem","position":3,"name":"Qwen3-ASR 1.7B signed-app live ASR","item":"https://next-notes.com/benchmarks/2026-10-22-asr-signed-app-qwen-17b/"}]},{"@type":"WebPage","@id":"https://next-notes.com/benchmarks/2026-10-22-asr-signed-app-qwen-17b/#page","url":"https://next-notes.com/benchmarks/2026-10-22-asr-signed-app-qwen-17b/","name":"Qwen3-ASR 1.7B signed-app live ASR | Next Notes Benchmarks","description":"Measured. Three warmed holds per supported language; each model downloaded, tested, unloaded and removed before the next. English-only Phonon; English and French for the others.","inLanguage":"en","isPartOf":{"@id":"https://next-notes.com/#website"},"breadcrumb":{"@id":"https://next-notes.com/benchmarks/2026-10-22-asr-signed-app-qwen-17b/#breadcrumbs"},"mainEntity":{"@id":"https://next-notes.com/benchmarks/2026-10-22-asr-signed-app-qwen-17b/#report"}},{"@type":"Report","@id":"https://next-notes.com/benchmarks/2026-10-22-asr-signed-app-qwen-17b/#report","url":"https://next-notes.com/benchmarks/2026-10-22-asr-signed-app-qwen-17b/","headline":"Qwen3-ASR 1.7B signed-app live ASR","name":"Qwen3-ASR 1.7B signed-app live ASR","description":"Three warmed holds per supported language; each model downloaded, tested, unloaded and removed before the next. English-only Phonon; English and French for the others.","abstract":"Signed optimized application factory, segmented engine, scheduler and transcript consumer;20ms paced authored PCM","reportNumber":"2026-10-22-asr-signed-app-qwen-17b","inLanguage":"en","articleSection":"Benchmarks","publisher":{"@id":"https://next-notes.com/#organization"},"mainEntityOfPage":{"@id":"https://next-notes.com/benchmarks/2026-10-22-asr-signed-app-qwen-17b/#page"},"about":{"@type":"Thing","name":"asr benchmarks"}}]}</script></head>
+  <body>
+    <div id="root"><main class="static-fallback"><nav><a href="/">Next Notes</a> / <a href="/benchmarks/">Benchmarks</a></nav><h1>Qwen3-ASR 1.7B signed-app live ASR</h1><p>2026-10-22 · Measured</p><p>Three warmed holds per supported language; each model downloaded, tested, unloaded and removed before the next. English-only Phonon; English and French for the others.</p><h2>Findings</h2><p>Three warmed holds per supported language; each model downloaded, tested, unloaded and removed before the next. English-only Phonon; English and French for the others.</p><p>The eight-model comparison on this website uses this signed-app timing cohort. The earlier longer-recording word-accuracy test is a different experiment; warm timing alone does not establish general accuracy or whole-app dictation speed.</p><h2>Measurements</h2><ul><li>EN First provisional text: 636.5525416913442 ms. Paced PCM start to first nonempty provisional transcript at app consumer; includes initial400ms audio window; samples: 3; median of three warmed holds; raw min/max retained.</li><li>EN Release to ASR final: 643.7757916282862 ms. Actual release after final paced buffer to final app transcript consumer; includes pending inference; excludes microphone/UI/polish/insertion; samples: 3; median of three warmed holds; raw min/max retained.</li><li>FR First provisional text: 677.19550000038 ms. Paced PCM start to first nonempty provisional transcript at app consumer; includes initial400ms audio window; samples: 3; median of three warmed holds; raw min/max retained.</li><li>FR Release to ASR final: 986.6442499915138 ms. Actual release after final paced buffer to final app transcript consumer; includes pending inference; excludes microphone/UI/polish/insertion; samples: 3; median of three warmed holds; raw min/max retained.</li></ul><h2>Why and how we tested</h2><p>How long do you wait for readable words and for the final transcript after releasing dictation? This test compares the model paths inside the signed app, before cleanup and insertion.</p><p>Signed optimized application factory, segmented engine, scheduler and transcript consumer;20ms paced authored PCM</p><p>The same authored English or French excerpt is fed into the actual application factory and segmented engine in 20 ms pieces. Three warmed paced holds are retained per supported language.</p><p>First words are measured at the transcript consumer and include the initial 400 ms audio window. Release-to-final includes outstanding inference. Cold preparation and the physical microphone, display, cleanup and insertion are excluded.</p><ul><li>hardware: Apple M3,16GB RAM</li><li>os: macOS27.2 build26B5091g</li><li>workload: Normal desktop apps; coordinated serial window with no concurrent native build/model job. Existing swap/desktop pressure retained in per-model context; no concurrent voice qualification.</li><li>power_thermal: Per-model power/thermal/load/swap observations retained. Cold preparation is separate from warmed timing.</li></ul><p>Tested build: 0.2.24, signed build 800</p><p>Tested executable SHA-256: 32a35bfcf9220dbdc87734466ccd63b9df1dc0a5e2488d1541b7e08a4207c8ed</p><h2>Limitations</h2><p>One7.25sEnglish/6.65sFrench authored excerpt, three timing trials; not a broad corpus or percentile estimate.</p><p>Physical microphone, visible Settings/display, cleanup, insertion, concurrent ASR+voice and M2 hardware are unverified.</p><p>First readable provisional text may change; this is not stable-word commitment. Warm timings exclude download, cold graph compilation/load and shape warmup.</p><p>Short app final-word scoring is separate from the earlier136/151-word runtime accuracy fixture. Do not relabel earlier accuracy as current full-app quality.</p><p>Default selection is the owner-requested PhononEnglish/VozMulti setting; Whistle has the lowest raw French latency in this short app run.</p><h2>Original evidence</h2><ul><li><a href="https://github.com/spyhack225/next-notes/blob/main/Tests/Reports/asr-app-integration-2026-10-22/README.md">Original method and results</a></li><li><a href="https://github.com/spyhack225/next-notes/blob/main/Tools/asr_app_compare.py">Benchmark runner code</a></li><li><a href="https://github.com/spyhack225/next-notes/blob/main/shared/asr-artifacts.json">Model artifacts and revision pins</a></li></ul></main></div>
+</body>
+</html>

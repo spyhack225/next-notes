@@ -34,7 +34,7 @@ There is no background catalog watcher, model download, second usage ledger or b
 
 ## Website reports
 
-Every approved run now has its own report on the website: `https://next-notes.com/?page=benchmarks&run=<id>`. Existing `#<id>` result links also open that report. The index and the detailed report are generated from reviewed manifest fields; the site never scrapes Markdown or fetches raw reports. Reports load on demand, with a retry state and the registered measurements still readable if the narrative cannot load.
+Every approved run now has its own report on the website: `https://next-notes.com/benchmarks/<id>/`. The index is `https://next-notes.com/benchmarks/`. Legacy `?page=benchmarks&run=<id>` and `#<id>` result links still open that report. The index and the detailed report are generated from reviewed manifest fields; the site never scrapes Markdown or fetches raw reports. Reports load on demand, with a retry state and the registered measurements still readable if the narrative cannot load.
 
 Add an optional `report` object to explain the result in plain language:
 
@@ -54,3 +54,5 @@ All report text, reproduction values and link labels/paths are public fields cov
 `site/src/generated/benchmark-reports/` is generator-owned. Do not edit generated reports. Revoking publication removes that report from new website builds. Existing public deployments or Git history are not erased by revocation. Run `render`, stage generated outputs, and run `check` before committing; stage new source reports before the final render.
 
 Comparison charts select explicitly matching cohorts in `site/src/benchmarks/model.ts`. New runs automatically enter the report catalog, but joining a comparison requires checking hardware, language, fixture, workload, clocks and grading first. Separate speaker-volume cohorts, generated audio, acoustic arrival and full-turn latency. Failed/blocked/unrun records have no ranked value; incomplete acoustic trials have no survivor-only median. A measured zero is retained as zero. Exported JSON contains only the reviewed comparison or result.
+
+The website build emits an HTML document for every approved report and the index, with unique title, description, canonical/social metadata, BreadcrumbList and CollectionPage/Report JSON-LD. The same metadata producer updates client navigation. The generated sitemap lists canonical public URLs; filtered URLs canonicalize to their base page. Static documents contain the reviewed findings, methods, measurements and limitations before JavaScript runs. Evaluation dates are not invented publication/modification dates. No review stars or whole-app acceptance are inferred. `docs/benchmarks/` is generator-owned and rebuilt to remove revoked pages. `npm test` checks SEO contracts; `npm run build` validates every generated document and sitemap.

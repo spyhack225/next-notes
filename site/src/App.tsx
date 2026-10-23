@@ -21,7 +21,7 @@ class BenchmarkBoundary extends Component<{children: ReactNode}, {failed: boolea
 }
 
 export default function App() {
-  if (new URLSearchParams(window.location.search).get("page") === "benchmarks") {
+  if (window.location.pathname === "/benchmarks" || window.location.pathname.startsWith("/benchmarks/") || new URLSearchParams(window.location.search).get("page") === "benchmarks") {
     return <BenchmarkBoundary><Suspense fallback={<main className="max-w-2xl mx-auto px-6 py-20" role="status"><a href="/">Next Notes</a><h1 className="text-3xl mt-10 mb-4">Benchmarks</h1><p>Loading results…</p></main>}><Benchmarks /></Suspense></BenchmarkBoundary>;
   }
 
