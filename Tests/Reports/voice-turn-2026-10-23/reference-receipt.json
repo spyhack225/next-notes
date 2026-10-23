@@ -1,0 +1,6 @@
+{
+  "start": 1792734249.6998558,
+  "free_before": 215412736,
+  "scope": "one-thread NumPy/ORT export differential only; Torch/TF/Flax disabled; no CoreML/ASR/MLX/mic/playback",
+  "status": "refused-before-load"
+}

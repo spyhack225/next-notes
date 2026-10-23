@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "id": "2026-10-23-voice-turn-native-coreml-components",
+  "title": "Silero32ms and Smart Turn v3.2 native components",
+  "date": "2026-10-23",
+  "category": "voice",
+  "status": "failed",
+  "scope": "Actual optimized production CoreML wrappers on synthesized16k mono PCM; model inference and paced onset only.",
+  "summary": "Completed question inference median2.50ms; all six protected split-synthesized pause snapshots misclassified complete. Candidate rollout held.",
+  "environment": {
+    "hardware": "16GB Apple M3 MacBook Air, Mac15,12",
+    "os": "macOS27.2 (26B5091g)",
+    "workload": "Isolated component probe; no native ASR, TTS, physical room or reference concurrent ASR+voice load.",
+    "power_thermal": "Not sampled; shared-machine disk/swap pressure recorded separately."
+  },
+  "provenance": {
+    "source_pins": "Tests/Reports/voice-turn-2026-10-23/model-source-pins.json",
+    "command": "VoiceTurnNativeProbe --turn-fixtures <owned-root>/fixtures.json --turn-model-root <owned-root> --turn-output native-models.json --turn-repetitions 30",
+    "grader": "Authored acoustic protected intervals and complete/incomplete labels, fixed0.5 threshold.",
+    "models": "Immutable Smart Turn75f069717f500947195fa1945c46ddb472559cff; Silero b419383c55c110e2c9271fa6ee0ea83d03c70d96",
+    "binary_receipt": "Tests/Reports/voice-turn-2026-10-23/native-models-receipt.json"
+  },
+  "metrics": [
+    {
+      "name": "completed-question model inference",
+      "value": 2.4998125,
+      "unit": "ms",
+      "boundary": "Immediately around native Smart Turn prediction on one fixed completed-question snapshot.",
+      "samples": 30,
+      "aggregation": "median"
+    },
+    {
+      "name": "completed-question model inference",
+      "value": 4.199292,
+      "unit": "ms",
+      "boundary": "Immediately around native Smart Turn prediction on one fixed completed-question snapshot.",
+      "samples": 30,
+      "aggregation": "p95"
+    },
+    {
+      "name": "protected-pause snapshots falsely complete",
+      "value": 6,
+      "unit": "cases",
+      "boundary": "Six inserted pause variants of the same separately synthesized incomplete prefix, not six independent phrases.",
+      "samples": 6,
+      "aggregation": "count"
+    }
+  ],
+  "limitations": [
+    "Thirty repeated predictions measure graph execution distribution, not independent accuracy.",
+    "Split synthesis changes intonation; original failures retained. Continuous human corpus remains open.",
+    "Paced Silero two-positive onset93\u2013126ms is not physical duck or zero-preroll cold proof.",
+    "No full-app endpoint, audible response, provider/route coverage, pressure or soak claim follows from this run.",
+    "Original model false positives block default promotion; no threshold/text-shape workaround applied.",
+    "Independent pinned upstream ONNX reproduces all13 decisions within0.00150 probability; detailed differential is in the original report."
+  ],
+  "sources": [
+    "Tests/Reports/voice-turn-2026-10-23/README.md",
+    "Tests/Reports/voice-turn-2026-10-23/native-models.json",
+    "Tests/Reports/voice-turn-2026-10-23/native-models-summary.json",
+    "Tests/Reports/voice-turn-2026-10-23/native-models-receipt.json",
+    "Tests/Reports/voice-turn-2026-10-23/model-source-pins.json",
+    "Tests/Reports/voice-turn-2026-10-23/export-differential-summary.json"
+  ],
+  "publication": {
+    "approved": false,
+    "reviewed_by": null,
+    "reviewed_on": null
+  }
+}

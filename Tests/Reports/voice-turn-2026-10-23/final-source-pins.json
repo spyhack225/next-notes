@@ -1,0 +1,18 @@
+{
+  "timestamp": 1792735391.4233851,
+  "HEAD": "0a3a291b2529d374b0e657235b1acb38352ec6b7",
+  "source_sha256": {
+    "Sources/NextNotes/Activation/AgentCaptureController.swift": "fdc4bcc8d032285363aff8975c76b5a148d36786e545b71d2559c2ad8140f1f9",
+    "Sources/NextNotes/Activation/LocalVoiceTurnDetector.swift": "2d20ef7297d462b6116586e7483b7ac2a5f315f47a7c8a3f4cc857e575322056",
+    "Sources/NextNotes/NextNotesApp.swift": "cf0514f0c0491c1c5c3e9096b81e35bd6a1258a054fc9818f26f89c51d58cd6a",
+    "Sources/NextNotes/Support/AppIdentity.swift": "155acb24aab6e234d6f93a866ddc228a489e7d61d90e933be63c7031127a5b9f",
+    "Sources/NextNotes/Transcription/AppleSpeechEngine.swift": "a9f61f9488a892bb54fef7ee79caadf443f24d827abb1a3f573e275b1312a179",
+    "Sources/NextNotes/Transcription/TranscriptionEngine.swift": "37ff2c129cc9ec11544f7062b0f4d910b8609769c8eca23e119d690bb781cb2e",
+    "Sources/NextNotes/Activation/SmartTurn/VoiceTurnModels.swift": "ece727a8e270122890ea5bc6c44ca0b6da9e3fb9936da0f14db313782757d4ca",
+    "Sources/NextNotes/Activation/SmartTurn/SmartTurnEndpointSelfTest.swift": "83f23fa23f88c94eb6d8c2aeea36672f611de2203133f05c862621a10ae6008b",
+    "Sources/NextNotes/Activation/SmartTurn/VoiceDecoderProgress.swift": "6bb87024a104fcdcf6272d4c06ff020536fd325e76cd6bb0fcac592f61583be4",
+    "Sources/NextNotes/Activation/SmartTurn/VoiceTurnBenchmark.swift": "30cd9c66bfcf0dd672fae7985b12296097d788ec280ef9b6fb59c11815a926e9",
+    "Sources/NextNotes/Activation/SmartTurn/SmartTurnEndpoint.swift": "ad9c419ee462102a5260b7a7a424a5f46ae21e48a6f7741090b8f0953f9eeccc"
+  },
+  "scope": "frozen final source during dependency compile; binary/result recorded separately"
+}

@@ -1,0 +1,20 @@
+{
+  "scope": "Retired only own obsolete binaries and joined independent reference graph; current useful dedicated candidate and synthetic model fixtures retained. No owner/peer artifact cleanup.",
+  "removed": [
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/voice-turn-20261023/NextNotes-first-build",
+      "bytes": 169294776,
+      "sha256": "61a7654390e49252380657622c9ad895686844793313d41fa3d639b33902fdd0"
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/voice-turn-20261023/VoiceTurnNativeProbe",
+      "bytes": 400888,
+      "sha256": "e882603108d51a07345bac939438faec078d67476810c12a21991ff07c15f894"
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/voice-turn-20261023/fixtures/reference-v3.2.onnx",
+      "bytes": 32411198,
+      "sha256": "ab8dc64b88713f90b571c15b714bd1330e6c883cad8763dacf65c9376dc539be"
+    }
+  ]
+}

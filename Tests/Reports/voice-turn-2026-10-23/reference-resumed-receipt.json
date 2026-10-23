@@ -1,0 +1,18 @@
+{
+  "command": [
+    "/opt/anaconda3/bin/python3",
+    "Tools/voice_turn_onnx_reference.py",
+    "--root",
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/voice-turn-20261023/fixtures",
+    "--output",
+    "Tests/Reports/voice-turn-2026-10-23/reference-model.json"
+  ],
+  "start": 1792736150.173675,
+  "free_before": 7075913728,
+  "scope": "Independent upstream export classification differential only, one CPU thread, no Torch/TF/Flax or latency claim",
+  "pid": 42518,
+  "peak_rss_bytes": 371130368,
+  "exit": 0,
+  "joined": true,
+  "finished": 1792736157.977469
+}

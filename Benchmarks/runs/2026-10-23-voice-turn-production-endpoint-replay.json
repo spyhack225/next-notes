@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "id": "2026-10-23-voice-turn-production-endpoint-replay",
+  "title": "Silero and Smart Turn production endpoint replay",
+  "date": "2026-10-23",
+  "category": "voice",
+  "status": "failed",
+  "scope": "Real cleaned file capture, Apple+Parakeet ASR, Silero, Smart Turn, endpoint tick and commit; synthetic input and reply test sink.",
+  "summary": "21 native trials:15 premature duplicate splits at400\u20131500ms protected pauses; nine unverified final tails. Candidate remains opt-in; no installation.",
+  "environment": {
+    "hardware": "16GB Apple M3 MacBook Air, Mac15,12",
+    "os": "macOS27.2 (26B5091g)",
+    "workload": "Paced10ms synthetic input, dedicated signed application; coordinated exclusive native timing window, no replies or tools.",
+    "power_thermal": "Not sampled. Build finished before timing. Not reference concurrent ASR+voice workload."
+  },
+  "provenance": {
+    "source_pins": "Tests/Reports/voice-turn-2026-10-23/final-source-pins.json",
+    "binary_sha256": "c1c5f43d26714b98416912e998614d600b932ce5158e938d05c7f55e21248d04",
+    "command": "python3 Tools/voice_turn_benchmark.py collect --root <owned-root> --binary <dedicated-VoiceTurn-executable> --output native-endpoints.json --repetitions 3",
+    "grader": "32-case offline turn-trace scorer, retained exact synthesized WAV boundaries/hashes and real native words/commit times.",
+    "model_revision": "Smart75f069717f500947195fa1945c46ddb472559cff; Silero b419383c55c110e2c9271fa6ee0ea83d03c70d96"
+  },
+  "metrics": [
+    {
+      "name": "completed-question endpoint",
+      "value": 333.590167,
+      "unit": "ms",
+      "boundary": "Authored speech end to real commit.emitted; ASR final-tail check fails, no usable-answer or audible claim.",
+      "samples": 3,
+      "aggregation": "median"
+    },
+    {
+      "name": "premature duplicate turn trials",
+      "value": 15,
+      "unit": "trials",
+      "boundary": "Native commit inside protected400\u20131500ms interval then another commit.",
+      "samples": 21,
+      "aggregation": "count"
+    },
+    {
+      "name": "unverified final tails",
+      "value": 9,
+      "unit": "trials",
+      "boundary": "Exact expected-tail match against actual final native committed wording; cause not isolated to ASR versus segmentation.",
+      "samples": 21,
+      "aggregation": "count"
+    }
+  ],
+  "limitations": [
+    "Three repeats per seven synthetic inputs do not meet latency acceptance.",
+    "All15 trials at400\u20131500ms protected pauses split prematurely;200ms three trials avoid premature splits.",
+    "Raw warm labels are repetition ordinals; model residency was not independently sampled, so no warm/cold qualification.",
+    "No first-audible stage, physical route/duck/echo, provider matrix, pressure or soak acceptance.",
+    "Split synthesis changes intonation. Upstream model differential agrees with CoreML, so no threshold workaround or default promotion.",
+    "Full scorer exits1, retains missing cases/phases/stages and false promotion."
+  ],
+  "sources": [
+    "Tests/Reports/voice-turn-2026-10-23/README.md",
+    "Tests/Reports/voice-turn-2026-10-23/native-endpoints.json",
+    "Tests/Reports/voice-turn-2026-10-23/native-endpoints-summary.json",
+    "Tests/Reports/voice-turn-2026-10-23/native-endpoints-score.json",
+    "Tests/Reports/voice-turn-2026-10-23/native-endpoints.json.receipt.json",
+    "Tests/Reports/voice-turn-2026-10-23/final-source-pins.json",
+    "Tests/Reports/voice-turn-2026-10-23/preservation-verdict.json"
+  ],
+  "publication": {
+    "approved": false,
+    "reviewed_by": null,
+    "reviewed_on": null
+  }
+}

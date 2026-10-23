@@ -7,11 +7,13 @@ import Observation
 private final class TurnAudioSequence: @unchecked Sendable {
     private let lock = NSLock()
     private var value = 0
-    func next() -> Int {
+    private var frames: Int64 = 0
+    func next(frames count: Int) -> (Int, Int64) {
         lock.lock()
         defer { lock.unlock() }
         value &+= 1
-        return value
+        frames += Int64(count)
+        return (value, frames)
     }
     func current() -> Int {
         lock.lock()
@@ -23,12 +25,23 @@ private final class TurnAudioSequence: @unchecked Sendable {
 /// The sink can deliver 10 ms hardware buffers while a cold EOU model takes
 /// seconds to prepare. Bound queued *audio time*, not the number of callbacks.
 private final class TurnAudioBacklog: @unchecked Sendable {
-    typealias Entry = (AudioChunk, Date, Int)
+    typealias Entry = (AudioChunk, Date, Int, Int64, VoiceInputProducerProbe.Input?, Bool)
+    struct Reset: Sendable {
+        let through: Int64
+        let epoch: Int
+        let eou: LocalVoiceTurnDetector.Callback
+        let partial: LocalVoiceTurnDetector.Callback
+        var replaySequence: Int? = nil
+        var replaysTail = false
+    }
     private let lock = NSLock()
     private let maxFrames = 96_000 // six seconds of canonical 16 kHz mono
     private var entries: [Entry] = []
     private var frames = 0
+    private var latestSampleEnd: Int64 = 0
+    private var replayedThrough: Int64 = 0
     private var closed = false
+    private var pendingReset: Reset?
     let events: AsyncStream<Void>
     private let signal: AsyncStream<Void>.Continuation
 
@@ -40,8 +53,9 @@ private final class TurnAudioBacklog: @unchecked Sendable {
 
     func enqueue(_ entry: Entry) -> Int {
         lock.lock()
-        guard !closed else { lock.unlock(); return 0 }
+        guard !closed, entry.3 > replayedThrough else { lock.unlock(); return 0 }
         entries.append(entry)
+        latestSampleEnd = max(latestSampleEnd, entry.3)
         frames += Int(entry.0.buffer.frameLength)
         var dropped = 0
         while frames > maxFrames && !entries.isEmpty {
@@ -61,6 +75,66 @@ private final class TurnAudioBacklog: @unchecked Sendable {
         frames -= Int(entry.0.buffer.frameLength)
         return entry
     }
+    func capturedEnd() -> Int64 {
+        lock.lock(); defer { lock.unlock() }; return latestSampleEnd
+    }
+    func coveredByReplay(_ entry: Entry) -> Bool {
+        lock.lock(); defer { lock.unlock() }
+        return !entry.5 && entry.3 <= replayedThrough
+    }
+    func requestReset(_ reset: Reset) {
+        lock.lock()
+        guard !closed else { lock.unlock(); return }
+        pendingReset = reset
+        lock.unlock()
+        signal.yield(())
+    }
+    func takeReset() -> Reset? {
+        lock.lock(); defer { lock.unlock() }
+        let reset = pendingReset
+        pendingReset = nil
+        return reset
+    }
+    /// Only the serial drain returns its one already-popped successor chunk.
+    /// Reuse this same bounded queue when a retiring native pass crossed a reset.
+    @discardableResult
+    func returnToFront(_ entry: Entry) -> Int {
+        lock.lock()
+        guard !closed, entry.3 > replayedThrough else { lock.unlock(); return 0 }
+        entries.insert(entry, at: 0)
+        frames += Int(entry.0.buffer.frameLength)
+        var dropped = 0
+        while frames > maxFrames && !entries.isEmpty {
+            frames -= Int(entries.removeFirst().0.buffer.frameLength)
+            dropped += 1
+        }
+        lock.unlock()
+        signal.yield(())
+        return dropped
+    }
+    /// The ring owns all PCM through replayEnd. Replace overlapping queue
+    /// entries once; a late capture callback cannot enqueue that PCM twice.
+    func installReset(_ reset: Reset, successor: Entry?, replayEnd: Int64, sequence: Int) -> Int {
+        lock.lock()
+        guard !closed else { lock.unlock(); return 0 }
+        entries.removeAll { $0.3 <= replayEnd }
+        if let successor { entries.insert(successor, at: 0) }
+        frames = entries.reduce(0) { $0 + Int($1.0.buffer.frameLength) }
+        var dropped = 0
+        while frames > maxFrames && !entries.isEmpty {
+            frames -= Int(entries.removeFirst().0.buffer.frameLength)
+            dropped += 1
+        }
+        latestSampleEnd = max(latestSampleEnd, replayEnd)
+        replayedThrough = max(replayedThrough, replayEnd)
+        var reset = reset
+        reset.replaySequence = sequence
+        reset.replaysTail = successor != nil
+        pendingReset = reset
+        lock.unlock()
+        signal.yield(())
+        return dropped
+    }
 
     func count() -> Int {
         lock.lock()
@@ -78,6 +152,7 @@ private final class TurnAudioBacklog: @unchecked Sendable {
         lock.lock()
         closed = true
         entries.removeAll()
+        pendingReset = nil
         frames = 0
         lock.unlock()
         signal.finish()
@@ -90,10 +165,11 @@ private final class TurnAudioBacklog: @unchecked Sendable {
 private final class CaptureVoiceActivityInput: @unchecked Sendable {
     struct Probe: Sendable {
         let captureID: UUID
-        let outputGeneration: UInt64
+        let outputGeneration: UInt64?
         let probability: Float
         let echoOK: Bool
         let at: UInt64
+        var sampleEnd: Int64? = nil
     }
     struct Snapshot: Sendable {
         let ready: Bool
@@ -109,6 +185,7 @@ private final class CaptureVoiceActivityInput: @unchecked Sendable {
     private var active = true
     private var closed = false
     private var manager: VadManager?
+    private var frameModel: SileroFrameModel?
     private var artifact: String?
     private var failure: String?
     private var nativeProbes = 0
@@ -145,6 +222,19 @@ private final class CaptureVoiceActivityInput: @unchecked Sendable {
                 let directory = FileManager.default.urls(for: .applicationSupportDirectory,
                     in: .userDomainMask)[0].appendingPathComponent("FluidAudio/Models/silero-vad-coreml")
                 let present = cachedModel ?? Self.cachedModelURL(offline: offline)
+                // Prefer the pinned 32 ms recurrent export. The older SDK graph
+                // remains a compatibility fallback, never a second VAD stream.
+                if cachedModel == nil && VoiceTurnAssets.enabled {
+                    do {
+                        let fastURL = try await VoiceTurnAssets.prepare(.silero,
+                            cachedOnly: offline || cachedOnly)
+                        let fast = try SileroFrameModel(directory: fastURL)
+                        try Task.checkCancellation()
+                        finishFrameLoad(fast, artifact: fastURL.absoluteString)
+                        return
+                    } catch is CancellationError { throw CancellationError() }
+                    catch { /* A missing optional export retains the existing SDK fallback. */ }
+                }
                 let loaded: VadManager
                 let description: String
                 if let present {
@@ -199,10 +289,18 @@ private final class CaptureVoiceActivityInput: @unchecked Sendable {
         self.artifact = artifact
         self.failure = failure
     }
+    private func finishFrameLoad(_ model: SileroFrameModel, artifact: String) {
+        lock.lock(); defer { lock.unlock() }
+        guard !closed else { return }
+        frameModel = model
+        self.artifact = artifact
+        failure = nil
+    }
     func snapshot() -> Snapshot {
         lock.lock()
         defer { lock.unlock() }
-        return Snapshot(ready: active && manager != nil, prepared: manager != nil, artifact: artifact,
+        return Snapshot(ready: active && (manager != nil || frameModel != nil),
+                        prepared: manager != nil || frameModel != nil, artifact: artifact,
                         failure: failure, nativeProbes: nativeProbes)
     }
     func waitUntilLoaded() async { await loadTask?.value }
@@ -265,6 +363,7 @@ private final class CaptureVoiceActivityInput: @unchecked Sendable {
         defer { lock.unlock() }
         guard !active, captureID == nil, pendingCaptureID == nil else { return }
         manager = nil
+        frameModel = nil
         artifact = nil
         failure = "Voice activity model was released under pressure."
     }
@@ -276,7 +375,7 @@ private final class CaptureVoiceActivityInput: @unchecked Sendable {
     func waitForProbe() async { await retainedProbe()?.value }
 
     func ingest(_ buffer: AVAudioPCMBuffer, evidence: AcousticEchoProcessor.Evidence,
-                outputGeneration: UInt64?, at: UInt64) {
+                outputGeneration: UInt64?, at: UInt64, sampleEnd: Int64? = nil) {
         guard buffer.format.commonFormat == .pcmFormatFloat32,
               buffer.format.sampleRate == 16_000, buffer.format.channelCount == 1,
               !buffer.format.isInterleaved, let channel = buffer.floatChannelData?[0] else { return }
@@ -291,8 +390,10 @@ private final class CaptureVoiceActivityInput: @unchecked Sendable {
             windowGeneration = outputGeneration
         }
         samples.append(contentsOf: UnsafeBufferPointer(start: channel, count: count))
-        if samples.count > VadManager.chunkSize { samples.removeFirst(samples.count - VadManager.chunkSize) }
-        newSamples = min(VadManager.chunkSize, newSamples + count)
+        let frames = frameModel == nil ? VadManager.chunkSize : SileroFrameModel.frames
+        let capacity = frameModel == nil ? frames : frames * 2
+        if samples.count > capacity { samples.removeFirst(samples.count - capacity) }
+        newSamples = min(frames, newSamples + count)
         // The probability describes the whole256ms window. Match independent
         // near evidence to that same window, rather than only its last10ms chunk.
         // Keep it bound to the current output so an older utterance cannot duck
@@ -302,11 +403,16 @@ private final class CaptureVoiceActivityInput: @unchecked Sendable {
            evidence.independentNearCandidate || evidence.nearCandidate {
             nearEvidence = (outputGeneration, at)
         }
-        guard active, samples.count == VadManager.chunkSize, newSamples >= 800,
-              !busy, let manager, let captureID, let outputGeneration else { lock.unlock(); return }
-        newSamples %= 800
+        guard active, samples.count >= frames, newSamples >= (frameModel == nil ? 800 : frames),
+              VoiceTurnAssets.enabled || outputGeneration != nil,
+              !busy, manager != nil || frameModel != nil, let captureID else { lock.unlock(); return }
+        let fast = frameModel, manager = manager
+        newSamples %= frameModel == nil ? 800 : frames
         busy = true
-        let window = samples
+        let window = Array(fast == nil ? samples.suffix(frames) : samples.prefix(frames))
+        if fast != nil { samples.removeFirst(frames); newSamples = samples.count }
+        let probeAt = fast == nil ? at : at - min(at, UInt64(samples.count) * 62_500)
+        let probeSampleEnd = sampleEnd.map { $0 - (fast == nil ? 0 : Int64(samples.count)) }
         let predecessor = probeTask
         let windowNanos = UInt64(VadManager.chunkSize) * 62_500
         let echoOK = !evidence.recentReference || (nearEvidence.map {
@@ -316,13 +422,15 @@ private final class CaptureVoiceActivityInput: @unchecked Sendable {
             await predecessor?.value
             do {
                 try Task.checkCancellation()
-                let results = try await manager.process(window)
+                let probability: Float
+                if let fast { probability = try fast.probability(window, endNanos: probeAt) }
+                else if let manager { probability = try Self.validProbability(await manager.process(window)) }
+                else { throw CocoaError(.fileNoSuchFile) }
                 try Task.checkCancellation()
-                let probability = try Self.validProbability(results)
                 let admitted = completedProbe(captureID: captureID)
                 if admitted {
                     await callback(Probe(captureID: captureID, outputGeneration: outputGeneration,
-                        probability: probability, echoOK: echoOK, at: at))
+                        probability: probability, echoOK: echoOK, at: probeAt, sampleEnd: probeSampleEnd))
                 }
             } catch {
                 if !(error is CancellationError) { disable(error.localizedDescription) }
@@ -349,6 +457,7 @@ private final class CaptureVoiceActivityInput: @unchecked Sendable {
     private func disable(_ message: String) {
         lock.lock()
         manager = nil
+        frameModel = nil
         failure = message
         lock.unlock()
     }
@@ -465,6 +574,7 @@ private final class CaptureVoiceActivityInput: @unchecked Sendable {
         nearEvidence = nil
         windowGeneration = nil
         manager = nil
+        frameModel = nil
         let loading = loadTask, probing = probeTask
         lock.unlock()
         loading?.cancel()
@@ -510,6 +620,7 @@ final class AgentCaptureController {
     }
 
     enum EndpointSource: String, Sendable {
+        case smartTurn
         case localEOU
         case vad
         case goodbye
@@ -542,6 +653,12 @@ final class AgentCaptureController {
     private var feedTask: Task<Void, Never>?
     @ObservationIgnored private var voiceActivityInput: CaptureVoiceActivityInput?
     @ObservationIgnored private var voiceActivityDrain: Task<Void, Never>?
+    @ObservationIgnored private var smartTurn: SmartTurnEndpoint?
+    @ObservationIgnored private var smartTurnDrain: Task<Void, Never>?
+    @ObservationIgnored private var selectedSmartToken: SmartTurnEndpoint.Token?
+    @ObservationIgnored private var selectedSmartBoundary: Int64?
+    @ObservationIgnored private var selectedDecoderStamp: VoiceDecoderProgress.Stamp?
+    @ObservationIgnored private var decoderResetPrepared = false
     @ObservationIgnored private var voiceActivityConsecutive = 0
     @ObservationIgnored private var voiceActivityGeneration: UInt64?
     @ObservationIgnored private var voiceActivityLastProbe: UInt64?
@@ -556,10 +673,12 @@ final class AgentCaptureController {
     private var fileFeedFailure: String?
     private var fileCommittedTurns = 0
     private var fileInputStartedAt: Date?
+    private var fileInputOriginNanos: UInt64?
     private var fileFirstVoiceAt: Date?
     private var fileSecondInputStartedAt: Date?
     private var fileLastVoiceAt: Date?
     private var fileEndpointAt: Date?
+    private var filePacingErrorsMS: [Double] = []
     private var fileFirstNovelASRAt: Date?
     private var fileMaxCleanedLevel: Float = 0
     private var fileASRChunkCount = 0
@@ -602,6 +721,8 @@ final class AgentCaptureController {
     @ObservationIgnored private(set) var fileEOUCommitTrigger: EndpointTrigger?
     private var wordlessModelEOU = false
     private var modelPartialText = ""
+    private var modelTextChangedAt: Date?
+    private var appleAudioThrough: Int64?
     private var modelFinalText = ""
     private var appleEchoRecognition = RealtimeAudioSession.EchoRecognitionState()
     private var localEchoRecognition = RealtimeAudioSession.EchoRecognitionState()
@@ -699,10 +820,13 @@ final class AgentCaptureController {
         fileDeliveryForTesting = nil
         fileCommittedTurns = 0
         fileInputStartedAt = nil
+        fileInputOriginNanos = nil
+        appleAudioThrough = nil
         fileFirstVoiceAt = nil
         fileSecondInputStartedAt = nil
         fileLastVoiceAt = nil
         fileEndpointAt = nil
+        filePacingErrorsMS.removeAll(keepingCapacity: true)
         fileFirstNovelASRAt = nil
         fileMaxCleanedLevel = 0
         fileASRChunkCount = 0
@@ -816,7 +940,7 @@ final class AgentCaptureController {
         try await startEngine(for: captureID, fileURL: wav,
             deferFileFeed: deferFeed, appleFastResults: appleFastResults,
             prepareFrontendAfterEOU: eouFirst)
-        try AgentSpeechSynthesizer.shared.preparePersistentPocketPlayback()
+        if prepareResources { try AgentSpeechSynthesizer.shared.preparePersistentPocketPlayback() }
         guard captureSessionID == captureID else { throw TranscriptionError.notRunning }
         startVAD()
         if prepareResources { prepareConversationModel() }
@@ -989,6 +1113,11 @@ final class AgentCaptureController {
     /// the loop so the loop body can be one labelled main-actor section (P2-01) without a
     /// closure capture per chunk.
     private func consumeAppleChunk(_ chunk: TranscriptionChunk, captureID: UUID) {
+        // A new cumulative result can replace a later volatile region with an
+        // older final region. Do not carry max(old coverage) onto shorter text.
+        appleAudioThrough = chunk.recognizedAudioThroughSeconds.flatMap {
+            $0.isFinite && $0 >= 0 && $0 < Double(Int64.max / 16_000) ? Int64($0 * 16_000) : nil
+        }
         let full = chunk.text
         if fileFeedTask != nil {
             fileASRChunkCount += 1
@@ -1053,12 +1182,15 @@ final class AgentCaptureController {
 
     @discardableResult
     private func prepareResidentVoiceActivity() -> Bool {
+        let fastPresent = VoiceTurnAssets.enabled
+            && FileManager.default.fileExists(atPath: VoiceTurnAssets.directory(.silero).path)
+        let cached = CaptureVoiceActivityInput.cachedModelURL(offline: SelfTest.isRunning)
         guard !eouTerminationRequested, !isSessionActive,
               !SelfTest.isRunning || (SelfTest.requested == "--selftest-voice-turns"
                 && CommandLine.arguments.contains("--voice-duck-resident")),
               ModelResidencyPolicy.pressureSnapshot.allowsOptionalWork,
               ProcessInfo.processInfo.thermalState == .nominal,
-              let cached = CaptureVoiceActivityInput.cachedModelURL(offline: SelfTest.isRunning)
+              fastPresent || cached != nil
         else { return false }
         if let existing = voiceActivityInput {
             guard existing.snapshot().failure != nil else { return false }
@@ -1066,7 +1198,8 @@ final class AgentCaptureController {
             voiceActivityInput = nil
         }
         // The admitted URL is immutable for this load; disappearance cannot download.
-        voiceActivityInput = makeVoiceActivity(captureID: nil, cachedOnly: true, cachedModel: cached)
+        voiceActivityInput = makeVoiceActivity(captureID: nil, cachedOnly: true,
+            cachedModel: fastPresent ? nil : cached)
         return true
     }
 
@@ -1094,6 +1227,11 @@ final class AgentCaptureController {
         self.engine = engine
         startVoiceActivity(for: captureID)
         guard let activity = voiceActivityInput else { throw TranscriptionError.notRunning }
+        // Preparation/inference stays off the audio/ASR lanes. Diagnostics are
+        // cache-only unless an explicit isolated model root is supplied.
+        let semantic = VoiceTurnAssets.enabled ? SmartTurnEndpoint(captureID: captureID, epoch: turnEpoch,
+            cachedOnly: SelfTest.isRunning, retiring: smartTurnDrain) : nil
+        smartTurn = semantic
         consumeTask = Task { @MainActor [weak self] in
             do {
                 for try await chunk in stream {
@@ -1117,9 +1255,12 @@ final class AgentCaptureController {
         let retiringDecoderTask = turnDetectorTask
         let detector = turnDetector ?? LocalVoiceTurnDetector(producerProbeForTesting: producerProbeForTesting)
         turnDetector = detector
+        semantic?.attachDecoder(detector.progress)
+        let decoderAdmission = detector.progress.invalidate(sessionID: captureID, epoch: turnEpoch)
         self.turnAudioBacklog = turnAudioBacklog
         let eouCallback = makeEOUCallback(captureID: captureID, epoch: turnEpoch)
         let partialCallback = makePartialCallback(captureID: captureID, epoch: turnEpoch)
+        let initialEpoch = turnEpoch
         turnDetectorTask = Task.detached(priority: .userInitiated) {
             var nativeFailure = false
             do {
@@ -1129,7 +1270,7 @@ final class AgentCaptureController {
                 await retiringDecoderTask?.value
                 try Task.checkCancellation()
                 try await detector.prepare(onEndOfUtterance: eouCallback,
-                    onPartial: partialCallback, sessionID: captureID,
+                    onPartial: partialCallback, sessionID: captureID, epoch: initialEpoch, admission: decoderAdmission,
                     producerProbeForTesting: producerProbeForTesting)
                 try Task.checkCancellation()
                 await MainActor.run {
@@ -1153,6 +1294,7 @@ final class AgentCaptureController {
                 }
                 var hadDiscontinuity = false
                 var lastSequence: Int?
+                var committedThrough: Int64 = 0
                 var measuredFirstProcess = false
                 let startupBufferedChunks = turnAudioBacklog.count()
                 let startupBufferedFrames = turnAudioBacklog.queuedFrames()
@@ -1172,9 +1314,25 @@ final class AgentCaptureController {
                     }
                 }
                 for await _ in turnAudioBacklog.events {
-                  while let (chunk, capturedAt, sequence) = turnAudioBacklog.take() {
+                  if let reset = turnAudioBacklog.takeReset() {
+                    committedThrough = max(committedThrough, reset.through)
+                    if let sequence = reset.replaySequence { lastSequence = reset.replaysTail ? sequence - 1 : sequence }
+                    _ = await detector.resetForNextTurn(onEndOfUtterance: reset.eou,
+                        onPartial: reset.partial, sessionID: captureID, epoch: reset.epoch)
+                  }
+                  while let entry = turnAudioBacklog.take() {
+                    let (chunk, capturedAt, sequence, sampleEnd, producerInput, isReplay) = entry
                     if Task.isCancelled { break }
+                    if let reset = turnAudioBacklog.takeReset() {
+                        committedThrough = max(committedThrough, reset.through)
+                        if let sequence = reset.replaySequence { lastSequence = reset.replaysTail ? sequence - 1 : sequence }
+                        _ = await detector.resetForNextTurn(onEndOfUtterance: reset.eou,
+                            onPartial: reset.partial, sessionID: captureID, epoch: reset.epoch)
+                    }
+                    if turnAudioBacklog.coveredByReplay(entry) { continue }
+                    if committedThrough > 0, sampleEnd <= committedThrough { lastSequence = sequence; continue }
                     if let lastSequence, sequence != lastSequence + 1 {
+                        semantic?.discontinuity()
                         hadDiscontinuity = true
                         catchingUpFromStartup = true
                         await MainActor.run {
@@ -1189,7 +1347,14 @@ final class AgentCaptureController {
                     }
                     lastSequence = sequence
                     let lag = Date().timeIntervalSince(capturedAt)
-                    if catchingUpFromStartup && lag <= 0.4 {
+                    if isReplay {
+                        catchingUpFromStartup = true
+                        await MainActor.run {
+                            guard AgentCaptureController.shared.captureSessionID == captureID else { return }
+                            AgentCaptureController.shared.releaseLocalDecoderOwnership(reason: "turn replay catch-up")
+                        }
+                    }
+                    if catchingUpFromStartup && lag <= 0.4 && !isReplay {
                         catchingUpFromStartup = false
                         await MainActor.run {
                             let capture = AgentCaptureController.shared
@@ -1203,6 +1368,7 @@ final class AgentCaptureController {
                         Log.agent.warning("local EOU startup catch-up lag \(lag, format: .fixed(precision: 2))s")
                     }
                     if lag > 0.5 && !catchingUpFromStartup {
+                        semantic?.discontinuity()
                         if !hadDiscontinuity {
                             hadDiscontinuity = true
                             catchingUpFromStartup = true
@@ -1232,11 +1398,37 @@ final class AgentCaptureController {
                         }
                     }
                     let started = Date()
+                    let progress: LocalVoiceTurnDetector.Progress
                     if let producerProbeForTesting {
-                        try await detector.process(chunk,
-                            producerInputForTesting: producerProbeForTesting.input(sequence: sequence))
+                        progress = try await detector.process(chunk,
+                            producerInputForTesting: producerInput ?? producerProbeForTesting.input(sequence: sequence),
+                            capturedEnd: sampleEnd)
                     } else {
-                        try await detector.process(chunk)
+                        progress = try await detector.process(chunk, capturedEnd: sampleEnd)
+                    }
+                    let current = detector.progress.snapshot()
+                    if progress.scope != current.scope, current.scope.sessionID == captureID,
+                       sampleEnd > current.resetBoundary {
+                        let dropped = turnAudioBacklog.returnToFront((chunk, capturedAt, sequence, sampleEnd, producerInput, isReplay))
+                        if dropped > 0 {
+                            await MainActor.run {
+                                let capture = AgentCaptureController.shared
+                                guard capture.captureSessionID == captureID else { return }
+                                capture.eouDroppedChunks += dropped
+                            }
+                        }
+                        lastSequence = sequence - 1
+                        continue
+                    }
+                    if isReplay, progress.scope == current.scope,
+                       VoiceDecoderProgress.replayCaughtUp(processedEnd: progress.processedEnd,
+                           capturedEnd: turnAudioBacklog.capturedEnd()) {
+                        catchingUpFromStartup = false
+                        await MainActor.run {
+                            guard AgentCaptureController.shared.captureSessionID == captureID else { return }
+                            AgentCaptureController.shared.markLocalDecoderCaughtUp(captureID: captureID,
+                                reason: "successor replay decoded")
+                        }
                     }
                     if !measuredFirstProcess {
                         measuredFirstProcess = true
@@ -1319,15 +1511,22 @@ final class AgentCaptureController {
             let cleaned = AcousticEchoProcessor.shared.process(chunk)
             let acoustic = AcousticEchoProcessor.shared.evidenceSnapshot()
             let output = RealtimeAudioSession.voiceActivityOutputGeneration
+            let (sequence, sampleEnd) = turnAudioSequence.next(frames: Int(cleaned.buffer.frameLength))
+            let capturedAtNanos = chunk.captureHostTime.map { VoiceLatencyTimeline.nanos(hostTime: $0)
+                + UInt64(cleaned.buffer.frameLength) * 62_500 } ?? VoiceLatencyTimeline.nowNanos()
+            let cleanedLevel = Self.cleanedMicLevel(cleaned.buffer)
+            let nearSpeech = cleanedLevel >= Limits.speechLevel
+                && (!acoustic.recentReference || acoustic.independentNearCandidate || acoustic.nearCandidate)
+            if let semantic, let channel = cleaned.buffer.floatChannelData?[0] {
+                _ = semantic.append(UnsafeBufferPointer(start: channel,
+                    count: Int(cleaned.buffer.frameLength)), nearSpeech: nearSpeech, sequence: sequence, at: capturedAtNanos)
+            }
             // The capture timestamp is the first frame. Freshness follows the final
             // frame of the supplied 16k buffer, never the later native callback time.
             activity.ingest(cleaned.buffer, evidence: acoustic,
                 outputGeneration: output?.0 == captureID ? output?.1 : nil,
-                at: chunk.captureHostTime.map { VoiceLatencyTimeline.nanos(hostTime: $0)
-                    + UInt64(cleaned.buffer.frameLength) * 62_500 }
-                    ?? VoiceLatencyTimeline.nowNanos())
+                at: capturedAtNanos, sampleEnd: sampleEnd)
             continuation.yield(cleaned)
-            let sequence = turnAudioSequence.next()
             if let producerProbeForTesting {
                 let format = cleaned.buffer.format
                 if format.commonFormat != .pcmFormatFloat32 || format.sampleRate != 16_000
@@ -1337,7 +1536,7 @@ final class AgentCaptureController {
             }
             producerProbeForTesting?.captured(sequence: sequence,
                 frames: Int(cleaned.buffer.frameLength))
-            let dropped = turnAudioBacklog.enqueue((cleaned, Date(), sequence))
+            let dropped = turnAudioBacklog.enqueue((cleaned, Date(), sequence, sampleEnd, nil, false))
             if dropped > 0 {
                 Task { @MainActor in
                     let capture = AgentCaptureController.shared
@@ -1348,7 +1547,6 @@ final class AgentCaptureController {
                     }
                 }
             }
-            let cleanedLevel = Self.cleanedMicLevel(cleaned.buffer)
             // P2-01: the onset is the turn's own clock start and `lastVoice` is its speech
             // end. The capture buffer's host time is used when it has one, so the boundary
             // is the instant the audio was captured rather than the instant this closure ran.
@@ -1451,7 +1649,10 @@ final class AgentCaptureController {
             if markSecondInput, fileSecondInputStartedAt == nil {
                 fileSecondInputStartedAt = now
             }
-            if fileInputStartedAt == nil { fileInputStartedAt = now }
+            if fileInputStartedAt == nil {
+                fileInputStartedAt = now
+                fileInputOriginNanos = VoiceLatencyTimeline.nowNanos()
+            }
             if AudioConversion.level(of: source) >= Limits.speechLevel {
                 if fileFirstVoiceAt == nil {
                     fileFirstVoiceAt = now
@@ -1464,7 +1665,12 @@ final class AgentCaptureController {
                 VoiceLatencyTimeline.shared.mark(.lastVoice, overwrite: true)
             }
             deliver(AudioChunk(buffer: delivered))
-            maximumPacingLag = max(maximumPacingLag, nextFeed.duration(to: pacingClock.now))
+            let pacingLag = nextFeed.duration(to: pacingClock.now)
+            maximumPacingLag = max(maximumPacingLag, pacingLag)
+            if SelfTest.requested == "--selftest-turn-benchmark" {
+                filePacingErrorsMS.append(max(0, Double(pacingLag.components.seconds) * 1_000
+                    + Double(pacingLag.components.attoseconds) / 1e15))
+            }
             nextFeed += .seconds(Double(source.frameLength) / sourceFormat.sampleRate)
             try await pacingClock.sleep(until: nextFeed)
         }
@@ -1483,7 +1689,12 @@ final class AgentCaptureController {
                 throw TranscriptionError.noAudioFormat
             }
             deliver(AudioChunk(buffer: owned))
-            maximumPacingLag = max(maximumPacingLag, nextFeed.duration(to: pacingClock.now))
+            let pacingLag = nextFeed.duration(to: pacingClock.now)
+            maximumPacingLag = max(maximumPacingLag, pacingLag)
+            if SelfTest.requested == "--selftest-turn-benchmark" {
+                filePacingErrorsMS.append(max(0, Double(pacingLag.components.seconds) * 1_000
+                    + Double(pacingLag.components.attoseconds) / 1e15))
+            }
             nextFeed += .seconds(Double(silence.frameLength) / outputFormat.sampleRate)
             try await pacingClock.sleep(until: nextFeed)
         }
@@ -1491,6 +1702,13 @@ final class AgentCaptureController {
     }
 
     private func stopEngine(closeVoiceActivity: Bool = true) async {
+        let semanticDrain = smartTurn?.close() ?? smartTurnDrain
+        smartTurn = nil
+        smartTurnDrain = semanticDrain
+        selectedSmartToken = nil
+        selectedSmartBoundary = nil
+        selectedDecoderStamp = nil
+        decoderResetPrepared = false
         let activity = closeVoiceActivity ? voiceActivityInput : nil
         let activityDrain = closeVoiceActivity ? (activity?.close() ?? voiceActivityDrain) : nil
         if closeVoiceActivity {
@@ -1526,6 +1744,7 @@ final class AgentCaptureController {
         }
         if drained == nil { draining?.cancel() }
         await activityDrain?.value
+        await semanticDrain?.value
         if let finishing {
             _ = await withBoundedWait(RealtimeAgent.Limits.captureFinish) {
                 await finishing.finish()
@@ -1601,6 +1820,9 @@ final class AgentCaptureController {
         eouTerminationRequested = true
         // Refuse callbacks/new admission synchronously before any shutdown await.
         captureSessionID = nil
+        let semanticDrain = smartTurn?.close() ?? smartTurnDrain
+        smartTurn = nil
+        smartTurnDrain = semanticDrain
         let activity = voiceActivityInput
         voiceActivityInput = nil
         let activityDrain = activity?.close() ?? voiceActivityDrain
@@ -1616,6 +1838,7 @@ final class AgentCaptureController {
             await self.endSession(source: .done)
             await decoder?.value
             await activityDrain?.value
+            await semanticDrain?.value
             await detector?.close()
         }
     }
@@ -1692,7 +1915,7 @@ final class AgentCaptureController {
                 await capture.waitForActiveTurnForTesting()
                 if index == 1, let detector = capture.turnDetector {
                     let staleResetRan = await detector.resetForNextTurn(
-                        onEndOfUtterance: { _ in }, onPartial: { _ in },
+                        onEndOfUtterance: { _, _ in }, onPartial: { _, _ in },
                         sessionID: sessionIDs.first)
                     if staleResetRan {
                         failures.append("retired session reset rebound the next native decoder callbacks")
@@ -1822,8 +2045,19 @@ final class AgentCaptureController {
         let audio = RealtimeAudioSession.shared
         let speech = AgentSpeechSynthesizer.shared
         guard isSessionActive, captureSessionID == probe.captureID,
-              speech.outputGeneration == probe.outputGeneration,
               now >= probe.at, now - probe.at <= windowNanos else { return }
+        if probe.probability >= 0.6 && probe.echoOK,
+           let smartTurn, smartTurn.voiced(at: probe.at, now: now, sampleEnd: probe.sampleEnd) {
+            heardSpeech = true
+            if speechBeganAt == nil { speechBeganAt = Date() }
+            let voicedAt = Date(timeIntervalSinceNow: -Double(now - probe.at) / 1_000_000_000)
+            if lastSpeechAt.map({ voicedAt > $0 }) ?? true { lastSpeechAt = voicedAt }
+            // A queued EOU cannot survive resumed near speech.
+            modelEOUAt = nil
+            wordlessModelEOU = false
+        }
+        guard let outputGeneration = probe.outputGeneration,
+              speech.outputGeneration == outputGeneration else { return }
         if voiceActivityGeneration != probe.outputGeneration
             || voiceActivityLastProbe.map({ probe.at < $0 || probe.at - $0 > windowNanos }) == true {
             resetVoiceActivity()
@@ -1835,7 +2069,7 @@ final class AgentCaptureController {
             voiceActivityConsecutive = min(2, voiceActivityConsecutive + 1)
             if voiceActivityConsecutive == 2 {
                 _ = audio.duckForListening(captureID: probe.captureID,
-                    outputGeneration: probe.outputGeneration)
+                    outputGeneration: outputGeneration)
             }
         } else {
             voiceActivityConsecutive = 0
@@ -1847,7 +2081,7 @@ final class AgentCaptureController {
                 if !novel, let quiet = voiceActivityQuietSince,
                    probe.at >= quiet, probe.at - quiet >= 300_000_000 {
                     audio.releaseDuck(captureID: probe.captureID,
-                        outputGeneration: probe.outputGeneration)
+                        outputGeneration: outputGeneration)
                 }
             } else { voiceActivityQuietSince = nil }
         }
@@ -1905,6 +2139,10 @@ final class AgentCaptureController {
             }
             lastSpeechAt = Date()
             lastActivityAt = Date()
+            if !RealtimeAudioSession.shared.isSpeaking || nearCandidate {
+                modelEOUAt = nil
+                wordlessModelEOU = false
+            }
         }
         // Mic levels continue arriving while the answer model or a tool runs.
         // They must not replace the work/reply card on every audio buffer.
@@ -2001,6 +2239,9 @@ final class AgentCaptureController {
 
     private func noteModelEOU(_ modelText: String) {
         guard isSessionActive, turnDetectorReady else { return }
+        // An endpoint inside an old replay tail has the same freshness limit
+        // as a partial. Apple retains live ownership until native catch-up.
+        guard smartTurn == nil || localDecoderCaughtUp else { return }
         echoProbeDiagnostic("local endpoint=\(modelText) wordlessEligible=\(canSettleWordlessModelEOU)")
         guard !modelText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             // Preserve the event without manufacturing a transcript or a turn.
@@ -2015,6 +2256,7 @@ final class AgentCaptureController {
         }
         if lastSpeechAt == nil { lastSpeechAt = Date() }
         modelFinalText = modelText.trimmingCharacters(in: .whitespacesAndNewlines)
+        modelTextChangedAt = Date()
         modelEOUAt = Date()
         VoiceLatencyTimeline.shared.mark(.eouConfirmed)
         // A confirmed local endpoint owns its own wording, including a shorter
@@ -2047,6 +2289,7 @@ final class AgentCaptureController {
         echoProbeDiagnostic("local partial=\(candidate) caughtUp=\(localDecoderCaughtUp)")
         wordlessModelEOU = false
         modelPartialText = candidate
+        modelTextChangedAt = Date()
         VoiceLatencyTimeline.shared.mark(.asrFirstPartial)
         if fileFeedTask != nil {
             fileModelPartialCount += 1
@@ -2085,9 +2328,10 @@ final class AgentCaptureController {
         considerSpeechInterruption(userTurn, source: .local)
     }
 
-    private func makeEOUCallback(captureID: UUID, epoch: Int) -> @Sendable (String) -> Void {
+    private func makeEOUCallback(captureID: UUID, epoch: Int) -> LocalVoiceTurnDetector.Callback {
         let producerProbeForTesting = inputProducerProbeForTesting
-        return { modelText in
+        let progress = turnDetector?.progress
+        return { modelText, stamp in
             producerProbeForTesting?.record("callback.eou", epoch: epoch)
             // P2-01: stamped on FluidAudio's own thread, before the hop to the main actor,
             // because that hop is `voice.eou_hop` — the part nobody could see before.
@@ -2097,18 +2341,21 @@ final class AgentCaptureController {
                 defer { producerProbeForTesting?.record("callback.eou.handled", epoch: epoch) }
                 let capture = AgentCaptureController.shared
                 guard capture.captureSessionID == captureID,
-                      capture.turnEpoch == epoch else { return }
+                      capture.turnEpoch == epoch, capture.turnDetectorReady,
+                      progress?.apply(stamp) == true else { return }
                 MainActorSection.run("asr.local") { capture.noteModelEOU(modelText) }
             }
         }
     }
 
-    private func makePartialCallback(captureID: UUID, epoch: Int) -> @Sendable (String) -> Void {
-        { modelText in
+    private func makePartialCallback(captureID: UUID, epoch: Int) -> LocalVoiceTurnDetector.Callback {
+        let progress = turnDetector?.progress
+        return { modelText, stamp in
             Task { @MainActor in
                 let capture = AgentCaptureController.shared
                 guard capture.captureSessionID == captureID,
-                      capture.turnEpoch == epoch else { return }
+                      capture.turnEpoch == epoch, capture.turnDetectorReady,
+                      progress?.apply(stamp) == true else { return }
                 MainActorSection.run("asr.local") { capture.noteModelPartial(modelText) }
             }
         }
@@ -2225,13 +2472,28 @@ final class AgentCaptureController {
         }
 
         let wordlessEndpoint = wordlessModelEOU && canSettleWordlessModelEOU
+        let legacyEligible = wordlessEndpoint || modelEOUAt != nil ||
+            (lastSpeechAt.map { now.timeIntervalSince($0) >=
+                (turnDetectorReady ? 2.5 : Limits.endpointSilence) } ?? false)
+        let candidateText = pendingTurn(provisional: false)
+        let changedAt = localOwnsPartial ? modelTextChangedAt : lastTranscriptChangeAt
+        let stable = modelEOUAt != nil || (changedAt.map {
+            now.timeIntervalSince($0) >= (localOwnsPartial ? 0.08 : Limits.transcriptSettle)
+        } ?? false)
+        let semantic = smartTurn?.evaluate(now: VoiceLatencyTimeline.nowNanos(),
+            usableText: !candidateText.isEmpty, transcriptStable: stable,
+            localText: localOwnsPartial, legacyEligible: legacyEligible,
+            appleAudioThrough: appleAudioThrough)
+        // Wordless activity still settles through the existing discard path;
+        // a missing transcript must not hold the acoustic/effect floor forever.
+        let endpointEligible = (semantic.map { $0.decision != .wait } ?? legacyEligible)
+            || (candidateText.isEmpty && legacyEligible)
         if heardSpeech,
            let lastSpeechAt,
            let began = speechBeganAt,
-           (wordlessEndpoint || modelEOUAt != nil || now.timeIntervalSince(lastSpeechAt) >=
-                (turnDetectorReady ? 2.5 : Limits.endpointSilence)),
+           (wordlessEndpoint || endpointEligible),
            now.timeIntervalSince(began) >= Limits.minSpeech,
-           (wordlessEndpoint || modelEOUAt != nil ||
+           (wordlessEndpoint || modelEOUAt != nil || semantic?.decision == .complete ||
                 (lastTranscriptChangeAt.map { now.timeIntervalSince($0) >= Limits.transcriptSettle } ?? true)),
            (inputLevel <= Limits.silenceLevel || force) {
             let text = wordlessEndpoint ? "" : pendingTurn(provisional: false)
@@ -2318,7 +2580,14 @@ final class AgentCaptureController {
                     stopVAD()
                     await stopEngine()
                 } else {
-                    await emitTurn(text, source: modelEOUAt == nil ? .vad : .localEOU,
+                    selectedSmartToken = semantic?.token
+                    selectedSmartBoundary = semantic?.endSample
+                    selectedDecoderStamp = semantic?.decoderStamp
+                    if let semantic {
+                        VoiceLatencyTimeline.shared.note("turn_policy", semantic.reason)
+                    }
+                    await emitTurn(text, source: semantic?.decision == .complete ? .smartTurn :
+                        (modelEOUAt == nil ? .vad : .localEOU),
                         continueSession: true)
                 }
                 return true
@@ -2346,6 +2615,44 @@ final class AgentCaptureController {
         return false
     }
 
+    /// Publish the reset and recover the complete successor tail before any
+    /// committed-turn effect. Uses the existing PCM ring and ASR queue.
+    private func prepareSelectedDecoderReset() -> Bool {
+        guard let selectedSmartToken, let boundary = selectedSmartBoundary else { return true }
+        guard let smartTurn, let captureID = captureSessionID,
+              let turnDetector, let turnAudioBacklog else { return false }
+        let nextEpoch = turnEpoch &+ 1
+        let eou = makeEOUCallback(captureID: captureID, epoch: nextEpoch)
+        let partial = makePartialCallback(captureID: captureID, epoch: nextEpoch)
+        var dropped = 0
+        let admitted = smartTurn.claimCommit(selectedSmartToken, boundary: boundary) { successor in
+            var replay: TurnAudioBacklog.Entry?
+            if !successor.samples.isEmpty {
+                guard let format = AVAudioFormat(commonFormat: .pcmFormatFloat32,
+                    sampleRate: 16_000, channels: 1, interleaved: false),
+                    let buffer = AVAudioPCMBuffer(pcmFormat: format,
+                        frameCapacity: AVAudioFrameCount(successor.samples.count)),
+                    let channel = buffer.floatChannelData?[0] else { return false }
+                buffer.frameLength = AVAudioFrameCount(successor.samples.count)
+                successor.samples.withUnsafeBufferPointer { channel.update(from: $0.baseAddress!, count: $0.count) }
+                let now = DispatchTime.now().uptimeNanoseconds
+                let age = now >= successor.capturedAtNanos ? Double(now - successor.capturedAtNanos) / 1e9 : 0
+                let input = inputProducerProbeForTesting?.replayInput(sequence: successor.sequence,
+                    frames: Int(boundary)..<Int(successor.endSample))
+                replay = (AudioChunk(buffer: buffer), Date().addingTimeInterval(-age),
+                    successor.sequence, successor.endSample, input, true)
+            }
+            return turnDetector.progress.commit(ifPublished: selectedDecoderStamp,
+                sessionID: captureID, fromEpoch: turnEpoch, toEpoch: nextEpoch, through: boundary) {
+                dropped = turnAudioBacklog.installReset(.init(through: boundary, epoch: nextEpoch,
+                    eou: eou, partial: partial), successor: replay,
+                    replayEnd: successor.endSample, sequence: successor.sequence)
+            }
+        }
+        if admitted { decoderResetPrepared = true; eouDroppedChunks += dropped }
+        return admitted
+    }
+
     private func emitTurn(
         _ text: String,
         source: EndpointSource,
@@ -2362,6 +2669,12 @@ final class AgentCaptureController {
                 inputProducerProbeForTesting.record("commit.aborted")
                 return
             }
+        }
+        if let selectedSmartToken,
+           smartTurn?.stillCurrent(selectedSmartToken, decoderStamp: selectedDecoderStamp) != true { return }
+        if selectedSmartToken != nil {
+            guard Self.normalized(pendingTurn(provisional: false)) == Self.normalized(text),
+                  prepareSelectedDecoderReset() else { return }
         }
         inputProducerProbeForTesting?.record("commit.emitted", epoch: turnEpoch)
         let shadowTurn = shadowTurnIfNeeded()
@@ -2648,6 +2961,70 @@ final class AgentCaptureController {
     /// capture delivery closure as the mic; the real frontend and TTS remain
     /// active. No output is mixed back into this file, so this is not a live
     /// acoustic double-talk or physical audibility test.
+    /// The file enters the live delivery closure, decoder, tick and commit sink.
+    /// Replies/effects are replaced by the existing test sink; no owner history.
+    static func runTurnEndpointBenchmark(wav: URL) async -> VoiceTurnBenchmark.Observation {
+        guard SelfTest.requested == "--selftest-turn-benchmark" else {
+            return .init(words: "", commits: [], source: "none", pacingMS: nil,
+                         failure: "isolated turn benchmark required")
+        }
+        guard LocalVoiceTurnDetector.cachedModelDirectory() != nil else {
+            return .init(words: "", commits: [], source: "none", pacingMS: nil,
+                         failure: "cached Parakeet EOU unavailable; diagnostic cannot download owner assets")
+        }
+        let capture = AgentCaptureController.shared
+        await capture.endSession(source: .done)
+        let previous = capture.turnHandlerForTesting
+        let previousProbe = capture.inputProducerProbeForTesting
+        let probe = VoiceInputProducerProbe(holdPrepare: false, holdFirstCommit: false)
+        capture.inputProducerProbeForTesting = probe
+        var words = ""
+        capture.turnHandlerForTesting = { text in
+            words = text
+        }
+        var failure: String?
+        do {
+            try await capture.beginFileSession(wav: wav, deferFeed: true, prepareResources: false)
+            await capture.smartTurn?.waitUntilLoaded()
+            await capture.voiceActivityInput?.waitUntilLoaded()
+            guard capture.voiceActivityInput?.snapshot().artifact?.contains("silero-vad-unified-v6.0.0.mlmodelc") == true else {
+                throw NSError(domain: "TurnBenchmark", code: 3,
+                    userInfo: [NSLocalizedDescriptionKey: "pinned32ms Silero unavailable; SDK fallback is not pair evidence"])
+            }
+            if capture.smartTurn?.isReady() != true {
+                throw NSError(domain: "TurnBenchmark", code: 1,
+                    userInfo: [NSLocalizedDescriptionKey: capture.smartTurn?.modelFailure() ?? "Smart Turn unavailable"])
+            }
+            // Preparation is observed separately; the paced input is never used to
+            // conceal a decoder that is still loading a missing multi-GB model.
+            let preparationDeadline = Date().addingTimeInterval(30)
+            while !capture.turnDetectorReady, Date() < preparationDeadline {
+                try await Task.sleep(for: .milliseconds(20))
+            }
+            guard capture.turnDetectorReady else {
+                throw NSError(domain: "TurnBenchmark", code: 2,
+                    userInfo: [NSLocalizedDescriptionKey: "cached Parakeet EOU unavailable"])
+            }
+            capture.startDeferredFileFeed()
+            await capture.fileFeedTask?.value
+            try await Task.sleep(for: .milliseconds(500))
+            if let error = capture.fileFeedFailure { failure = error }
+        } catch { failure = error.localizedDescription }
+        let source = capture.lastEndpoint.rawValue
+        let commits = probe.snapshot().filter { $0.kind == "commit.emitted" }.compactMap { event -> Double? in
+            guard let origin = capture.fileInputOriginNanos, event.atNanos >= origin else { return nil }
+            return Double(event.atNanos - origin) / 1_000_000
+        }
+        let pacing = capture.filePacingErrorsMS.sorted()
+        let p95 = pacing.isEmpty ? nil : pacing[min(pacing.count - 1, Int(Double(pacing.count - 1) * 0.95))]
+        await capture.endSession(source: .done)
+        await capture.turnDetectorTask?.value
+        await capture.waitForActiveTurnForTesting()
+        capture.turnHandlerForTesting = previous
+        capture.inputProducerProbeForTesting = previousProbe
+        return .init(words: words, commits: commits, source: source, pacingMS: p95, failure: failure)
+    }
+
     static func runVoicePipelineSelfTest(wav: URL,
         appleFastResults: Bool = true) async -> [String] {
         let capture = AgentCaptureController.shared
@@ -2682,13 +3059,14 @@ final class AgentCaptureController {
         if capture.fileCommittedTurns != 1 {
             failures.append("expected one committed spoken turn, got \(capture.fileCommittedTurns)")
         }
-        if capture.lastEndpoint != .localEOU {
+        if capture.lastEndpoint != .localEOU && capture.lastEndpoint != .smartTurn {
             failures.append("file speech did not end from local EOU model: \(capture.lastEndpoint.rawValue)")
         }
         // P0-10: a confirmed model EOU must evaluate the endpoint itself. A
         // commit from the 100 ms VAD loop means the person waited up to a tick
         // after Parakeet had already ended their turn.
-        if let trigger = capture.fileEOUCommitTrigger, trigger != .eou {
+        if capture.lastEndpoint == .localEOU,
+           let trigger = capture.fileEOUCommitTrigger, trigger != .eou {
             failures.append("model EOU waited for the VAD tick")
         }
         if capture.lastReply.isEmpty { failures.append("local frontend produced no answer") }
@@ -2887,18 +3265,37 @@ final class AgentCaptureController {
     }
 
     private func resetTurn(resetDecoder: Bool = true) {
+        let alreadyPrepared = decoderResetPrepared
+        decoderResetPrepared = false
+        if alreadyPrepared { localDecoderCaughtUp = false }
         inputProducerProbeForTesting?.record("capture.reset", epoch: turnEpoch)
         voiceShadowTurn = nil
         appleEchoRecognition = .init()
         localEchoRecognition = .init()
         wordlessModelEOU = false
         turnEpoch &+= 1
-        if resetDecoder, let turnDetector {
+        let committedBoundary = selectedSmartBoundary ?? turnAudioBacklog?.capturedEnd()
+        smartTurn?.reset(epoch: turnEpoch, through: committedBoundary)
+        selectedSmartToken = nil
+        selectedSmartBoundary = nil
+        selectedDecoderStamp = nil
+        if resetDecoder, !alreadyPrepared, let turnDetector {
             if let captureID = captureSessionID {
+                let nextEpoch = turnEpoch
+                turnDetector.progress.invalidate(sessionID: captureID, epoch: nextEpoch,
+                    through: committedBoundary ?? 0)
                 let callback = makeEOUCallback(captureID: captureID, epoch: turnEpoch)
                 let partial = makePartialCallback(captureID: captureID, epoch: turnEpoch)
-                Task { await turnDetector.resetForNextTurn(
-                    onEndOfUtterance: callback, onPartial: partial, sessionID: captureID) }
+                if let turnAudioBacklog, let committedBoundary {
+                    // The existing audio drain applies the reset before its next
+                    // native process. A separate reset Task could erase new speech
+                    // already admitted to the decoder after an early semantic end.
+                    turnAudioBacklog.requestReset(.init(through: committedBoundary, epoch: nextEpoch,
+                        eou: callback, partial: partial))
+                } else {
+                    Task { await turnDetector.resetForNextTurn(
+                        onEndOfUtterance: callback, onPartial: partial, sessionID: captureID, epoch: nextEpoch) }
+                }
             }
         }
         transcript = ""
@@ -2915,6 +3312,7 @@ final class AgentCaptureController {
         inputLevel = 0
         modelEOUAt = nil
         modelPartialText = ""
+        modelTextChangedAt = nil
         modelFinalText = ""
         localOwnsPartial = false
         frontendStagedForTurn = false

@@ -1,0 +1,136 @@
+{
+  "timestamp": 1792732525.605984,
+  "snapshot": {
+    "runs.jsonl": {
+      "bytes": 309388,
+      "mtime_ns": 1792431765517323625,
+      "sha256": "09e1e98cc43a6384687729a40543df904e7c170c4072ae09b02f406a27ebe6cc"
+    },
+    "agent-tasks.json": {
+      "bytes": 47810,
+      "mtime_ns": 1791644583718842827,
+      "sha256": "695012471c7bf6e52b7df1856b01a69bfb9599059c7486f5004a20af36738ed0"
+    },
+    "agent-tasks.sqlite": {
+      "bytes": 90112,
+      "mtime_ns": 1791644583715331625,
+      "sha256": "71e46922002ed9b314ebc57542565c0f81464632e6162ae21cd13b796618e06c"
+    },
+    "agent-tasks.sqlite-wal": {
+      "bytes": 0,
+      "mtime_ns": 1791644583716511164,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "agent-tasks.sqlite-shm": {
+      "bytes": 32768,
+      "mtime_ns": 1792699439070815886,
+      "sha256": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb"
+    },
+    "agent-audit.jsonl": {
+      "bytes": 389193,
+      "mtime_ns": 1792426069536123947,
+      "sha256": "244eb7e2a50712f5f62a542f0c5ac208a8bded2620dd34d7e370c53a7aeadccb"
+    },
+    "agent-conversation.json": {
+      "bytes": 16577,
+      "mtime_ns": 1791644583720485949,
+      "sha256": "ff3b39f35b88a832be3fb98a980597e228548c9c91c5dad6dc9841b28a3253e4"
+    },
+    "agent-harness-history.json": {
+      "bytes": 12946,
+      "mtime_ns": 1791525277392829749,
+      "sha256": "c08ebb4fa3abd25d0be46af880d2728c09dc4437b7786b6b8c89442ea5d48b28"
+    },
+    "next-memory.json": {
+      "bytes": 20276,
+      "mtime_ns": 1792699439527585893,
+      "sha256": "f80180b7b245ae3ed410df02a0d79068a5bd4c8c5007da3ceaf95b78093755ed"
+    },
+    "agent-memory-review.json": {
+      "bytes": 95453,
+      "mtime_ns": 1792463930415662219,
+      "sha256": "bd0ecc05c0a8efb8102b6d3a6a179225616cb2b3f0899df9667989f4e92e445f"
+    },
+    "metrics.jsonl": {
+      "bytes": 330212,
+      "mtime_ns": 1792699513264602934,
+      "sha256": "89ee8d482812734964a04f0fc46477fcfed6e64d5178c600f31f5aab93071359"
+    },
+    "usage.jsonl": {
+      "bytes": 1576047,
+      "mtime_ns": 1792463930470055288,
+      "sha256": "6ffc04b3b5a1e50f48f292332b3a60a692ef12ae727781239baaa24060437a8a"
+    },
+    "action-receipts.json": {
+      "bytes": 361947,
+      "mtime_ns": 1792423439265306171,
+      "sha256": "bb39ee74e83a2172ab2f3b8c1857e85ff9e3135412ef2084491e7b2dacc92231"
+    },
+    "permission-grants.json": {
+      "bytes": 623,
+      "mtime_ns": 1791644053747586873,
+      "sha256": "0f5197ae348aef160336633fb80b76e8233085d0af8ffb30485fbfefd132078b"
+    },
+    "persona.md": {
+      "bytes": 1683,
+      "mtime_ns": 1791345728887314203,
+      "sha256": "3d3d80d0e75b0ae4607d5fe4d48cbf401b0597280a9ab17b2143ea47c4aecb81"
+    },
+    "agent-identity.json": {
+      "bytes": 150,
+      "mtime_ns": 1791345867223177027,
+      "sha256": "936f39ebacbac0caca0e895217cf77ea66e0c8a7a94632ac95514f2e1e1a412a"
+    },
+    "portrait-insights.json": {
+      "bytes": 84,
+      "mtime_ns": 1791519540911259239,
+      "sha256": "54d4cacd077787299eccc3e679fe3b7ee2676ee4eb54eadd0a551339db9462be"
+    },
+    "imessage-outbound.sqlite": {
+      "bytes": 4096,
+      "mtime_ns": 1790785421913178081,
+      "sha256": "2e96884c16791c7d4bde90a6db2c9da33c2a2aab3e52088adc148c368552a423"
+    },
+    "imessage-outbound.sqlite-wal": {
+      "bytes": 90672,
+      "mtime_ns": 1791315863917856919,
+      "sha256": "922e9f4d8eef38a2c0e5e221a319f0a733d90bcd5eaa5d7942038354ef01b422"
+    },
+    "imessage-outbound.sqlite-shm": {
+      "bytes": 32768,
+      "mtime_ns": 1791316644193151954,
+      "sha256": "b95316488ad8333fd231e8e94663a444cbf07cfbf3b96d59c45c4c7eb4f8f11f"
+    },
+    "imessage-settings.json": {
+      "bytes": 234,
+      "mtime_ns": 1790781610104699743,
+      "sha256": "d8d743eb92e0d096b5593b4ae837d61e2fedaaf63567b769af06c632379e1f5e"
+    },
+    "Models/library.json": {
+      "bytes": 1469,
+      "mtime_ns": 1790799150929312385,
+      "sha256": "69a7034262ee02ae979d0e5466b00ac5d522285d92c7a552a5455010fb15a218"
+    },
+    "dictionary.txt": {
+      "bytes": 929,
+      "mtime_ns": 1790491501437074813,
+      "sha256": "30dcbc0292f451486b1aace9c499cb46cb7ad089b56c499c136c74dd3c6c1173"
+    },
+    "formatting.txt": {
+      "bytes": 3406,
+      "mtime_ns": 1789941873988481702,
+      "sha256": "5baa1591790aa72d05a6553321d66ab40ce392d27fc3106e136fbb179eb1ffe8"
+    },
+    "preferences": {
+      "bytes": 12038,
+      "mtime_ns": 1792699562680857503,
+      "sha256": "15454699440b6ec49fea669fcd3d45e1f0cff7f25d69830b731a10423ef8a4cd"
+    },
+    "recordings_inventory": {
+      "files": 143,
+      "total_bytes": 2338383,
+      "metadata_sha256": "7ecc252677b2f5b76899ecf86c3e939caa33b87b0d5da1c41ca13219696a8309"
+    }
+  },
+  "scope": "read-only baseline before first application native run; model-only probe and compiler do not construct app stores"
+}

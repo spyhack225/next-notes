@@ -12,6 +12,12 @@ import SwiftUI
 @MainActor
 enum NextNotesEntryPoint {
     static func main() {
+        if CommandLine.arguments.contains("--selftest-turn-policy") {
+            VoiceTurnBenchmark.runStandalone(policyOnly: true)
+        }
+        if CommandLine.arguments.contains("--selftest-turn-benchmark") {
+            VoiceTurnBenchmark.runStandalone(policyOnly: false)
+        }
         if CommandLine.arguments.contains("--selftest-asr-settings") { ASRSettingsSelfTest.runStandalone() }
         if CommandLine.arguments.contains("--selftest-asr-live") { ASRLiveAppBenchmark.runStandalone() }
         if CommandLine.arguments.contains("--selftest-tts-source") {

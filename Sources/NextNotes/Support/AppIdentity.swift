@@ -33,7 +33,9 @@ enum AppIdentity {
         // one of them arriving here first would create the new folder, make the guard inside
         // `migrateSupportDirectory` skip, and strand the user's data in the old one.
         if SelfTest.requested == "--selftest-settings-sheet"
-            || SelfTest.requested == "--selftest-acp-offered-options" { return directory }
+            || SelfTest.requested == "--selftest-acp-offered-options"
+            || SelfTest.requested == "--selftest-turn-policy"
+            || SelfTest.requested == "--selftest-turn-benchmark" { return directory }
         _ = migration
 
         try? FileManager.default.createDirectory(

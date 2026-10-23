@@ -1,0 +1,30 @@
+{
+  "command": [
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/voice-turn-20261023/VoiceTurnNativeProbe",
+    "--turn-model-root",
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/voice-turn-20261023/fixtures",
+    "--turn-fixtures",
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/voice-turn-20261023/fixtures/fixtures.json",
+    "--turn-output",
+    "Tests/Reports/voice-turn-2026-10-23/native-models.json",
+    "--turn-repetitions",
+    "30"
+  ],
+  "binary_sha256": "e882603108d51a07345bac939438faec078d67476810c12a21991ff07c15f894",
+  "started": 1792730913.833858,
+  "scope": "native production model sources; component replay only",
+  "pid": 8563,
+  "exit": 0,
+  "joined": true,
+  "compiler_cache_removed": [
+    {
+      "path": "/Users/sergekadjo/Library/Caches/VoiceTurnNativeProbe/com.apple.e5rt.e5bundlecache/26B5091g/44E147737102F394FBA878F5525D92453DA3568260A1C649937739ED7F716061/89A3F72E8DA15A10854BA238D674A96712DA3F0AED4371ACE42EC2008EA9DF65.bundle",
+      "logicalBytes": 774057
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/VoiceTurnNativeProbe/com.apple.e5rt.e5bundlecache/26B5091g/EB5F412C3BB46EA6B7610BC02009AEB93DBBEE9FFA886DDF31B07BDA9DFE960E/CAF322DA19230C2CBCF4AD844619040C91242F2ED213E366F63CC586110C454A.bundle",
+      "logicalBytes": 986480
+    }
+  ],
+  "finished": 1792730947.844696
+}

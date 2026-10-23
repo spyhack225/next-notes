@@ -1,0 +1,17 @@
+{
+  "sha256": "61a7654390e49252380657622c9ad895686844793313d41fa3d639b33902fdd0",
+  "source_files": {
+    "Sources/NextNotes/Activation/AgentCaptureController.swift": "6896281ee5d120fa81d5f4bc1224fbdf6f173edc491e2e8665b1c1e665d99858",
+    "Sources/NextNotes/Activation/LocalVoiceTurnDetector.swift": "c371657794c02eaf157ef198295d22ac95a2d0a77853a8ad2b34d2d43ea59487",
+    "Sources/NextNotes/Activation/SmartTurn/SmartTurnEndpoint.swift": "2174ebfd31e2c2b3b24253f1aed7c748efad6aec9063729f052754f863e09276",
+    "Sources/NextNotes/Activation/SmartTurn/VoiceTurnModels.swift": "0b833f185bd2be2e48c7fbd035caeea0b7765736d5a531f4b30a8e52948cd1e1",
+    "Sources/NextNotes/Activation/SmartTurn/VoiceTurnBenchmark.swift": "39f550ef89bb250829121aa25ccb4b5f111f84b70f8d4e64607dcbbc523957fd",
+    "Sources/NextNotes/NextNotesApp.swift": "cf0514f0c0491c1c5c3e9096b81e35bd6a1258a054fc9818f26f89c51d58cd6a",
+    "Sources/NextNotes/Support/AppIdentity.swift": "155acb24aab6e234d6f93a866ddc228a489e7d61d90e933be63c7031127a5b9f"
+  },
+  "exit": 0,
+  "joined": true,
+  "seconds": 670.45,
+  "scope": "first candidate build, prior to ASR reviewer follow-up repairs; not installed or benchmark-qualified",
+  "timestamp": 1792731850.429335
+}

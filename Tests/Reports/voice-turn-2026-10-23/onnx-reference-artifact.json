@@ -1,0 +1,8 @@
+{
+  "revision": "f766f81d3cfdf7737ac64aad813d91bbfd56bf93",
+  "file": "smart-turn-v3.2-gpu.onnx",
+  "bytes": 32411198,
+  "sha256": "ab8dc64b88713f90b571c15b714bd1330e6c883cad8763dacf65c9376dc539be",
+  "free_before_bytes": 2435653632,
+  "scope": "explicit bounded independent diagnostic; no ONNX/Python product dependency or normal downloader change"
+}

@@ -1,0 +1,140 @@
+{
+  "schema": "nextnotes.turn-model-summary.v1",
+  "rows": [
+    {
+      "case": "complete-question",
+      "boundary": "completed-turn",
+      "calls": 30,
+      "correct": 30,
+      "probability": 0.990234375,
+      "median_ms": 2.4998125,
+      "p95_ms": 4.199292,
+      "max_ms": 9.081
+    },
+    {
+      "case": "pause-200",
+      "boundary": "completed-turn",
+      "calls": 30,
+      "correct": 30,
+      "probability": 0.9775390625,
+      "median_ms": 2.513938,
+      "p95_ms": 5.14325,
+      "max_ms": 7.881917
+    },
+    {
+      "case": "pause-200",
+      "boundary": "internal-pause",
+      "calls": 30,
+      "correct": 0,
+      "probability": 0.98779296875,
+      "median_ms": 8.133417,
+      "p95_ms": 9.233083,
+      "max_ms": 9.994166
+    },
+    {
+      "case": "pause-400",
+      "boundary": "completed-turn",
+      "calls": 30,
+      "correct": 30,
+      "probability": 0.97802734375,
+      "median_ms": 2.9591459999999996,
+      "p95_ms": 5.486416,
+      "max_ms": 8.610292
+    },
+    {
+      "case": "pause-400",
+      "boundary": "internal-pause",
+      "calls": 30,
+      "correct": 0,
+      "probability": 0.98388671875,
+      "median_ms": 8.5300625,
+      "p95_ms": 9.059417,
+      "max_ms": 9.698375
+    },
+    {
+      "case": "pause-600",
+      "boundary": "completed-turn",
+      "calls": 30,
+      "correct": 30,
+      "probability": 0.9755859375,
+      "median_ms": 2.4643125,
+      "p95_ms": 4.015125,
+      "max_ms": 4.097375
+    },
+    {
+      "case": "pause-600",
+      "boundary": "internal-pause",
+      "calls": 30,
+      "correct": 0,
+      "probability": 0.98388671875,
+      "median_ms": 8.4217085,
+      "p95_ms": 9.156834,
+      "max_ms": 9.637292
+    },
+    {
+      "case": "pause-900",
+      "boundary": "completed-turn",
+      "calls": 30,
+      "correct": 30,
+      "probability": 0.9736328125,
+      "median_ms": 2.4822085,
+      "p95_ms": 4.853583,
+      "max_ms": 6.811958
+    },
+    {
+      "case": "pause-900",
+      "boundary": "internal-pause",
+      "calls": 30,
+      "correct": 0,
+      "probability": 0.98388671875,
+      "median_ms": 8.6376665,
+      "p95_ms": 9.780375,
+      "max_ms": 11.186208
+    },
+    {
+      "case": "pause-1200",
+      "boundary": "completed-turn",
+      "calls": 30,
+      "correct": 30,
+      "probability": 0.9755859375,
+      "median_ms": 2.4708755,
+      "p95_ms": 5.161792,
+      "max_ms": 5.488042
+    },
+    {
+      "case": "pause-1200",
+      "boundary": "internal-pause",
+      "calls": 30,
+      "correct": 0,
+      "probability": 0.98388671875,
+      "median_ms": 8.549146,
+      "p95_ms": 9.248792,
+      "max_ms": 9.612708
+    },
+    {
+      "case": "pause-1500",
+      "boundary": "completed-turn",
+      "calls": 30,
+      "correct": 30,
+      "probability": 0.97607421875,
+      "median_ms": 2.646938,
+      "p95_ms": 4.913875,
+      "max_ms": 5.283708
+    },
+    {
+      "case": "pause-1500",
+      "boundary": "internal-pause",
+      "calls": 30,
+      "correct": 0,
+      "probability": 0.98388671875,
+      "median_ms": 7.602729,
+      "p95_ms": 9.293875,
+      "max_ms": 9.685958
+    }
+  ],
+  "limitations": [
+    "Repeated predictions of the same snapshots measure execution timing, not independent accuracy samples.",
+    "Silero onset is native two-positive classification, not physical playback duck.",
+    "Original split-synthesis pause failures retained; no release qualification."
+  ]
+}

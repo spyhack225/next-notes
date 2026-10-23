@@ -1,0 +1,929 @@
+{
+  "schema": "nextnotes.turn-score.v1",
+  "run_id": "5D5D0591-B3A3-4C56-BFF7-0A1B6F563972",
+  "evidence": "native_replay",
+  "clock": "monotonic",
+  "trace_subset_passed": false,
+  "required_cases_missing": [
+    "asr-tail-lag",
+    "complete-correction",
+    "complete-request",
+    "complete-short",
+    "date-entry",
+    "double-talk-stop",
+    "echo-only",
+    "fallback-late-model",
+    "fallback-missing-model",
+    "hesitation-uh",
+    "hesitation-um",
+    "keyboard-noise",
+    "long-12s",
+    "long-45s",
+    "pause-700",
+    "pause-fr-900",
+    "phone-digits",
+    "quiet-speech",
+    "rapid-first",
+    "rapid-second",
+    "resume-during-inference",
+    "self-correction",
+    "silence",
+    "spelled-name",
+    "stale-session-result"
+  ],
+  "required_case_ids_present": false,
+  "wall_latency_evidence_eligible": true,
+  "product_promotion": "not_evaluated",
+  "remaining_gates": [
+    "native provenance and generation identity review",
+    "held-out statistics G6",
+    "provider/phase/route coverage",
+    "physical audible evidence",
+    "resources and current acceptance G8"
+  ],
+  "groups": [
+    {
+      "case_id": "complete-question",
+      "phase": "cold_capture",
+      "asr": "Apple+Parakeet-EOU-160ms",
+      "tts": "not-run-endpoint-only",
+      "condition": "paced-file-production-capture",
+      "language": "en",
+      "attempts": 1,
+      "measured": 1,
+      "minimum_measured": 30,
+      "metrics_ms": {
+        "endpoint": {
+          "n": 1,
+          "median_ms": 362.0563750000001,
+          "p90_ms": 362.0563750000001,
+          "p95_ms": 362.0563750000001,
+          "max_ms": 362.0563750000001
+        },
+        "audible": {
+          "n": 0,
+          "median_ms": null,
+          "p90_ms": null,
+          "p95_ms": null,
+          "max_ms": null
+        },
+        "duck": {
+          "n": 0,
+          "median_ms": null,
+          "p90_ms": null,
+          "p95_ms": null,
+          "max_ms": null
+        }
+      },
+      "passed": false,
+      "failures": [
+        "final_words_missing_or_unverified",
+        "incomplete_audible_samples",
+        "insufficient_measured_trials",
+        "missing_first_audible"
+      ]
+    },
+    {
+      "case_id": "complete-question",
+      "phase": "warm",
+      "asr": "Apple+Parakeet-EOU-160ms",
+      "tts": "not-run-endpoint-only",
+      "condition": "paced-file-production-capture",
+      "language": "en",
+      "attempts": 2,
+      "measured": 2,
+      "minimum_measured": 30,
+      "metrics_ms": {
+        "endpoint": {
+          "n": 2,
+          "median_ms": 318.7180834999999,
+          "p90_ms": 330.61575029999983,
+          "p95_ms": 332.10295864999983,
+          "max_ms": 333.59016699999984
+        },
+        "audible": {
+          "n": 0,
+          "median_ms": null,
+          "p90_ms": null,
+          "p95_ms": null,
+          "max_ms": null
+        },
+        "duck": {
+          "n": 0,
+          "median_ms": null,
+          "p90_ms": null,
+          "p95_ms": null,
+          "max_ms": null
+        }
+      },
+      "passed": false,
+      "failures": [
+        "final_words_missing_or_unverified",
+        "incomplete_audible_samples",
+        "insufficient_measured_trials",
+        "missing_first_audible"
+      ]
+    },
+    {
+      "case_id": "pause-1200",
+      "phase": "cold_capture",
+      "asr": "Apple+Parakeet-EOU-160ms",
+      "tts": "not-run-endpoint-only",
+      "condition": "paced-file-production-capture",
+      "language": "en",
+      "attempts": 1,
+      "measured": 1,
+      "minimum_measured": 30,
+      "metrics_ms": {
+        "endpoint": {
+          "n": 1,
+          "median_ms": -2487.401625,
+          "p90_ms": -2487.401625,
+          "p95_ms": -2487.401625,
+          "max_ms": -2487.401625
+        },
+        "audible": {
+          "n": 0,
+          "median_ms": null,
+          "p90_ms": null,
+          "p95_ms": null,
+          "max_ms": null
+        },
+        "duck": {
+          "n": 0,
+          "median_ms": null,
+          "p90_ms": null,
+          "p95_ms": null,
+          "max_ms": null
+        }
+      },
+      "passed": false,
+      "failures": [
+        "commit_count",
+        "incomplete_audible_samples",
+        "insufficient_measured_trials",
+        "missing_first_audible",
+        "premature_commit",
+        "protected_commit"
+      ]
+    },
+    {
+      "case_id": "pause-1200",
+      "phase": "warm",
+      "asr": "Apple+Parakeet-EOU-160ms",
+      "tts": "not-run-endpoint-only",
+      "condition": "paced-file-production-capture",
+      "language": "en",
+      "attempts": 2,
+      "measured": 2,
+      "minimum_measured": 30,
+      "metrics_ms": {
+        "endpoint": {
+          "n": 2,
+          "median_ms": -2458.5331455,
+          "p90_ms": -2451.5998291,
+          "p95_ms": -2450.73316455,
+          "max_ms": -2449.8665
+        },
+        "audible": {
+          "n": 0,
+          "median_ms": null,
+          "p90_ms": null,
+          "p95_ms": null,
+          "max_ms": null
+        },
+        "duck": {
+          "n": 0,
+          "median_ms": null,
+          "p90_ms": null,
+          "p95_ms": null,
+          "max_ms": null
+        }
+      },
+      "passed": false,
+      "failures": [
+        "commit_count",
+        "incomplete_audible_samples",
+        "insufficient_measured_trials",
+        "missing_first_audible",
+        "premature_commit",
+        "protected_commit"
+      ]
+    },
+    {
+      "case_id": "pause-1500",
+      "phase": "cold_capture",
+      "asr": "Apple+Parakeet-EOU-160ms",
+      "tts": "not-run-endpoint-only",
+      "condition": "paced-file-production-capture",
+      "language": "en",
+      "attempts": 1,
+      "measured": 1,
+      "minimum_measured": 30,
+      "metrics_ms": {
+        "endpoint": {
+          "n": 1,
+          "median_ms": -2770.420458,
+          "p90_ms": -2770.420458,
+          "p95_ms": -2770.420458,
+          "max_ms": -2770.420458
+        },
+        "audible": {
+          "n": 0,
+          "median_ms": null,
+          "p90_ms": null,
+          "p95_ms": null,
+          "max_ms": null
+        },
+        "duck": {
+          "n": 0,
+          "median_ms": null,
+          "p90_ms": null,
+          "p95_ms": null,
+          "max_ms": null
+        }
+      },
+      "passed": false,
+      "failures": [
+        "commit_count",
+        "final_words_missing_or_unverified",
+        "incomplete_audible_samples",
+        "insufficient_measured_trials",
+        "missing_first_audible",
+        "premature_commit",
+        "protected_commit"
+      ]
+    },
+    {
+      "case_id": "pause-1500",
+      "phase": "warm",
+      "asr": "Apple+Parakeet-EOU-160ms",
+      "tts": "not-run-endpoint-only",
+      "condition": "paced-file-production-capture",
+      "language": "en",
+      "attempts": 2,
+      "measured": 2,
+      "minimum_measured": 30,
+      "metrics_ms": {
+        "endpoint": {
+          "n": 2,
+          "median_ms": -2765.089271,
+          "p90_ms": -2753.5298206,
+          "p95_ms": -2752.0848893,
+          "max_ms": -2750.639958
+        },
+        "audible": {
+          "n": 0,
+          "median_ms": null,
+          "p90_ms": null,
+          "p95_ms": null,
+          "max_ms": null
+        },
+        "duck": {
+          "n": 0,
+          "median_ms": null,
+          "p90_ms": null,
+          "p95_ms": null,
+          "max_ms": null
+        }
+      },
+      "passed": false,
+      "failures": [
+        "commit_count",
+        "final_words_missing_or_unverified",
+        "incomplete_audible_samples",
+        "insufficient_measured_trials",
+        "missing_first_audible",
+        "premature_commit",
+        "protected_commit"
+      ]
+    },
+    {
+      "case_id": "pause-200",
+      "phase": "cold_capture",
+      "asr": "Apple+Parakeet-EOU-160ms",
+      "tts": "not-run-endpoint-only",
+      "condition": "paced-file-production-capture",
+      "language": "en",
+      "attempts": 1,
+      "measured": 1,
+      "minimum_measured": 30,
+      "metrics_ms": {
+        "endpoint": {
+          "n": 1,
+          "median_ms": 283.5092920000002,
+          "p90_ms": 283.5092920000002,
+          "p95_ms": 283.5092920000002,
+          "max_ms": 283.5092920000002
+        },
+        "audible": {
+          "n": 0,
+          "median_ms": null,
+          "p90_ms": null,
+          "p95_ms": null,
+          "max_ms": null
+        },
+        "duck": {
+          "n": 0,
+          "median_ms": null,
+          "p90_ms": null,
+          "p95_ms": null,
+          "max_ms": null
+        }
+      },
+      "passed": false,
+      "failures": [
+        "incomplete_audible_samples",
+        "insufficient_measured_trials",
+        "missing_first_audible"
+      ]
+    },
+    {
+      "case_id": "pause-200",
+      "phase": "warm",
+      "asr": "Apple+Parakeet-EOU-160ms",
+      "tts": "not-run-endpoint-only",
+      "condition": "paced-file-production-capture",
+      "language": "en",
+      "attempts": 2,
+      "measured": 2,
+      "minimum_measured": 30,
+      "metrics_ms": {
+        "endpoint": {
+          "n": 2,
+          "median_ms": 380.18331250000006,
+          "p90_ms": 384.5135288999999,
+          "p95_ms": 385.05480594999995,
+          "max_ms": 385.5960829999999
+        },
+        "audible": {
+          "n": 0,
+          "median_ms": null,
+          "p90_ms": null,
+          "p95_ms": null,
+          "max_ms": null
+        },
+        "duck": {
+          "n": 0,
+          "median_ms": null,
+          "p90_ms": null,
+          "p95_ms": null,
+          "max_ms": null
+        }
+      },
+      "passed": false,
+      "failures": [
+        "incomplete_audible_samples",
+        "insufficient_measured_trials",
+        "missing_first_audible"
+      ]
+    },
+    {
+      "case_id": "pause-400",
+      "phase": "cold_capture",
+      "asr": "Apple+Parakeet-EOU-160ms",
+      "tts": "not-run-endpoint-only",
+      "condition": "paced-file-production-capture",
+      "language": "en",
+      "attempts": 1,
+      "measured": 1,
+      "minimum_measured": 30,
+      "metrics_ms": {
+        "endpoint": {
+          "n": 1,
+          "median_ms": -1668.288541,
+          "p90_ms": -1668.288541,
+          "p95_ms": -1668.288541,
+          "max_ms": -1668.288541
+        },
+        "audible": {
+          "n": 0,
+          "median_ms": null,
+          "p90_ms": null,
+          "p95_ms": null,
+          "max_ms": null
+        },
+        "duck": {
+          "n": 0,
+          "median_ms": null,
+          "p90_ms": null,
+          "p95_ms": null,
+          "max_ms": null
+        }
+      },
+      "passed": false,
+      "failures": [
+        "commit_count",
+        "incomplete_audible_samples",
+        "insufficient_measured_trials",
+        "missing_first_audible",
+        "premature_commit",
+        "protected_commit"
+      ]
+    },
+    {
+      "case_id": "pause-400",
+      "phase": "warm",
+      "asr": "Apple+Parakeet-EOU-160ms",
+      "tts": "not-run-endpoint-only",
+      "condition": "paced-file-production-capture",
+      "language": "en",
+      "attempts": 2,
+      "measured": 2,
+      "minimum_measured": 30,
+      "metrics_ms": {
+        "endpoint": {
+          "n": 2,
+          "median_ms": -1677.643834,
+          "p90_ms": -1671.514634,
+          "p95_ms": -1670.7484839999997,
+          "max_ms": -1669.9823339999998
+        },
+        "audible": {
+          "n": 0,
+          "median_ms": null,
+          "p90_ms": null,
+          "p95_ms": null,
+          "max_ms": null
+        },
+        "duck": {
+          "n": 0,
+          "median_ms": null,
+          "p90_ms": null,
+          "p95_ms": null,
+          "max_ms": null
+        }
+      },
+      "passed": false,
+      "failures": [
+        "commit_count",
+        "incomplete_audible_samples",
+        "insufficient_measured_trials",
+        "missing_first_audible",
+        "premature_commit",
+        "protected_commit"
+      ]
+    },
+    {
+      "case_id": "pause-600",
+      "phase": "cold_capture",
+      "asr": "Apple+Parakeet-EOU-160ms",
+      "tts": "not-run-endpoint-only",
+      "condition": "paced-file-production-capture",
+      "language": "en",
+      "attempts": 1,
+      "measured": 1,
+      "minimum_measured": 30,
+      "metrics_ms": {
+        "endpoint": {
+          "n": 1,
+          "median_ms": -1871.9319169999999,
+          "p90_ms": -1871.9319169999999,
+          "p95_ms": -1871.9319169999999,
+          "max_ms": -1871.9319169999999
+        },
+        "audible": {
+          "n": 0,
+          "median_ms": null,
+          "p90_ms": null,
+          "p95_ms": null,
+          "max_ms": null
+        },
+        "duck": {
+          "n": 0,
+          "median_ms": null,
+          "p90_ms": null,
+          "p95_ms": null,
+          "max_ms": null
+        }
+      },
+      "passed": false,
+      "failures": [
+        "commit_count",
+        "final_words_missing_or_unverified",
+        "incomplete_audible_samples",
+        "insufficient_measured_trials",
+        "missing_first_audible",
+        "premature_commit",
+        "protected_commit"
+      ]
+    },
+    {
+      "case_id": "pause-600",
+      "phase": "warm",
+      "asr": "Apple+Parakeet-EOU-160ms",
+      "tts": "not-run-endpoint-only",
+      "condition": "paced-file-production-capture",
+      "language": "en",
+      "attempts": 2,
+      "measured": 2,
+      "minimum_measured": 30,
+      "metrics_ms": {
+        "endpoint": {
+          "n": 2,
+          "median_ms": -1856.3602295,
+          "p90_ms": -1850.6794795,
+          "p95_ms": -1849.9693857500001,
+          "max_ms": -1849.2592920000002
+        },
+        "audible": {
+          "n": 0,
+          "median_ms": null,
+          "p90_ms": null,
+          "p95_ms": null,
+          "max_ms": null
+        },
+        "duck": {
+          "n": 0,
+          "median_ms": null,
+          "p90_ms": null,
+          "p95_ms": null,
+          "max_ms": null
+        }
+      },
+      "passed": false,
+      "failures": [
+        "commit_count",
+        "final_words_missing_or_unverified",
+        "incomplete_audible_samples",
+        "insufficient_measured_trials",
+        "missing_first_audible",
+        "premature_commit",
+        "protected_commit"
+      ]
+    },
+    {
+      "case_id": "pause-900",
+      "phase": "cold_capture",
+      "asr": "Apple+Parakeet-EOU-160ms",
+      "tts": "not-run-endpoint-only",
+      "condition": "paced-file-production-capture",
+      "language": "en",
+      "attempts": 1,
+      "measured": 1,
+      "minimum_measured": 30,
+      "metrics_ms": {
+        "endpoint": {
+          "n": 1,
+          "median_ms": -2175.763375,
+          "p90_ms": -2175.763375,
+          "p95_ms": -2175.763375,
+          "max_ms": -2175.763375
+        },
+        "audible": {
+          "n": 0,
+          "median_ms": null,
+          "p90_ms": null,
+          "p95_ms": null,
+          "max_ms": null
+        },
+        "duck": {
+          "n": 0,
+          "median_ms": null,
+          "p90_ms": null,
+          "p95_ms": null,
+          "max_ms": null
+        }
+      },
+      "passed": false,
+      "failures": [
+        "commit_count",
+        "incomplete_audible_samples",
+        "insufficient_measured_trials",
+        "missing_first_audible",
+        "premature_commit",
+        "protected_commit"
+      ]
+    },
+    {
+      "case_id": "pause-900",
+      "phase": "warm",
+      "asr": "Apple+Parakeet-EOU-160ms",
+      "tts": "not-run-endpoint-only",
+      "condition": "paced-file-production-capture",
+      "language": "en",
+      "attempts": 2,
+      "measured": 2,
+      "minimum_measured": 30,
+      "metrics_ms": {
+        "endpoint": {
+          "n": 2,
+          "median_ms": -2175.197021,
+          "p90_ms": -2166.0390042,
+          "p95_ms": -2164.8942521,
+          "max_ms": -2163.7495
+        },
+        "audible": {
+          "n": 0,
+          "median_ms": null,
+          "p90_ms": null,
+          "p95_ms": null,
+          "max_ms": null
+        },
+        "duck": {
+          "n": 0,
+          "median_ms": null,
+          "p90_ms": null,
+          "p95_ms": null,
+          "max_ms": null
+        }
+      },
+      "passed": false,
+      "failures": [
+        "commit_count",
+        "incomplete_audible_samples",
+        "insufficient_measured_trials",
+        "missing_first_audible",
+        "premature_commit",
+        "protected_commit"
+      ]
+    }
+  ],
+  "trials": [
+    {
+      "trial_id": "complete-question-0",
+      "case_id": "complete-question",
+      "status": "measured",
+      "failures": [
+        "final_words_missing_or_unverified",
+        "missing_first_audible"
+      ],
+      "metrics_ms": {
+        "endpoint": 362.0563750000001
+      }
+    },
+    {
+      "trial_id": "complete-question-1",
+      "case_id": "complete-question",
+      "status": "measured",
+      "failures": [
+        "final_words_missing_or_unverified",
+        "missing_first_audible"
+      ],
+      "metrics_ms": {
+        "endpoint": 303.846
+      }
+    },
+    {
+      "trial_id": "complete-question-2",
+      "case_id": "complete-question",
+      "status": "measured",
+      "failures": [
+        "final_words_missing_or_unverified",
+        "missing_first_audible"
+      ],
+      "metrics_ms": {
+        "endpoint": 333.59016699999984
+      }
+    },
+    {
+      "trial_id": "pause-200-0",
+      "case_id": "pause-200",
+      "status": "measured",
+      "failures": [
+        "missing_first_audible"
+      ],
+      "metrics_ms": {
+        "endpoint": 283.5092920000002
+      }
+    },
+    {
+      "trial_id": "pause-200-1",
+      "case_id": "pause-200",
+      "status": "measured",
+      "failures": [
+        "missing_first_audible"
+      ],
+      "metrics_ms": {
+        "endpoint": 374.7705420000002
+      }
+    },
+    {
+      "trial_id": "pause-200-2",
+      "case_id": "pause-200",
+      "status": "measured",
+      "failures": [
+        "missing_first_audible"
+      ],
+      "metrics_ms": {
+        "endpoint": 385.5960829999999
+      }
+    },
+    {
+      "trial_id": "pause-400-0",
+      "case_id": "pause-400",
+      "status": "measured",
+      "failures": [
+        "commit_count",
+        "missing_first_audible",
+        "premature_commit",
+        "protected_commit"
+      ],
+      "metrics_ms": {
+        "endpoint": -1668.288541
+      }
+    },
+    {
+      "trial_id": "pause-400-1",
+      "case_id": "pause-400",
+      "status": "measured",
+      "failures": [
+        "commit_count",
+        "missing_first_audible",
+        "premature_commit",
+        "protected_commit"
+      ],
+      "metrics_ms": {
+        "endpoint": -1685.3053340000001
+      }
+    },
+    {
+      "trial_id": "pause-400-2",
+      "case_id": "pause-400",
+      "status": "measured",
+      "failures": [
+        "commit_count",
+        "missing_first_audible",
+        "premature_commit",
+        "protected_commit"
+      ],
+      "metrics_ms": {
+        "endpoint": -1669.9823339999998
+      }
+    },
+    {
+      "trial_id": "pause-600-0",
+      "case_id": "pause-600",
+      "status": "measured",
+      "failures": [
+        "commit_count",
+        "final_words_missing_or_unverified",
+        "missing_first_audible",
+        "premature_commit",
+        "protected_commit"
+      ],
+      "metrics_ms": {
+        "endpoint": -1871.9319169999999
+      }
+    },
+    {
+      "trial_id": "pause-600-1",
+      "case_id": "pause-600",
+      "status": "measured",
+      "failures": [
+        "commit_count",
+        "final_words_missing_or_unverified",
+        "missing_first_audible",
+        "premature_commit",
+        "protected_commit"
+      ],
+      "metrics_ms": {
+        "endpoint": -1863.461167
+      }
+    },
+    {
+      "trial_id": "pause-600-2",
+      "case_id": "pause-600",
+      "status": "measured",
+      "failures": [
+        "commit_count",
+        "final_words_missing_or_unverified",
+        "missing_first_audible",
+        "premature_commit",
+        "protected_commit"
+      ],
+      "metrics_ms": {
+        "endpoint": -1849.2592920000002
+      }
+    },
+    {
+      "trial_id": "pause-900-0",
+      "case_id": "pause-900",
+      "status": "measured",
+      "failures": [
+        "commit_count",
+        "missing_first_audible",
+        "premature_commit",
+        "protected_commit"
+      ],
+      "metrics_ms": {
+        "endpoint": -2175.763375
+      }
+    },
+    {
+      "trial_id": "pause-900-1",
+      "case_id": "pause-900",
+      "status": "measured",
+      "failures": [
+        "commit_count",
+        "missing_first_audible",
+        "premature_commit",
+        "protected_commit"
+      ],
+      "metrics_ms": {
+        "endpoint": -2163.7495
+      }
+    },
+    {
+      "trial_id": "pause-900-2",
+      "case_id": "pause-900",
+      "status": "measured",
+      "failures": [
+        "commit_count",
+        "missing_first_audible",
+        "premature_commit",
+        "protected_commit"
+      ],
+      "metrics_ms": {
+        "endpoint": -2186.644542
+      }
+    },
+    {
+      "trial_id": "pause-1200-0",
+      "case_id": "pause-1200",
+      "status": "measured",
+      "failures": [
+        "commit_count",
+        "missing_first_audible",
+        "premature_commit",
+        "protected_commit"
+      ],
+      "metrics_ms": {
+        "endpoint": -2487.401625
+      }
+    },
+    {
+      "trial_id": "pause-1200-1",
+      "case_id": "pause-1200",
+      "status": "measured",
+      "failures": [
+        "commit_count",
+        "missing_first_audible",
+        "premature_commit",
+        "protected_commit"
+      ],
+      "metrics_ms": {
+        "endpoint": -2467.199791
+      }
+    },
+    {
+      "trial_id": "pause-1200-2",
+      "case_id": "pause-1200",
+      "status": "measured",
+      "failures": [
+        "commit_count",
+        "missing_first_audible",
+        "premature_commit",
+        "protected_commit"
+      ],
+      "metrics_ms": {
+        "endpoint": -2449.8665
+      }
+    },
+    {
+      "trial_id": "pause-1500-0",
+      "case_id": "pause-1500",
+      "status": "measured",
+      "failures": [
+        "commit_count",
+        "final_words_missing_or_unverified",
+        "missing_first_audible",
+        "premature_commit",
+        "protected_commit"
+      ],
+      "metrics_ms": {
+        "endpoint": -2770.420458
+      }
+    },
+    {
+      "trial_id": "pause-1500-1",
+      "case_id": "pause-1500",
+      "status": "measured",
+      "failures": [
+        "commit_count",
+        "final_words_missing_or_unverified",
+        "missing_first_audible",
+        "premature_commit",
+        "protected_commit"
+      ],
+      "metrics_ms": {
+        "endpoint": -2750.639958
+      }
+    },
+    {
+      "trial_id": "pause-1500-2",
+      "case_id": "pause-1500",
+      "status": "measured",
+      "failures": [
+        "commit_count",
+        "final_words_missing_or_unverified",
+        "missing_first_audible",
+        "premature_commit",
+        "protected_commit"
+      ],
+      "metrics_ms": {
+        "endpoint": -2779.538584
+      }
+    }
+  ]
+}

@@ -14,6 +14,7 @@ final class VoiceInputProducerProbe: @unchecked Sendable {
         let second: Bool
     }
     struct Event: Sendable {
+        let atNanos = DispatchTime.now().uptimeNanoseconds
         let kind: String
         let input: Input?
         let epoch: Int?
@@ -54,6 +55,14 @@ final class VoiceInputProducerProbe: @unchecked Sendable {
         lock.lock()
         defer { lock.unlock() }
         return inputs[sequence]
+    }
+    func replayInput(sequence: Int, frames: Range<Int>) -> Input {
+        lock.lock(); defer { lock.unlock() }
+        let input = Input(sequence: sequence, frames: frames,
+            second: inputs[sequence]?.second ?? secondInput)
+        history.append(Event(kind: "capture.replay", input: input,
+            epoch: nil, capturedEnd: max(nextFrame, frames.upperBound)))
+        return input
     }
     func processBegan(_ input: Input?) {
         lock.lock()
@@ -139,6 +148,17 @@ final class VoiceInputProducerProbe: @unchecked Sendable {
 }
 
 actor LocalVoiceTurnDetector {
+    typealias Callback = @Sendable (String, VoiceDecoderProgress.Stamp) -> Void
+    struct Progress: Sendable {
+        let processedEnd: Int64
+        let scope: VoiceDecoderProgress.Scope
+    }
+    nonisolated let progress = VoiceDecoderProgress()
+    private var endCallback: Callback = { _, _ in }
+    private var partialCallback: Callback = { _, _ in }
+    private var nativeScope: VoiceDecoderProgress.Scope?
+    private var bufferedFrames = 0
+    private var processedSampleEnd: Int64 = 0
     private let manager = StreamingEouAsrManager(chunkSize: .ms160, eouDebounceMs: 320)
     private var ready = false
     private var preparedSessionID: UUID?
@@ -246,7 +266,7 @@ actor LocalVoiceTurnDetector {
         guard !ready else { return }
         guard ModelResidencyPolicy.pressureSnapshot.allowsOptionalWork else { return }
         if SelfTest.isRunning, let probe { producerProbeForTesting = probe }
-        await setCallbacks({ _ in }, onPartial: { _ in })
+        await setCallbacks({ _, _ in }, onPartial: { _, _ in })
         try await loadAndPrime(from: directory)
         try Task.checkCancellation()
         ready = true
@@ -254,27 +274,31 @@ actor LocalVoiceTurnDetector {
     }
 
     func prepare(
-        onEndOfUtterance: @escaping @Sendable (String) -> Void,
-        onPartial: @escaping @Sendable (String) -> Void,
+        onEndOfUtterance: @escaping Callback,
+        onPartial: @escaping Callback,
         sessionID: UUID? = nil,
+        epoch: Int = 0,
+        admission supplied: VoiceDecoderProgress.Scope? = nil,
         producerProbeForTesting probe: VoiceInputProducerProbe? = nil
     ) async throws {
         guard await acquireOperation() else { throw CancellationError() }
         defer { releaseOperation() }
         if SelfTest.isRunning, let probe { producerProbeForTesting = probe }
         preparedSessionID = sessionID
+        let admission = supplied ?? progress.invalidate(sessionID: sessionID, epoch: epoch)
         if ready {
             await manager.reset()
+            bufferedFrames = 0; processedSampleEnd = 0
             if let producerProbeForTesting {
                 await producerProbeForTesting.holdPreparedDecoder()
             }
-            await setCallbacks(onEndOfUtterance, onPartial: onPartial)
+            await setCallbacks(onEndOfUtterance, onPartial: onPartial, scope: admission)
             producerProbeForTesting?.record("prepare.reused")
             producerProbeForTesting?.record("prepare.ready")
             return
         }
         try await loadAndPrime()
-        await setCallbacks(onEndOfUtterance, onPartial: onPartial)
+        await setCallbacks(onEndOfUtterance, onPartial: onPartial, scope: admission)
         ready = true
         producerProbeForTesting?.record("prepare.ready")
     }
@@ -297,6 +321,7 @@ actor LocalVoiceTurnDetector {
         for index in 0..<2_560 { samples[index] = 0 }
         _ = try await manager.process(audioBuffer: silence)
         await manager.reset()
+        bufferedFrames = 0; processedSampleEnd = 0
         if let producerProbeForTesting {
             // Keep the real preparation operation held after native load/prime.
             // This is the cold-backlog/reset ordering, without variable load time.
@@ -304,16 +329,32 @@ actor LocalVoiceTurnDetector {
         }
     }
 
+    @discardableResult
     func process(_ chunk: AudioChunk,
-        producerInputForTesting: VoiceInputProducerProbe.Input? = nil) async throws {
+        producerInputForTesting: VoiceInputProducerProbe.Input? = nil,
+        capturedEnd: Int64? = nil) async throws -> Progress {
         guard await acquireOperation() else { throw CancellationError() }
         defer { releaseOperation() }
-        guard ready else { return }
+        let scope = nativeScope ?? progress.snapshot().scope
+        guard ready, progress.isCurrent(scope) else { return Progress(processedEnd: 0, scope: scope) }
         producerProbeForTesting?.processBegan(producerInputForTesting)
         var completed = false
         defer { producerProbeForTesting?.processEnded(success: completed) }
         _ = try await manager.process(audioBuffer: chunk.buffer)
+        // SDK process() can merely buffer a 10ms input. Its pinned 160ms graph
+        // decodes only complete windows, shifting80ms. Count native-covered PCM,
+        // never claim that feed/admission alone processed the latest sample.
+        bufferedFrames += Int(chunk.buffer.frameLength)
+        let size = StreamingChunkSize.ms160.chunkSamples
+        let shift = StreamingChunkSize.ms160.shiftSamples
+        var decoded = false
+        while bufferedFrames >= size { bufferedFrames -= shift; decoded = true }
+        if decoded, let capturedEnd {
+            processedSampleEnd = capturedEnd - Int64(bufferedFrames)
+        }
         completed = true
+        progress.processed(through: processedSampleEnd, in: scope)
+        return Progress(processedEnd: processedSampleEnd, scope: scope)
     }
 
     func close(keepingPrepared: Bool = false) async {
@@ -322,7 +363,13 @@ actor LocalVoiceTurnDetector {
         // Retain only healthy, fully prepared weights after the owned session drains.
         guard !keepingPrepared || !ready else { return }
         ready = false
+        let retiringID = preparedSessionID
         preparedSessionID = nil
+        let retiring = progress.snapshot().scope
+        if retiring.sessionID == retiringID {
+            progress.invalidate(sessionID: retiring.sessionID, epoch: retiring.epoch)
+        }
+        nativeScope = nil
         await manager.cleanup()
         producerProbeForTesting?.record("models.closed")
     }
@@ -331,17 +378,25 @@ actor LocalVoiceTurnDetector {
 
     @discardableResult
     func resetForNextTurn(
-        onEndOfUtterance: @escaping @Sendable (String) -> Void,
-        onPartial: @escaping @Sendable (String) -> Void,
-        sessionID: UUID? = nil
+        onEndOfUtterance: @escaping Callback,
+        onPartial: @escaping Callback,
+        sessionID: UUID? = nil,
+        epoch: Int = 0
     ) async -> Bool {
         producerProbeForTesting?.record("reset.requested")
+        let requested = progress.snapshot()
+        guard requested.scope.sessionID == sessionID, requested.scope.epoch == epoch else { return false }
         guard await acquireOperation() else { return false }
         defer { releaseOperation() }
         guard ready, preparedSessionID == sessionID else { return false }
+        guard progress.isCurrent(requested.scope) else { return false }
+        let active = progress.invalidate(sessionID: sessionID, epoch: epoch, through: requested.resetBoundary)
         producerProbeForTesting?.record("reset.granted")
         await manager.reset()
-        await setCallbacks(onEndOfUtterance, onPartial: onPartial)
+        bufferedFrames = 0; processedSampleEnd = 0
+        guard progress.isCurrent(active) else { return false }
+        await setCallbacks(onEndOfUtterance, onPartial: onPartial, scope: active)
+        guard progress.isCurrent(active) else { return false }
         producerProbeForTesting?.record("reset.completed")
         return true
     }
@@ -350,22 +405,36 @@ actor LocalVoiceTurnDetector {
         guard await acquireOperation() else { return }
         defer { releaseOperation() }
         guard ready else { return }
+        let scope = progress.snapshot().scope
+        guard let nativeScope, scope.sessionID == nativeScope.sessionID,
+              scope.epoch == nativeScope.epoch else { return }
+        let active = progress.invalidate(sessionID: scope.sessionID, epoch: scope.epoch)
         await manager.reset()
+        bufferedFrames = 0; processedSampleEnd = 0
+        guard progress.isCurrent(active) else { return }
+        await setCallbacks(endCallback, onPartial: partialCallback, scope: active)
     }
 
-    private func setCallbacks(_ callback: @escaping @Sendable (String) -> Void,
-        onPartial: @escaping @Sendable (String) -> Void) async {
+    private func setCallbacks(_ callback: @escaping Callback,
+        onPartial: @escaping Callback, scope supplied: VoiceDecoderProgress.Scope? = nil) async {
+        let scope = supplied ?? progress.snapshot().scope
+        guard progress.isCurrent(scope) else { return }
+        endCallback = callback; partialCallback = onPartial
         let producerProbeForTesting = self.producerProbeForTesting
+        let progress = self.progress
+        nativeScope = scope
         await manager.setEouCallback { transcript in
+            guard let stamp = progress.produced(in: scope) else { return }
             producerProbeForTesting?.record("native.eou")
             // This is a confirmed endpoint, not a text update. A decoder can
             // confirm EOU without lexical tokens; capture decides whether it
             // settles an existing provisional input or is idle silence.
-            callback(transcript)
+            callback(transcript, stamp)
         }
         await manager.setPartialCallback { transcript in
+            guard let stamp = progress.produced(in: scope) else { return }
             producerProbeForTesting?.record("native.partial")
-            onPartial(transcript)
+            onPartial(transcript, stamp)
         }
     }
 
@@ -387,8 +456,8 @@ actor LocalVoiceTurnDetector {
         let detector = LocalVoiceTurnDetector()
         do {
             try await detector.prepare(onEndOfUtterance: {
-                text in Task { await probe.record(text) }
-            }, onPartial: { text in Task { await probe.recordPartial(text) } })
+                text, _ in Task { await probe.record(text) }
+            }, onPartial: { text, _ in Task { await probe.recordPartial(text) } })
             guard let format = AVAudioFormat(commonFormat: .pcmFormatFloat32,
                 sampleRate: 16_000, channels: 1, interleaved: false),
                 let silence = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 2_560),

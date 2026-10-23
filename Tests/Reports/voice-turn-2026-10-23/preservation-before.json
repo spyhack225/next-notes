@@ -1,0 +1,45 @@
+{
+  "timestamp": 1792730592.36378,
+  "snapshot": {
+    "runs.jsonl": {
+      "bytes": 309388,
+      "mtime_ns": 1792431765517323625,
+      "sha256": "09e1e98cc43a6384687729a40543df904e7c170c4072ae09b02f406a27ebe6cc"
+    },
+    "agent-conversation.json": {
+      "bytes": 16577,
+      "mtime_ns": 1791644583720485949,
+      "sha256": "ff3b39f35b88a832be3fb98a980597e228548c9c91c5dad6dc9841b28a3253e4"
+    },
+    "agent-harness-history.json": {
+      "bytes": 12946,
+      "mtime_ns": 1791525277392829749,
+      "sha256": "c08ebb4fa3abd25d0be46af880d2728c09dc4437b7786b6b8c89442ea5d48b28"
+    },
+    "agent-tasks.json": {
+      "bytes": 47810,
+      "mtime_ns": 1791644583718842827,
+      "sha256": "695012471c7bf6e52b7df1856b01a69bfb9599059c7486f5004a20af36738ed0"
+    },
+    "dictionary.txt": {
+      "bytes": 929,
+      "mtime_ns": 1790491501437074813,
+      "sha256": "30dcbc0292f451486b1aace9c499cb46cb7ad089b56c499c136c74dd3c6c1173"
+    },
+    "formatting.txt": {
+      "bytes": 3406,
+      "mtime_ns": 1789941873988481702,
+      "sha256": "5baa1591790aa72d05a6553321d66ab40ce392d27fc3106e136fbb179eb1ffe8"
+    },
+    "preferences": {
+      "bytes": 12038,
+      "mtime_ns": 1792699562680857503,
+      "sha256": "15454699440b6ec49fea669fcd3d45e1f0cff7f25d69830b731a10423ef8a4cd"
+    },
+    "recordings_inventory": {
+      "files": 143,
+      "total_bytes": 2338383,
+      "metadata_sha256": "7ecc252677b2f5b76899ecf86c3e939caa33b87b0d5da1c41ca13219696a8309"
+    }
+  }
+}

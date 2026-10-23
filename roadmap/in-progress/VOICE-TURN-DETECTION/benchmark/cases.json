@@ -1,7 +1,7 @@
 {
   "schema": "nextnotes.turn-cases.v1",
   "created": "2026-10-22",
-  "status": "recipes-only-no-recorded-audio-or-native-results",
+  "status": "partial-materialization-seven-synthetic-inputs-native-component-failure-retained",
   "minimum_trials_by_phase": {
     "warm": 30,
     "cold_capture": 30,
@@ -85,6 +85,19 @@
       "protected_pause": true,
       "recipe": "I want to book a table for <PAUSE> four people tomorrow evening.",
       "pause_ms": 400,
+      "materialization": "Insert exact silence samples at a reviewed word boundary; retain full-sentence control."
+    },
+    {
+      "id": "pause-600",
+      "family": "internal-pause",
+      "required": true,
+      "language": "en",
+      "expected_commits": 1,
+      "tail_required": true,
+      "require_audible": true,
+      "protected_pause": true,
+      "recipe": "I want to book a table for <PAUSE> four people tomorrow evening.",
+      "pause_ms": 600,
       "materialization": "Insert exact silence samples at a reviewed word boundary; retain full-sentence control."
     },
     {

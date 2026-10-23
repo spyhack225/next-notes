@@ -93,3 +93,24 @@ Exit 1: scored failure/missing/insufficient
 trials. Exit 2: invalid input or failed scorer self-check. Native absence is never success.
 Self-tests deliberately use authored data and a two-trial miniature manifest; that small
 manifest must never be used to promote the real pipeline.
+
+
+## Native collectors added23 October
+
+`Tools/voice_turn_benchmark.py` materializes independently trimmed synthetic WAVs,
+fetches pinned artifacts into an explicitly owned fixture root, and launches a
+dedicated `VoiceTurnAppProbe` executable with the real production capture/ASR/turn
+consumer. The installed app is not replaced. Keep the fixture marker and pass
+`--root`, `--binary` and `--output`; `collect --repetitions 3` produces a partial
+qualification trace, not the required30-per-phase acceptance cohort.
+
+`Tools/VoiceTurnNativeProbe.swift` isolates production model graph timing and paced
+Silero classification. It does not substitute for application endpoint/physical
+audible measurements. `Tools/voice_turn_onnx_reference.py` is a one-thread diagnostic
+against the pinned upstream export; it adds no application dependency.
+
+The32 recipe cases now include the actual600ms regression while retaining700ms.
+Seven synthetic cases are materialized and hashed in the
+[implementation report](../../../../Tests/Reports/voice-turn-2026-10-23/README.md).
+Original protected-pause failures stay red. Missing routes, phases, recipes, sample
+counts and audible stages remain required and cannot be promoted by component timing.

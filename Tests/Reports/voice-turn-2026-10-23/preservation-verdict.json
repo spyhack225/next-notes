@@ -1,0 +1,12 @@
+{
+  "unchanged": true,
+  "differences": {
+    "files": [],
+    "recordings": []
+  },
+  "watched_stores": 25,
+  "watched_meeting_files": 143,
+  "baseline": "preservation-native-before.json",
+  "after": "preservation-native-after.json",
+  "scope": "Size,mtime_ns and streaming SHA256; latest owner-authorized Phonon choice included in baseline."
+}

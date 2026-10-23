@@ -22,7 +22,9 @@ This is the detailed execution companion for **AGENT-OVERHAUL P2-04**, plus the 
 P2-05 interruption and P2-07 lifecycle integration. The parent
 [STATUS](../AGENT-OVERHAUL/STATUS.md) remains authoritative for those task IDs. VTD tasks
 below decompose the work; they do not independently mark a parent task complete. This
-roadmap's documentation/benchmark-tooling work is active; its product tasks remain todo.
+candidate product integration is now in source behind an opt-in qualification gate. See
+[23 October implementation evidence](../../../Tests/Reports/voice-turn-2026-10-23/README.md)
+and [current status](STATUS.md) for actual native results and retained pause failures.
 
 ## Verified starting point
 

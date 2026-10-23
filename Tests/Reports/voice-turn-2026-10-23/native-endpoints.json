@@ -1,0 +1,697 @@
+{
+  "clock" : "monotonic",
+  "evidence" : "native_replay",
+  "limitations" : [
+    "Synthesized fixture boundaries; no physical microphone, audible response, tools or LLM.",
+    "Real Apple\/Parakeet\/Silero\/Smart Turn production capture and endpoint consumer.",
+    "Cold capture is a fresh session in this process; cold process\/pressure\/routes are separate gates.",
+    "Commit timestamps come from the existing producer probe at actual commit selection; no held checkpoint.",
+    "A missing first_audible stage stays missing in the full roadmap scorer."
+  ],
+  "macOS" : "Version 27.2 (Build 26B5091g)",
+  "run_id" : "5D5D0591-B3A3-4C56-BFF7-0A1B6F563972",
+  "schema" : "nextnotes.turn-trace.v1",
+  "trials" : [
+    {
+      "asr" : "Apple+Parakeet-EOU-160ms",
+      "audio_sha256" : "32515a9a660f9f9cc8604202bf306c3395d9cf108f754d10ac8ca2bb5696b62a",
+      "case_id" : "complete-question",
+      "condition" : "paced-file-production-capture",
+      "endpoint_source" : "smartTurn",
+      "events" : [
+        {
+          "at_ms" : 2591.681375,
+          "name" : "commit"
+        }
+      ],
+      "ground_truth" : {
+        "protected_intervals_ms" : [
+
+        ],
+        "speech_end_ms" : 2229.625
+      },
+      "language" : "en",
+      "pacing_p95_error_ms" : 4.99,
+      "phase" : "cold_capture",
+      "recognized" : "what time is it in totio riding now",
+      "status" : "measured",
+      "tail_retained" : false,
+      "trial_id" : "complete-question-0",
+      "tts" : "not-run-endpoint-only"
+    },
+    {
+      "asr" : "Apple+Parakeet-EOU-160ms",
+      "audio_sha256" : "32515a9a660f9f9cc8604202bf306c3395d9cf108f754d10ac8ca2bb5696b62a",
+      "case_id" : "complete-question",
+      "condition" : "paced-file-production-capture",
+      "endpoint_source" : "smartTurn",
+      "events" : [
+        {
+          "at_ms" : 2533.471,
+          "name" : "commit"
+        }
+      ],
+      "ground_truth" : {
+        "protected_intervals_ms" : [
+
+        ],
+        "speech_end_ms" : 2229.625
+      },
+      "language" : "en",
+      "pacing_p95_error_ms" : 4.824333,
+      "phase" : "warm",
+      "recognized" : "what time is it in totio riding now",
+      "status" : "measured",
+      "tail_retained" : false,
+      "trial_id" : "complete-question-1",
+      "tts" : "not-run-endpoint-only"
+    },
+    {
+      "asr" : "Apple+Parakeet-EOU-160ms",
+      "audio_sha256" : "32515a9a660f9f9cc8604202bf306c3395d9cf108f754d10ac8ca2bb5696b62a",
+      "case_id" : "complete-question",
+      "condition" : "paced-file-production-capture",
+      "endpoint_source" : "smartTurn",
+      "events" : [
+        {
+          "at_ms" : 2563.215167,
+          "name" : "commit"
+        }
+      ],
+      "ground_truth" : {
+        "protected_intervals_ms" : [
+
+        ],
+        "speech_end_ms" : 2229.625
+      },
+      "language" : "en",
+      "pacing_p95_error_ms" : 5.032792,
+      "phase" : "warm",
+      "recognized" : "what time is it in totio riding now",
+      "status" : "measured",
+      "tail_retained" : false,
+      "trial_id" : "complete-question-2",
+      "tts" : "not-run-endpoint-only"
+    },
+    {
+      "asr" : "Apple+Parakeet-EOU-160ms",
+      "audio_sha256" : "d298d834c2158354f9b0a2f9b02f9dfae2daaffe17728b5d9635f6b6dabd9601",
+      "case_id" : "pause-200",
+      "condition" : "paced-file-production-capture",
+      "endpoint_source" : "smartTurn",
+      "events" : [
+        {
+          "at_ms" : 3882.446792,
+          "name" : "commit"
+        }
+      ],
+      "ground_truth" : {
+        "protected_intervals_ms" : [
+          [
+            1785.75,
+            1985.75
+          ]
+        ],
+        "speech_end_ms" : 3598.9375
+      },
+      "language" : "en",
+      "pacing_p95_error_ms" : 4.801250000000001,
+      "phase" : "cold_capture",
+      "recognized" : "i want to book a table for four people tomorrow evening",
+      "status" : "measured",
+      "tail_retained" : true,
+      "trial_id" : "pause-200-0",
+      "tts" : "not-run-endpoint-only"
+    },
+    {
+      "asr" : "Apple+Parakeet-EOU-160ms",
+      "audio_sha256" : "d298d834c2158354f9b0a2f9b02f9dfae2daaffe17728b5d9635f6b6dabd9601",
+      "case_id" : "pause-200",
+      "condition" : "paced-file-production-capture",
+      "endpoint_source" : "smartTurn",
+      "events" : [
+        {
+          "at_ms" : 3973.708042,
+          "name" : "commit"
+        }
+      ],
+      "ground_truth" : {
+        "protected_intervals_ms" : [
+          [
+            1785.75,
+            1985.75
+          ]
+        ],
+        "speech_end_ms" : 3598.9375
+      },
+      "language" : "en",
+      "pacing_p95_error_ms" : 4.66025,
+      "phase" : "warm",
+      "recognized" : "i want to book a table for four people tomorrow evening",
+      "status" : "measured",
+      "tail_retained" : true,
+      "trial_id" : "pause-200-1",
+      "tts" : "not-run-endpoint-only"
+    },
+    {
+      "asr" : "Apple+Parakeet-EOU-160ms",
+      "audio_sha256" : "d298d834c2158354f9b0a2f9b02f9dfae2daaffe17728b5d9635f6b6dabd9601",
+      "case_id" : "pause-200",
+      "condition" : "paced-file-production-capture",
+      "endpoint_source" : "smartTurn",
+      "events" : [
+        {
+          "at_ms" : 3984.533583,
+          "name" : "commit"
+        }
+      ],
+      "ground_truth" : {
+        "protected_intervals_ms" : [
+          [
+            1785.75,
+            1985.75
+          ]
+        ],
+        "speech_end_ms" : 3598.9375
+      },
+      "language" : "en",
+      "pacing_p95_error_ms" : 4.521542000000001,
+      "phase" : "warm",
+      "recognized" : "i want to book a table for four people tomorrow evening",
+      "status" : "measured",
+      "tail_retained" : true,
+      "trial_id" : "pause-200-2",
+      "tts" : "not-run-endpoint-only"
+    },
+    {
+      "asr" : "Apple+Parakeet-EOU-160ms",
+      "audio_sha256" : "ee392b02d7d9dcedb73ca48c4cb8b147fecf10529a990c428ab7d05684466c1e",
+      "case_id" : "pause-400",
+      "condition" : "paced-file-production-capture",
+      "endpoint_source" : "smartTurn",
+      "events" : [
+        {
+          "at_ms" : 2130.648959,
+          "name" : "commit"
+        },
+        {
+          "at_ms" : 4400.358959,
+          "name" : "commit"
+        }
+      ],
+      "ground_truth" : {
+        "protected_intervals_ms" : [
+          [
+            1785.75,
+            2185.75
+          ]
+        ],
+        "speech_end_ms" : 3798.9375
+      },
+      "language" : "en",
+      "pacing_p95_error_ms" : 4.918041,
+      "phase" : "cold_capture",
+      "recognized" : "4 people tomorrow evening",
+      "status" : "measured",
+      "tail_retained" : true,
+      "trial_id" : "pause-400-0",
+      "tts" : "not-run-endpoint-only"
+    },
+    {
+      "asr" : "Apple+Parakeet-EOU-160ms",
+      "audio_sha256" : "ee392b02d7d9dcedb73ca48c4cb8b147fecf10529a990c428ab7d05684466c1e",
+      "case_id" : "pause-400",
+      "condition" : "paced-file-production-capture",
+      "endpoint_source" : "smartTurn",
+      "events" : [
+        {
+          "at_ms" : 2113.632166,
+          "name" : "commit"
+        },
+        {
+          "at_ms" : 4367.784541,
+          "name" : "commit"
+        }
+      ],
+      "ground_truth" : {
+        "protected_intervals_ms" : [
+          [
+            1785.75,
+            2185.75
+          ]
+        ],
+        "speech_end_ms" : 3798.9375
+      },
+      "language" : "en",
+      "pacing_p95_error_ms" : 4.603042,
+      "phase" : "warm",
+      "recognized" : "4 people tomorrow evening",
+      "status" : "measured",
+      "tail_retained" : true,
+      "trial_id" : "pause-400-1",
+      "tts" : "not-run-endpoint-only"
+    },
+    {
+      "asr" : "Apple+Parakeet-EOU-160ms",
+      "audio_sha256" : "ee392b02d7d9dcedb73ca48c4cb8b147fecf10529a990c428ab7d05684466c1e",
+      "case_id" : "pause-400",
+      "condition" : "paced-file-production-capture",
+      "endpoint_source" : "smartTurn",
+      "events" : [
+        {
+          "at_ms" : 2128.955166,
+          "name" : "commit"
+        },
+        {
+          "at_ms" : 4400.45475,
+          "name" : "commit"
+        }
+      ],
+      "ground_truth" : {
+        "protected_intervals_ms" : [
+          [
+            1785.75,
+            2185.75
+          ]
+        ],
+        "speech_end_ms" : 3798.9375
+      },
+      "language" : "en",
+      "pacing_p95_error_ms" : 4.556209,
+      "phase" : "warm",
+      "recognized" : "4 people tomorrow evening",
+      "status" : "measured",
+      "tail_retained" : true,
+      "trial_id" : "pause-400-2",
+      "tts" : "not-run-endpoint-only"
+    },
+    {
+      "asr" : "Apple+Parakeet-EOU-160ms",
+      "audio_sha256" : "a169aa838fe3e1ee1551faf8fd0a45b8e27e012cb545d9ef62e90b67fac3beed",
+      "case_id" : "pause-600",
+      "condition" : "paced-file-production-capture",
+      "endpoint_source" : "smartTurn",
+      "events" : [
+        {
+          "at_ms" : 2127.005583,
+          "name" : "commit"
+        },
+        {
+          "at_ms" : 4393.482333,
+          "name" : "commit"
+        }
+      ],
+      "ground_truth" : {
+        "protected_intervals_ms" : [
+          [
+            1785.75,
+            2385.75
+          ]
+        ],
+        "speech_end_ms" : 3998.9375
+      },
+      "language" : "en",
+      "pacing_p95_error_ms" : 4.906375,
+      "phase" : "cold_capture",
+      "recognized" : "4 people tomorrow",
+      "status" : "measured",
+      "tail_retained" : false,
+      "trial_id" : "pause-600-0",
+      "tts" : "not-run-endpoint-only"
+    },
+    {
+      "asr" : "Apple+Parakeet-EOU-160ms",
+      "audio_sha256" : "a169aa838fe3e1ee1551faf8fd0a45b8e27e012cb545d9ef62e90b67fac3beed",
+      "case_id" : "pause-600",
+      "condition" : "paced-file-production-capture",
+      "endpoint_source" : "smartTurn",
+      "events" : [
+        {
+          "at_ms" : 2135.476333,
+          "name" : "commit"
+        },
+        {
+          "at_ms" : 4393.171125,
+          "name" : "commit"
+        }
+      ],
+      "ground_truth" : {
+        "protected_intervals_ms" : [
+          [
+            1785.75,
+            2385.75
+          ]
+        ],
+        "speech_end_ms" : 3998.9375
+      },
+      "language" : "en",
+      "pacing_p95_error_ms" : 4.464875,
+      "phase" : "warm",
+      "recognized" : "4 people tomorrow",
+      "status" : "measured",
+      "tail_retained" : false,
+      "trial_id" : "pause-600-1",
+      "tts" : "not-run-endpoint-only"
+    },
+    {
+      "asr" : "Apple+Parakeet-EOU-160ms",
+      "audio_sha256" : "a169aa838fe3e1ee1551faf8fd0a45b8e27e012cb545d9ef62e90b67fac3beed",
+      "case_id" : "pause-600",
+      "condition" : "paced-file-production-capture",
+      "endpoint_source" : "smartTurn",
+      "events" : [
+        {
+          "at_ms" : 2149.678208,
+          "name" : "commit"
+        },
+        {
+          "at_ms" : 4323.336083,
+          "name" : "commit"
+        }
+      ],
+      "ground_truth" : {
+        "protected_intervals_ms" : [
+          [
+            1785.75,
+            2385.75
+          ]
+        ],
+        "speech_end_ms" : 3998.9375
+      },
+      "language" : "en",
+      "pacing_p95_error_ms" : 4.959583,
+      "phase" : "warm",
+      "recognized" : "4 people tomorrow",
+      "status" : "measured",
+      "tail_retained" : false,
+      "trial_id" : "pause-600-2",
+      "tts" : "not-run-endpoint-only"
+    },
+    {
+      "asr" : "Apple+Parakeet-EOU-160ms",
+      "audio_sha256" : "91529c2c2498cecea12ee4c6afd081c9ec4aec228d9eb9cc2808c716a0488439",
+      "case_id" : "pause-900",
+      "condition" : "paced-file-production-capture",
+      "endpoint_source" : "smartTurn",
+      "events" : [
+        {
+          "at_ms" : 2123.174125,
+          "name" : "commit"
+        },
+        {
+          "at_ms" : 5312.930625,
+          "name" : "commit"
+        }
+      ],
+      "ground_truth" : {
+        "protected_intervals_ms" : [
+          [
+            1785.75,
+            2685.75
+          ]
+        ],
+        "speech_end_ms" : 4298.9375
+      },
+      "language" : "en",
+      "pacing_p95_error_ms" : 4.529541,
+      "phase" : "cold_capture",
+      "recognized" : "For people tomorrow evening",
+      "status" : "measured",
+      "tail_retained" : true,
+      "trial_id" : "pause-900-0",
+      "tts" : "not-run-endpoint-only"
+    },
+    {
+      "asr" : "Apple+Parakeet-EOU-160ms",
+      "audio_sha256" : "91529c2c2498cecea12ee4c6afd081c9ec4aec228d9eb9cc2808c716a0488439",
+      "case_id" : "pause-900",
+      "condition" : "paced-file-production-capture",
+      "endpoint_source" : "smartTurn",
+      "events" : [
+        {
+          "at_ms" : 2135.188,
+          "name" : "commit"
+        },
+        {
+          "at_ms" : 5354.113542,
+          "name" : "commit"
+        }
+      ],
+      "ground_truth" : {
+        "protected_intervals_ms" : [
+          [
+            1785.75,
+            2685.75
+          ]
+        ],
+        "speech_end_ms" : 4298.9375
+      },
+      "language" : "en",
+      "pacing_p95_error_ms" : 5.028417,
+      "phase" : "warm",
+      "recognized" : "For people tomorrow evening",
+      "status" : "measured",
+      "tail_retained" : true,
+      "trial_id" : "pause-900-1",
+      "tts" : "not-run-endpoint-only"
+    },
+    {
+      "asr" : "Apple+Parakeet-EOU-160ms",
+      "audio_sha256" : "91529c2c2498cecea12ee4c6afd081c9ec4aec228d9eb9cc2808c716a0488439",
+      "case_id" : "pause-900",
+      "condition" : "paced-file-production-capture",
+      "endpoint_source" : "smartTurn",
+      "events" : [
+        {
+          "at_ms" : 2112.292958,
+          "name" : "commit"
+        },
+        {
+          "at_ms" : 5300.555625,
+          "name" : "commit"
+        }
+      ],
+      "ground_truth" : {
+        "protected_intervals_ms" : [
+          [
+            1785.75,
+            2685.75
+          ]
+        ],
+        "speech_end_ms" : 4298.9375
+      },
+      "language" : "en",
+      "pacing_p95_error_ms" : 4.573125,
+      "phase" : "warm",
+      "recognized" : "For people tomorrow evening",
+      "status" : "measured",
+      "tail_retained" : true,
+      "trial_id" : "pause-900-2",
+      "tts" : "not-run-endpoint-only"
+    },
+    {
+      "asr" : "Apple+Parakeet-EOU-160ms",
+      "audio_sha256" : "82d955c5562d5ec92f5658d9aa4e6c6cb92da0c5cc0b80d24be634f5a4b7c9b5",
+      "case_id" : "pause-1200",
+      "condition" : "paced-file-production-capture",
+      "endpoint_source" : "smartTurn",
+      "events" : [
+        {
+          "at_ms" : 2111.535875,
+          "name" : "commit"
+        },
+        {
+          "at_ms" : 5300.304792,
+          "name" : "commit"
+        }
+      ],
+      "ground_truth" : {
+        "protected_intervals_ms" : [
+          [
+            1785.75,
+            2985.75
+          ]
+        ],
+        "speech_end_ms" : 4598.9375
+      },
+      "language" : "en",
+      "pacing_p95_error_ms" : 4.733334,
+      "phase" : "cold_capture",
+      "recognized" : "For people tomorrow evening",
+      "status" : "measured",
+      "tail_retained" : true,
+      "trial_id" : "pause-1200-0",
+      "tts" : "not-run-endpoint-only"
+    },
+    {
+      "asr" : "Apple+Parakeet-EOU-160ms",
+      "audio_sha256" : "82d955c5562d5ec92f5658d9aa4e6c6cb92da0c5cc0b80d24be634f5a4b7c9b5",
+      "case_id" : "pause-1200",
+      "condition" : "paced-file-production-capture",
+      "endpoint_source" : "smartTurn",
+      "events" : [
+        {
+          "at_ms" : 2131.737709,
+          "name" : "commit"
+        },
+        {
+          "at_ms" : 4910.323625,
+          "name" : "commit"
+        }
+      ],
+      "ground_truth" : {
+        "protected_intervals_ms" : [
+          [
+            1785.75,
+            2985.75
+          ]
+        ],
+        "speech_end_ms" : 4598.9375
+      },
+      "language" : "en",
+      "pacing_p95_error_ms" : 4.694458,
+      "phase" : "warm",
+      "recognized" : "four people tomorrow evening",
+      "status" : "measured",
+      "tail_retained" : true,
+      "trial_id" : "pause-1200-1",
+      "tts" : "not-run-endpoint-only"
+    },
+    {
+      "asr" : "Apple+Parakeet-EOU-160ms",
+      "audio_sha256" : "82d955c5562d5ec92f5658d9aa4e6c6cb92da0c5cc0b80d24be634f5a4b7c9b5",
+      "case_id" : "pause-1200",
+      "condition" : "paced-file-production-capture",
+      "endpoint_source" : "smartTurn",
+      "events" : [
+        {
+          "at_ms" : 2149.071,
+          "name" : "commit"
+        },
+        {
+          "at_ms" : 5339.520583,
+          "name" : "commit"
+        }
+      ],
+      "ground_truth" : {
+        "protected_intervals_ms" : [
+          [
+            1785.75,
+            2985.75
+          ]
+        ],
+        "speech_end_ms" : 4598.9375
+      },
+      "language" : "en",
+      "pacing_p95_error_ms" : 4.084291,
+      "phase" : "warm",
+      "recognized" : "For people tomorrow evening",
+      "status" : "measured",
+      "tail_retained" : true,
+      "trial_id" : "pause-1200-2",
+      "tts" : "not-run-endpoint-only"
+    },
+    {
+      "asr" : "Apple+Parakeet-EOU-160ms",
+      "audio_sha256" : "825dc80a0f5c9a1c76eb187e9b70b64fbbcaafcc33a3dcd0ad9378a845b66753",
+      "case_id" : "pause-1500",
+      "condition" : "paced-file-production-capture",
+      "endpoint_source" : "smartTurn",
+      "events" : [
+        {
+          "at_ms" : 2128.517042,
+          "name" : "commit"
+        },
+        {
+          "at_ms" : 5314.683167,
+          "name" : "commit"
+        }
+      ],
+      "ground_truth" : {
+        "protected_intervals_ms" : [
+          [
+            1785.75,
+            3285.75
+          ]
+        ],
+        "speech_end_ms" : 4898.9375
+      },
+      "language" : "en",
+      "pacing_p95_error_ms" : 4.804958,
+      "phase" : "cold_capture",
+      "recognized" : "Four people tomorrow",
+      "status" : "measured",
+      "tail_retained" : false,
+      "trial_id" : "pause-1500-0",
+      "tts" : "not-run-endpoint-only"
+    },
+    {
+      "asr" : "Apple+Parakeet-EOU-160ms",
+      "audio_sha256" : "825dc80a0f5c9a1c76eb187e9b70b64fbbcaafcc33a3dcd0ad9378a845b66753",
+      "case_id" : "pause-1500",
+      "condition" : "paced-file-production-capture",
+      "endpoint_source" : "smartTurn",
+      "events" : [
+        {
+          "at_ms" : 2148.297542,
+          "name" : "commit"
+        },
+        {
+          "at_ms" : 5354.537292,
+          "name" : "commit"
+        }
+      ],
+      "ground_truth" : {
+        "protected_intervals_ms" : [
+          [
+            1785.75,
+            3285.75
+          ]
+        ],
+        "speech_end_ms" : 4898.9375
+      },
+      "language" : "en",
+      "pacing_p95_error_ms" : 4.643917,
+      "phase" : "warm",
+      "recognized" : "Four people tomorrow",
+      "status" : "measured",
+      "tail_retained" : false,
+      "trial_id" : "pause-1500-1",
+      "tts" : "not-run-endpoint-only"
+    },
+    {
+      "asr" : "Apple+Parakeet-EOU-160ms",
+      "audio_sha256" : "825dc80a0f5c9a1c76eb187e9b70b64fbbcaafcc33a3dcd0ad9378a845b66753",
+      "case_id" : "pause-1500",
+      "condition" : "paced-file-production-capture",
+      "endpoint_source" : "smartTurn",
+      "events" : [
+        {
+          "at_ms" : 2119.398916,
+          "name" : "commit"
+        },
+        {
+          "at_ms" : 5323.670416,
+          "name" : "commit"
+        }
+      ],
+      "ground_truth" : {
+        "protected_intervals_ms" : [
+          [
+            1785.75,
+            3285.75
+          ]
+        ],
+        "speech_end_ms" : 4898.9375
+      },
+      "language" : "en",
+      "pacing_p95_error_ms" : 4.848625,
+      "phase" : "warm",
+      "recognized" : "Four people tomorrow",
+      "status" : "measured",
+      "tail_retained" : false,
+      "trial_id" : "pause-1500-2",
+      "tts" : "not-run-endpoint-only"
+    }
+  ]
+}

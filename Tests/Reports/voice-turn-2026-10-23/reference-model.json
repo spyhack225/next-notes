@@ -1,0 +1,102 @@
+{
+  "schema": "nextnotes.turn-export-differential.v1",
+  "rows": [
+    {
+      "case": "complete-question",
+      "boundary": "completed-turn",
+      "probability": 0.9906102418899536,
+      "semantic_correct": true,
+      "audio_sha256": "32515a9a660f9f9cc8604202bf306c3395d9cf108f754d10ac8ca2bb5696b62a"
+    },
+    {
+      "case": "pause-200",
+      "boundary": "internal-pause",
+      "probability": 0.9883133172988892,
+      "semantic_correct": false,
+      "audio_sha256": "d298d834c2158354f9b0a2f9b02f9dfae2daaffe17728b5d9635f6b6dabd9601"
+    },
+    {
+      "case": "pause-200",
+      "boundary": "completed-turn",
+      "probability": 0.9783492088317871,
+      "semantic_correct": true,
+      "audio_sha256": "d298d834c2158354f9b0a2f9b02f9dfae2daaffe17728b5d9635f6b6dabd9601"
+    },
+    {
+      "case": "pause-400",
+      "boundary": "internal-pause",
+      "probability": 0.9845763444900513,
+      "semantic_correct": false,
+      "audio_sha256": "ee392b02d7d9dcedb73ca48c4cb8b147fecf10529a990c428ab7d05684466c1e"
+    },
+    {
+      "case": "pause-400",
+      "boundary": "completed-turn",
+      "probability": 0.9790633916854858,
+      "semantic_correct": true,
+      "audio_sha256": "ee392b02d7d9dcedb73ca48c4cb8b147fecf10529a990c428ab7d05684466c1e"
+    },
+    {
+      "case": "pause-600",
+      "boundary": "internal-pause",
+      "probability": 0.9845763444900513,
+      "semantic_correct": false,
+      "audio_sha256": "a169aa838fe3e1ee1551faf8fd0a45b8e27e012cb545d9ef62e90b67fac3beed"
+    },
+    {
+      "case": "pause-600",
+      "boundary": "completed-turn",
+      "probability": 0.9766076803207397,
+      "semantic_correct": true,
+      "audio_sha256": "a169aa838fe3e1ee1551faf8fd0a45b8e27e012cb545d9ef62e90b67fac3beed"
+    },
+    {
+      "case": "pause-900",
+      "boundary": "internal-pause",
+      "probability": 0.9845763444900513,
+      "semantic_correct": false,
+      "audio_sha256": "91529c2c2498cecea12ee4c6afd081c9ec4aec228d9eb9cc2808c716a0488439"
+    },
+    {
+      "case": "pause-900",
+      "boundary": "completed-turn",
+      "probability": 0.9751023054122925,
+      "semantic_correct": true,
+      "audio_sha256": "91529c2c2498cecea12ee4c6afd081c9ec4aec228d9eb9cc2808c716a0488439"
+    },
+    {
+      "case": "pause-1200",
+      "boundary": "internal-pause",
+      "probability": 0.9845763444900513,
+      "semantic_correct": false,
+      "audio_sha256": "82d955c5562d5ec92f5658d9aa4e6c6cb92da0c5cc0b80d24be634f5a4b7c9b5"
+    },
+    {
+      "case": "pause-1200",
+      "boundary": "completed-turn",
+      "probability": 0.977085530757904,
+      "semantic_correct": true,
+      "audio_sha256": "82d955c5562d5ec92f5658d9aa4e6c6cb92da0c5cc0b80d24be634f5a4b7c9b5"
+    },
+    {
+      "case": "pause-1500",
+      "boundary": "internal-pause",
+      "probability": 0.9845763444900513,
+      "semantic_correct": false,
+      "audio_sha256": "825dc80a0f5c9a1c76eb187e9b70b64fbbcaafcc33a3dcd0ad9378a845b66753"
+    },
+    {
+      "case": "pause-1500",
+      "boundary": "completed-turn",
+      "probability": 0.9768441915512085,
+      "semantic_correct": true,
+      "audio_sha256": "825dc80a0f5c9a1c76eb187e9b70b64fbbcaafcc33a3dcd0ad9378a845b66753"
+    }
+  ],
+  "onnx_sha256": "ab8dc64b88713f90b571c15b714bd1330e6c883cad8763dacf65c9376dc539be",
+  "providers": [
+    "CPUExecutionProvider"
+  ],
+  "onnxruntime": "1.20.1",
+  "scope": "Diagnostic same PCM and upstream normalization/Whisper features, one CPU thread; not application latency or product dependency."
+}

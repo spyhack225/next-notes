@@ -1,5 +1,6 @@
 import NextNotesDictionary
 import AVFoundation
+import CoreMedia
 import Foundation
 import Speech
 
@@ -75,7 +76,9 @@ actor AppleSpeechEngine: TranscriptionEngine {
                 for try await result in transcriber.results {
                     guard let self else { break }
                     let snapshot = await self.absorb(result)
-                    chunkContinuation.yield(TranscriptionChunk(text: snapshot, isFinal: false))
+                    let end = CMTimeGetSeconds(CMTimeRangeGetEnd(result.range))
+                    chunkContinuation.yield(TranscriptionChunk(text: snapshot, isFinal: false,
+                        recognizedAudioThroughSeconds: end.isFinite && end >= 0 ? end : nil))
                 }
                 let final = await self?.finalizedText ?? ""
                 chunkContinuation.yield(TranscriptionChunk(text: final, isFinal: true))

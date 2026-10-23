@@ -26,6 +26,10 @@ struct TranscriptionChunk: Sendable {
     /// pause-committed segments. nil for an engine that may revise any word, which is
     /// how a consumer tells "stable by construction" from "stable so far".
     var committedText: String? = nil
+    /// End of audio represented by THIS published recognition result, in the
+    /// session's seconds. nil means this provider supplies no timing proof.
+    /// This is never the audio-feed/enqueue clock or a session-final flag.
+    var recognizedAudioThroughSeconds: TimeInterval? = nil
 }
 
 /// The seam that keeps Next Notes engine-agnostic.

@@ -1,0 +1,117 @@
+{
+  "scope": "Production native file capture,21 trials; latency reported only for single-commit cases. No audible response.",
+  "rows": [
+    {
+      "case": "complete-question",
+      "trials": 3,
+      "premature_commit_trials": 0,
+      "duplicate_commit_trials": 0,
+      "tail_retained": 0,
+      "sources": {
+        "smartTurn": 3
+      },
+      "single_commit_endpoint_ms": [
+        362.0563750000001,
+        303.846,
+        333.59016699999984
+      ],
+      "median_ms": 333.59016699999984,
+      "p95_ms": 362.0563750000001,
+      "max_pacing_p95_error_ms": 5.032792
+    },
+    {
+      "case": "pause-200",
+      "trials": 3,
+      "premature_commit_trials": 0,
+      "duplicate_commit_trials": 0,
+      "tail_retained": 3,
+      "sources": {
+        "smartTurn": 3
+      },
+      "single_commit_endpoint_ms": [
+        283.5092920000002,
+        374.7705420000002,
+        385.5960829999999
+      ],
+      "median_ms": 374.7705420000002,
+      "p95_ms": 385.5960829999999,
+      "max_pacing_p95_error_ms": 4.801250000000001
+    },
+    {
+      "case": "pause-400",
+      "trials": 3,
+      "premature_commit_trials": 3,
+      "duplicate_commit_trials": 3,
+      "tail_retained": 3,
+      "sources": {
+        "smartTurn": 3
+      },
+      "single_commit_endpoint_ms": [],
+      "median_ms": null,
+      "p95_ms": null,
+      "max_pacing_p95_error_ms": 4.918041
+    },
+    {
+      "case": "pause-600",
+      "trials": 3,
+      "premature_commit_trials": 3,
+      "duplicate_commit_trials": 3,
+      "tail_retained": 0,
+      "sources": {
+        "smartTurn": 3
+      },
+      "single_commit_endpoint_ms": [],
+      "median_ms": null,
+      "p95_ms": null,
+      "max_pacing_p95_error_ms": 4.959583
+    },
+    {
+      "case": "pause-900",
+      "trials": 3,
+      "premature_commit_trials": 3,
+      "duplicate_commit_trials": 3,
+      "tail_retained": 3,
+      "sources": {
+        "smartTurn": 3
+      },
+      "single_commit_endpoint_ms": [],
+      "median_ms": null,
+      "p95_ms": null,
+      "max_pacing_p95_error_ms": 5.028417
+    },
+    {
+      "case": "pause-1200",
+      "trials": 3,
+      "premature_commit_trials": 3,
+      "duplicate_commit_trials": 3,
+      "tail_retained": 3,
+      "sources": {
+        "smartTurn": 3
+      },
+      "single_commit_endpoint_ms": [],
+      "median_ms": null,
+      "p95_ms": null,
+      "max_pacing_p95_error_ms": 4.733334
+    },
+    {
+      "case": "pause-1500",
+      "trials": 3,
+      "premature_commit_trials": 3,
+      "duplicate_commit_trials": 3,
+      "tail_retained": 0,
+      "sources": {
+        "smartTurn": 3
+      },
+      "single_commit_endpoint_ms": [],
+      "median_ms": null,
+      "p95_ms": null,
+      "max_pacing_p95_error_ms": 4.848625
+    }
+  ],
+  "limitations": [
+    "Only3 per case; no latency acceptance.",
+    "Phase warm labels are nominal repetition ordinals; actual model residency was not independently sampled, so no warm/cold qualification.",
+    "Split synthesis changes intonation; retained original failures.",
+    "No physical or provider matrix acceptance."
+  ]
+}

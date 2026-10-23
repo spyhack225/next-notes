@@ -1,0 +1,111 @@
+{
+  "scope": "Same PCM and upstream zero-prefix normalization/Whisper features; qualitative differential, no ONNX latency or product dependency.",
+  "rows": [
+    {
+      "case": "complete-question",
+      "boundary": "completed-turn",
+      "coreml_probability": 0.990234375,
+      "upstream_probability": 0.9906102418899536,
+      "absolute_difference": 0.0003758668899536133,
+      "classification_agrees": true
+    },
+    {
+      "case": "pause-200",
+      "boundary": "internal-pause",
+      "coreml_probability": 0.98779296875,
+      "upstream_probability": 0.9883133172988892,
+      "absolute_difference": 0.0005203485488891602,
+      "classification_agrees": true
+    },
+    {
+      "case": "pause-200",
+      "boundary": "completed-turn",
+      "coreml_probability": 0.9775390625,
+      "upstream_probability": 0.9783492088317871,
+      "absolute_difference": 0.0008101463317871094,
+      "classification_agrees": true
+    },
+    {
+      "case": "pause-400",
+      "boundary": "internal-pause",
+      "coreml_probability": 0.98388671875,
+      "upstream_probability": 0.9845763444900513,
+      "absolute_difference": 0.0006896257400512695,
+      "classification_agrees": true
+    },
+    {
+      "case": "pause-400",
+      "boundary": "completed-turn",
+      "coreml_probability": 0.97802734375,
+      "upstream_probability": 0.9790633916854858,
+      "absolute_difference": 0.0010360479354858398,
+      "classification_agrees": true
+    },
+    {
+      "case": "pause-600",
+      "boundary": "internal-pause",
+      "coreml_probability": 0.98388671875,
+      "upstream_probability": 0.9845763444900513,
+      "absolute_difference": 0.0006896257400512695,
+      "classification_agrees": true
+    },
+    {
+      "case": "pause-600",
+      "boundary": "completed-turn",
+      "coreml_probability": 0.9755859375,
+      "upstream_probability": 0.9766076803207397,
+      "absolute_difference": 0.001021742820739746,
+      "classification_agrees": true
+    },
+    {
+      "case": "pause-900",
+      "boundary": "internal-pause",
+      "coreml_probability": 0.98388671875,
+      "upstream_probability": 0.9845763444900513,
+      "absolute_difference": 0.0006896257400512695,
+      "classification_agrees": true
+    },
+    {
+      "case": "pause-900",
+      "boundary": "completed-turn",
+      "coreml_probability": 0.9736328125,
+      "upstream_probability": 0.9751023054122925,
+      "absolute_difference": 0.0014694929122924805,
+      "classification_agrees": true
+    },
+    {
+      "case": "pause-1200",
+      "boundary": "internal-pause",
+      "coreml_probability": 0.98388671875,
+      "upstream_probability": 0.9845763444900513,
+      "absolute_difference": 0.0006896257400512695,
+      "classification_agrees": true
+    },
+    {
+      "case": "pause-1200",
+      "boundary": "completed-turn",
+      "coreml_probability": 0.9755859375,
+      "upstream_probability": 0.977085530757904,
+      "absolute_difference": 0.0014995932579040527,
+      "classification_agrees": true
+    },
+    {
+      "case": "pause-1500",
+      "boundary": "internal-pause",
+      "coreml_probability": 0.98388671875,
+      "upstream_probability": 0.9845763444900513,
+      "absolute_difference": 0.0006896257400512695,
+      "classification_agrees": true
+    },
+    {
+      "case": "pause-1500",
+      "boundary": "completed-turn",
+      "coreml_probability": 0.97607421875,
+      "upstream_probability": 0.9768441915512085,
+      "absolute_difference": 0.0007699728012084961,
+      "classification_agrees": true
+    }
+  ],
+  "all_classifications_agree": true,
+  "max_probability_difference": 0.0014995932579040527
+}

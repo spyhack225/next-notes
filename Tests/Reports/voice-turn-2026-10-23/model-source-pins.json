@@ -1,0 +1,10 @@
+{
+  "model_sources": {
+    "Sources/NextNotes/Activation/SmartTurn/VoiceTurnModels.swift": "0b833f185bd2be2e48c7fbd035caeea0b7765736d5a531f4b30a8e52948cd1e1",
+    "Sources/NextNotes/Support/ModelDownloader.swift": "e9252df0d063ce2216f8fa84deb7140ec461bccc30ebffb8351d2edd9629d0d9",
+    "Sources/NextNotes/Support/ModelLibrary/VerifiedModelArtifact.swift": "f0931840f2b46a2ddfc3e7ea8453be74dd3e2a7e1b9e235f43584a27bc20c173",
+    "Tools/VoiceTurnNativeProbe.swift": "1386fa0cc7704c3368738836d0e97a548a2efd85705fa445ddabbf647a8d328c"
+  },
+  "base_head": "6edcdeed453d949967b95af60d9cdd1fae740c4d",
+  "fixture_scope": "generated Samantha speech, no owner audio"
+}

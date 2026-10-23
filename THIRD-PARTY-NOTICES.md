@@ -122,3 +122,8 @@ Qwen3-ASR by Qwen and the MLX community runs through MLX Audio Swift's
 MLXAudioSTT product. Parakeet Redux and Ultra artifacts are by Moondream,
 converted to Core ML by Fluid Inference; their original source credits and
 licenses remain with the separately downloaded models.
+
+## Voice turn detection models (downloaded at runtime)
+
+- [Smart Turn v3.2 CoreML](https://huggingface.co/aufklarer/Smart-Turn-v3.2-CoreML/tree/75f069717f500947195fa1945c46ddb472559cff), derived from Daily/Pipecat Smart Turn v3: BSD 2-Clause, copyright (c) 2024–2025 Daily. The export contains the raw-audio front end; its compiled files are individually pinned in `VoiceTurnModels.swift`. [Upstream licence](https://huggingface.co/aufklarer/Smart-Turn-v3.2-CoreML/blob/75f069717f500947195fa1945c46ddb472559cff/LICENSE).
+- [Silero VAD 6.0.0, 32 ms CoreML export](https://huggingface.co/FluidInference/silero-vad-coreml/tree/b419383c55c110e2c9271fa6ee0ea83d03c70d96): MIT, Silero Team, converted by FluidInference. [Upstream licence](https://github.com/snakers4/silero-vad/blob/master/LICENSE). These weights are fetched separately; no ONNX/Python runtime is shipped.

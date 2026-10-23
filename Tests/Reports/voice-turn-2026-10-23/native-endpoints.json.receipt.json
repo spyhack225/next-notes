@@ -1,0 +1,23 @@
+{
+  "command": [
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/voice-turn-20261023/VoiceTurnAppProbe.app/Contents/MacOS/VoiceTurnAppProbe",
+    "--selftest-turn-benchmark",
+    "--turn-fixtures",
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/voice-turn-20261023/fixtures/fixtures.json",
+    "--turn-model-root",
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/voice-turn-20261023/fixtures",
+    "--turn-output",
+    "/Users/sergekadjo/Documents/Claude/Projects/next-notes/Tests/Reports/voice-turn-2026-10-23/native-endpoints.json",
+    "--turn-repetitions",
+    "3",
+    "--voice-feed-10ms"
+  ],
+  "binary_sha256": "c1c5f43d26714b98416912e998614d600b932ce5158e938d05c7f55e21248d04",
+  "started": 1792736175.2222521,
+  "scope": "Production endpoint replay; no audible response or tools",
+  "pid": 42563,
+  "exit": 0,
+  "joined": true,
+  "finished": 1792736317.0744839,
+  "compiler_cache_removed": []
+}

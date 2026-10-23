@@ -1,0 +1,102 @@
+{
+  "schema": "nextnotes.turn-fixtures.v1",
+  "fixtures": [
+    {
+      "id": "complete-question",
+      "wav": "complete-question.wav",
+      "language": "en",
+      "speechEndMS": 2229.625,
+      "protectedIntervalsMS": [],
+      "expectedTail": "right now",
+      "audioSHA256": "32515a9a660f9f9cc8604202bf306c3395d9cf108f754d10ac8ca2bb5696b62a"
+    },
+    {
+      "id": "pause-200",
+      "wav": "pause-200.wav",
+      "language": "en",
+      "speechEndMS": 3598.9375,
+      "protectedIntervalsMS": [
+        [
+          1785.75,
+          1985.75
+        ]
+      ],
+      "expectedTail": "tomorrow evening",
+      "audioSHA256": "d298d834c2158354f9b0a2f9b02f9dfae2daaffe17728b5d9635f6b6dabd9601"
+    },
+    {
+      "id": "pause-400",
+      "wav": "pause-400.wav",
+      "language": "en",
+      "speechEndMS": 3798.9375,
+      "protectedIntervalsMS": [
+        [
+          1785.75,
+          2185.75
+        ]
+      ],
+      "expectedTail": "tomorrow evening",
+      "audioSHA256": "ee392b02d7d9dcedb73ca48c4cb8b147fecf10529a990c428ab7d05684466c1e"
+    },
+    {
+      "id": "pause-600",
+      "wav": "pause-600.wav",
+      "language": "en",
+      "speechEndMS": 3998.9375,
+      "protectedIntervalsMS": [
+        [
+          1785.75,
+          2385.75
+        ]
+      ],
+      "expectedTail": "tomorrow evening",
+      "audioSHA256": "a169aa838fe3e1ee1551faf8fd0a45b8e27e012cb545d9ef62e90b67fac3beed"
+    },
+    {
+      "id": "pause-900",
+      "wav": "pause-900.wav",
+      "language": "en",
+      "speechEndMS": 4298.9375,
+      "protectedIntervalsMS": [
+        [
+          1785.75,
+          2685.75
+        ]
+      ],
+      "expectedTail": "tomorrow evening",
+      "audioSHA256": "91529c2c2498cecea12ee4c6afd081c9ec4aec228d9eb9cc2808c716a0488439"
+    },
+    {
+      "id": "pause-1200",
+      "wav": "pause-1200.wav",
+      "language": "en",
+      "speechEndMS": 4598.9375,
+      "protectedIntervalsMS": [
+        [
+          1785.75,
+          2985.75
+        ]
+      ],
+      "expectedTail": "tomorrow evening",
+      "audioSHA256": "82d955c5562d5ec92f5658d9aa4e6c6cb92da0c5cc0b80d24be634f5a4b7c9b5"
+    },
+    {
+      "id": "pause-1500",
+      "wav": "pause-1500.wav",
+      "language": "en",
+      "speechEndMS": 4898.9375,
+      "protectedIntervalsMS": [
+        [
+          1785.75,
+          3285.75
+        ]
+      ],
+      "expectedTail": "tomorrow evening",
+      "audioSHA256": "825dc80a0f5c9a1c76eb187e9b70b64fbbcaafcc33a3dcd0ad9378a845b66753"
+    }
+  ],
+  "provenance": "macOS say Samantha175wpm, exact PCM silence, amplitude180/32768 trim with30ms edge retained; synthesized word boundaries, no physical speech",
+  "limitations": [
+    "Split synthesis changes intonation; human multilingual held-out corpus remains required."
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "exit": 0,
+  "joined": true,
+  "seconds": 1060.07,
+  "source_pins": "final-source-pins.json",
+  "signature": "Next Notes Local Signing; own dedicated bundle only",
+  "installed": false,
+  "timestamp": 1792736105.885118,
+  "pre_bundle_repair_sha256": "541f44d23b7645fdfe96a4873b28afaf9e3390dab78bb11dd97dfb10ec8a48c3",
+  "binary_sha256": "c1c5f43d26714b98416912e998614d600b932ce5158e938d05c7f55e21248d04",
+  "bundle_repair": "Added standard @executable_path/../Frameworks rpath and re-signed dedicated bundle after retained dyld failure; no source change."
+}

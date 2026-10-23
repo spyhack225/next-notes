@@ -626,3 +626,24 @@ Resumed ASR live suite,22 October2026: [all eight paced runtime candidates](Test
 
 
 22 October owner-confirmed quiet TTS continuation: [fresh native-clock attempts](Tests/Reports/tts-2026-10-22/README.md) retain Pocket30/30 warm qualified arrivals, median310.080ms/p95466.196ms, separately from first-after-preparation. Apple29/30, Kokoro18/30 and Phonon19/30 retain acoustic refusals with no survivor medians; Qwen crosses the unchanged1.5GiB live disk floor before a completed request. All use the same diagnostic binary, native48k route and frozen detector with paced native v3 decoder load; the resumed provider windows are explicit, not selected-ASR/AEC/EOU acceptance. Quiet declaration is not proof of uncontaminated baselines; no acoustic failure is labelled a model-quality defect. Owned symbols compress424.1→98.6MB with exact hash verification; original refusal cells remain. All eight TTS attempt roots and three reference snapshots are cleaned after result persistence/join,104 voice files/three preferences/installed809 are unchanged, final available4.076GB. Five-model ranking, actual full conversation, physical negatives and quality gates remain open, Pocket/Alba default unchanged. New public quiet records supplement earlier evidence.
+
+
+Voice turn candidate, 23 October 2026: native Silero32ms + Smart Turn v3.2
+source is implemented behind an explicit opt-in, not installed or promoted. Final
+optimized application build passes1060.07s, final authored policy controls and
+21 offline scorer controls pass. Native production21-trial paced replay fails:
+15/15 trials with400–1500ms protected pauses commit prematurely and again later;
+nine exact final-tail checks fail. Three complete-question endpoints occur
+304–362ms after authored speech end, but wording fails, so this is not usable
+answer or900ms audible acceptance. Native CoreML completed-question prediction
+median2.50ms/p954.20ms over30 repeated calls is a graph boundary, not independent
+accuracy or total response time. Seven paced Silero onset observations93–126ms
+are not physical duck or zero-preroll cold proof. Independent pinned upstream
+ONNX matches all13 CoreML decisions (max probability delta0.00150), including
+six unfinished-prefix failures; no threshold/text-shape workaround or rollout
+promotion follows. All children join before own-artifact cleanup;25 owner
+store/settings and143 meeting files remain byte/mtime/hash-identical across
+native runs, including the separately owner-selected Phonon choice. Read
+[implementation evidence](Tests/Reports/voice-turn-2026-10-23/README.md) for exact
+source/binary/model/fixture pins, original failures, resource refusal/recovery,
+ASR/TTS alignment and remaining physical/provider/pressure/soak gates.
