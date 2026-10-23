@@ -1,0 +1,18 @@
+{
+  "exit": 0,
+  "seconds": 3.055841290974058,
+  "source_revision": "7c85d1abc0454905c830aeaf45a915e6966cd660",
+  "source_sha256": "391d9ac34814e6dbaba7997ce809aa4d801b92fe05e649360ac07eafbea0641f",
+  "source_unchanged": true,
+  "full_source_context": 900,
+  "original_object_sha256": "a07906d5710c109829082f370f34e112b481c25d4e0db2c91484864627385531",
+  "fixed_object_sha256": "1e43cf99f278a33ea713e81cafaea4c5c022846662a9867f7fa8f6ebd37824c4",
+  "controller_global_symbols_equal": true,
+  "primary_source": "Sources/NextNotes/Agent/Speech/TTSOutputProbe.swift",
+  "symbol_scope": "TTSOutputProbe",
+  "original_symbol_count": 86,
+  "fixed_symbol_count": 86,
+  "missing_symbols": [],
+  "added_symbols": [],
+  "compiler_command_sha256": "1fdf26386e292d58de7ff9df8b6ed01872297cf0047eb407392ee2ebbbc13e2d"
+}

@@ -1,0 +1,43 @@
+{
+  "activeMachineClaims": [],
+  "assessed": "pass",
+  "coverage": {
+    "disk": "measured",
+    "load": "measured",
+    "swap": "measured"
+  },
+  "freeGb": 5.303150177001953,
+  "kind": "preflight",
+  "load": 6.44,
+  "measurements": {
+    "freeGb": {
+      "error": null,
+      "source": "df -Pk /Users/sergekadjo/Documents/Claude/Projects/next-notes/Tests/Reports/tts-2026-10-22/calibrated-speaker",
+      "timestamp": "2026-10-23T04:05:38.654Z",
+      "value": 5.303150177001953
+    },
+    "load": {
+      "error": null,
+      "source": "sysctl vm.loadavg",
+      "timestamp": "2026-10-23T04:05:38.649Z",
+      "value": 6.44
+    },
+    "swapGb": {
+      "error": null,
+      "source": "sysctl vm.swapusage",
+      "timestamp": "2026-10-23T04:05:38.648Z",
+      "value": 8.0665234375
+    }
+  },
+  "mode": "permissive",
+  "ok": true,
+  "path": "/Users/sergekadjo/Documents/Claude/Projects/next-notes/Tests/Reports/tts-2026-10-22/calibrated-speaker",
+  "reasons": [],
+  "require": [
+    "swap",
+    "load",
+    "disk"
+  ],
+  "swapGb": 8.0665234375,
+  "unknown": []
+}

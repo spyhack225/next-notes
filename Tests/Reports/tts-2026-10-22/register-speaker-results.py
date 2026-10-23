@@ -8,7 +8,10 @@ import argparse
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("--quiet", action="store_true", help="Register the owner-confirmed quiet attempt, preserving the earlier noisy records")
-quiet = parser.parse_args().quiet
+parser.add_argument("--calibrated", action="store_true", help="Register the 23 October volume-bound cohort without replacing historical attempts")
+args = parser.parse_args()
+quiet, calibrated = args.quiet, args.calibrated
+assert not (quiet and calibrated)
 
 repo = Path(__file__).resolve().parents[3]
 report = Path(__file__).resolve().parent
@@ -22,6 +25,8 @@ if quiet:
         if resumed.exists(): selected[engine] = resumed
     final_phonon = report/'speaker-quiet-phonon/phonon.json'
     if final_phonon.exists(): selected['phonon'] = final_phonon
+if calibrated:
+    selected = {engine: report/'calibrated-speaker'/f'{engine}.json' for engine in selected}
 names = dict(apple='macOS',pocket='Pocket',kokoro='Kokoro',phonon='Phonon31m',qwen='Qwen3-TTS0.6B4bit')
 for engine,path in selected.items():
     raw = json.loads(path.read_text())
@@ -78,4 +83,21 @@ for engine,path in selected.items():
     if engine=='qwen' and not quiet:
         record['limitations'].append('Only three warm native diagnostic requests completed; one qualified. The separate30-request cohort was refused at disk admission. MLX peak and RSS measure different accounting domains; no allocator leak/cache fix is claimed.')
         record['sources'] += ['Tests/Reports/tts-2026-10-22/speaker-native/qwen.json','Tests/Reports/tts-2026-10-22/speaker-native-calibration/qwen.log']
+    if calibrated:
+        record.update(id=f'2026-10-23-tts-{engine}-speaker-calibrated', date='2026-10-23',
+            title=f'{names[engine]}: volume-bound serial speaker attempt')
+        record['summary'] = (f'{len(qualified)}/{len(warm)} warm pickups qualified. ' if trials else f"No completed trial: {raw.get('reason','not run')} ") + ('Accepted median and p95 for this route and workload.' if measured else 'No warm acoustic median accepted.')
+        record['environment']['workload'] = 'Paced cached native Parakeet-v3 authored prefixes,400ms then1s updates. Model preparation precedes reference-decoder warmup. Actual RPC responses overlap every completed timed request; maximum response gap within a request1.18s. Not selected-ASR/AEC/EOU acceptance.'
+        record['environment']['audio_route'] = 'Built-in speakers/microphone; native48000Hz mono float32; source gain0.75. Hardware output38%,input51%,unmuted checked at each trial start/end with device IDs. Original output12.5% restored after cohort. No continuous route-transition proof.'
+        record['provenance']['command'] = 'See calibrated-command.json: --speaker-output --trials 30 --reference-asr-probe; one model prepares, reference decoder warms, timed requests run, both children join and owned assets are deleted before next.'
+        record['provenance']['grader'] += ' Baseline is the immediate preceding500ms. Hardware gain/mute joins device IDs in route signature. Qwen uses pinned25-token decoder batches; precision and joined whole-clause API unchanged.'
+        record['limitations'][0] = 'Five-model comparison remains incomplete: Qwen27/30, Apple30/30; Phonon hit live disk guard; Pocket/Kokoro refused before download. No fastest-five default promotion.'
+        record['sources'] = [str(path.relative_to(repo)), str((path.parent/'summary.json').relative_to(repo)), 'Tests/Reports/tts-2026-10-22/README.md', 'Tests/Reports/tts-2026-10-22/calibrated-source-pins.json', 'Tests/Reports/tts-2026-10-22/calibrated-command.json', 'Tests/Reports/tts-2026-10-22/calibrated-speaker/reference-progress-audit.json']
+        record['publication']['reviewed_on'] = '2026-10-23'
+        if engine == 'qwen':
+            for item in record['metrics']:
+                if item['name'] == 'MLX allocator peak':
+                    item.update(samples=len(trials), boundary='Process-lifetime MLX counter across the completed31-request cohort; unified GPU allocation, not additive to RSS.')
+            record['limitations'] = [x for x in record['limitations'] if not x.startswith('Only three warm')]
+            record['limitations'].append('Smaller decoder batches completed synthesis but boundary continuity/intelligibility and the total disk-pressure allocating producer remain unproved; lower peak is a scoped observation, not a complete disk repair.')
     (repo/'Benchmarks/runs'/f"{record['id']}.json").write_text(json.dumps(record,indent=2)+'\n')

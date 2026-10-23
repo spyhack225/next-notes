@@ -18,7 +18,8 @@ const ttsRows = [
   { id: "qwen", name: "Qwen3-TTS", bytes: 1698367268 },
 ].map(voice => {
   const generated = data.runs.find(run => run.id === `2026-10-22-tts-${voice.id}-native`);
-  const speaker = data.runs.find(run => run.id === `2026-10-22-tts-${voice.id}-speaker-quiet`)
+  const speaker = data.runs.find(run => run.id === `2026-10-23-tts-${voice.id}-speaker-calibrated`)
+    ?? data.runs.find(run => run.id === `2026-10-22-tts-${voice.id}-speaker-quiet`)
     ?? data.runs.find(run => run.id === `2026-10-22-tts-${voice.id}-speaker-output`);
   return { ...voice,
     speakerId: speaker?.id,
@@ -74,7 +75,7 @@ export default function Benchmarks() {
           <h2 id="tts-heading">Voice speed and space</h2>
           <p>All five voices are available in Settings. Audio preparation and sound from the speakers are different waits.</p>
           <div className="benchmark-table-scroll"><table>
-            <caption>M3 MacBook Air · 16 GB · 22 October 2026</caption>
+            <caption>M3 MacBook Air · 16 GB · preparation: 22 October · speaker test: 23 October 2026</caption>
             <thead><tr><th scope="col">Voice</th><th scope="col">Audio prepared</th><th scope="col">Preparation wait vs Qwen</th><th scope="col">Sound at microphone</th><th scope="col">Extra model space</th><th scope="col">Size vs largest</th></tr></thead>
             <tbody>{ttsRows.map(voice => <tr key={voice.id}>
               <th scope="row"><a href={`#${voice.speakerId ?? `2026-10-22-tts-${voice.id}-native`}`}>{voice.name}</a></th>
@@ -87,7 +88,7 @@ export default function Benchmarks() {
           </table></div>
           <p className="text-muted-foreground">Preparation: median of five warm same-text requests to first generated audio, before playback. The percentage is that wait divided by Qwen’s 2,709 ms; lower means less waiting. It does not rank speaker output. Model space uses prepared files, including shared Kokoro assets once; Apple’s existing system assets are excluded. Downloads and runtime memory are separate.</p>
           <p className="text-muted-foreground">Speaker tests use the actual playback backings, laptop speakers and native-format microphone, with concurrent speech-decoder load. Pickup requires matching audio and two consecutive 10 ms windows above the room threshold. This includes the acoustic and input paths; it is not human perceptual onset or full conversation latency. An incomplete result has no accepted speaker median. Each temporary model is removed before the next starts.</p>
-          <p className="text-muted-foreground">The speaker column shows the later quiet-room attempt. A median requires all 30 repeat requests to qualify; the first request after preparation is separate. Pocket completed that check. The other voices remain incomplete or stopped, so this does not establish the fastest default.</p>
+          <p className="text-muted-foreground">The speaker column shows the latest serial attempt at 38% speaker volume, with ASR decoding during each measured request. A median requires all 30 repeat requests to qualify; the first request after preparation is separate. macOS completed that check (160 ms median, 187 ms p95). Qwen qualified 27 of 30; low disk space stopped Phonon and prevented Pocket and Kokoro from starting. Earlier results remain below, including Pocket’s separate 310 ms median. These attempts do not establish the fastest of all five; Pocket/Alba remains selected.</p>
         </section>
         <form className="benchmark-filters" onSubmit={event => event.preventDefault()}>
           <label>Search results<input type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Model or workflow" /></label>

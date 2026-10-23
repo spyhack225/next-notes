@@ -1,0 +1,14 @@
+{
+  "cleanupVerified": true,
+  "elapsedSeconds": 3.3708056434988976e-05,
+  "engine": "phonon",
+  "freeBytesAfterCleanup": 1450098688,
+  "freeBytesBefore": 1450098688,
+  "reason": "Insufficient disk headroom for this one model.",
+  "referenceASRAfter": {
+    "active": false
+  },
+  "referenceASRBefore": null,
+  "status": "not-run",
+  "temporaryLogicalBytesBeforeCleanup": 6
+}

@@ -1,0 +1,66 @@
+{
+  "product": "NextNotes",
+  "original_binary_sha256": "6798dc35b13860839a353d1c85a7a7a71e013b699e2309c1e4dedee814852245",
+  "portable_binary_sha256": "af42bc1815cf5b48a0e4b1ed04985e6ec16645a9fc887bb7cf7b776963c27cd3",
+  "accessors": [
+    {
+      "module": "Crypto",
+      "original_source_sha256": "8bf6ab16c42f7581d6001e5570a4fcb6fbb1da023d0c8cbb335946c227386803",
+      "fixed_source_sha256": "9a2200f32639604c6efe139f2aee06cbbb7a3d355c8b05f42bc4f2dcd0b457c0",
+      "original_object_sha256": "d8b8f48c5da41661e0ab5f5c81a6c4b4f457fe0b83c8e957a63c597211cce3b6",
+      "fixed_object_sha256": "44153badd84c5021e54e157744489bf13b99b52c9878ade0a477017c159520b4",
+      "module_symbols": [
+        "_$sSo8NSBundleC6CryptoE6moduleABvau",
+        "_$sSo8NSBundleC6CryptoE6moduleABvgZ",
+        "_$sSo8NSBundleC6CryptoE6moduleABvpZ"
+      ]
+    },
+    {
+      "module": "FluidAudio",
+      "original_source_sha256": "481e2779685089f6a94e76e1424a7fb82c59a32d8414019f681cdade9309053b",
+      "fixed_source_sha256": "a3fc3e87c3c0475a6c3d2ba3f708b60239dfba390ac2d5466d2af53cb893fbce",
+      "original_object_sha256": "db72e4ab0d16df6fe68e1566457825e4f11ea3e69fa8bc44784b565abe8b64bd",
+      "fixed_object_sha256": "f690a000c7a22aa43b69e6dec1b5338be07cf6975b260a0ad380ea85a50e315b",
+      "module_symbols": [
+        "_$sSo8NSBundleC10FluidAudioE6moduleABvau",
+        "_$sSo8NSBundleC10FluidAudioE6moduleABvgZ",
+        "_$sSo8NSBundleC10FluidAudioE6moduleABvpZ"
+      ]
+    },
+    {
+      "module": "Hub",
+      "original_source_sha256": "b2c1f92b28c141cf17068c7ef92f386d99414aaf7df72fbc1bb160cd92177a6e",
+      "fixed_source_sha256": "41fcd852fe6135f4a09690607b9a7db30cb98eb48a1fbfc352aeddf44829cb0d",
+      "original_object_sha256": "61353381dd6c925568809ce140b884049644a8efdd4adaa736d0cb2d47bbec49",
+      "fixed_object_sha256": "02a5b67b7245f53650ecb4e0d4072387237e664e8ca917afcc131a3514773536",
+      "module_symbols": [
+        "_$sSo8NSBundleC3HubE6moduleABvau",
+        "_$sSo8NSBundleC3HubE6moduleABvgZ",
+        "_$sSo8NSBundleC3HubE6moduleABvpZ"
+      ]
+    },
+    {
+      "module": "UsagePrivacy",
+      "original_source_sha256": "f82f74bf3f4d7c614e46a87fd127ee7f48c234d207943f643353d23f81ed4f32",
+      "fixed_source_sha256": "5f0d673923cf6a099e67d1f872c92b50749a4b36d6b975df54ab02cd5a26deba",
+      "original_object_sha256": "f470866bececb5033067e3b6e8023c42f0c3d4ebe5421e72595af4deeb576cac",
+      "fixed_object_sha256": "b2fc5ea871ce3d29646563c9f6f06f45183d6ea5b960f3de6ca0b7bc205e5525",
+      "module_symbols": [
+        "_$sSo8NSBundleC12UsagePrivacyE6moduleABvau",
+        "_$sSo8NSBundleC12UsagePrivacyE6moduleABvgZ",
+        "_$sSo8NSBundleC12UsagePrivacyE6moduleABvpZ"
+      ]
+    },
+    {
+      "module": "MLXAudioTTS",
+      "kind": "bounded-qwen-decode",
+      "chunkTokens": 25,
+      "original_source_sha256": "34def1cc4f3c29914e1595b4b34a076a1d15fefcf80b64c01d59374c7372145d",
+      "fixed_source_sha256": "9a86dc63b4e66d926aa58db783bf5e858d6d8053f60bdf1228cd055b2227ebb9",
+      "original_object_sha256": "a3f660dfde5734c8306abcdbbf784f189ec2625796a6f4b8cbd5e7509ec793a9",
+      "fixed_object_sha256": "96704d5534c49b3b7552e785d0a2ffa85fbbacba0af2808b80769d4fe7bb83e5",
+      "symbols_equal": true
+    }
+  ],
+  "original_sdk_objects_unchanged": true
+}

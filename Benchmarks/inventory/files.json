@@ -9498,6 +9498,22 @@
       "category": "tts"
     },
     {
+      "path": "Tests/Reports/release-2026-10-22/tts-deferred-reference-compile.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/tts-deferred-reference.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/tts-immediate-baseline-compile.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/tts-immediate-baseline.json",
+      "category": "tts"
+    },
+    {
       "path": "Tests/Reports/release-2026-10-22/tts-native-input-format-compile.log",
       "category": "tts"
     },
@@ -9575,6 +9591,14 @@
     },
     {
       "path": "Tests/Reports/release-2026-10-22/tts-settings-timing-labels.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/tts-volume-bound-probe-compile.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/release-2026-10-22/tts-volume-bound-probe.json",
       "category": "tts"
     },
     {
@@ -10702,12 +10726,328 @@
       "category": "tts"
     },
     {
+      "path": "Tests/Reports/tts-2026-10-22/calibrated-command.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/calibrated-preservation.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/calibrated-source-pins.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/calibrated-speaker/apple-reference.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/calibrated-speaker/apple.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/calibrated-speaker/apple.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/calibrated-speaker/kokoro.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/calibrated-speaker/phonon-reference.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/calibrated-speaker/phonon.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/calibrated-speaker/phonon.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/calibrated-speaker/pocket.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/calibrated-speaker/preflight.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/calibrated-speaker/qwen-reference.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/calibrated-speaker/qwen.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/calibrated-speaker/qwen.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/calibrated-speaker/reference-apple/ready.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/calibrated-speaker/reference-apple/receipt.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/calibrated-speaker/reference-apple/rpc.json.diagnostic.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/calibrated-speaker/reference-phonon/ready.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/calibrated-speaker/reference-phonon/receipt.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/calibrated-speaker/reference-phonon/rpc.json.diagnostic.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/calibrated-speaker/reference-progress-audit.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/calibrated-speaker/reference-qwen/ready.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/calibrated-speaker/reference-qwen/receipt.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/calibrated-speaker/reference-qwen/rpc.json.diagnostic.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/calibrated-speaker/summary.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/calibrated-volume-after.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/calibrated-volume-before.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/calibrated-volume-during.json",
+      "category": "tts"
+    },
+    {
       "path": "Tests/Reports/tts-2026-10-22/compressed-logs.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/controlled-command.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/controlled-source-pins.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/controlled-speaker/apple-reference.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/controlled-speaker/apple.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/controlled-speaker/apple.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/controlled-speaker/kokoro.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/controlled-speaker/phonon.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/controlled-speaker/pocket.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/controlled-speaker/preflight.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/controlled-speaker/qwen-reference.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/controlled-speaker/qwen.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/controlled-speaker/qwen.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/controlled-speaker/reference-apple/ready.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/controlled-speaker/reference-apple/receipt.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/controlled-speaker/reference-apple/rpc.json.diagnostic.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/controlled-speaker/reference-qwen/ready.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/controlled-speaker/reference-qwen/receipt.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/controlled-speaker/reference-qwen/rpc.json.diagnostic.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/controlled-speaker/summary.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/controlled-volume-after.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/controlled-volume-before.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/controlled-volume-during.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/final-controls/baseline-fixed.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/final-controls/baseline-original.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/final-controls/controlled-source-contract.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/final-controls/controlled-symbol-cleanup.json",
+      "category": "dictation"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/final-controls/deduplicate-sdk-artifacts.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/final-controls/deduplicate-symbols.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/final-controls/hardware-levels.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/final-controls/package-overlay-deferred.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/final-controls/package-overlay-receipt.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/final-controls/package-overlay.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/final-controls/packaging-receipt.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/final-controls/persistent-noise-negative.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/final-controls/runner-tests.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/final-controls/source-contract.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/final-controls/symbol-compression.json",
       "category": "tts"
     },
     {
       "path": "Tests/Reports/tts-2026-10-22/final-model-cleanup.json",
       "category": "dictation"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/final-reference-asr/ready.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/final-reference-asr/receipt.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/final-reference-asr/rpc.json.diagnostic.json",
+      "category": "asr"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/final-source-pins.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/final-speaker/apple.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/final-speaker/apple.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/final-speaker/kokoro.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/final-speaker/kokoro.log",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/final-speaker/phonon.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/final-speaker/pocket.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/final-speaker/preflight.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/final-speaker/qwen.json",
+      "category": "tts"
+    },
+    {
+      "path": "Tests/Reports/tts-2026-10-22/final-speaker/summary.json",
+      "category": "tts"
     },
     {
       "path": "Tests/Reports/tts-2026-10-22/fixed-component-pins.json",

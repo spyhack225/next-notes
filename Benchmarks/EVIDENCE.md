@@ -1,12 +1,67 @@
 # Evidence discovery
 
-3808 current evidence files discovered under Tests/Reports, bench, docs and roadmaps.
+3893 current evidence files discovered under Tests/Reports, bench, docs and roadmaps.
 
 Imported third-party reference trees and website assets are excluded. Files are catalogued without moving them or extracting private payloads. Legacy files remain unclassified until a reviewed run manifest records their scope and verdict.
 
 [Machine-readable inventory](inventory/files.json) · [Git/worktree audit](inventory/README.md)
 
 ## Reviewed run sources
+
+### Qwen3-TTS0.6B4bit: volume-bound serial speaker attempt
+
+Actual production playback backing with native48k mono microphone observation under paced native Parakeet-v3 decoder load. Threshold-qualified arrival, not human perception or full-turn latency. **partial**
+
+- [Tests/Reports/tts-2026-10-22/calibrated-speaker/qwen.json](../Tests/Reports/tts-2026-10-22/calibrated-speaker/qwen.json)
+- [Tests/Reports/tts-2026-10-22/calibrated-speaker/summary.json](../Tests/Reports/tts-2026-10-22/calibrated-speaker/summary.json)
+- [Tests/Reports/tts-2026-10-22/README.md](../Tests/Reports/tts-2026-10-22/README.md)
+- [Tests/Reports/tts-2026-10-22/calibrated-source-pins.json](../Tests/Reports/tts-2026-10-22/calibrated-source-pins.json)
+- [Tests/Reports/tts-2026-10-22/calibrated-command.json](../Tests/Reports/tts-2026-10-22/calibrated-command.json)
+- [Tests/Reports/tts-2026-10-22/calibrated-speaker/reference-progress-audit.json](../Tests/Reports/tts-2026-10-22/calibrated-speaker/reference-progress-audit.json)
+
+### Pocket: volume-bound serial speaker attempt
+
+Actual production playback backing with native48k mono microphone observation under paced native Parakeet-v3 decoder load. Threshold-qualified arrival, not human perception or full-turn latency. **blocked**
+
+- [Tests/Reports/tts-2026-10-22/calibrated-speaker/pocket.json](../Tests/Reports/tts-2026-10-22/calibrated-speaker/pocket.json)
+- [Tests/Reports/tts-2026-10-22/calibrated-speaker/summary.json](../Tests/Reports/tts-2026-10-22/calibrated-speaker/summary.json)
+- [Tests/Reports/tts-2026-10-22/README.md](../Tests/Reports/tts-2026-10-22/README.md)
+- [Tests/Reports/tts-2026-10-22/calibrated-source-pins.json](../Tests/Reports/tts-2026-10-22/calibrated-source-pins.json)
+- [Tests/Reports/tts-2026-10-22/calibrated-command.json](../Tests/Reports/tts-2026-10-22/calibrated-command.json)
+- [Tests/Reports/tts-2026-10-22/calibrated-speaker/reference-progress-audit.json](../Tests/Reports/tts-2026-10-22/calibrated-speaker/reference-progress-audit.json)
+
+### Phonon31m: volume-bound serial speaker attempt
+
+Actual production playback backing with native48k mono microphone observation under paced native Parakeet-v3 decoder load. Threshold-qualified arrival, not human perception or full-turn latency. **failed**
+
+- [Tests/Reports/tts-2026-10-22/calibrated-speaker/phonon.json](../Tests/Reports/tts-2026-10-22/calibrated-speaker/phonon.json)
+- [Tests/Reports/tts-2026-10-22/calibrated-speaker/summary.json](../Tests/Reports/tts-2026-10-22/calibrated-speaker/summary.json)
+- [Tests/Reports/tts-2026-10-22/README.md](../Tests/Reports/tts-2026-10-22/README.md)
+- [Tests/Reports/tts-2026-10-22/calibrated-source-pins.json](../Tests/Reports/tts-2026-10-22/calibrated-source-pins.json)
+- [Tests/Reports/tts-2026-10-22/calibrated-command.json](../Tests/Reports/tts-2026-10-22/calibrated-command.json)
+- [Tests/Reports/tts-2026-10-22/calibrated-speaker/reference-progress-audit.json](../Tests/Reports/tts-2026-10-22/calibrated-speaker/reference-progress-audit.json)
+
+### Kokoro: volume-bound serial speaker attempt
+
+Actual production playback backing with native48k mono microphone observation under paced native Parakeet-v3 decoder load. Threshold-qualified arrival, not human perception or full-turn latency. **blocked**
+
+- [Tests/Reports/tts-2026-10-22/calibrated-speaker/kokoro.json](../Tests/Reports/tts-2026-10-22/calibrated-speaker/kokoro.json)
+- [Tests/Reports/tts-2026-10-22/calibrated-speaker/summary.json](../Tests/Reports/tts-2026-10-22/calibrated-speaker/summary.json)
+- [Tests/Reports/tts-2026-10-22/README.md](../Tests/Reports/tts-2026-10-22/README.md)
+- [Tests/Reports/tts-2026-10-22/calibrated-source-pins.json](../Tests/Reports/tts-2026-10-22/calibrated-source-pins.json)
+- [Tests/Reports/tts-2026-10-22/calibrated-command.json](../Tests/Reports/tts-2026-10-22/calibrated-command.json)
+- [Tests/Reports/tts-2026-10-22/calibrated-speaker/reference-progress-audit.json](../Tests/Reports/tts-2026-10-22/calibrated-speaker/reference-progress-audit.json)
+
+### macOS: volume-bound serial speaker attempt
+
+Actual production playback backing with native48k mono microphone observation under paced native Parakeet-v3 decoder load. Threshold-qualified arrival, not human perception or full-turn latency. **measured**
+
+- [Tests/Reports/tts-2026-10-22/calibrated-speaker/apple.json](../Tests/Reports/tts-2026-10-22/calibrated-speaker/apple.json)
+- [Tests/Reports/tts-2026-10-22/calibrated-speaker/summary.json](../Tests/Reports/tts-2026-10-22/calibrated-speaker/summary.json)
+- [Tests/Reports/tts-2026-10-22/README.md](../Tests/Reports/tts-2026-10-22/README.md)
+- [Tests/Reports/tts-2026-10-22/calibrated-source-pins.json](../Tests/Reports/tts-2026-10-22/calibrated-source-pins.json)
+- [Tests/Reports/tts-2026-10-22/calibrated-command.json](../Tests/Reports/tts-2026-10-22/calibrated-command.json)
+- [Tests/Reports/tts-2026-10-22/calibrated-speaker/reference-progress-audit.json](../Tests/Reports/tts-2026-10-22/calibrated-speaker/reference-progress-audit.json)
 
 ### Qwen3-TTS0.6B4bit: quiet-room speaker-output attempt
 

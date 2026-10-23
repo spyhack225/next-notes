@@ -26,6 +26,14 @@ root = pathlib.Path(arg("--tts-model-root"))
 assert pathlib.Path(tempfile.gettempdir()).resolve() == root.resolve()
 (root / "fake-weight").write_bytes(b"test-only")
 engine = arg("--tts-engine")
+if "--tts-reference-ready" in a:
+ ready = pathlib.Path(arg("--tts-reference-ready"))
+ assert not ready.exists(), "Reference must start after model preparation"
+ (root / "prepared").write_text("prepared")
+ for _ in range(500):
+  if ready.exists() and json.loads(ready.read_text()).get("active"): break
+  time.sleep(.01)
+ else: sys.exit(3)
 if arg("--tts-text") == "timeout": time.sleep(30)
 if arg("--tts-text") == "failure": sys.exit(1)
 speaker = "--tts-speaker-output" in a
@@ -66,6 +74,39 @@ pathlib.Path(arg("--tts-report")).write_text(json.dumps({
             self.assertTrue(result["cleanupVerified"])
             self.assertTrue((self.output / (engine + ".json")).exists())
         self.assertEqual(len(self.created), 2)
+
+    def test_owned_reference_starts_after_prepare_and_joins_before_next_model(self):
+        reference = self.root/'fake-reference.py'
+        reference.write_text('''import os,sys,json,pathlib,signal,time
+p=pathlib.Path(sys.argv[sys.argv.index('--output')+1]);p.mkdir()
+stop=False
+def end(*_):
+ global stop
+ stop=True
+signal.signal(signal.SIGINT,end)
+(p/'ready.json').write_text(json.dumps({'active':True,'workerPID':os.getpid()}))
+while not stop:time.sleep(.01)
+(p/'ready.json').write_text(json.dumps({'active':False}))
+(p/'receipt.json').write_text(json.dumps(dict(childJoined=True,temporaryAssetsDeleted=True,ownerArtifactsUnchanged=True)))
+''')
+        original = subprocess.Popen
+        references = []
+        def start(args, **kwargs):
+            if len(args)>1 and str(args[1]).endswith('tts_asr_workload.py'):
+                self.assertTrue((self.created[-1]/'prepared').exists())
+                args=[args[0],str(reference),*args[2:]]
+                child=original(args,**kwargs)
+                references.append(child)
+                return child
+            return original(args,**kwargs)
+        with patch.object(bench.subprocess,'Popen',side_effect=start):
+            for engine in ('phonon','qwen'):
+                value=bench.run_one(self.app,engine,self.output,3,'fixture',5,reference_probe=self.app)
+                self.assertEqual(value['status'],'measured')
+                self.assertTrue(value['referenceCleanupVerified'])
+                self.assertTrue(value['cleanupVerified'])
+                self.assertIsNotNone(references[-1].poll())
+        self.assertEqual(len(references),2)
 
     def test_speaker_mode_preserves_qualified_pickup_boundary(self):
         result = bench.run_one(self.app, "phonon", self.output, 3, "fixture", 5, speaker_output=True)

@@ -132,6 +132,9 @@ Discovery inventory, not a claim that every file is a benchmark or that its chec
 | [Tests/Reports/release-2026-10-22/candidate-original-usage-failure/asr-settings.log](../../Tests/Reports/release-2026-10-22/candidate-original-usage-failure/asr-settings.log) |
 | [Tests/Reports/release-2026-10-22/candidate/asr-settings.log](../../Tests/Reports/release-2026-10-22/candidate/asr-settings.log) |
 | [Tests/Reports/release-2026-10-22/signature-refused/asr-settings.log](../../Tests/Reports/release-2026-10-22/signature-refused/asr-settings.log) |
+| [Tests/Reports/tts-2026-10-22/final-reference-asr/ready.json](../../Tests/Reports/tts-2026-10-22/final-reference-asr/ready.json) |
+| [Tests/Reports/tts-2026-10-22/final-reference-asr/receipt.json](../../Tests/Reports/tts-2026-10-22/final-reference-asr/receipt.json) |
+| [Tests/Reports/tts-2026-10-22/final-reference-asr/rpc.json.diagnostic.json](../../Tests/Reports/tts-2026-10-22/final-reference-asr/rpc.json.diagnostic.json) |
 | [Tests/Reports/tts-2026-10-22/reference-asr-probe-build.json](../../Tests/Reports/tts-2026-10-22/reference-asr-probe-build.json) |
 | [Tests/Reports/tts-2026-10-22/speaker-reference-asr-baseline/ready.json](../../Tests/Reports/tts-2026-10-22/speaker-reference-asr-baseline/ready.json) |
 | [Tests/Reports/tts-2026-10-22/speaker-reference-asr-baseline/receipt.json](../../Tests/Reports/tts-2026-10-22/speaker-reference-asr-baseline/receipt.json) |

@@ -1,0 +1,14 @@
+{
+  "binarySHA256": "b5e9431a0e1e697313107e59957ed0054a33ec08279e8168f11f55c1c7f1ff44",
+  "sourceSHA256": {
+    "Sources/NextNotes/Agent/Speech/TTSOutputProbe.swift": "7831b73488c66be67d0afa67465245e822f988fea7a3a723d4c33952f64a9849",
+    "Sources/NextNotes/Agent/Speech/TTSFirstAudioBenchmark.swift": "34694aaf00216b6d7c4a76bbbf99d215b4e74985961711a9b85d5048f1a7ea5d",
+    "Tools/package-resource-accessors.py": "0579a2e8ab44370da44d6678212fbc9510f6227d284f0568589dc61123b3b5a8",
+    "Tools/tts_compare.py": "8c5c959ad2b48819f318c98a2a2f2288f7053811e3569d8758470a82da45de68"
+  },
+  "decoderBatchTokens": 25,
+  "modelPrecision": "unchanged",
+  "detector": "last500ms baseline; same max(.001,4xRMS),>=.75 correlation,two10ms voiced windows,min30 baseline windows",
+  "freeBytes": 3676995584,
+  "environment": "Owner reports room quieter; same native48k built-in route; output38% input51% from retained setup not audited each boundary. Concurrent paced cached native v3 reference decoder; not actual selected-ASR/AEC/EOU acceptance."
+}

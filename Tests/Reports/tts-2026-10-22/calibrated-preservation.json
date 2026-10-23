@@ -1,0 +1,12 @@
+{
+  "freeBytes": 2693906432,
+  "allTTSTemporaryModelsRemoved": true,
+  "allStartedReferenceChildrenJoinedAndRemoved": true,
+  "installedSHA256": "bce5ef99b315110ef535122ded59329eb6bec1d7a53d6e573ac9a07f4af95620",
+  "voicePreferences": {
+    "agentVoiceEngine": "pocket",
+    "agentPocketVoice": "alba",
+    "agentVoiceIdentifier": null
+  },
+  "note": "No owner preference write performed. Exact original volume restored in calibrated-volume-after.json. Existing ASR artifacts preserved by each reference receipt."
+}

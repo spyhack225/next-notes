@@ -1,0 +1,17 @@
+LIVE en/0 first=473.4166249400005 final=101.8ms
+LIVE en/1 first=516.8967080535367 final=143.4ms
+LIVE en/2 first=512.9610410658643 final=133.6ms
+LIVE en/3 first=503.541124984622 final=138.3ms
+LIVE en/4 first=499.6222920017317 final=138.2ms
+LIVE en/5 first=482.68054192885756 final=144.9ms
+LIVE en/6 first=517.0440420042723 final=144.4ms
+LIVE en/7 first=520.6264579901472 final=124.4ms
+LIVE en/8 first=507.15108308941126 final=130.2ms
+LIVE en/9 first=508.53258394636214 final=137.5ms
+LIVE en/10 first=478.87633403297514 final=133.1ms
+LIVE en/11 first=514.4295420031995 final=124.5ms
+LIVE en/12 first=512.9170840373263 final=142.4ms
+LIVE en/13 first=520.6797090359032 final=130.3ms
+LIVE en/14 first=518.1709170574322 final=128.5ms
+LIVE en/15 first=513.6641659773886 final=139.7ms
+{"schema": "nextnotes.tts-reference-asr-load.v1", "scope": "Cached native Parakeet v3; authored English prefixes at 400ms then one-second updates. Concurrent decoder load, not production mic/EOU/full-duplex acceptance.", "startedMonotonic": 555291.245369666, "probeSHA256": "84e25e37e7c5a5f86ebf2cb2286ec7e92c205e75cbb16402644a15cebced2aab", "status": "planned-stop-after-TTS", "childJoined": true, "elapsedSeconds": 141.02025379193947, "ownerArtifactsUnchanged": true, "temporaryAssetsDeleted": true}

@@ -1,0 +1,33 @@
+..phonon: preparing one model, then measuring; log: /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/tts-runner-test-r4c7oxsy/reports/phonon.log
+phonon: failed; temporary model removed
+.phonon: preparing one model, then measuring; log: /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/tts-runner-test-hoxmz50f/reports/phonon.log
+phonon: failed; temporary model removed
+.phonon: not-run; temporary model removed
+.phonon: preparing one model, then measuring; log: /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/tts-runner-test-l8rbp9z1/reports/phonon.log
+phonon: measured; temporary model removed
+qwen: preparing one model, then measuring; log: /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/tts-runner-test-l8rbp9z1/reports/qwen.log
+qwen: measured; temporary model removed
+.phonon: not-run; temporary model removed
+.phonon: preparing one model, then measuring; log: /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/tts-runner-test-zsfyfuny/reports/phonon.log
+phonon: model prepared; warming reference decoder before timing
+phonon: measured; temporary model removed
+qwen: preparing one model, then measuring; log: /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/tts-runner-test-zsfyfuny/reports/qwen.log
+qwen: model prepared; warming reference decoder before timing
+qwen: measured; temporary model removed
+.phonon: preparing one model, then measuring; log: /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/tts-runner-test-ju8dbdzh/reports/phonon.log
+phonon: failed; temporary model removed
+.phonon: preparing one model, then measuring; log: /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/tts-runner-test-u70onk7i/reports/phonon.log
+phonon: measured; temporary model removed
+.phonon: preparing one model, then measuring; log: /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/tts-runner-test-6yvthgn8/reports/phonon.log
+Result not safely saved; retained owned files at /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/tts-runner-test-6yvthgn8/nextnotes-tts-kl7ia5sk
+.phonon: preparing one model, then measuring; log: /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/tts-runner-test-y18qnx1b/reports/phonon.log
+phonon: measured; temporary model removed
+.phonon: preparing one model, then measuring; log: /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/tts-runner-test-9sne9623/reports/phonon.log
+phonon: failed; temporary model removed
+.phonon: preparing one model, then measuring; log: /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/tts-runner-test-533myise/reports/phonon.log
+phonon: partial; temporary model removed
+.
+----------------------------------------------------------------------
+Ran 14 tests in 2.777s
+
+OK

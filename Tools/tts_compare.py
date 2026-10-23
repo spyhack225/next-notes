@@ -15,6 +15,7 @@ import shutil
 import signal
 import statistics
 import subprocess
+import sys
 import tempfile
 import time
 
@@ -71,19 +72,38 @@ def reference_workload(path):
         return {"active": False}
 
 
-def run_one(app, engine, output, trials, text, timeout, speaker_output=False, workload_ready=None):
+def run_one(app, engine, output, trials, text, timeout, speaker_output=False, workload_ready=None, reference_probe=None):
     """Return only after result persistence, process exit and verified cleanup."""
     root = Path(tempfile.mkdtemp(prefix="nextnotes-tts-"))
     (root / ".benchmark-owned").write_text(engine)
     result_path = output / (engine + ".json")
     child_path = root / "result.json"
     process = None
+    reference = None
+    reference_log = None
+    reference_active = False
+    reference_output = output / ('reference-' + engine)
+    if reference_probe is not None:
+        workload_ready = reference_output / 'ready.json'
+    def finish_reference():
+        nonlocal reference, reference_log
+        if reference is None: return
+        if reference.poll() is None:
+            reference.send_signal(signal.SIGINT)
+        reference.wait(timeout=20)
+        receipt = json.loads((reference_output/'receipt.json').read_text())
+        if not all(receipt.get(key) for key in ('childJoined','temporaryAssetsDeleted','ownerArtifactsUnchanged')):
+            raise RuntimeError('Reference cleanup not verified; refusing another model')
+        result['referenceCleanupVerified'] = True
+        reference = None
+        reference_log.close()
+        reference_log = None
     result = {"engine": engine, "status": "failed", "cleanupVerified": False}
     started = time.monotonic()
     try:
         free = shutil.disk_usage(root).free
         result["freeBytesBefore"] = free
-        load = reference_workload(workload_ready)
+        load = reference_workload(workload_ready) if reference_probe is None else None
         if workload_ready is not None:
             result["referenceASRBefore"] = load
         if load is not None and not load.get("active"):
@@ -96,6 +116,8 @@ def run_one(app, engine, output, trials, text, timeout, speaker_output=False, wo
                     "--tts-text", text, "--tts-report", str(child_path)]
             if speaker_output:
                 args.append("--tts-speaker-output")
+            if reference_probe is not None:
+                args += ['--tts-reference-ready', str(workload_ready)]
             if not speaker_output and engine in ("phonon", "qwen"):
                 args.append("--tts-playback-check")
             print(f"{engine}: preparing one model, then measuring; log: {output / (engine + '.log')}", flush=True)
@@ -108,7 +130,20 @@ def run_one(app, engine, output, trials, text, timeout, speaker_output=False, wo
                                            env=environment)
                 deadline = time.monotonic() + timeout
                 while process.poll() is None:
-                    load = reference_workload(workload_ready)
+                    if reference_probe is not None and reference is None and (root/'prepared').exists():
+                        reference_log = (output/(engine+'-reference.log')).open('w')
+                        reference = subprocess.Popen([sys.executable, str(Path(__file__).with_name('tts_asr_workload.py')),
+                            '--probe', str(reference_probe), '--output', str(reference_output)],
+                            stdout=reference_log, stderr=reference_log)
+                        print(f'{engine}: model prepared; warming reference decoder before timing', flush=True)
+                    load = reference_workload(workload_ready) if reference_probe is None or workload_ready.exists() else None
+                    if load is not None and load.get('active') and not reference_active:
+                        reference_active = True
+                        result['referenceASRBefore'] = load
+                    if reference is not None and reference.poll() is not None:
+                        result['reason'] = 'Reference decoder exited; no concurrent timing accepted.'
+                        stop_process_group(process)
+                        break
                     if load is not None and not load.get("active"):
                         result["reason"] = "Reference ASR stopped; no concurrent-workload timing accepted."
                         stop_process_group(process)
@@ -162,10 +197,12 @@ def run_one(app, engine, output, trials, text, timeout, speaker_output=False, wo
     except BaseException:
         if process is not None:
             stop_process_group(process)
+        finish_reference()
         print(f"Result not safely saved; retained owned files at {root}", flush=True)
         raise
     if process is not None:
         stop_process_group(process)
+    finish_reference()
     shutil.rmtree(root)
     if root.exists():
         raise RuntimeError(f"Cleanup failed: {root}; refusing to start the next engine")
@@ -186,12 +223,16 @@ def main():
     parser.add_argument("--timeout", type=float, default=600, help="Per-engine preparation and measurement deadline")
     parser.add_argument("--workload", default="Standalone; ASR-plus-voice reference workload is unqualified")
     parser.add_argument("--workload-ready", type=Path, help="Ready/health file from the declared paced ASR reference workload")
+    parser.add_argument('--reference-asr-probe', type=Path, help='Prepare one TTS model first, then own a reference decoder during timing; joined/removed before the next model')
     parser.add_argument("--speaker-output", action="store_true", help="Measure actual playback and correlated microphone pickup; requires granted mic and speakers")
     parser.add_argument("--preflight-only", action="store_true", help="Save resource/claim state without loading or downloading anything")
     parser.add_argument("--relay-owner", help="Reuse this agent's existing heavy claim; never release another owner's claim")
     parser.add_argument("--max-swap-gb", type=float, default=8,
                         help="Record an explicit diagnostic admission limit; actual free disk is still monitored")
     options = parser.parse_args()
+    if options.reference_asr_probe is not None:
+        options.reference_asr_probe = options.reference_asr_probe.resolve(strict=True)
+        if options.workload_ready is not None: parser.error('Choose owned deferred reference or an external ready file, not both')
     engines = options.engines.split(",")
     if not set(engines) <= set(ENGINES) or len(set(engines)) != len(engines):
         parser.error("Choose distinct engines from " + ",".join(ENGINES))
@@ -239,7 +280,8 @@ def main():
         for engine in engines:
             # Sequential by construction: run_one saves, joins and deletes before returning.
             results.append(run_one(options.app, engine, options.output, options.trials, options.text, options.timeout,
-                                   speaker_output=options.speaker_output, workload_ready=options.workload_ready))
+                                   speaker_output=options.speaker_output, workload_ready=options.workload_ready,
+                                   reference_probe=options.reference_asr_probe))
             save(options.output / "summary.json", {"appSHA256": digest, "machine": platform.platform(),
                  "workload": options.workload, "results": results})
             if options.workload_ready is not None and not reference_workload(options.workload_ready).get("active"):

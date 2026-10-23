@@ -204,6 +204,22 @@ enum TTSFirstAudioBenchmark {
         }
         notes.append("Compatible existing model directories are reused through APFS copy-on-write snapshots; SDK cache changes and cleanup affect only the temporary snapshot.")
         let preparedMs = milliseconds(since: preparationStart)
+        if let i = args.firstIndex(of: "--tts-reference-ready"), i + 1 < args.count {
+            // Diagnostic-only phase boundary. Download/load before starting the
+            // reference decoder; it is active throughout every timed request.
+            try Data("prepared".utf8).write(to: root.appendingPathComponent("prepared"), options: .atomic)
+            let ready = URL(fileURLWithPath: args[i + 1])
+            FileHandle.standardError.write(Data("TTS_WAITING_FOR_REFERENCE\n".utf8))
+            let deadline = Date().addingTimeInterval(120)
+            var active = false
+            while Date() < deadline {
+                if let data = try? Data(contentsOf: ready),
+                   let state = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                   state["active"] as? Bool == true { active = true; break }
+                try await Task.sleep(for: .milliseconds(50))
+            }
+            guard active else { throw BenchmarkError.preparation("Reference workload did not become ready.") }
+        }
         var results: [Trial] = []
         if let outputBacking {
             results = try await outputTrials(backing: outputBacking, text: text, count: trials)

@@ -1,0 +1,1070 @@
+{
+  "cleanupVerified": true,
+  "elapsedSeconds": 141.83134324999992,
+  "engine": "apple",
+  "exitCode": 0,
+  "freeBytesAfterCleanup": 3369570304,
+  "freeBytesBefore": 3401195520,
+  "measurement": {
+    "engine": "apple",
+    "generatedAt": "2026-10-23T04:13:09Z",
+    "macOS": "Version 27.2 (Build 26B5091g)",
+    "memoryBytes": 17179869184,
+    "model": "AVSpeechSynthesizer/system-default",
+    "notes": [
+      "Actual production playback backings; only the selected adapter's model is loaded in this child.",
+      "firstPCMms is absent from the speaker-output schema; native render and estimated presentation are separate from correlated microphone pickup.",
+      "Microphone energy envelopes are retained only in memory; no raw microphone audio is saved. Acoustic detection uses 10 ms windows, 4x room baseline/0.001 RMS threshold and >=0.75 envelope correlation.",
+      "One first-after-prepare trial plus paced, varied warm phrases. Component output experiment, not speech-end/ASR/EOU or all-route acceptance."
+    ],
+    "peakRSSBytes": 86147072,
+    "preparationMs": 112.872583,
+    "schema": "nextnotes.tts-speaker-output.v1",
+    "text": "I found three matching files. The latest is enclosure version seventeen.",
+    "trials": [
+      {
+        "completionMs": 6044.038125,
+        "index": 0,
+        "output": {
+          "acousticCorrelation": 0.9412132352524443,
+          "acousticOnsetMs": 1327.1278333333335,
+          "baselineRMS": 0.0005839531035263593,
+          "callerToken": 1,
+          "captureWindows": 596,
+          "estimatedPresentationMs": 1267.1565,
+          "firstRenderedHost": 13327520843688,
+          "firstRenderedMs": 1265.6148333333333,
+          "firstRenderedOrigin": "mixer-3163528751859174225-epoch-0",
+          "presentationLatencyMs": 1.5416666666666667,
+          "qualified": true,
+          "reason": "Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only. baselineWhole=0.0008177333088714385, baselineRecent500=0.0005839531035263593, baselinePreProbeWindows=1.",
+          "referenceWindows": 471,
+          "renderOrigins": [
+            "mixer-3163528751859174225-epoch-0"
+          ],
+          "requestHost": 13327490468932,
+          "route": [
+            90,
+            83,
+            5099,
+            1,
+            3800,
+            1
+          ]
+        },
+        "phase": "first-after-prepare",
+        "spokenText": "I found three matching files. The latest is enclosure version seventeen."
+      },
+      {
+        "completionMs": 2782.053875,
+        "index": 1,
+        "output": {
+          "acousticCorrelation": 0.9494085959670311,
+          "acousticOnsetMs": 251.94899999999998,
+          "baselineRMS": 0.0007032852611739534,
+          "callerToken": 2,
+          "captureWindows": 268,
+          "estimatedPresentationMs": 174.52016666666665,
+          "firstRenderedHost": 13327657464708,
+          "firstRenderedMs": 172.9785,
+          "firstRenderedOrigin": "mixer-3163528751859174225-epoch-2",
+          "presentationLatencyMs": 1.5416666666666667,
+          "qualified": true,
+          "reason": "Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only. baselineWhole=0.0006703668703947829, baselineRecent500=0.0007032852611739534, baselinePreProbeWindows=9.",
+          "referenceWindows": 251,
+          "renderOrigins": [
+            "mixer-3163528751859174225-epoch-2"
+          ],
+          "requestHost": 13327653313224,
+          "route": [
+            90,
+            83,
+            5099,
+            1,
+            3800,
+            1
+          ]
+        },
+        "phase": "warm",
+        "spokenText": "Your next meeting starts in fifteen minutes."
+      },
+      {
+        "completionMs": 2682.011375,
+        "index": 2,
+        "output": {
+          "acousticCorrelation": 0.9290826949425564,
+          "acousticOnsetMs": 181.61575,
+          "baselineRMS": 0.000512512089821761,
+          "callerToken": 3,
+          "captureWindows": 265,
+          "estimatedPresentationMs": 120.98983333333334,
+          "firstRenderedHost": 13327740907978,
+          "firstRenderedMs": 119.44816666666667,
+          "firstRenderedOrigin": "mixer-3163528751859174225-epoch-4",
+          "presentationLatencyMs": 1.5416666666666667,
+          "qualified": true,
+          "reason": "Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only. baselineWhole=0.0005439141328022964, baselineRecent500=0.000512512089821761, baselinePreProbeWindows=2.",
+          "referenceWindows": 241,
+          "renderOrigins": [
+            "mixer-3163528751859174225-epoch-4"
+          ],
+          "requestHost": 13327738041222,
+          "route": [
+            90,
+            83,
+            5099,
+            1,
+            3800,
+            1
+          ]
+        },
+        "phase": "warm",
+        "spokenText": "I saved the notes and found the latest version."
+      },
+      {
+        "completionMs": 2287.667375,
+        "index": 3,
+        "output": {
+          "acousticCorrelation": 0.9647638771995871,
+          "acousticOnsetMs": 172.13225,
+          "baselineRMS": 0.0006200959682742613,
+          "callerToken": 4,
+          "captureWindows": 222,
+          "estimatedPresentationMs": 97.81004166666668,
+          "firstRenderedHost": 13327822659267,
+          "firstRenderedMs": 96.268375,
+          "firstRenderedOrigin": "mixer-3163528751859174225-epoch-6",
+          "presentationLatencyMs": 1.5416666666666667,
+          "qualified": true,
+          "reason": "Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only. baselineWhole=0.0006089361867805656, baselineRecent500=0.0006200959682742613, baselinePreProbeWindows=5.",
+          "referenceWindows": 211,
+          "renderOrigins": [
+            "mixer-3163528751859174225-epoch-6"
+          ],
+          "requestHost": 13327820348826,
+          "route": [
+            90,
+            83,
+            5099,
+            1,
+            3800,
+            1
+          ]
+        },
+        "phase": "warm",
+        "spokenText": "Yes, that works for tomorrow."
+      },
+      {
+        "completionMs": 2816.244166666667,
+        "index": 4,
+        "output": {
+          "acousticCorrelation": 0.9274418730378404,
+          "acousticOnsetMs": 186.975125,
+          "baselineRMS": 0.0007155855782958954,
+          "callerToken": 5,
+          "captureWindows": 270,
+          "estimatedPresentationMs": 106.72491666666667,
+          "firstRenderedHost": 13327895236995,
+          "firstRenderedMs": 105.18325,
+          "firstRenderedOrigin": "mixer-3163528751859174225-epoch-8",
+          "presentationLatencyMs": 1.5416666666666667,
+          "qualified": true,
+          "reason": "Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only. baselineWhole=0.0007218101449305722, baselineRecent500=0.0007155855782958954, baselinePreProbeWindows=8.",
+          "referenceWindows": 261,
+          "renderOrigins": [
+            "mixer-3163528751859174225-epoch-8"
+          ],
+          "requestHost": 13327892712597,
+          "route": [
+            90,
+            83,
+            5099,
+            1,
+            3800,
+            1
+          ]
+        },
+        "phase": "warm",
+        "spokenText": "There are three items to review before Friday."
+      },
+      {
+        "completionMs": 4902.50675,
+        "index": 5,
+        "output": {
+          "acousticCorrelation": 0.9483128595198604,
+          "acousticOnsetMs": 172.56375,
+          "baselineRMS": 0.0004977621165196737,
+          "callerToken": 6,
+          "captureWindows": 484,
+          "estimatedPresentationMs": 106.24058333333335,
+          "firstRenderedHost": 13327980771244,
+          "firstRenderedMs": 104.69891666666668,
+          "firstRenderedOrigin": "mixer-3163528751859174225-epoch-10",
+          "presentationLatencyMs": 1.5416666666666667,
+          "qualified": true,
+          "reason": "Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only. baselineWhole=0.0004951087930876977, baselineRecent500=0.0004977621165196737, baselinePreProbeWindows=3.",
+          "referenceWindows": 471,
+          "renderOrigins": [
+            "mixer-3163528751859174225-epoch-10"
+          ],
+          "requestHost": 13327978258470,
+          "route": [
+            90,
+            83,
+            5099,
+            1,
+            3800,
+            1
+          ]
+        },
+        "phase": "warm",
+        "spokenText": "I found three matching files. The latest is enclosure version seventeen."
+      },
+      {
+        "completionMs": 2705.8204166666665,
+        "index": 6,
+        "output": {
+          "acousticCorrelation": 0.9588558460565703,
+          "acousticOnsetMs": 168.86024999999998,
+          "baselineRMS": 0.0009420472377364515,
+          "callerToken": 7,
+          "captureWindows": 269,
+          "estimatedPresentationMs": 89.65920833333332,
+          "firstRenderedHost": 13328115822175,
+          "firstRenderedMs": 88.11754166666665,
+          "firstRenderedOrigin": "mixer-3163528751859174225-epoch-12",
+          "presentationLatencyMs": 1.5416666666666667,
+          "qualified": true,
+          "reason": "Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only. baselineWhole=0.0010463415739201403, baselineRecent500=0.0009420472377364515, baselinePreProbeWindows=8.",
+          "referenceWindows": 251,
+          "renderOrigins": [
+            "mixer-3163528751859174225-epoch-12"
+          ],
+          "requestHost": 13328113707354,
+          "route": [
+            90,
+            83,
+            5099,
+            1,
+            3800,
+            1
+          ]
+        },
+        "phase": "warm",
+        "spokenText": "Your next meeting starts in fifteen minutes."
+      },
+      {
+        "completionMs": 2661.485291666667,
+        "index": 7,
+        "output": {
+          "acousticCorrelation": 0.9479824073522921,
+          "acousticOnsetMs": 147.46841666666666,
+          "baselineRMS": 0.0006309893671976983,
+          "callerToken": 8,
+          "captureWindows": 264,
+          "estimatedPresentationMs": 88.902,
+          "firstRenderedHost": 13328198637406,
+          "firstRenderedMs": 87.36033333333333,
+          "firstRenderedOrigin": "mixer-3163528751859174225-epoch-14",
+          "presentationLatencyMs": 1.5416666666666667,
+          "qualified": true,
+          "reason": "Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only. baselineWhole=0.0006120482182481222, baselineRecent500=0.0006309893671976983, baselinePreProbeWindows=3.",
+          "referenceWindows": 241,
+          "renderOrigins": [
+            "mixer-3163528751859174225-epoch-14"
+          ],
+          "requestHost": 13328196540758,
+          "route": [
+            90,
+            83,
+            5099,
+            1,
+            3800,
+            1
+          ]
+        },
+        "phase": "warm",
+        "spokenText": "I saved the notes and found the latest version."
+      },
+      {
+        "completionMs": 2291.81675,
+        "index": 8,
+        "output": {
+          "acousticCorrelation": 0.9667653406734732,
+          "acousticOnsetMs": 155.72020833333335,
+          "baselineRMS": 0.0007021993347284806,
+          "callerToken": 9,
+          "captureWindows": 226,
+          "estimatedPresentationMs": 81.45508333333333,
+          "firstRenderedHost": 13328279620637,
+          "firstRenderedMs": 79.91341666666666,
+          "firstRenderedOrigin": "mixer-3163528751859174225-epoch-16",
+          "presentationLatencyMs": 1.5416666666666667,
+          "qualified": true,
+          "reason": "Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only. baselineWhole=0.0006639254106907658, baselineRecent500=0.0007021993347284806, baselinePreProbeWindows=3.",
+          "referenceWindows": 211,
+          "renderOrigins": [
+            "mixer-3163528751859174225-epoch-16"
+          ],
+          "requestHost": 13328277702715,
+          "route": [
+            90,
+            83,
+            5099,
+            1,
+            3800,
+            1
+          ]
+        },
+        "phase": "warm",
+        "spokenText": "Yes, that works for tomorrow."
+      },
+      {
+        "completionMs": 2781.9166666666665,
+        "index": 9,
+        "output": {
+          "acousticCorrelation": 0.9436153913226907,
+          "acousticOnsetMs": 159.972875,
+          "baselineRMS": 0.0007586564029346589,
+          "callerToken": 10,
+          "captureWindows": 272,
+          "estimatedPresentationMs": 86.278625,
+          "firstRenderedHost": 13328352594338,
+          "firstRenderedMs": 84.73695833333333,
+          "firstRenderedOrigin": "mixer-3163528751859174225-epoch-18",
+          "presentationLatencyMs": 1.5416666666666667,
+          "qualified": true,
+          "reason": "Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only. baselineWhole=0.0007463191837667381, baselineRecent500=0.0007586564029346589, baselinePreProbeWindows=4.",
+          "referenceWindows": 261,
+          "renderOrigins": [
+            "mixer-3163528751859174225-epoch-18"
+          ],
+          "requestHost": 13328350560651,
+          "route": [
+            90,
+            83,
+            5099,
+            1,
+            3800,
+            1
+          ]
+        },
+        "phase": "warm",
+        "spokenText": "There are three items to review before Friday."
+      },
+      {
+        "completionMs": 4881.175791666667,
+        "index": 10,
+        "output": {
+          "acousticCorrelation": 0.9492675050159642,
+          "acousticOnsetMs": 159.809125,
+          "baselineRMS": 0.000725281306483768,
+          "callerToken": 11,
+          "captureWindows": 479,
+          "estimatedPresentationMs": 92.87500000000001,
+          "firstRenderedHost": 13328437476581,
+          "firstRenderedMs": 91.33333333333334,
+          "firstRenderedOrigin": "mixer-3163528751859174225-epoch-20",
+          "presentationLatencyMs": 1.5416666666666667,
+          "qualified": true,
+          "reason": "Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only. baselineWhole=0.0007120023416373445, baselineRecent500=0.000725281306483768, baselinePreProbeWindows=7.",
+          "referenceWindows": 471,
+          "renderOrigins": [
+            "mixer-3163528751859174225-epoch-20"
+          ],
+          "requestHost": 13328435284581,
+          "route": [
+            90,
+            83,
+            5099,
+            1,
+            3800,
+            1
+          ]
+        },
+        "phase": "warm",
+        "spokenText": "I found three matching files. The latest is enclosure version seventeen."
+      },
+      {
+        "completionMs": 2702.4615,
+        "index": 11,
+        "output": {
+          "acousticCorrelation": 0.9673211857153581,
+          "acousticOnsetMs": 175.82679166666668,
+          "baselineRMS": 0.001230324652220535,
+          "callerToken": 12,
+          "captureWindows": 267,
+          "estimatedPresentationMs": 91.17912500000001,
+          "firstRenderedHost": 13328572411456,
+          "firstRenderedMs": 89.63745833333334,
+          "firstRenderedOrigin": "mixer-3163528751859174225-epoch-22",
+          "presentationLatencyMs": 1.5416666666666667,
+          "qualified": true,
+          "reason": "Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only. baselineWhole=0.001092050566901025, baselineRecent500=0.001230324652220535, baselinePreProbeWindows=10.",
+          "referenceWindows": 251,
+          "renderOrigins": [
+            "mixer-3163528751859174225-epoch-22"
+          ],
+          "requestHost": 13328570260157,
+          "route": [
+            90,
+            83,
+            5099,
+            1,
+            3800,
+            1
+          ]
+        },
+        "phase": "warm",
+        "spokenText": "Your next meeting starts in fifteen minutes."
+      },
+      {
+        "completionMs": 2662.6860833333335,
+        "index": 12,
+        "output": {
+          "acousticCorrelation": 0.9437918825493337,
+          "acousticOnsetMs": 146.00275,
+          "baselineRMS": 0.0007272955536646281,
+          "callerToken": 13,
+          "captureWindows": 255,
+          "estimatedPresentationMs": 84.15675000000002,
+          "firstRenderedHost": 13328654318696,
+          "firstRenderedMs": 82.61508333333335,
+          "firstRenderedOrigin": "mixer-3163528751859174225-epoch-24",
+          "presentationLatencyMs": 1.5416666666666667,
+          "qualified": true,
+          "reason": "Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only. baselineWhole=0.0008277529853967404, baselineRecent500=0.0007272955536646281, baselinePreProbeWindows=4.",
+          "referenceWindows": 241,
+          "renderOrigins": [
+            "mixer-3163528751859174225-epoch-24"
+          ],
+          "requestHost": 13328652335934,
+          "route": [
+            90,
+            83,
+            5099,
+            1,
+            3800,
+            1
+          ]
+        },
+        "phase": "warm",
+        "spokenText": "I saved the notes and found the latest version."
+      },
+      {
+        "completionMs": 2273.226916666667,
+        "index": 13,
+        "output": {
+          "acousticCorrelation": 0.9699243235890032,
+          "acousticOnsetMs": 156.500875,
+          "baselineRMS": 0.0009724643720395738,
+          "callerToken": 14,
+          "captureWindows": 224,
+          "estimatedPresentationMs": 76.12229166666667,
+          "firstRenderedHost": 13328735953913,
+          "firstRenderedMs": 74.580625,
+          "firstRenderedOrigin": "mixer-3163528751859174225-epoch-26",
+          "presentationLatencyMs": 1.5416666666666667,
+          "qualified": true,
+          "reason": "Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only. baselineWhole=0.0009803007051063094, baselineRecent500=0.0009724643720395738, baselinePreProbeWindows=2.",
+          "referenceWindows": 211,
+          "renderOrigins": [
+            "mixer-3163528751859174225-epoch-26"
+          ],
+          "requestHost": 13328734163978,
+          "route": [
+            90,
+            83,
+            5099,
+            1,
+            3800,
+            1
+          ]
+        },
+        "phase": "warm",
+        "spokenText": "Yes, that works for tomorrow."
+      },
+      {
+        "completionMs": 2781.3277916666666,
+        "index": 14,
+        "output": {
+          "acousticCorrelation": 0.9402702646722972,
+          "acousticOnsetMs": 155.55991666666665,
+          "baselineRMS": 0.000725569177735,
+          "callerToken": 15,
+          "captureWindows": 275,
+          "estimatedPresentationMs": 82.08537500000001,
+          "firstRenderedHost": 13328807879610,
+          "firstRenderedMs": 80.54370833333334,
+          "firstRenderedOrigin": "mixer-3163528751859174225-epoch-28",
+          "presentationLatencyMs": 1.5416666666666667,
+          "qualified": true,
+          "reason": "Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only. baselineWhole=0.0007876800437278212, baselineRecent500=0.000725569177735, baselinePreProbeWindows=4.",
+          "referenceWindows": 261,
+          "renderOrigins": [
+            "mixer-3163528751859174225-epoch-28"
+          ],
+          "requestHost": 13328805946561,
+          "route": [
+            90,
+            83,
+            5099,
+            1,
+            3800,
+            1
+          ]
+        },
+        "phase": "warm",
+        "spokenText": "There are three items to review before Friday."
+      },
+      {
+        "completionMs": 4871.381916666666,
+        "index": 15,
+        "output": {
+          "acousticCorrelation": 0.9436749821702196,
+          "acousticOnsetMs": 161.313375,
+          "baselineRMS": 0.0010577122371764173,
+          "callerToken": 16,
+          "captureWindows": 482,
+          "estimatedPresentationMs": 90.432,
+          "firstRenderedHost": 13328892901847,
+          "firstRenderedMs": 88.89033333333333,
+          "firstRenderedOrigin": "mixer-3163528751859174225-epoch-30",
+          "presentationLatencyMs": 1.5416666666666667,
+          "qualified": true,
+          "reason": "Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only. baselineWhole=0.0013425836384179646, baselineRecent500=0.0010577122371764173, baselinePreProbeWindows=5.",
+          "referenceWindows": 471,
+          "renderOrigins": [
+            "mixer-3163528751859174225-epoch-30"
+          ],
+          "requestHost": 13328890768479,
+          "route": [
+            90,
+            83,
+            5099,
+            1,
+            3800,
+            1
+          ]
+        },
+        "phase": "warm",
+        "spokenText": "I found three matching files. The latest is enclosure version seventeen."
+      },
+      {
+        "completionMs": 2692.4335833333334,
+        "index": 16,
+        "output": {
+          "acousticCorrelation": 0.9599482792451889,
+          "acousticOnsetMs": 161.70375,
+          "baselineRMS": 0.0007196045350356318,
+          "callerToken": 17,
+          "captureWindows": 264,
+          "estimatedPresentationMs": 79.77504166666667,
+          "firstRenderedHost": 13329026556710,
+          "firstRenderedMs": 78.233375,
+          "firstRenderedOrigin": "mixer-3163528751859174225-epoch-32",
+          "presentationLatencyMs": 1.5416666666666667,
+          "qualified": true,
+          "reason": "Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only. baselineWhole=0.0007545104334538467, baselineRecent500=0.0007196045350356318, baselinePreProbeWindows=7.",
+          "referenceWindows": 251,
+          "renderOrigins": [
+            "mixer-3163528751859174225-epoch-32"
+          ],
+          "requestHost": 13329024679109,
+          "route": [
+            90,
+            83,
+            5099,
+            1,
+            3800,
+            1
+          ]
+        },
+        "phase": "warm",
+        "spokenText": "Your next meeting starts in fifteen minutes."
+      },
+      {
+        "completionMs": 2650.2992083333334,
+        "index": 17,
+        "output": {
+          "acousticCorrelation": 0.9390525124949638,
+          "acousticOnsetMs": 159.916875,
+          "baselineRMS": 0.0008922332739302463,
+          "callerToken": 18,
+          "captureWindows": 259,
+          "estimatedPresentationMs": 93.45541666666668,
+          "firstRenderedHost": 13329109487925,
+          "firstRenderedMs": 91.91375000000001,
+          "firstRenderedOrigin": "mixer-3163528751859174225-epoch-34",
+          "presentationLatencyMs": 1.5416666666666667,
+          "qualified": true,
+          "reason": "Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only. baselineWhole=0.0009410544591550216, baselineRecent500=0.0008922332739302463, baselinePreProbeWindows=7.",
+          "referenceWindows": 241,
+          "renderOrigins": [
+            "mixer-3163528751859174225-epoch-34"
+          ],
+          "requestHost": 13329107281995,
+          "route": [
+            90,
+            83,
+            5099,
+            1,
+            3800,
+            1
+          ]
+        },
+        "phase": "warm",
+        "spokenText": "I saved the notes and found the latest version."
+      },
+      {
+        "completionMs": 2283.7504166666663,
+        "index": 18,
+        "output": {
+          "acousticCorrelation": 0.9635409181886228,
+          "acousticOnsetMs": 153.72879166666667,
+          "baselineRMS": 0.0011521425330107366,
+          "callerToken": 19,
+          "captureWindows": 222,
+          "estimatedPresentationMs": 80.90108333333335,
+          "firstRenderedHost": 13329190215135,
+          "firstRenderedMs": 79.35941666666668,
+          "firstRenderedOrigin": "mixer-3163528751859174225-epoch-36",
+          "presentationLatencyMs": 1.5416666666666667,
+          "qualified": true,
+          "reason": "Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only. baselineWhole=0.0010149901855265042, baselineRecent500=0.0011521425330107366, baselinePreProbeWindows=7.",
+          "referenceWindows": 211,
+          "renderOrigins": [
+            "mixer-3163528751859174225-epoch-36"
+          ],
+          "requestHost": 13329188310509,
+          "route": [
+            90,
+            83,
+            5099,
+            1,
+            3800,
+            1
+          ]
+        },
+        "phase": "warm",
+        "spokenText": "Yes, that works for tomorrow."
+      },
+      {
+        "completionMs": 2801.72525,
+        "index": 19,
+        "output": {
+          "acousticCorrelation": 0.9176205097203048,
+          "acousticOnsetMs": 169.06883333333334,
+          "baselineRMS": 0.0009848495649681164,
+          "callerToken": 20,
+          "captureWindows": 278,
+          "estimatedPresentationMs": 91.645,
+          "firstRenderedHost": 13329263304828,
+          "firstRenderedMs": 90.10333333333332,
+          "firstRenderedOrigin": "mixer-3163528751859174225-epoch-38",
+          "presentationLatencyMs": 1.5416666666666667,
+          "qualified": true,
+          "reason": "Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only. baselineWhole=0.0009022896450451908, baselineRecent500=0.0009848495649681164, baselinePreProbeWindows=8.",
+          "referenceWindows": 261,
+          "renderOrigins": [
+            "mixer-3163528751859174225-epoch-38"
+          ],
+          "requestHost": 13329261142348,
+          "route": [
+            90,
+            83,
+            5099,
+            1,
+            3800,
+            1
+          ]
+        },
+        "phase": "warm",
+        "spokenText": "There are three items to review before Friday."
+      },
+      {
+        "completionMs": 4881.279833333333,
+        "index": 20,
+        "output": {
+          "acousticCorrelation": 0.9394635054557552,
+          "acousticOnsetMs": 155.24991666666665,
+          "baselineRMS": 0.001030881983879723,
+          "callerToken": 21,
+          "captureWindows": 483,
+          "estimatedPresentationMs": 91.08579166666668,
+          "firstRenderedHost": 13329348583061,
+          "firstRenderedMs": 89.54412500000001,
+          "firstRenderedOrigin": "mixer-3163528751859174225-epoch-40",
+          "presentationLatencyMs": 1.5416666666666667,
+          "qualified": true,
+          "reason": "Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only. baselineWhole=0.0010141171918327566, baselineRecent500=0.001030881983879723, baselinePreProbeWindows=3.",
+          "referenceWindows": 471,
+          "renderOrigins": [
+            "mixer-3163528751859174225-epoch-40"
+          ],
+          "requestHost": 13329346434002,
+          "route": [
+            90,
+            83,
+            5099,
+            1,
+            3800,
+            1
+          ]
+        },
+        "phase": "warm",
+        "spokenText": "I found three matching files. The latest is enclosure version seventeen."
+      },
+      {
+        "completionMs": 2685.43575,
+        "index": 21,
+        "output": {
+          "acousticCorrelation": 0.964720615399011,
+          "acousticOnsetMs": 168.37733333333333,
+          "baselineRMS": 0.0009365850108635098,
+          "callerToken": 22,
+          "captureWindows": 261,
+          "estimatedPresentationMs": 90.66575000000002,
+          "firstRenderedHost": 13329483377922,
+          "firstRenderedMs": 89.12408333333335,
+          "firstRenderedOrigin": "mixer-3163528751859174225-epoch-42",
+          "presentationLatencyMs": 1.5416666666666667,
+          "qualified": true,
+          "reason": "Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only. baselineWhole=0.0009518511812473102, baselineRecent500=0.0009365850108635098, baselinePreProbeWindows=6.",
+          "referenceWindows": 251,
+          "renderOrigins": [
+            "mixer-3163528751859174225-epoch-42"
+          ],
+          "requestHost": 13329481238944,
+          "route": [
+            90,
+            83,
+            5099,
+            1,
+            3800,
+            1
+          ]
+        },
+        "phase": "warm",
+        "spokenText": "Your next meeting starts in fifteen minutes."
+      },
+      {
+        "completionMs": 2653.0020833333333,
+        "index": 22,
+        "output": {
+          "acousticCorrelation": 0.935553599628729,
+          "acousticOnsetMs": 140.210625,
+          "baselineRMS": 0.0010269074204312658,
+          "callerToken": 23,
+          "captureWindows": 260,
+          "estimatedPresentationMs": 74.63358333333335,
+          "firstRenderedHost": 13329565029151,
+          "firstRenderedMs": 73.09191666666668,
+          "firstRenderedOrigin": "mixer-3163528751859174225-epoch-44",
+          "presentationLatencyMs": 1.5416666666666667,
+          "qualified": true,
+          "reason": "Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only. baselineWhole=0.0010171810066773753, baselineRecent500=0.0010269074204312658, baselinePreProbeWindows=8.",
+          "referenceWindows": 241,
+          "renderOrigins": [
+            "mixer-3163528751859174225-epoch-44"
+          ],
+          "requestHost": 13329563274945,
+          "route": [
+            90,
+            83,
+            5099,
+            1,
+            3800,
+            1
+          ]
+        },
+        "phase": "warm",
+        "spokenText": "I saved the notes and found the latest version."
+      },
+      {
+        "completionMs": 2265.5856249999997,
+        "index": 23,
+        "output": {
+          "acousticCorrelation": 0.9547641750305522,
+          "acousticOnsetMs": 144.73625,
+          "baselineRMS": 0.0009981609585551414,
+          "callerToken": 24,
+          "captureWindows": 220,
+          "estimatedPresentationMs": 69.95958333333333,
+          "firstRenderedHost": 13329646408360,
+          "firstRenderedMs": 68.41791666666666,
+          "firstRenderedOrigin": "mixer-3163528751859174225-epoch-46",
+          "presentationLatencyMs": 1.5416666666666667,
+          "qualified": true,
+          "reason": "Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only. baselineWhole=0.0010256170936669559, baselineRecent500=0.0009981609585551414, baselinePreProbeWindows=7.",
+          "referenceWindows": 211,
+          "renderOrigins": [
+            "mixer-3163528751859174225-epoch-46"
+          ],
+          "requestHost": 13329644766330,
+          "route": [
+            90,
+            83,
+            5099,
+            1,
+            3800,
+            1
+          ]
+        },
+        "phase": "warm",
+        "spokenText": "Yes, that works for tomorrow."
+      },
+      {
+        "completionMs": 2764.5823333333333,
+        "index": 24,
+        "output": {
+          "acousticCorrelation": 0.9133132972325655,
+          "acousticOnsetMs": 157.50533333333334,
+          "baselineRMS": 0.001069322961248126,
+          "callerToken": 25,
+          "captureWindows": 271,
+          "estimatedPresentationMs": 80.63254166666668,
+          "firstRenderedHost": 13329718358053,
+          "firstRenderedMs": 79.09087500000001,
+          "firstRenderedOrigin": "mixer-3163528751859174225-epoch-48",
+          "presentationLatencyMs": 1.5416666666666667,
+          "qualified": true,
+          "reason": "Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only. baselineWhole=0.0010710763327394812, baselineRecent500=0.001069322961248126, baselinePreProbeWindows=8.",
+          "referenceWindows": 261,
+          "renderOrigins": [
+            "mixer-3163528751859174225-epoch-48"
+          ],
+          "requestHost": 13329716459872,
+          "route": [
+            90,
+            83,
+            5099,
+            1,
+            3800,
+            1
+          ]
+        },
+        "phase": "warm",
+        "spokenText": "There are three items to review before Friday."
+      },
+      {
+        "completionMs": 4855.607875,
+        "index": 25,
+        "output": {
+          "acousticCorrelation": 0.9402088972619298,
+          "acousticOnsetMs": 152.00525000000002,
+          "baselineRMS": 0.0011957525189412693,
+          "callerToken": 26,
+          "captureWindows": 481,
+          "estimatedPresentationMs": 84.80870833333334,
+          "firstRenderedHost": 13329802590283,
+          "firstRenderedMs": 83.26704166666667,
+          "firstRenderedOrigin": "mixer-3163528751859174225-epoch-50",
+          "presentationLatencyMs": 1.5416666666666667,
+          "qualified": true,
+          "reason": "Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only. baselineWhole=0.0010944123925199227, baselineRecent500=0.0011957525189412693, baselinePreProbeWindows=6.",
+          "referenceWindows": 471,
+          "renderOrigins": [
+            "mixer-3163528751859174225-epoch-50"
+          ],
+          "requestHost": 13329800591874,
+          "route": [
+            90,
+            83,
+            5099,
+            1,
+            3800,
+            1
+          ]
+        },
+        "phase": "warm",
+        "spokenText": "I found three matching files. The latest is enclosure version seventeen."
+      },
+      {
+        "completionMs": 2693.66325,
+        "index": 26,
+        "output": {
+          "acousticCorrelation": 0.9626887514279624,
+          "acousticOnsetMs": 158.17179166666668,
+          "baselineRMS": 0.0009792588233210676,
+          "callerToken": 27,
+          "captureWindows": 260,
+          "estimatedPresentationMs": 81.84362500000002,
+          "firstRenderedHost": 13329937011124,
+          "firstRenderedMs": 80.30195833333335,
+          "firstRenderedOrigin": "mixer-3163528751859174225-epoch-52",
+          "presentationLatencyMs": 1.5416666666666667,
+          "qualified": true,
+          "reason": "Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only. baselineWhole=0.0008880902559119521, baselineRecent500=0.0009792588233210676, baselinePreProbeWindows=6.",
+          "referenceWindows": 251,
+          "renderOrigins": [
+            "mixer-3163528751859174225-epoch-52"
+          ],
+          "requestHost": 13329935083877,
+          "route": [
+            90,
+            83,
+            5099,
+            1,
+            3800,
+            1
+          ]
+        },
+        "phase": "warm",
+        "spokenText": "Your next meeting starts in fifteen minutes."
+      },
+      {
+        "completionMs": 2659.65475,
+        "index": 27,
+        "output": {
+          "acousticCorrelation": 0.9375974121870345,
+          "acousticOnsetMs": 151.21379166666668,
+          "baselineRMS": 0.0008098215622481868,
+          "callerToken": 28,
+          "captureWindows": 260,
+          "estimatedPresentationMs": 93.52066666666667,
+          "firstRenderedHost": 13330019058365,
+          "firstRenderedMs": 91.979,
+          "firstRenderedOrigin": "mixer-3163528751859174225-epoch-54",
+          "presentationLatencyMs": 1.5416666666666667,
+          "qualified": true,
+          "reason": "Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only. baselineWhole=0.0009773182578692652, baselineRecent500=0.0008098215622481868, baselinePreProbeWindows=10.",
+          "referenceWindows": 251,
+          "renderOrigins": [
+            "mixer-3163528751859174225-epoch-54"
+          ],
+          "requestHost": 13330016850869,
+          "route": [
+            90,
+            83,
+            5099,
+            1,
+            3800,
+            1
+          ]
+        },
+        "phase": "warm",
+        "spokenText": "I saved the notes and found the latest version."
+      },
+      {
+        "completionMs": 2261.0815833333336,
+        "index": 28,
+        "output": {
+          "acousticCorrelation": 0.9515184171906833,
+          "acousticOnsetMs": 147.82883333333334,
+          "baselineRMS": 0.0008838128433951039,
+          "callerToken": 29,
+          "captureWindows": 222,
+          "estimatedPresentationMs": 73.10320833333334,
+          "firstRenderedHost": 13330099529585,
+          "firstRenderedMs": 71.56154166666667,
+          "firstRenderedOrigin": "mixer-3163528751859174225-epoch-56",
+          "presentationLatencyMs": 1.5416666666666667,
+          "qualified": true,
+          "reason": "Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only. baselineWhole=0.0008720556079849177, baselineRecent500=0.0008838128433951039, baselinePreProbeWindows=8.",
+          "referenceWindows": 211,
+          "renderOrigins": [
+            "mixer-3163528751859174225-epoch-56"
+          ],
+          "requestHost": 13330097812108,
+          "route": [
+            90,
+            83,
+            5099,
+            1,
+            3800,
+            1
+          ]
+        },
+        "phase": "warm",
+        "spokenText": "Yes, that works for tomorrow."
+      },
+      {
+        "completionMs": 2795.808916666667,
+        "index": 29,
+        "output": {
+          "acousticCorrelation": 0.9108441484573899,
+          "acousticOnsetMs": 168.31325,
+          "baselineRMS": 0.0010375219886371119,
+          "callerToken": 30,
+          "captureWindows": 272,
+          "estimatedPresentationMs": 93.32516666666668,
+          "firstRenderedHost": 13330172003286,
+          "firstRenderedMs": 91.7835,
+          "firstRenderedOrigin": "mixer-3163528751859174225-epoch-58",
+          "presentationLatencyMs": 1.5416666666666667,
+          "qualified": true,
+          "reason": "Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only. baselineWhole=0.001001499087959599, baselineRecent500=0.0010375219886371119, baselinePreProbeWindows=5.",
+          "referenceWindows": 261,
+          "renderOrigins": [
+            "mixer-3163528751859174225-epoch-58"
+          ],
+          "requestHost": 13330169800482,
+          "route": [
+            90,
+            83,
+            5099,
+            1,
+            3800,
+            1
+          ]
+        },
+        "phase": "warm",
+        "spokenText": "There are three items to review before Friday."
+      },
+      {
+        "completionMs": 4883.703833333334,
+        "index": 30,
+        "output": {
+          "acousticCorrelation": 0.9426760394733272,
+          "acousticOnsetMs": 160.56275,
+          "baselineRMS": 0.000806009015114574,
+          "callerToken": 31,
+          "captureWindows": 488,
+          "estimatedPresentationMs": 92.50175,
+          "firstRenderedHost": 13330257129535,
+          "firstRenderedMs": 90.96008333333333,
+          "firstRenderedOrigin": "mixer-3163528751859174225-epoch-60",
+          "presentationLatencyMs": 1.5416666666666667,
+          "qualified": true,
+          "reason": "Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only. baselineWhole=0.0007977601878773489, baselineRecent500=0.000806009015114574, baselinePreProbeWindows=9.",
+          "referenceWindows": 471,
+          "renderOrigins": [
+            "mixer-3163528751859174225-epoch-60"
+          ],
+          "requestHost": 13330254946493,
+          "route": [
+            90,
+            83,
+            5099,
+            1,
+            3800,
+            1
+          ]
+        },
+        "phase": "warm",
+        "spokenText": "I found three matching files. The latest is enclosure version seventeen."
+      }
+    ]
+  },
+  "referenceASRAfter": {
+    "active": true,
+    "lastResponseMonotonic": 555431.3779365,
+    "responses": 138,
+    "scope": "Cached native Parakeet v3; authored English prefixes at 400ms then one-second updates. Concurrent decoder load, not production mic/EOU/full-duplex acceptance.",
+    "workerPID": 92898
+  },
+  "referenceASRBefore": {
+    "active": true,
+    "lastResponseMonotonic": 555311.5658175,
+    "responses": 6,
+    "scope": "Cached native Parakeet v3; authored English prefixes at 400ms then one-second updates. Concurrent decoder load, not production mic/EOU/full-duplex acceptance.",
+    "workerPID": 92898
+  },
+  "referenceCleanupVerified": true,
+  "status": "measured",
+  "temporaryLogicalBytesBeforeCleanup": 38441,
+  "timingBoundary": "microphone-pickup",
+  "warmMedianMs": 159.863,
+  "warmP95Ms": 186.975125
+}

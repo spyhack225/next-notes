@@ -1,0 +1,71 @@
+{
+  "scope": "Exact-content APFS cloning of idle identical vendor framework binaries/static libraries only; no model/user/app executable removed. Original paths, bytes, timestamps, modes and ordinary attributes retained; macOS assigns per-inode provenance for clones. Available-space change may also include OS pressure recovery.",
+  "freeBytesBefore": 5992038400,
+  "freeBytesAfter": 6050783232,
+  "files": [
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/claude-scratch/out/Products/Release/libtext_processing_rs.a",
+      "canonical": "/Users/sergekadjo/Library/Caches/NextNotesBuild/claude-scratch/arm64-apple-macosx/release/libtext_processing_rs.a",
+      "sha256": "e32a6ebd067820deb95c629fb5c3621755c92e67cf9daae6d924a2f8f1bfad78",
+      "bytes": 58735840,
+      "bytesTimesModesAndOrdinaryAttributesPreserved": true,
+      "availableBytesDelta": -4096
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/claude-scratch/out/Products/Debug/libtext_processing_rs.a",
+      "canonical": "/Users/sergekadjo/Library/Caches/NextNotesBuild/claude-scratch/arm64-apple-macosx/release/libtext_processing_rs.a",
+      "sha256": "e32a6ebd067820deb95c629fb5c3621755c92e67cf9daae6d924a2f8f1bfad78",
+      "bytes": 58735840,
+      "bytesTimesModesAndOrdinaryAttributesPreserved": true,
+      "availableBytesDelta": -8192
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/claude-scratch/artifacts/fluidaudio/NemoTextProcessing/NemoTextProcessing.xcframework/macos-arm64_x86_64/libtext_processing_rs.a",
+      "canonical": "/Users/sergekadjo/Library/Caches/NextNotesBuild/claude-scratch/arm64-apple-macosx/release/libtext_processing_rs.a",
+      "sha256": "e32a6ebd067820deb95c629fb5c3621755c92e67cf9daae6d924a2f8f1bfad78",
+      "bytes": 58735840,
+      "bytesTimesModesAndOrdinaryAttributesPreserved": true,
+      "availableBytesDelta": 0
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt-scratch/voice-ack/out/Products/Release/libtext_processing_rs.a",
+      "canonical": "/Users/sergekadjo/Library/Caches/NextNotesBuild/claude-scratch/arm64-apple-macosx/release/libtext_processing_rs.a",
+      "sha256": "e32a6ebd067820deb95c629fb5c3621755c92e67cf9daae6d924a2f8f1bfad78",
+      "bytes": 58735840,
+      "bytesTimesModesAndOrdinaryAttributesPreserved": true,
+      "availableBytesDelta": -8192
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt-scratch/voice-ack/artifacts/fluidaudio/NemoTextProcessing/NemoTextProcessing.xcframework/macos-arm64_x86_64/libtext_processing_rs.a",
+      "canonical": "/Users/sergekadjo/Library/Caches/NextNotesBuild/claude-scratch/arm64-apple-macosx/release/libtext_processing_rs.a",
+      "sha256": "e32a6ebd067820deb95c629fb5c3621755c92e67cf9daae6d924a2f8f1bfad78",
+      "bytes": 58735840,
+      "bytesTimesModesAndOrdinaryAttributesPreserved": true,
+      "availableBytesDelta": 58740736
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/arm64-apple-macosx/release/libtext_processing_rs.a",
+      "canonical": "/Users/sergekadjo/Library/Caches/NextNotesBuild/claude-scratch/arm64-apple-macosx/release/libtext_processing_rs.a",
+      "sha256": "e32a6ebd067820deb95c629fb5c3621755c92e67cf9daae6d924a2f8f1bfad78",
+      "bytes": 58735840,
+      "bytesTimesModesAndOrdinaryAttributesPreserved": true,
+      "availableBytesDelta": -4096
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/out/Products/Debug/libtext_processing_rs.a",
+      "canonical": "/Users/sergekadjo/Library/Caches/NextNotesBuild/claude-scratch/arm64-apple-macosx/release/libtext_processing_rs.a",
+      "sha256": "e32a6ebd067820deb95c629fb5c3621755c92e67cf9daae6d924a2f8f1bfad78",
+      "bytes": 58735840,
+      "bytesTimesModesAndOrdinaryAttributesPreserved": true,
+      "availableBytesDelta": -16384
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/artifacts/fluidaudio/NemoTextProcessing/NemoTextProcessing.xcframework/macos-arm64_x86_64/libtext_processing_rs.a",
+      "canonical": "/Users/sergekadjo/Library/Caches/NextNotesBuild/claude-scratch/arm64-apple-macosx/release/libtext_processing_rs.a",
+      "sha256": "e32a6ebd067820deb95c629fb5c3621755c92e67cf9daae6d924a2f8f1bfad78",
+      "bytes": 58735840,
+      "bytesTimesModesAndOrdinaryAttributesPreserved": true,
+      "availableBytesDelta": -8192
+    }
+  ]
+}

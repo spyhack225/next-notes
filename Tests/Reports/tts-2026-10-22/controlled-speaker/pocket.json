@@ -1,0 +1,14 @@
+{
+  "cleanupVerified": true,
+  "elapsedSeconds": 2.595805563032627e-05,
+  "engine": "pocket",
+  "freeBytesAfterCleanup": 1450082304,
+  "freeBytesBefore": 1450086400,
+  "reason": "Insufficient disk headroom for this one model.",
+  "referenceASRAfter": {
+    "active": false
+  },
+  "referenceASRBefore": null,
+  "status": "not-run",
+  "temporaryLogicalBytesBeforeCleanup": 6
+}

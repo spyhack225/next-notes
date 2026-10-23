@@ -1,0 +1,87 @@
+{
+  "scope": "Exact-content APFS cloning of idle vendor debugging symbols only; no model/user/app executable removed. Original paths, bytes, timestamps, modes and ordinary attributes retained; macOS assigns per-inode provenance for clones. Available-space change may also include OS pressure recovery.",
+  "freeBytesBefore": 2802909184,
+  "freeBytesAfter": 3480436736,
+  "files": [
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/claude-scratch/out/Products/Release/llama.dSYM/Contents/Resources/DWARF/llama",
+      "canonical": "/Users/sergekadjo/Library/Caches/NextNotesBuild/claude-scratch/out/Products/Debug/llama.dSYM/Contents/Resources/DWARF/llama",
+      "sha256": "90d4a9edf551019d22223f9dcc3c30ae8d335bf27bc4a31ca0ddbef0a2ac67f1",
+      "bytes": 150194141,
+      "bytesTimesModesAndOrdinaryAttributesPreserved": true,
+      "availableBytesDelta": -16384
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/claude-scratch/artifacts/speechify/LlamaFramework/llama.xcframework/macos-arm64_x86_64/dSYMs/llama.dSYM/Contents/Resources/DWARF/llama",
+      "canonical": "/Users/sergekadjo/Library/Caches/NextNotesBuild/claude-scratch/out/Products/Debug/llama.dSYM/Contents/Resources/DWARF/llama",
+      "sha256": "90d4a9edf551019d22223f9dcc3c30ae8d335bf27bc4a31ca0ddbef0a2ac67f1",
+      "bytes": 150194141,
+      "bytesTimesModesAndOrdinaryAttributesPreserved": true,
+      "availableBytesDelta": 0
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/claude-scratch/artifacts/dictation-perf/LlamaFramework/llama.xcframework/ios-arm64/dSYMs/llama.dSYM/Contents/Resources/DWARF/llama",
+      "canonical": "/Users/sergekadjo/Library/Caches/NextNotesBuild/claude-scratch/artifacts/speechify/LlamaFramework/llama.xcframework/ios-arm64/dSYMs/llama.dSYM/Contents/Resources/DWARF/llama",
+      "sha256": "5a040a490c3f235761a8941a102963efd22d11af29a8e498ddfd5b49f4c33098",
+      "bytes": 74977887,
+      "bytesTimesModesAndOrdinaryAttributesPreserved": true,
+      "availableBytesDelta": 74977280
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/claude-scratch/artifacts/dictation-perf/LlamaFramework/llama.xcframework/macos-arm64_x86_64/dSYMs/llama.dSYM/Contents/Resources/DWARF/llama",
+      "canonical": "/Users/sergekadjo/Library/Caches/NextNotesBuild/claude-scratch/out/Products/Debug/llama.dSYM/Contents/Resources/DWARF/llama",
+      "sha256": "90d4a9edf551019d22223f9dcc3c30ae8d335bf27bc4a31ca0ddbef0a2ac67f1",
+      "bytes": 150194141,
+      "bytesTimesModesAndOrdinaryAttributesPreserved": true,
+      "availableBytesDelta": 150200320
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt-scratch/voice-ack/out/Products/Release/llama.dSYM/Contents/Resources/DWARF/llama",
+      "canonical": "/Users/sergekadjo/Library/Caches/NextNotesBuild/claude-scratch/out/Products/Debug/llama.dSYM/Contents/Resources/DWARF/llama",
+      "sha256": "90d4a9edf551019d22223f9dcc3c30ae8d335bf27bc4a31ca0ddbef0a2ac67f1",
+      "bytes": 150194141,
+      "bytesTimesModesAndOrdinaryAttributesPreserved": true,
+      "availableBytesDelta": -8192
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt-scratch/voice-ack/artifacts/voice-ack/LlamaFramework/llama.xcframework/ios-arm64/dSYMs/llama.dSYM/Contents/Resources/DWARF/llama",
+      "canonical": "/Users/sergekadjo/Library/Caches/NextNotesBuild/claude-scratch/artifacts/speechify/LlamaFramework/llama.xcframework/ios-arm64/dSYMs/llama.dSYM/Contents/Resources/DWARF/llama",
+      "sha256": "5a040a490c3f235761a8941a102963efd22d11af29a8e498ddfd5b49f4c33098",
+      "bytes": 74977887,
+      "bytesTimesModesAndOrdinaryAttributesPreserved": true,
+      "availableBytesDelta": 74989568
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt-scratch/voice-ack/artifacts/voice-ack/LlamaFramework/llama.xcframework/macos-arm64_x86_64/dSYMs/llama.dSYM/Contents/Resources/DWARF/llama",
+      "canonical": "/Users/sergekadjo/Library/Caches/NextNotesBuild/claude-scratch/out/Products/Debug/llama.dSYM/Contents/Resources/DWARF/llama",
+      "sha256": "90d4a9edf551019d22223f9dcc3c30ae8d335bf27bc4a31ca0ddbef0a2ac67f1",
+      "bytes": 150194141,
+      "bytesTimesModesAndOrdinaryAttributesPreserved": true,
+      "availableBytesDelta": 150196224
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/out/Products/Debug/llama.dSYM/Contents/Resources/DWARF/llama",
+      "canonical": "/Users/sergekadjo/Library/Caches/NextNotesBuild/claude-scratch/out/Products/Debug/llama.dSYM/Contents/Resources/DWARF/llama",
+      "sha256": "90d4a9edf551019d22223f9dcc3c30ae8d335bf27bc4a31ca0ddbef0a2ac67f1",
+      "bytes": 150194141,
+      "bytesTimesModesAndOrdinaryAttributesPreserved": true,
+      "availableBytesDelta": -49152
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/artifacts/next-notes/LlamaFramework/llama.xcframework/ios-arm64/dSYMs/llama.dSYM/Contents/Resources/DWARF/llama",
+      "canonical": "/Users/sergekadjo/Library/Caches/NextNotesBuild/claude-scratch/artifacts/speechify/LlamaFramework/llama.xcframework/ios-arm64/dSYMs/llama.dSYM/Contents/Resources/DWARF/llama",
+      "sha256": "5a040a490c3f235761a8941a102963efd22d11af29a8e498ddfd5b49f4c33098",
+      "bytes": 74977887,
+      "bytesTimesModesAndOrdinaryAttributesPreserved": true,
+      "availableBytesDelta": 75001856
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/artifacts/next-notes/LlamaFramework/llama.xcframework/macos-arm64_x86_64/dSYMs/llama.dSYM/Contents/Resources/DWARF/llama",
+      "canonical": "/Users/sergekadjo/Library/Caches/NextNotesBuild/claude-scratch/out/Products/Debug/llama.dSYM/Contents/Resources/DWARF/llama",
+      "sha256": "90d4a9edf551019d22223f9dcc3c30ae8d335bf27bc4a31ca0ddbef0a2ac67f1",
+      "bytes": 150194141,
+      "bytesTimesModesAndOrdinaryAttributesPreserved": true,
+      "availableBytesDelta": 150286336
+    }
+  ]
+}

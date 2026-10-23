@@ -156,16 +156,35 @@ final class TTSOutputProbe: @unchecked Sendable {
             var size = UInt32(MemoryLayout<AudioDeviceID>.size)
             guard AudioObjectGetPropertyData(AudioObjectID(kAudioObjectSystemObject), &address, 0, nil, &size, &device) == noErr else { return 0 }
             return device
+        } + [kAudioHardwarePropertyDefaultInputDevice, kAudioHardwarePropertyDefaultOutputDevice].flatMap { selector -> [UInt32] in
+            var address = AudioObjectPropertyAddress(mSelector: selector,
+                mScope: kAudioObjectPropertyScopeGlobal, mElement: kAudioObjectPropertyElementMain)
+            var device: AudioDeviceID = 0, size = UInt32(4)
+            guard AudioObjectGetPropertyData(AudioObjectID(kAudioObjectSystemObject), &address, 0, nil, &size, &device) == noErr else { return [0, 0] }
+            let scope = selector == kAudioHardwarePropertyDefaultInputDevice ? kAudioDevicePropertyScopeInput : kAudioDevicePropertyScopeOutput
+            address = AudioObjectPropertyAddress(mSelector: kAudioDevicePropertyVolumeScalar, mScope: scope, mElement: 0)
+            var volume: Float32 = 0
+            let volumeOK = AudioObjectGetPropertyData(device, &address, 0, nil, &size, &volume) == noErr
+            address.mSelector = kAudioDevicePropertyMute
+            var mute: UInt32 = 0
+            let muteOK = AudioObjectGetPropertyData(device, &address, 0, nil, &size, &mute) == noErr
+            // Nonzero opaque route signature: include device gain/mute changes,
+            // without interpreting valid zero volume or unmuted as missing IDs.
+            return [volumeOK ? UInt32(max(0, min(1, volume)) * 10_000) + 1 : UInt32.max,
+                    muteOK ? mute + 1 : UInt32.max]
         }
     }
     func finish(request: UInt64, route: [UInt32]) -> Evidence {
         let snapshot = state.withLock { $0 }
         func ms(_ host: UInt64) -> Double { (Double(host) - Double(request)) / ticks * 1_000 }
-        let baseline = snapshot.mic.filter { $0.host < request }
+        let allBaseline = snapshot.mic.filter { $0.host < request }
+        // Measure the immediate quiet interval, not older delivered input from
+        // the preceding utterance. Keep the same amplitude/SNR/30-window gates.
+        let baseline = allBaseline.filter { ms($0.host) >= -500 }
         let baselineRMS = sqrt(baseline.reduce(0) { $0 + $1.rms * $1.rms } / Double(max(1, baseline.count)))
-        let recentBaseline = baseline.filter { ms($0.host) >= -500 }
-        let recentRMS = sqrt(recentBaseline.reduce(0) { $0 + $1.rms * $1.rms } / Double(max(1, recentBaseline.count)))
-        let precedingWindows = baseline.filter { $0.host < createdHost }.count
+        let wholeRMS = sqrt(allBaseline.reduce(0) { $0 + $1.rms * $1.rms } / Double(max(1, allBaseline.count)))
+        let recentRMS = baselineRMS
+        let precedingWindows = allBaseline.filter { $0.host < createdHost }.count
         let reference = snapshot.reference.filter { $0.host >= request }
         let mic = snapshot.mic.filter { $0.host >= request }
         let first = snapshot.firstRendered
@@ -234,7 +253,7 @@ final class TTSOutputProbe: @unchecked Sendable {
             acousticCorrelation: best >= -0.5 ? best : nil, baselineRMS: baselineRMS,
             captureWindows: mic.count, referenceWindows: reference.count, route: route,
             qualified: qualified,
-            reason: qualified ? "Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only. baselineWhole=\(baselineRMS), baselineRecent500=\(recentRMS), baselinePreProbeWindows=\(precedingWindows)."
+            reason: qualified ? "Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only. baselineWhole=\(wholeRMS), baselineRecent500=\(recentRMS), baselinePreProbeWindows=\(precedingWindows)."
                 : "Acoustic onset unqualified: onset=\(onset.map(String.init(describing:)) ?? "none"), lagMs=\(bestLag * 1000), threshold=\(max(0.001, baselineRMS * 4)), micPeak=\(mic.map(\.rms).max() ?? 0), referencePeak=\(reference.map(\.rms).max() ?? 0), baselineWindows=\(baseline.count), baselineRecent500=\(recentRMS), baselinePreProbeWindows=\(precedingWindows), missingTimestamp=\(snapshot.missingTimestamp), timestampFailure=\(snapshot.timestampFailure ?? "none"), overflow=\(snapshot.overflow), routeStable=\(route == Self.route()). No audible result accepted.")
     }
 }

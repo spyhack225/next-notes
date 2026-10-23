@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "id": "2026-10-23-tts-pocket-speaker-calibrated",
+  "title": "Pocket: volume-bound serial speaker attempt",
+  "date": "2026-10-23",
+  "category": "tts",
+  "status": "blocked",
+  "scope": "Actual production playback backing with native48k mono microphone observation under paced native Parakeet-v3 decoder load. Threshold-qualified arrival, not human perception or full-turn latency.",
+  "summary": "No completed trial: Insufficient disk headroom for this one model. No warm acoustic median accepted.",
+  "environment": {
+    "hardware": "Apple M3 MacBook Air,16GB RAM,256GB storage",
+    "os": "macOS27.2(26B5091g); source cohort environment",
+    "workload": "Paced cached native Parakeet-v3 authored prefixes,400ms then1s updates. Model preparation precedes reference-decoder warmup. Actual RPC responses overlap every completed timed request; maximum response gap within a request1.18s. Not selected-ASR/AEC/EOU acceptance.",
+    "cold_warm": "One separate first-after-prepare request; 0 completed varied warm requests, cycling five English phrases. No voice-quality inference.",
+    "audio_route": "Built-in speakers/microphone; native48000Hz mono float32; source gain0.75. Hardware output38%,input51%,unmuted checked at each trial start/end with device IDs. Original output12.5% restored after cohort. No continuous route-transition proof.",
+    "power_thermal": "Not continuously sampled or controlled."
+  },
+  "provenance": {
+    "binary_sha256": "f8a214a315b7133710e3dd7ddd08ff2d665fcd358b30ce068d702f6118460b72",
+    "model_revision": "No completed synthesis report; see retained pinned adapter and preparation log",
+    "command": "See calibrated-command.json: --speaker-output --trials 30 --reference-asr-probe; one model prepares, reference decoder warms, timed requests run, both children join and owned assets are deleted before next.",
+    "grader": "Native host timestamps; two consecutive10ms windows above max(.001RMS,4x room baseline), >=.75 rendered/microphone envelope correlation, strict timestamps/callbacktokens/route/drop gates. No survivor-only acoustic medians. Baseline is the immediate preceding500ms. Hardware gain/mute joins device IDs in route signature. Qwen uses pinned25-token decoder batches; precision and joined whole-clause API unchanged."
+  },
+  "metrics": [
+    {
+      "name": "Attempted warm microphone trials",
+      "value": 0,
+      "unit": "trials",
+      "boundary": "Completed warm requests in the retained native report; admission refusals have zero.",
+      "samples": null,
+      "aggregation": "count"
+    },
+    {
+      "name": "Qualified warm microphone trials",
+      "value": 0,
+      "unit": "trials",
+      "boundary": "Requests passing frozen clock/room/correlation/onset/route gates; not an engine quality score.",
+      "samples": null,
+      "aggregation": "count"
+    }
+  ],
+  "limitations": [
+    "Five-model comparison remains incomplete: Qwen27/30, Apple30/30; Phonon hit live disk guard; Pocket/Kokoro refused before download. No fastest-five default promotion.",
+    "Microphone pickup is threshold-dependent and includes acoustic/input timing; it is not human perceptual onset.",
+    "Render and queried presentation estimates are separate component boundaries and do not substitute for physical output.",
+    "Global utterance-envelope correlation does not independently prove every earliest transient belongs to the utterance; click/cough, route/format and double-talk controls remain open.",
+    "Five English phrases, one route; no general language/voice-quality or production full-duplex/EOU acceptance.",
+    "Timestamp regressions in the earlier converted16k collector are retained as superseded evidence; this report uses the native-format observer."
+  ],
+  "sources": [
+    "Tests/Reports/tts-2026-10-22/calibrated-speaker/pocket.json",
+    "Tests/Reports/tts-2026-10-22/calibrated-speaker/summary.json",
+    "Tests/Reports/tts-2026-10-22/README.md",
+    "Tests/Reports/tts-2026-10-22/calibrated-source-pins.json",
+    "Tests/Reports/tts-2026-10-22/calibrated-command.json",
+    "Tests/Reports/tts-2026-10-22/calibrated-speaker/reference-progress-audit.json"
+  ],
+  "publication": {
+    "approved": true,
+    "reviewed_by": "Codex TTS: reviewed aggregate-only measurement scope; no audio, transcript, private task data or host context in public fields",
+    "reviewed_on": "2026-10-23"
+  }
+}

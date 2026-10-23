@@ -1,0 +1,14 @@
+[
+  {
+    "device" : 90,
+    "muted" : 0,
+    "scope" : "input",
+    "volume0" : 0.50980395078659058
+  },
+  {
+    "device" : 83,
+    "muted" : 0,
+    "scope" : "output",
+    "volume0" : 0.12500001490116119
+  }
+]

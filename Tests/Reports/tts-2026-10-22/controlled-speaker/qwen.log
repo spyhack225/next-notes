@@ -1,0 +1,7 @@
+QWEN_MEMORY before-load Peak:   0K           (0)
+Active: 0K           (0)
+Cache:  0K           (0) cacheLimit=16320875724
+QWEN_MEMORY prepared Peak:   1634M        (1714131200)
+Active: 1610M        (1688965376)
+Cache:  24M          (25168980)
+TTS_WAITING_FOR_REFERENCE

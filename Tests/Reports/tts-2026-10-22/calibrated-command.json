@@ -1,0 +1,23 @@
+[
+  "python3",
+  "/Users/sergekadjo/Documents/Claude/Projects/next-notes/Tools/tts_compare.py",
+  "--app",
+  "/Users/sergekadjo/Library/Caches/NextNotesBuild/tts-output-diagnostic/Next Notes.app/Contents/MacOS/NextNotes",
+  "--output",
+  "/Users/sergekadjo/Documents/Claude/Projects/next-notes/Tests/Reports/tts-2026-10-22/calibrated-speaker",
+  "--engines",
+  "qwen,apple,phonon,pocket,kokoro",
+  "--trials",
+  "30",
+  "--speaker-output",
+  "--timeout",
+  "900",
+  "--relay-owner",
+  "codex-tts-20261022",
+  "--max-swap-gb",
+  "12",
+  "--reference-asr-probe",
+  "/Users/sergekadjo/Library/Caches/NextNotesASRBench/tts-reference-probe-fy9lx77h/runtime-probe",
+  "--workload",
+  "All five same-binary;25-token joined decode,500ms immediate baseline,same4x/.001 RMS and.75 correlation,two10ms onset windows;30 varied warm requests plus separate first-after-prepare. Each model prepares before its own identical cached v3 reference decoder; ASR active throughout timing; both joined and temporary assets deleted before next."
+]

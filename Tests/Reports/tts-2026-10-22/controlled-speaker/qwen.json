@@ -1,0 +1,16 @@
+{
+  "cleanupVerified": true,
+  "elapsedSeconds": 31.74115975003224,
+  "engine": "qwen",
+  "exitCode": -15,
+  "freeBytesAfterCleanup": 3119742976,
+  "freeBytesBefore": 3997417472,
+  "reason": "Disk guard stopped the owned process group before cleanup.",
+  "referenceASRAfter": {
+    "active": false
+  },
+  "referenceASRBefore": null,
+  "referenceCleanupVerified": true,
+  "status": "failed",
+  "temporaryLogicalBytesBeforeCleanup": 1698364903
+}

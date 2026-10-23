@@ -392,3 +392,88 @@ models, swap or another agent's artifacts were removed. The requested five-model
 ranking remains incomplete. Pocket/Alba stays selected; no default promotion is claimed. The five
 new `*-speaker-quiet` records supplement rather than overwrite earlier noisy/calibration evidence,
 and the comparison page selects these explicitly named later attempts.
+
+
+### 23 October calibrated serial cohort — incomplete, no default promotion
+
+The owner could not close any apps. No owner app was closed and no unrelated cache,
+model, swap file, recording or user document was deleted. The diagnostic output level
+was temporarily set from12.5% to38%; the wrapper restored the exact original level.
+`calibrated-volume-{before,during,after}.json` retains the witness. Input remained51%.
+Each trial's route signature now includes device IDs, gain and mute at start/end.
+Unobservable properties carry a sentinel, not an asserted measurement; this does not
+prove that no route transition occurred between those observations.
+
+| Voice | Latest warm result | Evidence |
+|---|---|---|
+| macOS |30/30 qualified;159.863ms median,186.975ms p95|`calibrated-speaker/apple.json`|
+| Qwen3-TTS |27/30 qualified; no accepted warm acoustic median|`calibrated-speaker/qwen.json`|
+| Phonon |Disk guard stopped process before timing|`calibrated-speaker/phonon.json`|
+| Pocket |Refused before download: insufficient headroom|`calibrated-speaker/pocket.json`|
+| Kokoro |Refused before download: insufficient headroom|`calibrated-speaker/kokoro.json`|
+
+All31 Qwen requests completed synthesis. Three warm acoustic pickups failed the unchanged
+qualification gates. No survivor-only median is used. Apple completed all31 pickups,
+with first-after-preparation kept separate from30 warm requests. Native output is the
+actual production playback backing with diagnostic selection, not the normal Agent
+selection/EOU/AEC path. `reference-progress-audit.json` derives exact host-clock conversion
+from mach_timebase_info and checks retained native RPC response times: every Qwen/Apple
+request overlaps real responses; maximum within-request gaps1.172/1.046seconds. This is
+progressing cached-v3 reference load, not current selected-ASR qualification.
+
+The observer now uses the immediate preceding500ms baseline rather than the entire
+historical pre-request tail. The authored original stale-tail case fails once and
+fixed case passes; the persistent-noise negative remains refused. Thresholds remain
+4x/.001RMS,>=.75 correlation and two consecutive10ms windows. Retained original/fixed
+and actual muted-source results are in `final-controls/`. Current binary/source pins
+are `calibrated-source-pins.json`; exact command is `calibrated-command.json`.
+
+Qwen's pinned SDK decode producer previously processed up to300codec tokens (24seconds)
+in one chunk. The packaging overlay now uses its existing stateful incremental decoder
+in25-token (2second) batches, retaining precision and the joined whole-clause return.
+Original SDK source/object/interface files stay untouched and exported symbols match.
+The completed cohort reports MLX peak3,768,257,346bytes, versus4,637,067,284bytes in the
+older diagnostic. This is a scoped lower-peak observation, not proof of waveform
+continuity, intelligibility, an allocator leak repair or the total pressure cause.
+Long/short boundary/suffix quality verification is still required before installing
+this diagnostic repair. Installed809 remains unchanged.
+
+Preparation now finishes before the model's owned reference decoder starts; timing
+waits for that decoder to warm. This only changes the headless benchmark, never the
+product full-duplex path. Fourteen model-free runner tests pass, including deferred
+reference admission, serial lifecycle, save failure and cleanup controls.
+
+Space was recovered by byte-preserving APFS clone deduplication of identical idle
+vendor symbols/framework/archive files in existing build caches, and retiring only
+superseded task-owned compressed symbols after replacement verification. Hashes,
+paths and observations are in `final-controls/deduplicate-*.json` and
+`controlled-symbol-cleanup.json`. File bytes/modes/mtime and ordinary xattrs were
+checked; macOS creates fresh per-inode provenance. Do not attribute all OS free-space
+recovery to these operations. The current useful diagnostic app, compact symbols,
+installed809, baseline and rollback remain retained.
+
+The calibrated cohort began with5,694,193,664bytes free. Qwen's model was saved/joined/
+deleted, then Apple completed. During Phonon reference warmup disk pressure crossed
+the unchanged1.5GiB live floor. The runner stopped/joined both owned children, saved
+failure and deleted temporary assets. Pocket and Kokoro were refused at admission.
+All owned reference receipts verify child joined, snapshot removed and existing ASR
+artifacts unchanged. No guard or production reserve was lowered. Earlier failed
+`final-speaker` and `controlled-speaker` attempts are preserved rather than overwritten.
+
+The VOICE-TURN-DETECTION agent reviewed the new source read-only (relay message
+90a19136-fb3f-4197-a134-1ae27120b8fc): completing that entire roadmap is not a
+prerequisite, but a five-model qualified cohort, winner production consumer and
+pause/resume/cancel/reopen checks, actual selected-ASR/EOU smoke and basic speech
+quality remain prerequisites to the requested default decision. This cohort does
+not meet those contracts. No fastest-five claim or preference change is made.
+
+
+The exact Qwen overlay packaging candidate is retained as
+`final-controls/package-resource-accessors-candidate.py`, matching the packaging-tool
+hash in `calibrated-source-pins.json`. The ordinary packaging tool is restored to its
+previous resource-only implementation: incomplete waveform/quality verification must
+not silently activate the diagnostic decoder change in future normal releases. The
+current useful diagnostic bundle and overlay receipts remain available for continuation.
+Site typecheck, lint, build and75-record catalog checks pass. The build retains the
+existing >500kB bundle-size warning. Last handoff free-space observation is recorded in
+`calibrated-preservation.json`; free disk continues to vary with OS pressure recovery.

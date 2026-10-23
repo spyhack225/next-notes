@@ -1,0 +1,6 @@
+{
+  "case": "persistent-noise-negative",
+  "exit": 0,
+  "expectedExit": 0,
+  "log": "{\"firstRenderedMs\":20,\"route\":[90,83],\"captureWindows\":251,\"estimatedPresentationMs\":320,\"reason\":\"Acoustic onset unqualified: onset=none, lagMs=80.0, threshold=0.1599999964237213, micPeak=0.012936892642466884, referencePeak=0.051747570569867535, baselineWindows=50, baselineRecent500=0.03999999910593033, baselinePreProbeWindows=1, missingTimestamp=false, timestampFailure=none, overflow=false, routeStable=true. No audible result accepted.\",\"baselineRMS\":0.03999999910593033,\"callerToken\":17,\"qualified\":false,\"firstRenderedHost\":13263114103938,\"presentationLatencyMs\":300,\"renderOrigins\":[\"authored-render-generation-17\"],\"requestHost\":13263113623938,\"referenceWindows\":250,\"acousticCorrelation\":1,\"firstRenderedOrigin\":\"authored-render-generation-17\"}\nTTS_BASELINE_TAIL_CONTROL_OK\n"
+}

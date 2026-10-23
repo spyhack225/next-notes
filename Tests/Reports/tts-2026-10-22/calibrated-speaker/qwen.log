@@ -1,0 +1,291 @@
+QWEN_MEMORY before-load Peak:   0K           (0)
+Active: 0K           (0)
+Cache:  0K           (0) cacheLimit=16320875724
+QWEN_MEMORY prepared Peak:   1634M        (1714131200)
+Active: 1610M        (1688965376)
+Cache:  24M          (25168980)
+TTS_WAITING_FOR_REFERENCE
+TTS_NATIVE_INPUT rate=48000.0 channels=1 interleaved=false
+QWEN_MEMORY before-clause Peak:   1634M        (1714131200)
+Active: 1610M        (1688965376)
+Cache:  24M          (25168980)
+QWEN_MEMORY after-clause Peak:   3593M        (3768045170)
+Active: 1643M        (1723097152)
+Cache:  189M         (198466699)
+TTS_TRIAL 0 qualified=true onset=4783.57075 Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only. baselineWhole=0.0008899047247971811, baselineRecent500=0.0005374919076278177, baselinePreProbeWindows=1.
+QWEN_MEMORY before-clause Peak:   3593M        (3768045170)
+Active: 1642M        (1722523712)
+Cache:  189M         (199040139)
+QWEN_MEMORY after-clause Peak:   3593M        (3768241022)
+Active: 1643M        (1723113548)
+Cache:  186M         (195645777)
+TTS_TRIAL 1 qualified=true onset=3643.295166666667 Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only. baselineWhole=0.0006390457033681422, baselineRecent500=0.0005986410574966693, baselinePreProbeWindows=2.
+QWEN_MEMORY before-clause Peak:   3593M        (3768241022)
+Active: 1642M        (1722523712)
+Cache:  187M         (196235613)
+QWEN_MEMORY after-clause Peak:   3593M        (3768256836)
+Active: 1643M        (1723113536)
+Cache:  186M         (195661603)
+TTS_TRIAL 2 qualified=false onset=none Acoustic onset unqualified: onset=5873.498708333333, lagMs=50.0, threshold=0.0018138687716116135, micPeak=0.02814881282449239, referencePeak=0.17933965081419737, baselineWindows=50, baselineRecent500=0.0004534671929029034, baselinePreProbeWindows=8, missingTimestamp=false, timestampFailure=none, overflow=false, routeStable=true. No audible result accepted.
+QWEN_MEMORY before-clause Peak:   3593M        (3768256836)
+Active: 1642M        (1722523712)
+Cache:  187M         (196251427)
+QWEN_MEMORY after-clause Peak:   3593M        (3768256836)
+Active: 1643M        (1723113548)
+Cache:  257M         (270045137)
+TTS_TRIAL 3 qualified=true onset=3936.5960833333334 Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only. baselineWhole=0.0007716372239101062, baselineRecent500=0.000686019959276214, baselinePreProbeWindows=5.
+QWEN_MEMORY before-clause Peak:   3593M        (3768256836)
+Active: 1642M        (1722523724)
+Cache:  258M         (270634961)
+QWEN_MEMORY after-clause Peak:   3593M        (3768256836)
+Active: 1643M        (1723015256)
+Cache:  114M         (120197359)
+TTS_TRIAL 4 qualified=true onset=4436.577625 Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only. baselineWhole=0.0008042817904830546, baselineRecent500=0.0006055436433629871, baselinePreProbeWindows=4.
+QWEN_MEMORY before-clause Peak:   3593M        (3768256836)
+Active: 1642M        (1722523724)
+Cache:  115M         (120688891)
+QWEN_MEMORY after-clause Peak:   3593M        (3768256836)
+Active: 1643M        (1723129944)
+Cache:  99M          (103925286)
+TTS_TRIAL 5 qualified=true onset=4407.856958333334 Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only. baselineWhole=0.0008557654719699571, baselineRecent500=0.0008718704033793683, baselinePreProbeWindows=4.
+QWEN_MEMORY before-clause Peak:   3593M        (3768256836)
+Active: 1642M        (1722523736)
+Cache:  99M          (104531494)
+QWEN_MEMORY after-clause Peak:   3593M        (3768256836)
+Active: 1643M        (1722916964)
+Cache:  186M         (195230914)
+TTS_TRIAL 6 qualified=true onset=2657.974458333333 Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only. baselineWhole=0.0010496873078347198, baselineRecent500=0.0011016614613230543, baselinePreProbeWindows=2.
+QWEN_MEMORY before-clause Peak:   3593M        (3768256836)
+Active: 1642M        (1722523736)
+Cache:  186M         (195624142)
+QWEN_MEMORY after-clause Peak:   3593M        (3768256836)
+Active: 1643M        (1723113572)
+Cache:  275M         (288496083)
+TTS_TRIAL 7 qualified=true onset=4937.457125 Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only. baselineWhole=0.0010313188522587417, baselineRecent500=0.0010249827633924547, baselinePreProbeWindows=8.
+QWEN_MEMORY before-clause Peak:   3593M        (3768256836)
+Active: 1642M        (1722523748)
+Cache:  275M         (289085907)
+QWEN_MEMORY after-clause Peak:   3593M        (3768256836)
+Active: 1643M        (1723113584)
+Cache:  204M         (214095047)
+TTS_TRIAL 8 qualified=true onset=3848.5296249999997 Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only. baselineWhole=0.001196968881926772, baselineRecent500=0.0012312268234096757, baselinePreProbeWindows=10.
+QWEN_MEMORY before-clause Peak:   3593M        (3768256836)
+Active: 1642M        (1722523760)
+Cache:  204M         (214684871)
+QWEN_MEMORY after-clause Peak:   3593M        (3768256836)
+Active: 1643M        (1723031664)
+Cache:  140M         (146922353)
+TTS_TRIAL 9 qualified=true onset=3647.632916666667 Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only. baselineWhole=0.0017846974321291415, baselineRecent500=0.0012044583611626135, baselinePreProbeWindows=7.
+QWEN_MEMORY before-clause Peak:   3593M        (3768256836)
+Active: 1642M        (1722523760)
+Cache:  140M         (147430257)
+QWEN_MEMORY after-clause Peak:   3593M        (3768257346)
+Active: 1643M        (1723129968)
+Cache:  70M          (74401784)
+TTS_TRIAL 10 qualified=true onset=5394.249791666667 Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only. baselineWhole=0.0013020344033051999, baselineRecent500=0.0012858952461516325, baselinePreProbeWindows=8.
+QWEN_MEMORY before-clause Peak:   3593M        (3768257346)
+Active: 1642M        (1722523748)
+Cache:  71M          (75008004)
+QWEN_MEMORY after-clause Peak:   3593M        (3768257346)
+Active: 1643M        (1722835056)
+Cache:  111M         (117257249)
+TTS_TRIAL 11 qualified=true onset=2122.12775 Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only. baselineWhole=0.0014482223432816421, baselineRecent500=0.0017421263563234528, baselinePreProbeWindows=6.
+QWEN_MEMORY before-clause Peak:   3593M        (3768257346)
+Active: 1642M        (1722523760)
+Cache:  112M         (117568545)
+QWEN_MEMORY after-clause Peak:   3593M        (3768257346)
+Active: 1643M        (1722966128)
+Cache:  58M          (60981128)
+TTS_TRIAL 12 qualified=true onset=2496.751541666667 Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only. baselineWhole=0.000660256327982177, baselineRecent500=0.0006440289579259459, baselinePreProbeWindows=3.
+QWEN_MEMORY before-clause Peak:   3593M        (3768257346)
+Active: 1642M        (1722523748)
+Cache:  58M          (61423508)
+QWEN_MEMORY after-clause Peak:   3593M        (3768257346)
+Active: 1643M        (1722982500)
+Cache:  159M         (167446061)
+TTS_TRIAL 13 qualified=false onset=none Acoustic onset unqualified: onset=4629.118833333333, lagMs=120.0, threshold=0.0028501847987689893, micPeak=0.05036623149709631, referencePeak=0.22153801930983738, baselineWindows=50, baselineRecent500=0.0007125461996922473, baselinePreProbeWindows=2, missingTimestamp=false, timestampFailure=none, overflow=false, routeStable=true. No audible result accepted.
+QWEN_MEMORY before-clause Peak:   3593M        (3768257346)
+Active: 1642M        (1722523736)
+Cache:  160M         (167904825)
+QWEN_MEMORY after-clause Peak:   3593M        (3768257346)
+Active: 1643M        (1722933336)
+Cache:  68M          (71775131)
+TTS_TRIAL 14 qualified=true onset=2616.961625 Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only. baselineWhole=0.0007468157348821557, baselineRecent500=0.0007608754722359976, baselinePreProbeWindows=5.
+QWEN_MEMORY before-clause Peak:   3593M        (3768257346)
+Active: 1642M        (1722523724)
+Cache:  68M          (72184743)
+QWEN_MEMORY after-clause Peak:   3593M        (3768257346)
+Active: 1643M        (1723129944)
+Cache:  38M          (40121570)
+TTS_TRIAL 15 qualified=true onset=3272.3030833333337 Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only. baselineWhole=0.0006164294732294751, baselineRecent500=0.0005989141936330903, baselinePreProbeWindows=10.
+QWEN_MEMORY before-clause Peak:   3593M        (3768257346)
+Active: 1642M        (1722523724)
+Cache:  38M          (40727790)
+QWEN_MEMORY after-clause Peak:   3593M        (3768257346)
+Active: 1643M        (1723015256)
+Cache:  112M         (117654226)
+TTS_TRIAL 16 qualified=true onset=3063.3256666666666 Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only. baselineWhole=0.0006264807064107763, baselineRecent500=0.0006498619960093497, baselinePreProbeWindows=8.
+QWEN_MEMORY before-clause Peak:   3593M        (3768257346)
+Active: 1642M        (1722523724)
+Cache:  112M         (118145758)
+QWEN_MEMORY after-clause Peak:   3593M        (3768257346)
+Active: 1643M        (1722900568)
+Cache:  196M         (205867275)
+TTS_TRIAL 17 qualified=true onset=2468.3666249999997 Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only. baselineWhole=0.0010985439127764458, baselineRecent500=0.0010667827813191464, baselinePreProbeWindows=3.
+QWEN_MEMORY before-clause Peak:   3593M        (3768257346)
+Active: 1642M        (1722523736)
+Cache:  196M         (206244107)
+QWEN_MEMORY after-clause Peak:   3593M        (3768257346)
+Active: 1643M        (1722916964)
+Cache:  165M         (173191261)
+TTS_TRIAL 18 qualified=true onset=2936.418166666667 Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only. baselineWhole=0.0008048056084580703, baselineRecent500=0.0007299839597511588, baselinePreProbeWindows=8.
+QWEN_MEMORY before-clause Peak:   3593M        (3768257346)
+Active: 1642M        (1722523748)
+Cache:  165M         (173584477)
+QWEN_MEMORY after-clause Peak:   3593M        (3768257346)
+Active: 1643M        (1722949744)
+Cache:  51M          (53884717)
+TTS_TRIAL 19 qualified=true onset=2518.960625 Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only. baselineWhole=0.000718309959887686, baselineRecent500=0.000710943485771319, baselinePreProbeWindows=2.
+QWEN_MEMORY before-clause Peak:   3593M        (3768257346)
+Active: 1642M        (1722523748)
+Cache:  51M          (54310713)
+QWEN_MEMORY after-clause Peak:   3593M        (3768257346)
+Active: 1643M        (1723129956)
+Cache:  79M          (83248358)
+TTS_TRIAL 20 qualified=true onset=3399.0561666666667 Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only. baselineWhole=0.0007155496589488572, baselineRecent500=0.0007230892441692055, baselinePreProbeWindows=10.
+QWEN_MEMORY before-clause Peak:   3593M        (3768257346)
+Active: 1642M        (1722523736)
+Cache:  79M          (83854578)
+QWEN_MEMORY after-clause Peak:   3593M        (3768257346)
+Active: 1643M        (1723113560)
+Cache:  186M         (195644553)
+TTS_TRIAL 21 qualified=true onset=7956.436041666667 Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only. baselineWhole=0.0025183941437028957, baselineRecent500=0.002677335810551115, baselinePreProbeWindows=3.
+QWEN_MEMORY before-clause Peak:   3593M        (3768257346)
+Active: 1642M        (1722523736)
+Cache:  187M         (196234377)
+QWEN_MEMORY after-clause Peak:   3593M        (3768257346)
+Active: 1643M        (1722949720)
+Cache:  52M          (55115442)
+TTS_TRIAL 22 qualified=true onset=2892.4038333333333 Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only. baselineWhole=0.0008853354951696318, baselineRecent500=0.0008821518005273769, baselinePreProbeWindows=5.
+QWEN_MEMORY before-clause Peak:   3593M        (3768257346)
+Active: 1642M        (1722523736)
+Cache:  52M          (55541426)
+QWEN_MEMORY after-clause Peak:   3593M        (3768257346)
+Active: 1643M        (1722867812)
+Cache:  144M         (152007480)
+TTS_TRIAL 23 qualified=true onset=2142.1651666666667 Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only. baselineWhole=0.0005899904719919369, baselineRecent500=0.000640855113508258, baselinePreProbeWindows=9.
+QWEN_MEMORY before-clause Peak:   3593M        (3768257346)
+Active: 1642M        (1722523748)
+Cache:  145M         (152351544)
+QWEN_MEMORY after-clause Peak:   3593M        (3768257346)
+Active: 1643M        (1723113584)
+Cache:  186M         (195661179)
+TTS_TRIAL 24 qualified=true onset=3087.771375 Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only. baselineWhole=0.0005547717531782495, baselineRecent500=0.0005669960225445828, baselinePreProbeWindows=8.
+QWEN_MEMORY before-clause Peak:   3593M        (3768257346)
+Active: 1642M        (1722523748)
+Cache:  187M         (196251015)
+QWEN_MEMORY after-clause Peak:   3593M        (3768257346)
+Active: 1643M        (1723048036)
+Cache:  139M         (146034444)
+TTS_TRIAL 25 qualified=true onset=3133.6528333333335 Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only. baselineWhole=0.0014266388396409803, baselineRecent500=0.0006496711348288334, baselinePreProbeWindows=8.
+QWEN_MEMORY before-clause Peak:   3593M        (3768257346)
+Active: 1642M        (1722523748)
+Cache:  139M         (146558732)
+QWEN_MEMORY after-clause Peak:   3593M        (3768257346)
+Active: 1643M        (1722998884)
+Cache:  85M          (89342422)
+TTS_TRIAL 26 qualified=true onset=2766.5684583333336 Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only. baselineWhole=0.0005726271865609541, baselineRecent500=0.0005478377923423114, baselinePreProbeWindows=3.
+QWEN_MEMORY before-clause Peak:   3593M        (3768257346)
+Active: 1642M        (1722523736)
+Cache:  85M          (89817570)
+QWEN_MEMORY after-clause Peak:   3593M        (3768257346)
+Active: 1643M        (1723113572)
+Cache:  186M         (195660863)
+TTS_TRIAL 27 qualified=false onset=none Acoustic onset unqualified: onset=none, lagMs=60.0, threshold=0.022651835163929386, micPeak=0.027704253273824125, referencePeak=0.25987718653307895, baselineWindows=50, baselineRecent500=0.0056629587909823465, baselinePreProbeWindows=5, missingTimestamp=false, timestampFailure=none, overflow=false, routeStable=true. No audible result accepted.
+QWEN_MEMORY before-clause Peak:   3593M        (3768257346)
+Active: 1642M        (1722523736)
+Cache:  187M         (196250699)
+QWEN_MEMORY after-clause Peak:   3593M        (3768257346)
+Active: 1643M        (1722867812)
+Cache:  138M         (145617659)
+TTS_TRIAL 28 qualified=true onset=2185.0940833333334 Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only. baselineWhole=0.000978455699865985, baselineRecent500=0.0008980894083988306, baselinePreProbeWindows=11.
+QWEN_MEMORY before-clause Peak:   3593M        (3768257346)
+Active: 1642M        (1722523748)
+Cache:  139M         (145961723)
+QWEN_MEMORY after-clause Peak:   3593M        (3768257346)
+Active: 1643M        (1723113572)
+Cache:  186M         (195660919)
+TTS_TRIAL 29 qualified=true onset=3172.212 Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only. baselineWhole=0.0010898583786733056, baselineRecent500=0.0010444380743865542, baselinePreProbeWindows=6.
+QWEN_MEMORY before-clause Peak:   3593M        (3768257346)
+Active: 1642M        (1722523748)
+Cache:  187M         (196250743)
+QWEN_MEMORY after-clause Peak:   3593M        (3768257346)
+Active: 1643M        (1723129956)
+Cache:  38M          (40122080)
+TTS_TRIAL 30 qualified=true onset=2802.1860833333335 Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only. baselineWhole=0.0018918275867133621, baselineRecent500=0.0011074803340772506, baselinePreProbeWindows=7.
+Generated tokenizer.json from vocab.json + merges.txt
+Loaded speech tokenizer decoder
+Loaded Qwen3-TTS model (custom_voice)
+[Qwen3TTS] CustomVoice: speaker 'Ryan' → spkId=3061
+[Qwen3TTS] CustomVoice: codec prefix length = 7
+[Qwen3TTS] CustomVoice: speaker 'Ryan' → spkId=3061
+[Qwen3TTS] CustomVoice: codec prefix length = 7
+[Qwen3TTS] CustomVoice: speaker 'Ryan' → spkId=3061
+[Qwen3TTS] CustomVoice: codec prefix length = 7
+[Qwen3TTS] CustomVoice: speaker 'Ryan' → spkId=3061
+[Qwen3TTS] CustomVoice: codec prefix length = 7
+[Qwen3TTS] CustomVoice: speaker 'Ryan' → spkId=3061
+[Qwen3TTS] CustomVoice: codec prefix length = 7
+[Qwen3TTS] CustomVoice: speaker 'Ryan' → spkId=3061
+[Qwen3TTS] CustomVoice: codec prefix length = 7
+[Qwen3TTS] CustomVoice: speaker 'Ryan' → spkId=3061
+[Qwen3TTS] CustomVoice: codec prefix length = 7
+[Qwen3TTS] CustomVoice: speaker 'Ryan' → spkId=3061
+[Qwen3TTS] CustomVoice: codec prefix length = 7
+[Qwen3TTS] CustomVoice: speaker 'Ryan' → spkId=3061
+[Qwen3TTS] CustomVoice: codec prefix length = 7
+[Qwen3TTS] CustomVoice: speaker 'Ryan' → spkId=3061
+[Qwen3TTS] CustomVoice: codec prefix length = 7
+[Qwen3TTS] CustomVoice: speaker 'Ryan' → spkId=3061
+[Qwen3TTS] CustomVoice: codec prefix length = 7
+[Qwen3TTS] CustomVoice: speaker 'Ryan' → spkId=3061
+[Qwen3TTS] CustomVoice: codec prefix length = 7
+[Qwen3TTS] CustomVoice: speaker 'Ryan' → spkId=3061
+[Qwen3TTS] CustomVoice: codec prefix length = 7
+[Qwen3TTS] CustomVoice: speaker 'Ryan' → spkId=3061
+[Qwen3TTS] CustomVoice: codec prefix length = 7
+[Qwen3TTS] CustomVoice: speaker 'Ryan' → spkId=3061
+[Qwen3TTS] CustomVoice: codec prefix length = 7
+[Qwen3TTS] CustomVoice: speaker 'Ryan' → spkId=3061
+[Qwen3TTS] CustomVoice: codec prefix length = 7
+[Qwen3TTS] CustomVoice: speaker 'Ryan' → spkId=3061
+[Qwen3TTS] CustomVoice: codec prefix length = 7
+[Qwen3TTS] CustomVoice: speaker 'Ryan' → spkId=3061
+[Qwen3TTS] CustomVoice: codec prefix length = 7
+[Qwen3TTS] CustomVoice: speaker 'Ryan' → spkId=3061
+[Qwen3TTS] CustomVoice: codec prefix length = 7
+[Qwen3TTS] CustomVoice: speaker 'Ryan' → spkId=3061
+[Qwen3TTS] CustomVoice: codec prefix length = 7
+[Qwen3TTS] CustomVoice: speaker 'Ryan' → spkId=3061
+[Qwen3TTS] CustomVoice: codec prefix length = 7
+[Qwen3TTS] CustomVoice: speaker 'Ryan' → spkId=3061
+[Qwen3TTS] CustomVoice: codec prefix length = 7
+[Qwen3TTS] CustomVoice: speaker 'Ryan' → spkId=3061
+[Qwen3TTS] CustomVoice: codec prefix length = 7
+[Qwen3TTS] CustomVoice: speaker 'Ryan' → spkId=3061
+[Qwen3TTS] CustomVoice: codec prefix length = 7
+[Qwen3TTS] CustomVoice: speaker 'Ryan' → spkId=3061
+[Qwen3TTS] CustomVoice: codec prefix length = 7
+[Qwen3TTS] CustomVoice: speaker 'Ryan' → spkId=3061
+[Qwen3TTS] CustomVoice: codec prefix length = 7
+[Qwen3TTS] CustomVoice: speaker 'Ryan' → spkId=3061
+[Qwen3TTS] CustomVoice: codec prefix length = 7
+[Qwen3TTS] CustomVoice: speaker 'Ryan' → spkId=3061
+[Qwen3TTS] CustomVoice: codec prefix length = 7
+[Qwen3TTS] CustomVoice: speaker 'Ryan' → spkId=3061
+[Qwen3TTS] CustomVoice: codec prefix length = 7
+[Qwen3TTS] CustomVoice: speaker 'Ryan' → spkId=3061
+[Qwen3TTS] CustomVoice: codec prefix length = 7
+[Qwen3TTS] CustomVoice: speaker 'Ryan' → spkId=3061
+[Qwen3TTS] CustomVoice: codec prefix length = 7
+TTS_BENCHMARK_OK

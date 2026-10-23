@@ -1,0 +1,11 @@
+{
+  "scope": "Verified compression of current task overlay symbols only; original and installed/baseline bundles unchanged",
+  "originalBytes": 424129938,
+  "compressedBytes": 98551312,
+  "fileHashes": {
+    "Contents/Info.plist": "924a28807848ef895af941e37d48244a0119e251648f21bb64498127b68e26b2",
+    "Contents/Resources/DWARF/NextNotes.portable.partial": "58fe10ab09f9441263757da5d72739507af9945995d1424a258b98ef390c3d2b",
+    "Contents/Resources/Relocations/aarch64/NextNotes.portable.partial.yml": "3e4e7da3c1b9e62831bea4b1fa9c55e78686a4c51fb91504cc05af4d55ffa44a"
+  },
+  "archive": "/Users/sergekadjo/Library/Caches/NextNotesBuild/tts-output-diagnostic/symbols-bounded-decode.zip"
+}

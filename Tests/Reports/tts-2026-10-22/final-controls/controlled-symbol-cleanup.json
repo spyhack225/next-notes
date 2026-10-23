@@ -1,0 +1,23 @@
+{
+  "scope": "Keep verified current task symbols and retire superseded task-only symbol archives; installed809 and rollback/current SDK source+objects unchanged",
+  "originalBytes": 424160882,
+  "compressedBytes": 98571283,
+  "verifiedFiles": {
+    "Contents/Info.plist": "924a28807848ef895af941e37d48244a0119e251648f21bb64498127b68e26b2",
+    "Contents/Resources/DWARF/NextNotes.portable.partial": "f5fcf3cf9453a490158838ef7eb71ae6d36802f388df100f08dcf3895fd5838e",
+    "Contents/Resources/Relocations/aarch64/NextNotes.portable.partial.yml": "380a4ad9016cb423e3e300d735f3368bf305f382c0225d318ea645f33978fc1c"
+  },
+  "retired": [
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/tts-output-diagnostic/symbols-685243da.zip",
+      "bytes": 98551585,
+      "sha256": "e57533889f76701f2fc0437a6a3df168e77a23535b3863e2e2c159ac7fccccd2"
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/tts-output-diagnostic/symbols-bounded-decode.zip",
+      "bytes": 98551312,
+      "sha256": "07c110366714811bb3a3489e5613d7fde4415d8b5281f9c2711c52d2db527fd3"
+    }
+  ],
+  "freeBytes": 4002402304
+}

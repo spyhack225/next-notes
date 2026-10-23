@@ -1,0 +1,6 @@
+{
+  "case": "baseline-fixed",
+  "exit": 0,
+  "expectedExit": 0,
+  "log": "{\"firstRenderedOrigin\":\"authored-render-generation-17\",\"acousticCorrelation\":1,\"captureWindows\":251,\"route\":[90,83],\"acousticOnsetMs\":380.51329166666665,\"estimatedPresentationMs\":320,\"baselineRMS\":0.0010000000474974504,\"presentationLatencyMs\":300,\"callerToken\":17,\"qualified\":true,\"renderOrigins\":[\"authored-render-generation-17\"],\"firstRenderedMs\":20,\"requestHost\":13263073907681,\"reason\":\"Correlated microphone onset; two consecutive 10 ms energy windows, threshold-dependent; physical route only. baselineWhole=0.02215607420532653, baselineRecent500=0.0010000000474974504, baselinePreProbeWindows=1.\",\"firstRenderedHost\":13263074387681,\"referenceWindows\":250}\nTTS_BASELINE_TAIL_CONTROL_OK\n"
+}

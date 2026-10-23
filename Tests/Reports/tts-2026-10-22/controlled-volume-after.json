@@ -1,0 +1,18 @@
+{
+  "levels": [
+    {
+      "device": 90,
+      "muted": 0,
+      "scope": "input",
+      "volume0": 0.5098039507865906
+    },
+    {
+      "device": 83,
+      "muted": 0,
+      "scope": "output",
+      "volume0": 0.1250000149011612
+    }
+  ],
+  "restored": true,
+  "manualChangePreserved": false
+}

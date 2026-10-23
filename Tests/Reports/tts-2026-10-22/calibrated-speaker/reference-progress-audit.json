@@ -1,0 +1,408 @@
+{
+  "machTimebase": {
+    "numer": 125,
+    "denom": 3
+  },
+  "scope": "Completed authored native RPC responses during each TTS request, not selected-ASR/EOU/AEC acceptance. No transcript text exported.",
+  "engines": {
+    "qwen": {
+      "completedResponses": 296,
+      "allTimedRequestsHaveResponses": true,
+      "trials": [
+        {
+          "index": 0,
+          "phase": "first-after-prepare",
+          "responsesDuringRequest": 11,
+          "maxGapSeconds": 1.105243208934553
+        },
+        {
+          "index": 1,
+          "phase": "warm",
+          "responsesDuringRequest": 10,
+          "maxGapSeconds": 1.134952291031368
+        },
+        {
+          "index": 2,
+          "phase": "warm",
+          "responsesDuringRequest": 10,
+          "maxGapSeconds": 1.1562553339172155
+        },
+        {
+          "index": 3,
+          "phase": "warm",
+          "responsesDuringRequest": 9,
+          "maxGapSeconds": 1.0576863329624757
+        },
+        {
+          "index": 4,
+          "phase": "warm",
+          "responsesDuringRequest": 9,
+          "maxGapSeconds": 1.1716772500658408
+        },
+        {
+          "index": 5,
+          "phase": "warm",
+          "responsesDuringRequest": 11,
+          "maxGapSeconds": 1.0474580000154674
+        },
+        {
+          "index": 6,
+          "phase": "warm",
+          "responsesDuringRequest": 7,
+          "maxGapSeconds": 1.0290047080488876
+        },
+        {
+          "index": 7,
+          "phase": "warm",
+          "responsesDuringRequest": 9,
+          "maxGapSeconds": 1.0516731250099838
+        },
+        {
+          "index": 8,
+          "phase": "warm",
+          "responsesDuringRequest": 10,
+          "maxGapSeconds": 1.104814791935496
+        },
+        {
+          "index": 9,
+          "phase": "warm",
+          "responsesDuringRequest": 8,
+          "maxGapSeconds": 1.0410894170636311
+        },
+        {
+          "index": 10,
+          "phase": "warm",
+          "responsesDuringRequest": 9,
+          "maxGapSeconds": 1.0291252499446273
+        },
+        {
+          "index": 11,
+          "phase": "warm",
+          "responsesDuringRequest": 5,
+          "maxGapSeconds": 1.021177374990657
+        },
+        {
+          "index": 12,
+          "phase": "warm",
+          "responsesDuringRequest": 7,
+          "maxGapSeconds": 1.0472338340478018
+        },
+        {
+          "index": 13,
+          "phase": "warm",
+          "responsesDuringRequest": 8,
+          "maxGapSeconds": 1.046527792001143
+        },
+        {
+          "index": 14,
+          "phase": "warm",
+          "responsesDuringRequest": 7,
+          "maxGapSeconds": 1.0294419589918107
+        },
+        {
+          "index": 15,
+          "phase": "warm",
+          "responsesDuringRequest": 10,
+          "maxGapSeconds": 1.0280589159810916
+        },
+        {
+          "index": 16,
+          "phase": "warm",
+          "responsesDuringRequest": 9,
+          "maxGapSeconds": 1.032420374918729
+        },
+        {
+          "index": 17,
+          "phase": "warm",
+          "responsesDuringRequest": 7,
+          "maxGapSeconds": 1.0296150419162586
+        },
+        {
+          "index": 18,
+          "phase": "warm",
+          "responsesDuringRequest": 6,
+          "maxGapSeconds": 1.0393698749830946
+        },
+        {
+          "index": 19,
+          "phase": "warm",
+          "responsesDuringRequest": 7,
+          "maxGapSeconds": 1.0317851669387892
+        },
+        {
+          "index": 20,
+          "phase": "warm",
+          "responsesDuringRequest": 10,
+          "maxGapSeconds": 1.0326755410060287
+        },
+        {
+          "index": 21,
+          "phase": "warm",
+          "responsesDuringRequest": 9,
+          "maxGapSeconds": 1.019191375002265
+        },
+        {
+          "index": 22,
+          "phase": "warm",
+          "responsesDuringRequest": 7,
+          "maxGapSeconds": 1.04863158299122
+        },
+        {
+          "index": 23,
+          "phase": "warm",
+          "responsesDuringRequest": 6,
+          "maxGapSeconds": 1.0434988329652697
+        },
+        {
+          "index": 24,
+          "phase": "warm",
+          "responsesDuringRequest": 10,
+          "maxGapSeconds": 1.047436291933991
+        },
+        {
+          "index": 25,
+          "phase": "warm",
+          "responsesDuringRequest": 10,
+          "maxGapSeconds": 1.0297293339390308
+        },
+        {
+          "index": 26,
+          "phase": "warm",
+          "responsesDuringRequest": 8,
+          "maxGapSeconds": 1.0194601670373231
+        },
+        {
+          "index": 27,
+          "phase": "warm",
+          "responsesDuringRequest": 9,
+          "maxGapSeconds": 1.0397504169959575
+        },
+        {
+          "index": 28,
+          "phase": "warm",
+          "responsesDuringRequest": 5,
+          "maxGapSeconds": 1.0374774580122903
+        },
+        {
+          "index": 29,
+          "phase": "warm",
+          "responsesDuringRequest": 9,
+          "maxGapSeconds": 1.0699435420101508
+        },
+        {
+          "index": 30,
+          "phase": "warm",
+          "responsesDuringRequest": 10,
+          "maxGapSeconds": 1.0559938329970464
+        }
+      ]
+    },
+    "apple": {
+      "completedResponses": 140,
+      "allTimedRequestsHaveResponses": true,
+      "trials": [
+        {
+          "index": 0,
+          "phase": "first-after-prepare",
+          "responsesDuringRequest": 6,
+          "maxGapSeconds": 1.0340489579830319
+        },
+        {
+          "index": 1,
+          "phase": "warm",
+          "responsesDuringRequest": 4,
+          "maxGapSeconds": 1.0276622499804944
+        },
+        {
+          "index": 2,
+          "phase": "warm",
+          "responsesDuringRequest": 3,
+          "maxGapSeconds": 1.046029792050831
+        },
+        {
+          "index": 3,
+          "phase": "warm",
+          "responsesDuringRequest": 3,
+          "maxGapSeconds": 0.9963546670041978
+        },
+        {
+          "index": 4,
+          "phase": "warm",
+          "responsesDuringRequest": 3,
+          "maxGapSeconds": 1.0303702499950305
+        },
+        {
+          "index": 5,
+          "phase": "warm",
+          "responsesDuringRequest": 5,
+          "maxGapSeconds": 1.015957791940309
+        },
+        {
+          "index": 6,
+          "phase": "warm",
+          "responsesDuringRequest": 3,
+          "maxGapSeconds": 1.0136753750266507
+        },
+        {
+          "index": 7,
+          "phase": "warm",
+          "responsesDuringRequest": 3,
+          "maxGapSeconds": 1.0170206250622869
+        },
+        {
+          "index": 8,
+          "phase": "warm",
+          "responsesDuringRequest": 2,
+          "maxGapSeconds": 1.0015815000515431
+        },
+        {
+          "index": 9,
+          "phase": "warm",
+          "responsesDuringRequest": 3,
+          "maxGapSeconds": 1.0322958340402693
+        },
+        {
+          "index": 10,
+          "phase": "warm",
+          "responsesDuringRequest": 5,
+          "maxGapSeconds": 1.024235416087322
+        },
+        {
+          "index": 11,
+          "phase": "warm",
+          "responsesDuringRequest": 3,
+          "maxGapSeconds": 1.0080541250063106
+        },
+        {
+          "index": 12,
+          "phase": "warm",
+          "responsesDuringRequest": 3,
+          "maxGapSeconds": 1.015400292002596
+        },
+        {
+          "index": 13,
+          "phase": "warm",
+          "responsesDuringRequest": 3,
+          "maxGapSeconds": 1.0018280419753864
+        },
+        {
+          "index": 14,
+          "phase": "warm",
+          "responsesDuringRequest": 3,
+          "maxGapSeconds": 0.9983754579443485
+        },
+        {
+          "index": 15,
+          "phase": "warm",
+          "responsesDuringRequest": 6,
+          "maxGapSeconds": 1.030277542071417
+        },
+        {
+          "index": 16,
+          "phase": "warm",
+          "responsesDuringRequest": 4,
+          "maxGapSeconds": 1.0144103749189526
+        },
+        {
+          "index": 17,
+          "phase": "warm",
+          "responsesDuringRequest": 3,
+          "maxGapSeconds": 1.0256949999602512
+        },
+        {
+          "index": 18,
+          "phase": "warm",
+          "responsesDuringRequest": 2,
+          "maxGapSeconds": 1.016238083015196
+        },
+        {
+          "index": 19,
+          "phase": "warm",
+          "responsesDuringRequest": 3,
+          "maxGapSeconds": 1.030266165966168
+        },
+        {
+          "index": 20,
+          "phase": "warm",
+          "responsesDuringRequest": 5,
+          "maxGapSeconds": 1.009989459067583
+        },
+        {
+          "index": 21,
+          "phase": "warm",
+          "responsesDuringRequest": 3,
+          "maxGapSeconds": 1.0140556659316644
+        },
+        {
+          "index": 22,
+          "phase": "warm",
+          "responsesDuringRequest": 4,
+          "maxGapSeconds": 1.0012868749909103
+        },
+        {
+          "index": 23,
+          "phase": "warm",
+          "responsesDuringRequest": 2,
+          "maxGapSeconds": 0.9901759159984067
+        },
+        {
+          "index": 24,
+          "phase": "warm",
+          "responsesDuringRequest": 3,
+          "maxGapSeconds": 1.020390999969095
+        },
+        {
+          "index": 25,
+          "phase": "warm",
+          "responsesDuringRequest": 4,
+          "maxGapSeconds": 1.0268159999977797
+        },
+        {
+          "index": 26,
+          "phase": "warm",
+          "responsesDuringRequest": 4,
+          "maxGapSeconds": 0.9807707499712706
+        },
+        {
+          "index": 27,
+          "phase": "warm",
+          "responsesDuringRequest": 3,
+          "maxGapSeconds": 1.033891125000082
+        },
+        {
+          "index": 28,
+          "phase": "warm",
+          "responsesDuringRequest": 3,
+          "maxGapSeconds": 0.8841799994697794
+        },
+        {
+          "index": 29,
+          "phase": "warm",
+          "responsesDuringRequest": 3,
+          "maxGapSeconds": 1.032586875022389
+        },
+        {
+          "index": 30,
+          "phase": "warm",
+          "responsesDuringRequest": 5,
+          "maxGapSeconds": 1.0080697920639068
+        }
+      ]
+    },
+    "phonon": {
+      "completedResponses": 0,
+      "allTimedRequestsHaveResponses": null,
+      "trials": []
+    },
+    "pocket": {
+      "completedResponses": 0,
+      "allTimedRequestsHaveResponses": null,
+      "trials": []
+    },
+    "kokoro": {
+      "completedResponses": 0,
+      "allTimedRequestsHaveResponses": null,
+      "trials": []
+    }
+  }
+}

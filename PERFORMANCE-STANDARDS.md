@@ -11,6 +11,21 @@ The [benchmark hub](Benchmarks/README.md) indexes model and workflow evidence ac
 
 ## Reference machine and acceptance
 
+23 October 2026 TTS calibrated follow-up: [serial speaker evidence](Tests/Reports/tts-2026-10-22/README.md#23-october-calibrated-serial-cohort--incomplete-no-default-promotion).
+Apple completes30/30 warm threshold-qualified microphone pickups under progressing cached-v3
+reference decoding:159.863ms median,186.975ms p95. Qwen completes synthesis but qualifies27/30;
+no acoustic median is accepted. Smaller pinned incremental decode batches report3.768GB MLX
+peak versus4.637GB in an earlier diagnostic; waveform boundary quality and the total disk-pressure
+producer remain open. Exact overlay candidate is retained in the report; normal packaging and
+installed809 do not activate that unqualified decoder change. Phonon hits the unchanged live disk guard; Pocket/Kokoro are refused before
+download. Every owned model/reference child joins and temporary assets are deleted before next.
+Immediate500ms baseline has original/fixed authored stale-tail evidence and persistent-noise negative;
+route snapshots now include gain/mute. Fourteen runner controls pass. Existing apps remain open;
+only identical idle build artifacts were CoW-deduplicated and superseded owned symbols retired.
+Installed809 and Pocket/Alba selection remain unchanged. Public latest records preserve failures;
+full five-model/winner production consumer/selected-ASR/EOU and quality acceptance remain open.
+
+
 22 October 2026 signed-app ASR follow-up: [eight-model application integration](Tests/Reports/asr-app-integration-2026-10-22/README.md). All8 optimized/signed candidate model cases pass45 warmed paced holds through the actual factory, segmented engine, scheduler and transcript consumer, with SDK fallback bundles hidden. Median English first/final: Phonon424/5ms; Voz448/28ms. French: Whistle417/38ms (fastest raw), Voz450/58ms. Owner-requested Automatic chooses Phonon for English and Voz for Multi; existing manual choices survive. Current Whistle short French wording matches Voz; earlier longer-fixture accuracy remains separate, not current full-app quality. Phonon cold preparation223s excludes later warm-shape passes. Physical mic/UI/polish/insertion/concurrent voice remain unverified. Original native usage attribution fails2, repaired same case passes0. All candidate children joined and owned models/HTTP files deleted,6.1GiB free at handoff; one candidate at a time. Process context now records only PID/CPU/RSS because macOS comm can include arguments. Release installation/publication remain separately verified actions.
 
 Earlier pressure-limited ASR attempt (superseded by the later serial/app reports):
